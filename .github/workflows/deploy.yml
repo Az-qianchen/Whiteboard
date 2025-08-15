@@ -29,8 +29,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: npm   # 不指定 cache-dependency-path，避免无锁时报错
 
       - name: Install dependencies (ci if lock exists)
         run: |
