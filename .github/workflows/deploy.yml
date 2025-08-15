@@ -2,8 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]   # 如你的默认分支不是 main，请改成对应分支
-  workflow_dispatch:      # 允许手动触发
+    branches: [ main ]   # 如果主分支不是 main，改这里
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,24 +14,33 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
+env:
+  BUILD_DIR: dist
+  NODE_VERSION: "20"
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: npm install
-      
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci || npm i
+      - name: Install dependencies (ci if lock exists)
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci"
+            npm ci
+          else
+            echo "No package-lock.json, using npm install"
+            npm install
+          fi
 
       - name: Build
         run: npm run build
@@ -39,14 +48,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: ${{ env.BUILD_DIR }}
 
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
-    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
