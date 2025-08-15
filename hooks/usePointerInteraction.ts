@@ -1,10 +1,11 @@
 
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { Point, DragState, Anchor, AnyPath, VectorPathData, BrushPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, LivePath } from '../types';
+import type { Point, DragState, Anchor, AnyPath, VectorPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, LivePath } from '../types';
 import { dist, updatePathAnchors, insertAnchorOnCurve, movePath, getSqDistToSegment } from '../lib/utils';
-import { getPathBoundingBox, doBboxesIntersect, getMarqueeRect, resizePath } from '../lib/geometry';
-import { isPointHittingPath } from '../lib/hit-testing';
+import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect, getMarqueeRect, resizePath } from '../lib/geometry';
+import { isPointHittingPath, isPathIntersectingMarquee } from '../lib/hit-testing';
 import { sampleCubicBezier, anchorsToPathD, pointsToPathD } from '../lib/path-fitting';
 
 // 定义钩子接收的属性
@@ -77,12 +78,6 @@ export const usePointerInteraction = ({
     setDrawingShape(null);
     shapeStartPoint.current = null;
   }, []);
-  
-  const dragStartDetails = useRef<{
-    pathIds: string[];
-    initialPointerPos: Point;
-  } | null>(null);
-
 
   useEffect(() => {
     if (tool !== 'rectangle' && tool !== 'ellipse' && tool !== 'line') {
@@ -94,27 +89,16 @@ export const usePointerInteraction = ({
   }, [tool, cancelDrawingShape, currentLinePath, handleCancelLinePath]);
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    // 处理右键点击：完成钢笔路径并始终阻止上下文菜单
-    if (e.button === 2) {
-      e.preventDefault(); // 总是阻止画布上的默认上下文菜单
-      if (tool === 'pen' && currentPenPath) {
-        handleFinishPenPath();
-      } else if (tool === 'line' && currentLinePath) {
-        handleFinishLinePath();
-      }
-      return;
-    }
-
-    if (e.button === 1) {
+    if (e.button === 1) { // Middle mouse button for panning
       setIsPanning(true);
       return;
     }
 
-    if (e.button !== 0) {
+    if (e.button !== 0) { // Only handle left clicks
       return;
     }
 
-    if (e.altKey && !dragState && tool !== 'edit') {
+    if (e.altKey && !dragState && (tool !== 'edit' && tool !== 'move')) {
       setIsPanning(true);
       return;
     }
@@ -178,6 +162,52 @@ export const usePointerInteraction = ({
         break;
       }
 
+      case 'move': {
+        let clickedPathId: string | null = null;
+        for (let i = paths.length - 1; i >= 0; i--) {
+            const path = paths[i];
+            if (isPointHittingPath(point, path, viewTransform.viewTransform.scale)) {
+                clickedPathId = path.id;
+                break;
+            }
+        }
+
+        if (clickedPathId) {
+            const isSelected = selectedPathIds.includes(clickedPathId);
+            let nextSelection: string[];
+
+            if (e.shiftKey) {
+                nextSelection = isSelected 
+                    ? selectedPathIds.filter(id => id !== clickedPathId)
+                    : [...selectedPathIds, clickedPathId];
+            } else {
+                nextSelection = isSelected ? selectedPathIds : [clickedPathId];
+            }
+            
+            setSelectedPathIds(nextSelection);
+
+            const pathsToMove = paths.filter(p => nextSelection.includes(p.id));
+            const initialSelectionBbox = getPathsBoundingBox(pathsToMove);
+
+            if (pathsToMove.length > 0 && initialSelectionBbox) {
+                beginCoalescing();
+                setDragState({
+                    type: 'move',
+                    pathIds: nextSelection,
+                    originalPaths: pathsToMove,
+                    initialPointerPos: point,
+                    initialSelectionBbox,
+                });
+            }
+        } else {
+            if (!e.shiftKey) {
+                setSelectedPathIds([]);
+            }
+            setMarquee({ start: point, end: point });
+        }
+        break;
+      }
+
       case 'edit': {
         const targetElement = e.target as SVGElement;
         const type = targetElement.dataset.type as 'anchor' | 'handleIn' | 'handleOut' | undefined;
@@ -188,7 +218,6 @@ export const usePointerInteraction = ({
         if (type && pathId && anchorIndexStr && (type === 'anchor' || type === 'handleIn' || type === 'handleOut')) {
             const anchorIndex = parseInt(anchorIndexStr, 10);
             
-            // ALT-CLICK TO DELETE NODE
             if (e.altKey && type === 'anchor') {
                 setPaths((prevPaths: AnyPath[]) =>
                     prevPaths.map(p => {
@@ -207,22 +236,26 @@ export const usePointerInteraction = ({
                 if (path && 'anchors' in path && path.anchors && path.anchors.length <= 1) {
                     setSelectedPathIds(ids => ids.filter(id => id !== pathId));
                 }
-                return; // Deletion handled
+                return;
             }
 
-            // Normal drag start - DEFENSIVE CHECK
+            let finalType = type;
+            if (e.shiftKey && type === 'anchor') {
+              finalType = 'handleOut';
+            }
+            
             const path = paths.find(p => p.id === pathId);
             if (path && 'anchors' in path && path.anchors && anchorIndex < path.anchors.length) {
               beginCoalescing();
-              setDragState({ type, pathId, anchorIndex });
+              setDragState({ type: finalType as 'anchor' | 'handleIn' | 'handleOut', pathId, anchorIndex });
             }
-            return; // Interaction handled
+            return;
         }
         
         // Priority 1.5: Add a node to a selected path (CTRL-CLICK)
         const singleSelectedPath = selectedPathIds.length === 1 ? paths.find(p => p.id === selectedPathIds[0]) : null;
         if (e.ctrlKey && singleSelectedPath && ('anchors' in singleSelectedPath) && singleSelectedPath.anchors && singleSelectedPath.anchors.length >= 2) {
-            const path = singleSelectedPath as VectorPathData | BrushPathData;
+            const path = singleSelectedPath as VectorPathData;
             const threshold = (10 / viewTransform.viewTransform.scale);
             const thresholdSq = threshold * threshold;
 
@@ -251,30 +284,41 @@ export const usePointerInteraction = ({
                 const { index, t } = closest;
                 const startAnchor = path.anchors[index];
                 const endAnchor = path.anchors[index + 1];
-
                 const newAnchor = insertAnchorOnCurve(startAnchor, endAnchor, t);
-
                 const newAnchors = [...path.anchors];
                 newAnchors.splice(index + 1, 0, newAnchor);
                 
                 setPaths((prevPaths: AnyPath[]) => prevPaths.map(p => p.id === path.id ? { ...p, anchors: newAnchors } : p));
-                return; // Node added, interaction handled.
+                return;
             }
         }
         
         // Priority 2: Check for resize handle interaction
-        const handle = targetElement.dataset.handle as ResizeHandlePosition | undefined;
-        if (handle && singleSelectedPath) {
-            beginCoalescing();
-            setDragState({ type: 'resize', pathId: singleSelectedPath.id, handle, originalPath: singleSelectedPath as RectangleData | EllipseData | BrushPathData, initialPointerPos: point });
-            return;
+        if (selectedPathIds.length === 1) {
+            const handle = targetElement.dataset.handle as ResizeHandlePosition | undefined;
+            if (handle && singleSelectedPath) {
+                beginCoalescing();
+                setDragState({ type: 'resize', pathId: singleSelectedPath.id, handle, originalPath: singleSelectedPath as RectangleData | EllipseData, initialPointerPos: point });
+                return;
+            }
         }
         
-        // Priority 3: Check for move interaction (or click-to-select)
-        dragStartDetails.current = { initialPointerPos: point, pathIds: selectedPathIds };
-        
-        // Priority 4: Fallback to marquee if clicked on empty space
-        setMarquee({ start: point, end: point });
+        // Priority 3: Path selection. With the edit tool, clicking an empty space deselects.
+        let clickedPathId: string | null = null;
+        for (let i = paths.length - 1; i >= 0; i--) {
+            const path = paths[i];
+            if (isPointHittingPath(point, path, viewTransform.viewTransform.scale)) {
+                clickedPathId = path.id;
+                break;
+            }
+        }
+
+        if (clickedPathId) {
+            setSelectedPathIds([clickedPathId]);
+        } else {
+            // With edit tool, clicking empty space just deselects
+            setSelectedPathIds([]);
+        }
         break;
       }
     }
@@ -301,23 +345,6 @@ export const usePointerInteraction = ({
             setDrawingShape(linePath);
         }
     }
-
-    if (dragStartDetails.current && dist(movePoint, dragStartDetails.current.initialPointerPos) > 3) {
-      const selectedPaths = paths.filter(p => dragStartDetails.current!.pathIds.includes(p.id));
-      const clickedOnSelected = selectedPaths.some(p => isPointHittingPath(dragStartDetails.current!.initialPointerPos, p, viewTransform.viewTransform.scale));
-
-      if (clickedOnSelected) {
-        beginCoalescing();
-        const originalPaths = paths.filter(p => dragStartDetails.current!.pathIds.includes(p.id));
-        setDragState({
-            type: 'move',
-            pathIds: dragStartDetails.current.pathIds,
-            originalPaths: originalPaths,
-            initialPointerPos: dragStartDetails.current.initialPointerPos
-        });
-      }
-      dragStartDetails.current = null;
-    }
     
     if (dragState) {
         let finalMovePoint = snappedMovePoint;
@@ -339,13 +366,29 @@ export const usePointerInteraction = ({
         beginCoalescing();
         switch (dragState.type) {
             case 'move': {
-                const dx = movePoint.x - dragState.initialPointerPos.x;
-                const dy = movePoint.y - dragState.initialPointerPos.y;
+                const totalDx = movePoint.x - dragState.initialPointerPos.x;
+                const totalDy = movePoint.y - dragState.initialPointerPos.y;
+
+                let finalDx = totalDx;
+                let finalDy = totalDy;
+
+                if (isGridVisible) {
+                    const { initialSelectionBbox } = dragState;
+                    
+                    const targetX = initialSelectionBbox.x + totalDx;
+                    const targetY = initialSelectionBbox.y + totalDy;
+                    
+                    const snappedX = Math.round(targetX / gridSize) * gridSize;
+                    const snappedY = Math.round(targetY / gridSize) * gridSize;
+                    
+                    finalDx = snappedX - initialSelectionBbox.x;
+                    finalDy = snappedY - initialSelectionBbox.y;
+                }
                 
                 setPaths((prevPaths: AnyPath[]) => {
                     const movedPathMap = new Map<string, AnyPath>();
                     for (const originalPath of dragState.originalPaths) {
-                        movedPathMap.set(originalPath.id, movePath(originalPath, dx, dy));
+                        movedPathMap.set(originalPath.id, movePath(originalPath, finalDx, finalDy));
                     }
                     return prevPaths.map(p => movedPathMap.get(p.id) || p);
                 });
@@ -370,7 +413,7 @@ export const usePointerInteraction = ({
               } else {
                 setPaths((prevPaths: AnyPath[]) => prevPaths.map(p => {
                     if (p.id === dragState.pathId && 'anchors' in p) {
-                      return updatePathAnchors(p as VectorPathData | BrushPathData, dragState, updatePoint, e.shiftKey) as AnyPath;
+                      return updatePathAnchors(p as VectorPathData, dragState, updatePoint, e.shiftKey) as AnyPath;
                     }
                     return p;
                   }
@@ -451,8 +494,6 @@ export const usePointerInteraction = ({
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
-    dragStartDetails.current = null;
-
     if (isPanning) {
       setIsPanning(false);
       return;
@@ -495,62 +536,29 @@ export const usePointerInteraction = ({
     if (dragState) {
         if (isClosingPath.current) {
             const { pathId } = isClosingPath.current;
-            // The path was already updated with the snapped anchor during pointer move.
-            // Here, we just finalize it by setting the `isClosed` flag.
             setPaths(prev => prev.map(p => p.id === pathId ? { ...p, isClosed: true } : p));
         }
         endCoalescing();
     }
-    isClosingPath.current = null; // Clean up ref
+    isClosingPath.current = null;
     
     if (marquee) {
-        const point = getPointerPosition(e, e.currentTarget);
-        const isClick = dist(marquee.start, point) < 5;
-
-        if (isClick) {
-            let clickedPathId: string | null = null;
-            // Iterate in reverse to find the top-most path using precise hit detection
-            for (let i = paths.length - 1; i >= 0; i--) {
-                const path = paths[i];
-                if (isPointHittingPath(point, path, viewTransform.viewTransform.scale)) {
-                    clickedPathId = path.id;
-                    break;
-                }
-            }
-
-            if (clickedPathId) {
-                if (e.shiftKey) {
-                    setSelectedPathIds(ids => 
-                        ids.includes(clickedPathId!)
-                        ? ids.filter(id => id !== clickedPathId)
-                        : [...ids, clickedPathId!]
-                    );
-                } else {
-                    setSelectedPathIds([clickedPathId]);
-                }
-            } else {
-                 if (!e.shiftKey) setSelectedPathIds([]);
-            }
-        } else { // Marquee selection
+        const isClick = dist(marquee.start, marquee.end) < 5;
+        if (!isClick) {
             const marqueeRect = getMarqueeRect(marquee);
-            const newlySelected = paths
-                .filter(path => doBboxesIntersect(getPathBoundingBox(path), marqueeRect))
-                .map(path => path.id);
+            const intersectingPaths = paths.filter(path => isPathIntersectingMarquee(path, marqueeRect));
             
-            if (e.shiftKey) {
-                setSelectedPathIds(ids => {
-                    const currentIds = new Set(ids);
-                    newlySelected.forEach(id => {
-                        if (currentIds.has(id)) {
-                            currentIds.delete(id);
-                        } else {
-                            currentIds.add(id);
-                        }
+            if (tool === 'move') {
+                const newlySelectedIds = intersectingPaths.map(path => path.id);
+                if (e.shiftKey) {
+                    setSelectedPathIds(ids => {
+                        const currentIds = new Set(ids);
+                        newlySelectedIds.forEach(id => currentIds.add(id));
+                        return Array.from(currentIds);
                     });
-                    return Array.from(currentIds);
-                });
-            } else {
-                setSelectedPathIds(newlySelected);
+                } else {
+                    setSelectedPathIds(newlySelectedIds);
+                }
             }
         }
         setMarquee(null);
@@ -571,7 +579,6 @@ export const usePointerInteraction = ({
     if (marquee) setMarquee(null);
     if (previewD) setPreviewD(null);
     if (drawingShape) cancelDrawingShape();
-    dragStartDetails.current = null;
     shapeStartPoint.current = null;
   };
 

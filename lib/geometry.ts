@@ -1,14 +1,9 @@
 
-import type { AnyPath, Point, BrushPathData, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData } from '../types';
+
+
+import type { BBox, AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData } from '../types';
 import { samplePath } from './path-fitting';
 import { dist } from './utils';
-
-export interface BBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 /**
  * 计算路径的边界框，会考虑其所有锚点和控制手柄。
@@ -30,9 +25,8 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
         height: path.height + path.strokeWidth,
       };
     case 'pen':
-    case 'line':
-    case 'brush': {
-      const anchoredPath = path as VectorPathData | BrushPathData;
+    case 'line': {
+      const anchoredPath = path as VectorPathData;
       if (!anchoredPath.anchors || anchoredPath.anchors.length < 1) {
         return { x: 0, y: 0, width: 0, height: 0 };
       }
@@ -104,7 +98,7 @@ export function doBboxesIntersect(box1: BBox, box2: BBox): boolean {
 }
 
 export function resizePath(
-    originalPath: RectangleData | EllipseData | BrushPathData,
+    originalPath: RectangleData | EllipseData,
     handle: ResizeHandlePosition,
     currentPos: Point,
     initialPos: Point,
@@ -112,32 +106,6 @@ export function resizePath(
 ): AnyPath {
     const dx = currentPos.x - initialPos.x;
     const dy = currentPos.y - initialPos.y;
-    
-    if (originalPath.tool === 'brush') {
-      const bbox = getPathBoundingBox(originalPath, false);
-      let newWidth = bbox.width + (handle.includes('right') ? dx : (handle.includes('left') ? -dx : 0));
-      let newHeight = bbox.height + (handle.includes('bottom') ? dy : (handle.includes('top') ? -dy : 0));
-      
-      if (newWidth <= 0 || newHeight <= 0) return originalPath;
-
-      const scaleX = newWidth / bbox.width;
-      const scaleY = newHeight / bbox.height;
-
-      const newAnchors = originalPath.anchors.map(a => {
-        const scalePoint = (p: Point) => ({
-            x: bbox.x + (p.x - bbox.x) * scaleX,
-            y: bbox.y + (p.y - bbox.y) * scaleY,
-        });
-        return {
-            point: scalePoint(a.point),
-            handleIn: scalePoint(a.handleIn),
-            handleOut: scalePoint(a.handleOut),
-        };
-      });
-      
-      return { ...originalPath, anchors: newAnchors };
-    }
-
 
     // Rectangle and Ellipse logic
     let { x, y, width, height } = originalPath;
@@ -186,4 +154,29 @@ export function resizePath(
     }
 
     return { ...originalPath, x, y, width, height };
+}
+
+export function getPathsBoundingBox(paths: AnyPath[]): BBox | null {
+  if (!paths || paths.length === 0) return null;
+
+  const bboxes = paths.map(p => getPathBoundingBox(p, false));
+  if (bboxes.length === 0) return null;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  
+  for (const bbox of bboxes) {
+    minX = Math.min(minX, bbox.x);
+    minY = Math.min(minY, bbox.y);
+    maxX = Math.max(maxX, bbox.x + bbox.width);
+    maxY = Math.max(maxY, bbox.y + bbox.height);
+  }
+  
+  if (!isFinite(minX)) return null;
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
 }

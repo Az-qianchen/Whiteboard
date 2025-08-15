@@ -4,13 +4,29 @@
  * live freehand brush strokes and also includes utilities for converting brush
  * strokes into vector-based bezier curves.
  */
-import type { Point, Anchor, LivePath, BrushPathData } from '../types';
+import type { Point, Anchor, LivePath, VectorPathData } from '../types';
 import { dist } from './utils';
 // The 'points-on-curve' library is now included at the bottom of this file.
 
 /**
+ * Converts an array of points to a simple, non-smoothed SVG path string (polyline).
+ * This is used for the live preview of the brush tool to avoid "wobble".
+ */
+export function pointsToSimplePathD(points: Point[]): string {
+  if (points.length < 2) {
+    return points.length === 1 ? `M ${points[0].x} ${points[0].y} L ${points[0].x} ${points[0].y}` : '';
+  }
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    d += ` L ${points[i].x} ${points[i].y}`;
+  }
+  return d;
+}
+
+/**
  * Converts an array of points to a smoothed SVG path string using the vendored 'points-on-curve' algorithm.
- * This is used for live preview of the brush tool.
+ * This is used for live preview of smoothed paths, like the line tool.
  */
 export function pointsToPathD(points: Point[]): string {
   if (points.length < 2) {
@@ -144,7 +160,7 @@ function fitCurve(points: Point[], scaleFactor: number = 0.2): Anchor[] {
 }
 
 
-export function convertBrushPathToVector(path: LivePath): BrushPathData {
+export function convertLivePathToVectorPath(path: LivePath): VectorPathData {
     const epsilon = path.strokeWidth * 0.5;
     const simplifiedPoints = ramerDouglasPeucker(path.points, epsilon);
     
@@ -152,7 +168,7 @@ export function convertBrushPathToVector(path: LivePath): BrushPathData {
 
     return {
         id: path.id,
-        tool: 'brush',
+        tool: 'pen',
         anchors,
         color: path.color,
         fill: path.fill,

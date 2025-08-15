@@ -3,9 +3,10 @@
  * on the canvas intersects with a shape.
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox } from '../types';
 import { dist } from './utils';
 import { samplePath } from './path-fitting';
+import { getPathBoundingBox, doBboxesIntersect } from './geometry';
 
 /**
  * Calculates the squared distance from a point to a line segment.
@@ -86,9 +87,8 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             return false;
         }
         case 'pen':
-        case 'line':
-        case 'brush': {
-            const vectorPath = path as VectorPathData | BrushPathData;
+        case 'line': {
+            const vectorPath = path as VectorPathData;
             if (!vectorPath.anchors || vectorPath.anchors.length === 0) return false;
             
             // For single-point paths (dots)
@@ -109,4 +109,18 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         default:
             return false;
     }
+}
+
+/**
+ * Checks if a path's bounding box intersects with a marquee selection rectangle.
+ * @param path The path to check.
+ * @param marqueeRect The marquee selection rectangle.
+ * @returns True if they intersect, false otherwise.
+ */
+export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boolean {
+  const pathBbox = getPathBoundingBox(path, true); // Check against the visual bounding box
+  if (!pathBbox) return false;
+
+  // A simple bbox intersection check is usually sufficient and performant.
+  return doBboxesIntersect(pathBbox, marqueeRect);
 }

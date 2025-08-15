@@ -153,7 +153,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const isCurvePropsEnabledForCurrentTool = tool === 'edit' || tool === 'line';
 
   const toolButtons = [
-    { name: 'edit', title: '选择 (V)', icon: ICONS.EDIT, label: '选择' },
+    { name: 'edit', title: '编辑 (V)', icon: ICONS.EDIT, label: '编辑' },
+    { name: 'move', title: '移动 (M)', icon: ICONS.MOVE, label: '移动' },
   ];
   const drawingToolButtons = [
     { name: 'brush', title: '画笔 (B)', icon: ICONS.BRUSH, label: '画笔' },
@@ -164,10 +165,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   ];
 
   return (
-    <div className="w-full max-w-5xl bg-white dark:bg-[#4A5568] shadow-lg rounded-lg p-3 flex flex-wrap items-end justify-center gap-x-3 gap-y-2 text-slate-600 dark:text-slate-300">
+    <div className="w-full max-w-5xl bg-white dark:bg-[#4A5568] shadow-lg rounded-lg p-3 flex flex-wrap items-end justify-center gap-x-2 gap-y-2 text-slate-600 dark:text-slate-300">
       
       {/* 工具选择 */}
-      <div className="flex items-end gap-1">
+      <div className="flex items-end gap-2">
          {toolButtons.map((toolItem) => (
             <div key={toolItem.name} className="flex flex-col items-center gap-1 w-14">
               <button
@@ -187,43 +188,74 @@ export const Toolbar: React.FC<ToolbarProps> = ({
          ))}
       </div>
 
-      <RadioGroup value={tool} onChange={setTool} className="flex items-end gap-1">
-        {drawingToolButtons.map((toolItem) => (
-          <div key={toolItem.name} className="flex flex-col items-center gap-1 w-14">
-            <RadioGroup.Option
-              value={toolItem.name}
-              as="button"
-              title={toolItem.title}
-              className={({ checked }) => `p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 ${
-                checked
-                  ? 'bg-blue-100 dark:bg-blue-800 ring-2 ring-blue-500 text-blue-600 dark:text-blue-200'
-                  : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-            >
-              {toolItem.icon}
-            </RadioGroup.Option>
-             <RadioGroup.Label as="span" className="text-xs font-medium text-slate-500 dark:text-slate-400">{toolItem.label}</RadioGroup.Label>
-          </div>
-        ))}
-      </RadioGroup>
-      
-      {/* AI Drawing Button */}
-      <div className="flex flex-col items-center gap-1 w-14">
-        <button
-          type="button"
-          title="AI 绘图 (A)"
-          onClick={onOpenAiModal}
-          className="p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-        >
-          {ICONS.AI}
-        </button>
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">AI 绘图</span>
+      <div className="flex items-end gap-2">
+        <RadioGroup value={tool} onChange={setTool} className="flex items-end gap-2">
+          {drawingToolButtons.map((toolItem) => (
+            <div key={toolItem.name} className="flex flex-col items-center gap-1 w-14">
+              <RadioGroup.Option
+                value={toolItem.name}
+                as="button"
+                title={toolItem.title}
+                className={({ checked }) => `p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 ${
+                  checked
+                    ? 'bg-blue-100 dark:bg-blue-800 ring-2 ring-blue-500 text-blue-600 dark:text-blue-200'
+                    : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {toolItem.icon}
+              </RadioGroup.Option>
+               <RadioGroup.Label as="span" className="text-xs font-medium text-slate-500 dark:text-slate-400">{toolItem.label}</RadioGroup.Label>
+            </div>
+          ))}
+        </RadioGroup>
+        
+        {/* AI Drawing Button */}
+        <div className="flex flex-col items-center gap-1 w-14">
+          <button
+            type="button"
+            title="AI 绘图 (A)"
+            onClick={onOpenAiModal}
+            className="p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
+          >
+            {ICONS.AI}
+          </button>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">AI 绘图</span>
+        </div>
       </div>
+
 
       <Separator />
 
       {/* Style Controls */}
-      <div className="flex items-end gap-3 text-center">
+      <div className="flex items-end gap-2 text-center">
+        {/* 描边宽度 */}
+        <div className="flex flex-col items-center gap-1 w-20">
+          <div
+            className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-md h-9 px-2 w-full cursor-ns-resize"
+            onWheel={handleStrokeWidthWheel}
+            title="使用滚轮调节"
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={localStrokeWidth}
+              onChange={(e) => setLocalStrokeWidth(e.target.value.replace(/[^0-9]/g, ''))}
+              onBlur={handleStrokeWidthCommit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleStrokeWidthCommit();
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              className="w-full bg-transparent text-sm text-center outline-none text-slate-800 dark:text-slate-200 pointer-events-none"
+              aria-label="描边宽度"
+            />
+            <span className="text-sm text-slate-500 dark:text-slate-400">px</span>
+          </div>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">宽度</span>
+        </div>
+        
         {/* 描边颜色选择 */}
         <div className="flex flex-col items-center gap-1 w-14">
           <Popover className="relative">
@@ -313,34 +345,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </Popover>
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">填充样式</span>
         </div>
-
-        {/* 描边宽度 */}
-        <div className="flex flex-col items-center gap-1 w-20">
-          <div
-            className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-md h-9 px-2 w-full cursor-ns-resize"
-            onWheel={handleStrokeWidthWheel}
-            title="使用滚轮调节"
-          >
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={localStrokeWidth}
-              onChange={(e) => setLocalStrokeWidth(e.target.value.replace(/[^0-9]/g, ''))}
-              onBlur={handleStrokeWidthCommit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleStrokeWidthCommit();
-                  (e.currentTarget as HTMLInputElement).blur();
-                }
-              }}
-              className="w-full bg-transparent text-sm text-center outline-none text-slate-800 dark:text-slate-200 pointer-events-none"
-              aria-label="描边宽度"
-            />
-            <span className="text-sm text-slate-500 dark:text-slate-400">px</span>
-          </div>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">宽度</span>
-        </div>
         
         {/* 属性 */}
         <div className="flex flex-col items-center gap-1 w-14">
@@ -374,12 +378,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </Popover>
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">样式</span>
         </div>
-      </div>
 
-      <Separator />
-
-      {/* View/Canvas Controls */}
-      <div className="flex items-end gap-3 text-center">
+        {/* Grid Control */}
         <div className="flex flex-col items-center gap-1 w-14">
           <Popover className="relative">
             <Popover.Button className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${isGridVisible ? 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-200' : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'}`} title="网格与吸附 (G)">
@@ -436,7 +436,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 // --- 子组件 ---
 
-const Separator = () => <div className="h-10 w-px bg-slate-200 dark:bg-slate-600 hidden sm:block mx-1 self-end mb-4"></div>;
+const Separator = () => <div className="h-10 w-px bg-slate-200 dark:bg-slate-600 hidden sm:block self-end mb-4"></div>;
 
 const ActionButton: React.FC<{onClick: () => void, disabled: boolean, icon: React.ReactNode, label: string, isDanger?: boolean}> = ({ onClick, disabled, icon, label, isDanger }) => {
   const baseClasses = "px-3 py-2 rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-800 w-full";

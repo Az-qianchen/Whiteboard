@@ -10,6 +10,14 @@ export interface Anchor {
   handleOut: Point;   // 控制离开此锚点的曲线的控制点
 }
 
+// BBox moved here from geometry.ts to avoid circular dependencies
+export interface BBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface ShapeBase {
   id: string;
   color: string;
@@ -36,10 +44,6 @@ export interface VectorPathData extends AnchoredPathBase {
   tool: 'pen' | 'line';
 }
 
-export interface BrushPathData extends AnchoredPathBase {
-  tool: 'brush';
-}
-
 export interface RectangleData extends ShapeBase {
   tool: 'rectangle';
   x: number;
@@ -57,7 +61,7 @@ export interface EllipseData extends ShapeBase {
 }
 
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | BrushPathData | RectangleData | EllipseData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData;
 
 // 用于实时手绘的临时路径类型。
 export interface LivePath extends ShapeBase {
@@ -71,7 +75,7 @@ export type DrawingShape = RectangleData | EllipseData | VectorPathData;
 // A brush path that is being drawn, represented by a series of points.
 export type BrushPathWithPoints = LivePath;
 
-export type Tool = 'pen' | 'brush' | 'edit' | 'rectangle' | 'ellipse' | 'line';
+export type Tool = 'pen' | 'brush' | 'edit' | 'rectangle' | 'ellipse' | 'line' | 'move';
 
 export type ResizeHandlePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'right' | 'bottom' | 'left';
 
@@ -88,6 +92,7 @@ type MoveDragState = {
   pathIds: string[];
   originalPaths: AnyPath[];
   initialPointerPos: Point;
+  initialSelectionBbox: BBox;
 };
 
 // A drag state for resizing a single shape
@@ -95,7 +100,7 @@ type ResizeDragState = {
   type: 'resize';
   pathId: string;
   handle: ResizeHandlePosition;
-  originalPath: RectangleData | EllipseData | BrushPathData;
+  originalPath: RectangleData | EllipseData;
   initialPointerPos: Point;
 };
 

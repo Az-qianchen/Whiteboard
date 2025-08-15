@@ -1,3 +1,4 @@
+
 # 项目介绍
 这是一个类似 Excalidraw 的白板工具，可以绘制手绘风格的矢量图形。
 
@@ -14,7 +15,7 @@
 ## 快捷键 (Shortcuts)
 
 ### 工具切换
-- `V`: 选择工具 (Select/Edit Tool)
+- `V`: 编辑工具 (Edit Tool)
 - `B`: 画笔工具 (Brush Tool)
 - `P`: 钢笔工具 (Pen Tool)
 - `A`: 打开 AI 绘图对话框 (Open AI Drawing Dialog)

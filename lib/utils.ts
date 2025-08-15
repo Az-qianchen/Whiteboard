@@ -1,4 +1,4 @@
-import type { Point, AnyPath, Anchor, DragState, RectangleData, EllipseData, BrushPathData, VectorPathData } from '../types';
+import type { Point, AnyPath, Anchor, DragState, RectangleData, EllipseData, VectorPathData } from '../types';
 
 /**
  * 计算两点之间的欧几里得距离。
@@ -90,10 +90,9 @@ export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T 
     switch(path.tool) {
         case 'pen':
         case 'line':
-        case 'brush':
             return {
                 ...path,
-                anchors: (path as VectorPathData | BrushPathData).anchors.map(a => ({
+                anchors: (path as VectorPathData).anchors.map(a => ({
                     point: { x: a.point.x + dx, y: a.point.y + dy },
                     handleIn: { x: a.handleIn.x + dx, y: a.handleIn.y + dy },
                     handleOut: { x: a.handleOut.x + dx, y: a.handleOut.y + dy },

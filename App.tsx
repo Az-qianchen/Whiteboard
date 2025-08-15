@@ -1,15 +1,19 @@
 
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import hotkeys from 'hotkeys-js';
 import { Toolbar } from './components/Toolbar';
 import { Whiteboard } from './components/Whiteboard';
 import { AiModal } from './components/AiModal';
+import { ContextMenu } from './components/ContextMenu';
 import { usePaths } from './hooks/usePaths';
 import { useToolbarState } from './hooks/useToolbarState';
 import { useViewTransform } from './hooks/useViewTransform';
 import { usePointerInteraction } from './hooks/usePointerInteraction';
-import type { Anchor, VectorPathData } from './types';
+import { getPathsBoundingBox } from './lib/geometry';
+import { movePath } from './lib/utils';
+import { ICONS } from './constants';
+import type { Anchor, VectorPathData, AnyPath } from './types';
 
 const App: React.FC = () => {
   // AI Modal State
@@ -17,6 +21,9 @@ const App: React.FC = () => {
   // Grid State
   const [isGridVisible, setIsGridVisible] = useState(true);
   const [gridSize, setGridSize] = useState(20);
+  // Clipboard and Context Menu State
+  const [clipboardContent, setClipboardContent] = useState<AnyPath[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null>(null);
 
   // 管理所有路径相关状态和操作的钩子
   const pathState = usePaths();
@@ -38,6 +45,73 @@ const App: React.FC = () => {
     isGridVisible,
     gridSize,
   });
+  
+  const handleCopy = useCallback(() => {
+    if (selectedPathIds.length > 0) {
+      const selected = paths.filter(p => selectedPathIds.includes(p.id));
+      setClipboardContent(selected);
+    }
+  }, [paths, selectedPathIds]);
+
+  const handlePaste = useCallback((pasteAt?: {x: number, y: number}) => {
+    if (clipboardContent.length === 0) return;
+
+    const newPaths: AnyPath[] = [];
+    const newIds: string[] = [];
+
+    const copiedPathsBbox = getPathsBoundingBox(clipboardContent);
+    let dx = 20 / viewTransform.viewTransform.scale; // Default offset
+    let dy = 20 / viewTransform.viewTransform.scale;
+
+    if (pasteAt && copiedPathsBbox) {
+        // Paste at a specific point, aligning the top-left of the bounding box
+        dx = pasteAt.x - copiedPathsBbox.x;
+        dy = pasteAt.y - copiedPathsBbox.y;
+    }
+
+    clipboardContent.forEach((path, index) => {
+      const newId = `${Date.now()}-${index}`;
+      const moved = movePath(path, dx, dy);
+      const newPath = { ...moved, id: newId };
+      newPaths.push(newPath);
+      newIds.push(newId);
+    });
+
+    pathState.setPaths(prev => [...prev, ...newPaths]);
+    pathState.setSelectedPathIds(newIds);
+    toolbarState.setTool('edit');
+  }, [clipboardContent, pathState, toolbarState, viewTransform.viewTransform.scale]);
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    let pathWasFinished = false;
+    // Finish pen/line path on right click
+    if (toolbarState.tool === 'pen' && pathState.currentPenPath) {
+      pathState.handleFinishPenPath();
+      pathWasFinished = true;
+    } else if (toolbarState.tool === 'line' && pathState.currentLinePath) {
+      pathState.handleFinishLinePath();
+      pathWasFinished = true;
+    }
+    
+    // If a path was finished by this right-click, don't show the context menu.
+    if (pathWasFinished) {
+        return;
+    }
+
+    const svg = (e.currentTarget as HTMLElement).querySelector('svg');
+    if (!svg) return;
+    const worldPos = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+    
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      worldX: worldPos.x,
+      worldY: worldPos.y,
+    });
+  };
 
   const handleGenerate = async (prompt: string) => {
     if (!prompt) return;
@@ -124,10 +198,11 @@ const App: React.FC = () => {
   // 使用 hotkeys-js 库处理键盘快捷键
   useEffect(() => {
     // These快捷键应遵循默认过滤器（不在输入框中触发）
-    hotkeys('v,b,p,r,o,l,escape,enter,backspace,delete', (event, handler) => {
+    hotkeys('v,m,b,p,r,o,l,escape,enter,backspace,delete', (event, handler) => {
       event.preventDefault();
       switch (handler.key) {
         case 'v': toolbarState.setTool('edit'); break;
+        case 'm': toolbarState.setTool('move'); break;
         case 'b': toolbarState.setTool('brush'); break;
         case 'p': toolbarState.setTool('pen'); break;
         case 'r': toolbarState.setTool('rectangle'); break;
@@ -174,16 +249,28 @@ const App: React.FC = () => {
         pathState.handleRedo();
     });
 
+    hotkeys('command+c, ctrl+c', (event) => {
+      event.preventDefault();
+      handleCopy();
+    });
+
+    hotkeys('command+v, ctrl+v', (event) => {
+      event.preventDefault();
+      handlePaste();
+    });
+
     // 恢复原始过滤器
     hotkeys.filter = originalFilter;
     
     // 组件卸载时清理
     return () => {
-      hotkeys.unbind('v,b,p,r,o,l,escape,enter,backspace,delete');
+      hotkeys.unbind('v,m,b,p,r,o,l,escape,enter,backspace,delete');
       hotkeys.unbind('a');
       hotkeys.unbind('g');
       hotkeys.unbind('command+z, ctrl+z');
       hotkeys.unbind('command+shift+z, ctrl+shift+z');
+      hotkeys.unbind('command+c, ctrl+c');
+      hotkeys.unbind('command+v, ctrl+v');
     };
   }, [
     selectedPathIds,
@@ -200,14 +287,26 @@ const App: React.FC = () => {
     handleDeleteSelected,
     pointerInteraction.drawingShape,
     pointerInteraction.cancelDrawingShape,
+    handleCopy,
+    handlePaste,
   ]);
 
   const selectedPaths = paths.filter(p => selectedPathIds.includes(p.id));
-  const cursor = isPanning ? 'grabbing' : (toolbarState.tool === 'edit' ? 'default' : 'crosshair');
+  const cursor = isPanning ? 'grabbing' : (toolbarState.tool === 'move' ? 'move' : (toolbarState.tool === 'edit' ? 'default' : 'crosshair'));
+  
+  const contextMenuActions = [
+    { label: '复制', handler: handleCopy, disabled: selectedPathIds.length === 0, icon: ICONS.COPY },
+    { label: '粘贴', handler: () => handlePaste({ x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 }), disabled: clipboardContent.length === 0, icon: ICONS.PASTE },
+    { label: '---' },
+    { label: '删除', handler: handleDeleteSelected, disabled: selectedPathIds.length === 0, isDanger: true, icon: ICONS.CLEAR },
+    { label: '---' },
+    { label: '撤销', handler: pathState.handleUndo, disabled: !pathState.canUndo, icon: ICONS.UNDO },
+    { label: '重做', handler: pathState.handleRedo, disabled: !pathState.canRedo, icon: ICONS.REDO },
+  ];
 
   return (
-    <div className="h-screen w-screen flex flex-col font-sans bg-slate-100 dark:bg-[#2A303C]">
-       <div className="p-3 flex justify-center shadow-md bg-slate-100 dark:bg-[#2A303C] z-10">
+    <div className="h-screen w-screen font-sans bg-slate-100 dark:bg-[#2A303C] relative">
+       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
         <Toolbar
           {...toolbarState}
           undo={pathState.handleUndo}
@@ -225,9 +324,10 @@ const App: React.FC = () => {
           setGridSize={setGridSize}
         />
        </div>
-      <div className="flex-grow w-full p-4 pt-0 flex justify-center items-center">
+      <div className="w-full h-full">
         <Whiteboard
           paths={paths}
+          tool={toolbarState.tool}
           currentLivePath={pathState.currentBrushPath}
           drawingShape={pointerInteraction.drawingShape}
           currentPenPath={pathState.currentPenPath}
@@ -243,6 +343,7 @@ const App: React.FC = () => {
           viewTransform={vt}
           cursor={cursor}
           onWheel={handleWheel}
+          onContextMenu={handleContextMenu}
           isGridVisible={isGridVisible}
           gridSize={gridSize}
         />
@@ -252,6 +353,14 @@ const App: React.FC = () => {
         onClose={() => setIsAiModalOpen(false)}
         onGenerate={handleGenerate}
       />
+      {contextMenu?.isOpen && (
+        <ContextMenu
+          isOpen={contextMenu.isOpen}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          actions={contextMenuActions}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 };

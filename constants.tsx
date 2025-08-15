@@ -67,6 +67,9 @@ export const ICONS = {
       <path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
     </svg>
   ),
+  MOVE: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+  ),
   RECTANGLE: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -102,5 +105,11 @@ export const ICONS = {
       <rect width="18" height="18" x="3" y="3" rx="2"/>
       <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
     </svg>
+  ),
+  COPY: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+  ),
+  PASTE: (
+     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M12 2v4a2 2 0 0 0 2 2h4"/><rect width="8" height="4" x="8" y="12" rx="1"/><path d="M8 12h8"/></svg>
   ),
 };

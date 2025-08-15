@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import type { AnyPath, LivePath, VectorPathData } from '../types';
-import { convertBrushPathToVector } from '../lib/path-fitting';
+import { convertLivePathToVectorPath } from '../lib/path-fitting';
 
 const MAX_HISTORY = 200;
 
@@ -89,7 +89,7 @@ export const usePaths = () => {
 
   const finishBrushPath = () => {
     if (currentBrushPath && currentBrushPath.points.length > 1) {
-      const vectorPath = convertBrushPathToVector(currentBrushPath);
+      const vectorPath = convertLivePathToVectorPath(currentBrushPath);
       setPaths(prev => [...prev, vectorPath]);
     }
     setCurrentBrushPath(null);

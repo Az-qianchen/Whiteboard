@@ -1,13 +1,16 @@
 
+
 import React, { useRef, useEffect, useState } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, BrushPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition } from '../types';
-import { pointsToPathD, anchorsToPathD } from '../lib/path-fitting';
-import { getMarqueeRect, getPathBoundingBox } from '../lib/geometry';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, Tool } from '../types';
+import { pointsToSimplePathD, anchorsToPathD, samplePath } from '../lib/path-fitting';
+import { getMarqueeRect, getPathBoundingBox, getPathsBoundingBox } from '../lib/geometry';
+import { DEFAULT_CURVE_STEP_COUNT } from '../constants';
 
 interface WhiteboardProps {
   paths: AnyPath[];
+  tool: Tool;
   currentLivePath: LivePath | null;
   drawingShape: DrawingShape | null;
   currentPenPath: VectorPathData | null;
@@ -20,6 +23,7 @@ interface WhiteboardProps {
   onPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerLeave: (e: React.PointerEvent<SVGSVGElement>) => void;
   onWheel: (e: React.WheelEvent<HTMLDivElement>) => void;
+  onContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
   viewTransform: { scale: number, translateX: number, translateY: number };
   cursor: string;
   isGridVisible: boolean;
@@ -28,7 +32,7 @@ interface WhiteboardProps {
 
 // 对于画笔工具的实时预览，我们使用一个简单、高性能的路径。
 const LivePathPreview: React.FC<{ data: LivePath }> = React.memo(({ data }) => {
-  const d = pointsToPathD(data.points);
+  const d = pointsToSimplePathD(data.points);
   return (
     <path
       d={d}
@@ -42,7 +46,7 @@ const LivePathPreview: React.FC<{ data: LivePath }> = React.memo(({ data }) => {
   );
 });
 
-// 对于已完成的路径，我们使用 RoughJS 以手绘风格渲染它们。
+// For completed paths, we use RoughJS to render them in a hand-drawn style.
 const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo(({ rc, data }) => {
   const gRef = useRef<SVGGElement>(null);
 
@@ -51,12 +55,12 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
 
     const g = gRef.current;
     
-    // 清除先前渲染的路径，以防止数据更改时出现重复
+    // Clear previously rendered path to prevent duplication on data change
     while (g.firstChild) {
       g.removeChild(g.firstChild);
     }
 
-    // 使用路径ID作为种子以获得一致的随机性
+    // Use path ID as seed for consistent randomness
     const seed = parseInt(data.id, 10);
     
     const options: any = {
@@ -72,7 +76,7 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
     if (data.fill && data.fill !== 'transparent') {
         options.fill = data.fill;
         options.fillStyle = data.fillStyle || 'hachure';
-        // 仅当它们不是哨兵默认值时才添加这些
+        // Only add these if they are not the sentinel defaults
         if (data.fillWeight > 0) {
             options.fillWeight = data.fillWeight;
         }
@@ -97,35 +101,35 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
             node = rc.ellipse(cx, cy, width, height, options);
             break;
         }
-        case 'pen':
-        case 'brush':
-        case 'line': {
-            const pathData = data as VectorPathData | BrushPathData;
+        case 'pen': {
+            const pathData = data as VectorPathData;
             if (!pathData.anchors || pathData.anchors.length === 0) return;
 
-            // 对于单点路径，绘制一个点
             if (pathData.anchors.length === 1) {
                 const dotOptions = { ...options, fill: pathData.color, fillStyle: 'solid' };
                 node = rc.circle(pathData.anchors[0].point.x, pathData.anchors[0].point.y, data.strokeWidth, dotOptions);
             } else {
-                if (pathData.tool === 'pen' || pathData.tool === 'brush') {
-                    // 对于钢笔和画笔，生成贝塞尔路径字符串并使用 rc.path
-                    const pathD = anchorsToPathD(pathData.anchors, !!pathData.isClosed);
-                    // rc.path 不使用与曲线相关的属性，如 curveTightness，
-                    // 但为了与其他工具保持一致，我们传递所有选项。RoughJS 会忽略它不需要的。
-                    node = rc.path(pathD, options);
-                } else { // 'line' 工具
-                    // 线条工具只是一组点，因此 rc.curve 是合适的
-                    const points = pathData.anchors.map(a => [a.point.x, a.point.y] as [number, number]);
-                    
-                    // 对于闭合路径，重复第一个点以闭合曲线
-                    if (pathData.isClosed && points.length > 0) {
-                        points.push(points[0]);
-                    }
-                    
-                    // 使用 rc.curve，它能绘制连续的线条并正确应用 'curveTightness'
-                    node = rc.curve(points, options);
-                }
+                // For a continuous, non-segmented look, we sample the Bézier curve into
+                // a series of points and render it with rc.curve.
+                // A high sampling rate ensures visual fidelity to the true curve.
+                const SAMPLING_PRECISION = 50;
+                const sampledPoints = samplePath(pathData.anchors, SAMPLING_PRECISION, !!pathData.isClosed);
+                const points = sampledPoints.map(p => [p.x, p.y] as [number, number]);
+                node = rc.curve(points, options);
+            }
+            break;
+        }
+        case 'line': {
+            const pathData = data as VectorPathData;
+            if (!pathData.anchors || pathData.anchors.length === 0) return;
+
+            if (pathData.anchors.length === 1) {
+                const dotOptions = { ...options, fill: pathData.color, fillStyle: 'solid' };
+                node = rc.circle(pathData.anchors[0].point.x, pathData.anchors[0].point.y, data.strokeWidth, dotOptions);
+            } else {
+                // A line is a series of points to be smoothed, for which rc.curve is ideal.
+                const points = pathData.anchors.map(a => [a.point.x, a.point.y] as [number, number]);
+                node = rc.curve(points, options);
             }
             break;
         }
@@ -137,8 +141,8 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
 
   }, [rc, data]);
 
-  // 使用 pointer-events-none 以便根 SVG 可以处理命中检测以进行选择。
-  // 交互式控件（锚点、调整大小手柄）将具有 pointer-events-auto/all 以便可以点击。
+  // Use pointer-events-none so the root SVG can handle hit detection for selection.
+  // Interactive controls (anchors, resize handles) will have pointer-events-auto/all so they can be clicked.
   return <g ref={gRef} className="pointer-events-none" />;
 });
 
@@ -149,28 +153,29 @@ const VectorPathControls: React.FC<{ data: VectorPathData; scale: number }> = Re
 
   return (
     <g className="pointer-events-auto">
-      {/* 锚点和控制柄 */}
+      {/* Anchors and Handles */}
       {data.anchors.map((anchor, index) => (
         <g key={index}>
-          {/* 控制柄（仅当它们与与点不同时才显示） */}
+          {/* Handle Lines (only show if they differ from the point) */}
           { (anchor.handleIn.x !== anchor.point.x || anchor.handleIn.y !== anchor.point.y ||
              anchor.handleOut.x !== anchor.point.x || anchor.handleOut.y !== anchor.point.y) &&
             <>
               <line x1={anchor.handleIn.x} y1={anchor.handleIn.y} x2={anchor.point.x} y2={anchor.point.y} stroke="cyan" strokeWidth={scaledStroke(1)} className="pointer-events-none" />
               <line x1={anchor.handleOut.x} y1={anchor.handleOut.y} x2={anchor.point.x} y2={anchor.point.y} stroke="cyan" strokeWidth={scaledStroke(1)} className="pointer-events-none" />
-              <circle cx={anchor.handleIn.x} cy={anchor.handleIn.y} r={scaledRadius(4)} fill="white" stroke="cyan" strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move" />
-              <circle cx={anchor.handleOut.x} cy={anchor.handleOut.y} r={scaledRadius(4)} fill="white" stroke="cyan" strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move" />
             </>
           }
-          {/* 锚点 */}
+          {/* Anchor Point */}
           <circle cx={anchor.point.x} cy={anchor.point.y} r={scaledRadius(5)} fill="cyan" stroke="white" strokeWidth={scaledStroke(1.5)} data-type="anchor" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move"/>
+          {/* Handle Grab Targets (Rendered on top of anchor point) */}
+          <circle cx={anchor.handleIn.x} cy={anchor.handleIn.y} r={scaledRadius(4)} fill="white" stroke="cyan" strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move" />
+          <circle cx={anchor.handleOut.x} cy={anchor.handleOut.y} r={scaledRadius(4)} fill="white" stroke="cyan" strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move" />
         </g>
       ))}
     </g>
   );
 });
 
-const ShapeControls: React.FC<{ path: RectangleData | EllipseData | BrushPathData, scale: number }> = React.memo(({ path, scale }) => {
+const ShapeControls: React.FC<{ path: RectangleData | EllipseData, scale: number }> = React.memo(({ path, scale }) => {
     const bbox = getPathBoundingBox(path, false);
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
     const handleSize = 8 / scale;
@@ -182,12 +187,10 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | BrushPathDat
     handles.push({ pos: { x: x + width, y }, name: 'top-right', cursor: 'nesw-resize' });
     handles.push({ pos: { x, y: y + height }, name: 'bottom-left', cursor: 'nesw-resize' });
     handles.push({ pos: { x: x + width, y: y + height }, name: 'bottom-right', cursor: 'nwse-resize' });
-    if (path.tool !== 'brush') {
-      handles.push({ pos: { x: x + width / 2, y }, name: 'top', cursor: 'ns-resize' });
-      handles.push({ pos: { x: x + width, y: y + height / 2 }, name: 'right', cursor: 'ew-resize' });
-      handles.push({ pos: { x: x + width / 2, y: y + height }, name: 'bottom', cursor: 'ns-resize' });
-      handles.push({ pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' });
-    }
+    handles.push({ pos: { x: x + width / 2, y }, name: 'top', cursor: 'ns-resize' });
+    handles.push({ pos: { x: x + width, y: y + height / 2 }, name: 'right', cursor: 'ew-resize' });
+    handles.push({ pos: { x: x + width / 2, y: y + height }, name: 'bottom', cursor: 'ns-resize' });
+    handles.push({ pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' });
     
     return (
         <g className="pointer-events-auto">
@@ -221,8 +224,52 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | BrushPathDat
     );
 });
 
+const SingleSelectionHighlight: React.FC<{ path: AnyPath, scale: number }> = React.memo(({ path, scale }) => {
+    const bbox = getPathBoundingBox(path, false);
+    if (!bbox) return null;
+    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
+
+    return (
+        <g className="pointer-events-none">
+            <rect
+                x={bbox.x}
+                y={bbox.y}
+                width={bbox.width}
+                height={bbox.height}
+                fill="none"
+                stroke="cyan"
+                strokeWidth={scaledStroke(1)}
+            />
+        </g>
+    );
+});
+
+
+const MultiSelectionControls: React.FC<{ paths: AnyPath[], scale: number }> = React.memo(({ paths, scale }) => {
+    const bbox = getPathsBoundingBox(paths); 
+    if (!bbox) return null;
+
+    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
+
+    return (
+        <g className="pointer-events-none">
+            <rect
+                x={bbox.x}
+                y={bbox.y}
+                width={bbox.width}
+                height={bbox.height}
+                fill="none"
+                stroke="cyan"
+                strokeWidth={scaledStroke(1)}
+                strokeDasharray={`${4 / scale} ${4 / scale}`}
+            />
+        </g>
+    );
+});
+
 export const Whiteboard: React.FC<WhiteboardProps> = ({
   paths,
+  tool,
   currentLivePath,
   drawingShape,
   currentPenPath,
@@ -235,6 +282,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   onPointerUp,
   onPointerLeave,
   onWheel,
+  onContextMenu,
   viewTransform,
   cursor,
   isGridVisible,
@@ -254,10 +302,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
   return (
     <div
-      className="w-full h-full bg-white dark:bg-[#343b47] rounded-lg shadow-inner overflow-hidden touch-none"
+      className="w-full h-full bg-white dark:bg-[#343b47] overflow-hidden touch-none"
       onWheel={onWheel}
       style={{ cursor }}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={onContextMenu}
     >
       <svg
         ref={svgRef}
@@ -366,12 +414,25 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           )}
 
           {/* Render controls for selected paths */}
-          {singleSelectedPath && (singleSelectedPath.tool === 'pen' || singleSelectedPath.tool === 'line') && 
-            <VectorPathControls key={singleSelectedPath.id} data={singleSelectedPath as VectorPathData} scale={viewTransform.scale} />
-          }
-          {singleSelectedPath && (singleSelectedPath.tool === 'rectangle' || singleSelectedPath.tool === 'ellipse' || singleSelectedPath.tool === 'brush') &&
-            <ShapeControls key={singleSelectedPath.id} path={singleSelectedPath as RectangleData | EllipseData | BrushPathData} scale={viewTransform.scale} />
-          }
+          {tool === 'edit' && singleSelectedPath && (
+            <>
+              {(singleSelectedPath.tool === 'pen' || singleSelectedPath.tool === 'line') && 
+                <VectorPathControls key={singleSelectedPath.id} data={singleSelectedPath as VectorPathData} scale={viewTransform.scale} />
+              }
+              {(singleSelectedPath.tool === 'rectangle' || singleSelectedPath.tool === 'ellipse') &&
+                <ShapeControls key={singleSelectedPath.id} path={singleSelectedPath as RectangleData | EllipseData} scale={viewTransform.scale} />
+              }
+            </>
+          )}
+
+          {tool === 'move' && selectedPaths.length > 0 && (
+            <>
+              {selectedPaths.map(p => <SingleSelectionHighlight key={p.id} path={p} scale={viewTransform.scale} />)}
+              {selectedPaths.length > 1 && (
+                <MultiSelectionControls paths={selectedPaths} scale={viewTransform.scale} />
+              )}
+            </>
+          )}
 
           {/* Render controls for current pen path */}
           {currentPenPath && (
