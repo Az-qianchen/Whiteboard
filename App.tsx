@@ -11,9 +11,10 @@ import { useToolbarState } from './hooks/useToolbarState';
 import { useViewTransform } from './hooks/useViewTransform';
 import { usePointerInteraction } from './hooks/usePointerInteraction';
 import { getPathsBoundingBox } from './lib/geometry';
-import { movePath } from './lib/utils';
+import { movePath, flipPath } from './lib/utils';
+import { pathsToSvgString, pathsToPngBlob } from './lib/export';
 import { ICONS } from './constants';
-import type { Anchor, VectorPathData, AnyPath } from './types';
+import type { Anchor, VectorPathData, AnyPath, ImageData } from './types';
 
 const App: React.FC = () => {
   // AI Modal State
@@ -27,7 +28,7 @@ const App: React.FC = () => {
 
   // 管理所有路径相关状态和操作的钩子
   const pathState = usePaths();
-  const { paths, selectedPathIds, setSelectedPathIds, handleDeleteSelected } = pathState;
+  const { paths, selectedPathIds, setSelectedPathIds, handleDeleteSelected, setPaths } = pathState;
 
   // 管理视图变换（平移/缩放）的钩子
   const viewTransform = useViewTransform();
@@ -52,6 +53,20 @@ const App: React.FC = () => {
       setClipboardContent(selected);
     }
   }, [paths, selectedPathIds]);
+
+  const handleCopyScene = useCallback(async () => {
+    const scene = {
+      type: 'whiteboard/json',
+      version: 1,
+      paths: paths,
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(scene));
+    } catch (err) {
+      console.error("Failed to copy scene:", err);
+      alert("Could not copy canvas to clipboard.");
+    }
+  }, [paths]);
 
   const handlePaste = useCallback((pasteAt?: {x: number, y: number}) => {
     if (clipboardContent.length === 0) return;
@@ -79,8 +94,62 @@ const App: React.FC = () => {
 
     pathState.setPaths(prev => [...prev, ...newPaths]);
     pathState.setSelectedPathIds(newIds);
-    toolbarState.setTool('edit');
+    toolbarState.setTool('move');
   }, [clipboardContent, pathState, toolbarState, viewTransform.viewTransform.scale]);
+
+  const handleFlip = useCallback((axis: 'horizontal' | 'vertical') => {
+      if (selectedPathIds.length === 0) return;
+      const selected = paths.filter(p => selectedPathIds.includes(p.id));
+      const selectionBbox = getPathsBoundingBox(selected);
+      if (!selectionBbox) return;
+
+      const center = {
+          x: selectionBbox.x + selectionBbox.width / 2,
+          y: selectionBbox.y + selectionBbox.height / 2,
+      };
+
+      pathState.setPaths(prev =>
+          prev.map(p => {
+              if (selectedPathIds.includes(p.id)) {
+                  return flipPath(p, center, axis);
+              }
+              return p;
+          })
+      );
+  }, [paths, selectedPathIds, pathState.setPaths]);
+
+  const handleCopyAsSvg = useCallback(async () => {
+    if (selectedPathIds.length === 0) return;
+    const selected = paths.filter(p => selectedPathIds.includes(p.id));
+    
+    try {
+        const svgString = pathsToSvgString(selected);
+        if (svgString) {
+          await navigator.clipboard.writeText(svgString);
+        }
+    } catch (err) {
+        console.error("Failed to copy SVG:", err);
+        alert("Could not copy SVG to clipboard.");
+    }
+  }, [paths, selectedPathIds]);
+
+  const handleCopyAsPng = useCallback(async () => {
+    if (selectedPathIds.length === 0) return;
+    const selected = paths.filter(p => selectedPathIds.includes(p.id));
+
+    try {
+        const blob = await pathsToPngBlob(selected);
+        if (blob) {
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]);
+        }
+    } catch (err) {
+        console.error("Failed to copy PNG:", err);
+        alert("Could not copy PNG to clipboard.");
+    }
+  }, [paths, selectedPathIds]);
+
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -235,7 +304,7 @@ const App: React.FC = () => {
       setIsGridVisible(v => !v);
     });
 
-    // 对于撤销/重做，我们希望它们即使在输入字段中也能工作。
+    // 对于撤销/重做/复制/粘贴，我们希望它们即使在输入字段中也能工作。
     const originalFilter = hotkeys.filter;
     hotkeys.filter = () => true;
 
@@ -253,24 +322,18 @@ const App: React.FC = () => {
       event.preventDefault();
       handleCopy();
     });
-
-    hotkeys('command+v, ctrl+v', (event) => {
-      event.preventDefault();
-      handlePaste();
-    });
-
-    // 恢复原始过滤器
-    hotkeys.filter = originalFilter;
     
     // 组件卸载时清理
     return () => {
+      // 恢复原始过滤器
+      hotkeys.filter = originalFilter;
+      
       hotkeys.unbind('v,m,b,p,r,o,l,escape,enter,backspace,delete');
       hotkeys.unbind('a');
       hotkeys.unbind('g');
       hotkeys.unbind('command+z, ctrl+z');
       hotkeys.unbind('command+shift+z, ctrl+shift+z');
       hotkeys.unbind('command+c, ctrl+c');
-      hotkeys.unbind('command+v, ctrl+v');
     };
   }, [
     selectedPathIds,
@@ -291,18 +354,129 @@ const App: React.FC = () => {
     handlePaste,
   ]);
 
+  // Global paste handler for images and shapes
+  useEffect(() => {
+    const handleGlobalPaste = (event: ClipboardEvent) => {
+        // Priority 1: Check for our scene format in the clipboard text
+        const text = event.clipboardData?.getData('text/plain');
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            if (data && data.type === 'whiteboard/json' && Array.isArray(data.paths)) {
+              event.preventDefault();
+              setPaths(data.paths);
+              setSelectedPathIds([]);
+              return; // Scene paste handled.
+            }
+          } catch (e) {
+            // Not our JSON, proceed.
+          }
+        }
+
+        // Priority 2: Check for an image in the clipboard items.
+        const items = event.clipboardData?.items;
+        if (items) {
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    event.preventDefault();
+                    const blob = item.getAsFile();
+                    if (!blob) continue;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const src = e.target?.result as string;
+                        if (!src) return;
+
+                        const img = new Image();
+                        img.onload = () => {
+                            const svg = document.querySelector('svg');
+                            if (!svg) return;
+                            const center = getPointerPosition(
+                                { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 },
+                                svg
+                            );
+
+                            const MAX_DIM = 400 / vt.scale;
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > MAX_DIM || height > MAX_DIM) {
+                                const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+                                width *= ratio;
+                                height *= ratio;
+                            }
+
+                            const newImage: ImageData = {
+                                id: Date.now().toString(),
+                                tool: 'image',
+                                src,
+                                opacity: 1,
+                                x: center.x - width / 2,
+                                y: center.y - height / 2,
+                                width,
+                                height,
+                                color: 'transparent',
+                                fill: 'transparent',
+                                fillStyle: 'solid',
+                                strokeWidth: 0,
+                                roughness: 0, bowing: 0, fillWeight: -1, hachureAngle: -41, hachureGap: -1, curveTightness: 0, curveStepCount: 9,
+                            };
+
+                            setPaths((prev: AnyPath[]) => [...prev, newImage]);
+                            setSelectedPathIds([newImage.id]);
+                            toolbarState.setTool('move');
+                        };
+                        img.src = src;
+                    };
+                    reader.readAsDataURL(blob);
+                    // Image found and handled, so we can exit.
+                    return; 
+                }
+            }
+        }
+        
+        // Priority 3: If we're here, no scene or image was pasted. Handle shape paste.
+        const target = event.target as HTMLElement;
+        const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+        if (!isInput) {
+             // It's not an input, so we can safely take over the paste event
+             // to paste our internally copied shape.
+             event.preventDefault();
+             handlePaste();
+        }
+        // If it IS an input, we do nothing, allowing the default paste behavior (e.g., pasting text).
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => {
+        document.removeEventListener('paste', handleGlobalPaste);
+    };
+  }, [handlePaste, getPointerPosition, setPaths, setSelectedPathIds, toolbarState, vt.scale]);
+
   const selectedPaths = paths.filter(p => selectedPathIds.includes(p.id));
-  const cursor = isPanning ? 'grabbing' : (toolbarState.tool === 'move' ? 'move' : (toolbarState.tool === 'edit' ? 'default' : 'crosshair'));
+  const cursor = isPanning ? 'grabbing' : (toolbarState.tool === 'move' ? 'grab' : (toolbarState.tool === 'edit' ? 'default' : 'crosshair'));
   
   const contextMenuActions = [
     { label: '复制', handler: handleCopy, disabled: selectedPathIds.length === 0, icon: ICONS.COPY },
+    { label: '复制画布', handler: handleCopyScene, icon: ICONS.COPY },
     { label: '粘贴', handler: () => handlePaste({ x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 }), disabled: clipboardContent.length === 0, icon: ICONS.PASTE },
+    { label: '---' },
+    { label: '水平翻转', handler: () => handleFlip('horizontal'), disabled: selectedPathIds.length === 0, icon: ICONS.FLIP_HORIZONTAL },
+    { label: '垂直翻转', handler: () => handleFlip('vertical'), disabled: selectedPathIds.length === 0, icon: ICONS.FLIP_VERTICAL },
     { label: '---' },
     { label: '删除', handler: handleDeleteSelected, disabled: selectedPathIds.length === 0, isDanger: true, icon: ICONS.CLEAR },
     { label: '---' },
     { label: '撤销', handler: pathState.handleUndo, disabled: !pathState.canUndo, icon: ICONS.UNDO },
     { label: '重做', handler: pathState.handleRedo, disabled: !pathState.canRedo, icon: ICONS.REDO },
   ];
+
+  if (toolbarState.tool === 'move' && selectedPathIds.length > 0) {
+    contextMenuActions.splice(6, 0,
+        { label: '---' },
+        { label: '复制为 SVG', handler: () => void handleCopyAsSvg(), disabled: selectedPathIds.length === 0, icon: ICONS.COPY_SVG },
+        { label: '复制为 PNG', handler: () => void handleCopyAsPng(), disabled: selectedPathIds.length === 0, icon: ICONS.COPY_PNG },
+    );
+  }
 
   return (
     <div className="h-screen w-screen font-sans bg-slate-100 dark:bg-[#2A303C] relative">
@@ -346,6 +520,7 @@ const App: React.FC = () => {
           onContextMenu={handleContextMenu}
           isGridVisible={isGridVisible}
           gridSize={gridSize}
+          dragState={pointerInteraction.dragState}
         />
       </div>
       <AiModal

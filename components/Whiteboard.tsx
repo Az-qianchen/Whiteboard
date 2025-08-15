@@ -3,10 +3,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, Tool } from '../types';
-import { pointsToSimplePathD, anchorsToPathD, samplePath } from '../lib/path-fitting';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, Tool, DragState } from '../types';
+import { pointsToSimplePathD, anchorsToPathD } from '../lib/path-fitting';
 import { getMarqueeRect, getPathBoundingBox, getPathsBoundingBox } from '../lib/geometry';
-import { DEFAULT_CURVE_STEP_COUNT } from '../constants';
+import { renderPathNode } from '../lib/export';
+import { getPointerPosition } from '../lib/utils';
+import { dist } from '../lib/utils';
 
 interface WhiteboardProps {
   paths: AnyPath[];
@@ -28,6 +30,7 @@ interface WhiteboardProps {
   cursor: string;
   isGridVisible: boolean;
   gridSize: number;
+  dragState: DragState | null;
 }
 
 // 对于画笔工具的实时预览，我们使用一个简单、高性能的路径。
@@ -59,81 +62,8 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
     while (g.firstChild) {
       g.removeChild(g.firstChild);
     }
-
-    // Use path ID as seed for consistent randomness
-    const seed = parseInt(data.id, 10);
     
-    const options: any = {
-      stroke: data.color,
-      strokeWidth: data.strokeWidth,
-      roughness: data.roughness,
-      bowing: data.bowing,
-      curveTightness: data.curveTightness,
-      curveStepCount: data.curveStepCount,
-      seed: isNaN(seed) ? 1 : seed,
-    };
-
-    if (data.fill && data.fill !== 'transparent') {
-        options.fill = data.fill;
-        options.fillStyle = data.fillStyle || 'hachure';
-        // Only add these if they are not the sentinel defaults
-        if (data.fillWeight > 0) {
-            options.fillWeight = data.fillWeight;
-        }
-        if (data.hachureGap > 0) {
-            options.hachureGap = data.hachureGap;
-        }
-        options.hachureAngle = data.hachureAngle;
-    }
-    
-    let node;
-    
-    switch (data.tool) {
-        case 'rectangle': {
-          const { x, y, width, height } = data as RectangleData;
-          node = rc.rectangle(x, y, width, height, options);
-          break;
-        }
-        case 'ellipse': {
-            const { x, y, width, height } = data as EllipseData;
-            const cx = x + width / 2;
-            const cy = y + height / 2;
-            node = rc.ellipse(cx, cy, width, height, options);
-            break;
-        }
-        case 'pen': {
-            const pathData = data as VectorPathData;
-            if (!pathData.anchors || pathData.anchors.length === 0) return;
-
-            if (pathData.anchors.length === 1) {
-                const dotOptions = { ...options, fill: pathData.color, fillStyle: 'solid' };
-                node = rc.circle(pathData.anchors[0].point.x, pathData.anchors[0].point.y, data.strokeWidth, dotOptions);
-            } else {
-                // For a continuous, non-segmented look, we sample the Bézier curve into
-                // a series of points and render it with rc.curve.
-                // A high sampling rate ensures visual fidelity to the true curve.
-                const SAMPLING_PRECISION = 50;
-                const sampledPoints = samplePath(pathData.anchors, SAMPLING_PRECISION, !!pathData.isClosed);
-                const points = sampledPoints.map(p => [p.x, p.y] as [number, number]);
-                node = rc.curve(points, options);
-            }
-            break;
-        }
-        case 'line': {
-            const pathData = data as VectorPathData;
-            if (!pathData.anchors || pathData.anchors.length === 0) return;
-
-            if (pathData.anchors.length === 1) {
-                const dotOptions = { ...options, fill: pathData.color, fillStyle: 'solid' };
-                node = rc.circle(pathData.anchors[0].point.x, pathData.anchors[0].point.y, data.strokeWidth, dotOptions);
-            } else {
-                // A line is a series of points to be smoothed, for which rc.curve is ideal.
-                const points = pathData.anchors.map(a => [a.point.x, a.point.y] as [number, number]);
-                node = rc.curve(points, options);
-            }
-            break;
-        }
-    }
+    const node = renderPathNode(rc, data);
     
     if (node) {
       g.appendChild(node);
@@ -147,30 +77,64 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
 });
 
 
-const VectorPathControls: React.FC<{ data: VectorPathData; scale: number }> = React.memo(({ data, scale }) => {
+const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
   const scaledStroke = (width: number) => Math.max(0.5, width / scale);
   const scaledRadius = (r: number) => Math.max(2, r / scale);
+  const hoverRadius = 10 / scale;
 
   return (
     <g className="pointer-events-auto">
+      {/* Active point highlight */}
+      {dragState && 'anchorIndex' in dragState && dragState.pathId === data.id && dragState.anchorIndex < data.anchors.length && (
+        <>
+          {dragState.type === 'anchor' && (
+            <circle
+              cx={data.anchors[dragState.anchorIndex].point.x}
+              cy={data.anchors[dragState.anchorIndex].point.y}
+              r={scaledRadius(10)}
+              fill="rgba(59, 130, 246, 0.3)" // blue-500
+              className="pointer-events-none"
+            />
+          )}
+          {(dragState.type === 'handleIn' || dragState.type === 'handleOut') && (
+            <circle
+              cx={dragState.type === 'handleIn' ? data.anchors[dragState.anchorIndex].handleIn.x : data.anchors[dragState.anchorIndex].handleOut.x}
+              cy={dragState.type === 'handleIn' ? data.anchors[dragState.anchorIndex].handleIn.y : data.anchors[dragState.anchorIndex].handleOut.y}
+              r={scaledRadius(10)}
+              fill="rgba(168, 85, 247, 0.3)" // purple-500
+              className="pointer-events-none"
+            />
+          )}
+        </>
+      )}
       {/* Anchors and Handles */}
-      {data.anchors.map((anchor, index) => (
-        <g key={index}>
-          {/* Handle Lines (only show if they differ from the point) */}
-          { (anchor.handleIn.x !== anchor.point.x || anchor.handleIn.y !== anchor.point.y ||
-             anchor.handleOut.x !== anchor.point.x || anchor.handleOut.y !== anchor.point.y) &&
-            <>
-              <line x1={anchor.handleIn.x} y1={anchor.handleIn.y} x2={anchor.point.x} y2={anchor.point.y} stroke="cyan" strokeWidth={scaledStroke(1)} className="pointer-events-none" />
-              <line x1={anchor.handleOut.x} y1={anchor.handleOut.y} x2={anchor.point.x} y2={anchor.point.y} stroke="cyan" strokeWidth={scaledStroke(1)} className="pointer-events-none" />
-            </>
-          }
-          {/* Anchor Point */}
-          <circle cx={anchor.point.x} cy={anchor.point.y} r={scaledRadius(5)} fill="cyan" stroke="white" strokeWidth={scaledStroke(1.5)} data-type="anchor" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move"/>
-          {/* Handle Grab Targets (Rendered on top of anchor point) */}
-          <circle cx={anchor.handleIn.x} cy={anchor.handleIn.y} r={scaledRadius(4)} fill="white" stroke="cyan" strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move" />
-          <circle cx={anchor.handleOut.x} cy={anchor.handleOut.y} r={scaledRadius(4)} fill="white" stroke="cyan" strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move" />
-        </g>
-      ))}
+      {data.anchors.map((anchor, index) => {
+        const isDraggingThis = dragState && 'anchorIndex' in dragState && dragState.pathId === data.id && dragState.anchorIndex === index;
+        
+        const canHover = !dragState || isDraggingThis;
+        const isAnchorHovered = canHover && hoveredPoint && dist(anchor.point, hoveredPoint) < hoverRadius;
+        const isHandleInHovered = canHover && hoveredPoint && dist(anchor.handleIn, hoveredPoint) < hoverRadius;
+        const isHandleOutHovered = canHover && hoveredPoint && dist(anchor.handleOut, hoveredPoint) < hoverRadius;
+        
+        const isAnythingHovered = isAnchorHovered || isHandleInHovered || isHandleOutHovered;
+
+        return (
+          <g key={index}>
+            {/* Handle Lines (only show if they differ from the point) */}
+            { (anchor.handleIn.x !== anchor.point.x || anchor.handleIn.y !== anchor.point.y ||
+               anchor.handleOut.x !== anchor.point.x || anchor.handleOut.y !== anchor.point.y) &&
+              <>
+                <line x1={anchor.handleIn.x} y1={anchor.handleIn.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHovered ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
+                <line x1={anchor.handleOut.x} y1={anchor.handleOut.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHovered ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
+              </>
+            }
+            {/* Anchor Point */}
+            <circle cx={anchor.point.x} cy={anchor.point.y} r={scaledRadius(isAnchorHovered ? 9 : 6)} fill={isAnchorHovered ? "cyan" : "rgba(0, 255, 255, 0.3)"} stroke={isAnchorHovered ? "white" : "rgba(255, 255, 255, 0.5)"} strokeWidth={scaledStroke(1.5)} data-type="anchor" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75"/>
+            {/* Handle Grab Targets */}
+            <circle cx={anchor.handleIn.x} cy={anchor.handleIn.y} r={scaledRadius(isHandleInHovered ? 6 : 3)} fill={isHandleInHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isHandleInHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
+            <circle cx={anchor.handleOut.x} cy={anchor.handleOut.y} r={scaledRadius(isHandleOutHovered ? 6 : 3)} fill={isHandleOutHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isHandleOutHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
+          </g>
+        )})}
     </g>
   );
 });
@@ -224,35 +188,52 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData, scale: number
     );
 });
 
-const SingleSelectionHighlight: React.FC<{ path: AnyPath, scale: number }> = React.memo(({ path, scale }) => {
+const IndividualHighlight: React.FC<{ path: AnyPath, scale: number }> = React.memo(({ path, scale }) => {
     const bbox = getPathBoundingBox(path, false);
     if (!bbox) return null;
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
 
     return (
-        <g className="pointer-events-none">
-            <rect
-                x={bbox.x}
-                y={bbox.y}
-                width={bbox.width}
-                height={bbox.height}
-                fill="none"
-                stroke="cyan"
-                strokeWidth={scaledStroke(1)}
-            />
-        </g>
+        <rect
+            x={bbox.x}
+            y={bbox.y}
+            width={bbox.width}
+            height={bbox.height}
+            fill="none"
+            stroke="rgba(0, 150, 255, 0.9)"
+            strokeWidth={scaledStroke(1)}
+            strokeDasharray={`${3 / scale} ${3 / scale}`}
+            className="pointer-events-none"
+        />
     );
 });
 
 
 const MultiSelectionControls: React.FC<{ paths: AnyPath[], scale: number }> = React.memo(({ paths, scale }) => {
-    const bbox = getPathsBoundingBox(paths); 
+    const bbox = getPathsBoundingBox(paths);
     if (!bbox) return null;
 
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
+    const handleSize = 8 / scale;
+    const halfHandleSize = handleSize / 2;
+    const rotationHandleOffset = 20 / scale;
+
+    const handles: { pos: Point, name: ResizeHandlePosition, cursor: string }[] = [];
+    const { x, y, width, height } = bbox;
+    handles.push({ pos: { x, y }, name: 'top-left', cursor: 'nwse-resize' });
+    handles.push({ pos: { x: x + width, y }, name: 'top-right', cursor: 'nesw-resize' });
+    handles.push({ pos: { x, y: y + height }, name: 'bottom-left', cursor: 'nesw-resize' });
+    handles.push({ pos: { x: x + width, y: y + height }, name: 'bottom-right', cursor: 'nwse-resize' });
+    handles.push({ pos: { x: x + width / 2, y }, name: 'top', cursor: 'ns-resize' });
+    handles.push({ pos: { x: x + width, y: y + height / 2 }, name: 'right', cursor: 'ew-resize' });
+    handles.push({ pos: { x: x + width / 2, y: y + height }, name: 'bottom', cursor: 'ns-resize' });
+    handles.push({ pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' });
+    
+    const topCenter = { x: x + width / 2, y: y };
+    const rotationHandlePos = { x: topCenter.x, y: topCenter.y - rotationHandleOffset };
 
     return (
-        <g className="pointer-events-none">
+        <g className="pointer-events-auto" data-type="selection-controls">
             <rect
                 x={bbox.x}
                 y={bbox.y}
@@ -261,11 +242,43 @@ const MultiSelectionControls: React.FC<{ paths: AnyPath[], scale: number }> = Re
                 fill="none"
                 stroke="cyan"
                 strokeWidth={scaledStroke(1)}
-                strokeDasharray={`${4 / scale} ${4 / scale}`}
+                className="pointer-events-none"
             />
+            {/* Rotation Handle Line */}
+            <line
+                x1={topCenter.x} y1={topCenter.y}
+                x2={rotationHandlePos.x} y2={rotationHandlePos.y}
+                stroke="cyan" strokeWidth={scaledStroke(1)} className="pointer-events-none"
+            />
+            {/* Rotation Handle Circle */}
+            <circle
+                cx={rotationHandlePos.x} cy={rotationHandlePos.y}
+                r={handleSize / 1.5}
+                fill="white" stroke="cyan" strokeWidth={scaledStroke(1)}
+                data-handle="rotate"
+                style={{ cursor: 'alias' }}
+                className="pointer-events-all"
+            />
+            {/* Resize Handles */}
+            {handles.map(({ pos, name, cursor }) => (
+                <rect
+                    key={name}
+                    x={pos.x - halfHandleSize}
+                    y={pos.y - halfHandleSize}
+                    width={handleSize}
+                    height={handleSize}
+                    fill="white"
+                    stroke="cyan"
+                    strokeWidth={scaledStroke(1)}
+                    data-handle={name}
+                    style={{ cursor }}
+                    className="pointer-events-all"
+                />
+            ))}
         </g>
     );
 });
+
 
 export const Whiteboard: React.FC<WhiteboardProps> = ({
   paths,
@@ -287,15 +300,30 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   cursor,
   isGridVisible,
   gridSize,
+  dragState,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
+  const [currentPointerPos, setCurrentPointerPos] = useState<Point | null>(null);
 
   useEffect(() => {
     if (svgRef.current) {
       setRc(rough.svg(svgRef.current));
     }
   }, []);
+  
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (svgRef.current) {
+        const point = getPointerPosition(e, svgRef.current, viewTransform);
+        setCurrentPointerPos(point);
+    }
+    onPointerMove(e);
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
+    setCurrentPointerPos(null);
+    onPointerLeave(e);
+  };
 
   const selectedPaths = paths.filter(p => selectedPathIds.includes(p.id));
   const singleSelectedPath = selectedPaths.length === 1 ? selectedPaths[0] : null;
@@ -311,9 +339,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         ref={svgRef}
         className="w-full h-full"
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
+        onPointerMove={handlePointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerLeave}
+        onPointerLeave={handlePointerLeave}
       >
         {isGridVisible && (
           <>
@@ -417,7 +445,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           {tool === 'edit' && singleSelectedPath && (
             <>
               {(singleSelectedPath.tool === 'pen' || singleSelectedPath.tool === 'line') && 
-                <VectorPathControls key={singleSelectedPath.id} data={singleSelectedPath as VectorPathData} scale={viewTransform.scale} />
+                <VectorPathControls key={singleSelectedPath.id} data={singleSelectedPath as VectorPathData} scale={viewTransform.scale} dragState={dragState} hoveredPoint={currentPointerPos} />
               }
               {(singleSelectedPath.tool === 'rectangle' || singleSelectedPath.tool === 'ellipse') &&
                 <ShapeControls key={singleSelectedPath.id} path={singleSelectedPath as RectangleData | EllipseData} scale={viewTransform.scale} />
@@ -427,19 +455,20 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
           {tool === 'move' && selectedPaths.length > 0 && (
             <>
-              {selectedPaths.map(p => <SingleSelectionHighlight key={p.id} path={p} scale={viewTransform.scale} />)}
-              {selectedPaths.length > 1 && (
-                <MultiSelectionControls paths={selectedPaths} scale={viewTransform.scale} />
-              )}
+              {selectedPaths.length > 1 &&
+                selectedPaths.map(p => (
+                  <IndividualHighlight key={`highlight-${p.id}`} path={p} scale={viewTransform.scale} />
+                ))}
+              <MultiSelectionControls paths={selectedPaths} scale={viewTransform.scale} />
             </>
           )}
 
           {/* Render controls for current pen path */}
           {currentPenPath && (
-            <VectorPathControls data={currentPenPath} scale={viewTransform.scale} />
+            <VectorPathControls data={currentPenPath} scale={viewTransform.scale} dragState={dragState} hoveredPoint={currentPointerPos} />
           )}
           {currentLinePath && (
-            <VectorPathControls data={currentLinePath} scale={viewTransform.scale} />
+            <VectorPathControls data={currentLinePath} scale={viewTransform.scale} dragState={dragState} hoveredPoint={currentPointerPos}/>
           )}
           
           {/* Render marquee selection box */}

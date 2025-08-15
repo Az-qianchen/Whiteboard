@@ -1,7 +1,4 @@
-
-
-
-import type { BBox, AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData } from '../types';
+import type { BBox, AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData, ImageData } from '../types';
 import { samplePath } from './path-fitting';
 import { dist } from './utils';
 
@@ -18,6 +15,7 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
   switch (path.tool) {
     case 'rectangle':
     case 'ellipse':
+    case 'image':
       return {
         x: path.x - halfStroke,
         y: path.y - halfStroke,
@@ -156,10 +154,10 @@ export function resizePath(
     return { ...originalPath, x, y, width, height };
 }
 
-export function getPathsBoundingBox(paths: AnyPath[]): BBox | null {
+export function getPathsBoundingBox(paths: AnyPath[], includeStroke: boolean = false): BBox | null {
   if (!paths || paths.length === 0) return null;
 
-  const bboxes = paths.map(p => getPathBoundingBox(p, false));
+  const bboxes = paths.map(p => getPathBoundingBox(p, includeStroke));
   if (bboxes.length === 0) return null;
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

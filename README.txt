@@ -31,6 +31,9 @@
 - `Alt + 点击锚点`: 删除一个点 (Delete a point)
 - `Escape`: 取消选择 / 取消当前绘制 (Clear Selection / Cancel Drawing)
 - `Enter`: (使用钢笔工具时) 完成路径 (Finish Path with Pen Tool)
+- `Ctrl/Cmd + C`: 复制选中项 (Copy Selection)
+- `右键 -> 复制画布`: 将整个画布复制为文本格式，用于保存。
+- `Ctrl/Cmd + V`: 粘贴 (支持粘贴图形、图片以及整个画布数据)。
 
 ### 画布导航
 - **平移**: 按住鼠标中键并拖动 (Hold middle mouse button and drag)

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 export const COLORS = [
@@ -111,5 +112,36 @@ export const ICONS = {
   ),
   PASTE: (
      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M12 2v4a2 2 0 0 0 2 2h4"/><rect width="8" height="4" x="8" y="12" rx="1"/><path d="M8 12h8"/></svg>
+  ),
+  FLIP_HORIZONTAL: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3m10-16h-3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/>
+      <path d="M12 20V4"/>
+    </svg>
+  ),
+  FLIP_VERTICAL: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3 8v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8m-5 10v-3a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v3"/>
+      <path d="M4 12h16"/>
+    </svg>
+  ),
+  COPY_SVG: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+      <path d="M12.5 12.5h-1v2h1a.5.5 0 0 0 0-1v-1"/>
+      <path d="M15 12.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0 0 1h.5v.5h-1a.5.5 0 0 0 0 1h1a.5.5 0 0 0 .5-.5"/>
+      <path d="m18 14.5-1-2-1 2"/>
+      <path d="M17 12.5v2"/>
+    </svg>
+  ),
+  COPY_PNG: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+      <path d="M12.5 12.5h-1a.5.5 0 0 0 0 1h1v1h-1a.5.5 0 0 0 0 1h1a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 0-.5-.5Z"/>
+      <path d="M15.5 12.5h-1a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 .5.5h1"/>
+      <path d="M18.5 12.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h.5l.5.5v.5"/>
+    </svg>
   ),
 };

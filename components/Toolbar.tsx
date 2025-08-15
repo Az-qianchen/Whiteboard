@@ -16,6 +16,8 @@ interface ToolbarProps {
   setFillStyle: (style: string) => void;
   strokeWidth: number;
   setStrokeWidth: (width: number) => void;
+  opacity: number | null;
+  setOpacity: (opacity: number) => void;
   
   // RoughJS properties
   roughness: number;
@@ -87,6 +89,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   fill, setFill,
   fillStyle, setFillStyle,
   strokeWidth, setStrokeWidth,
+  opacity, setOpacity,
   roughness, setRoughness,
   bowing, setBowing,
   fillWeight, setFillWeight,
@@ -346,6 +349,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">填充样式</span>
         </div>
         
+        {/* Opacity Slider for Images */}
+        {opacity !== null && (
+           <div className="flex flex-col items-center gap-1 w-28">
+              <div className="w-full h-9 flex items-center px-1">
+                  <Slider 
+                    label="透明度"
+                    value={opacity}
+                    setValue={setOpacity}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onInteractionStart={beginCoalescing}
+                    onInteractionEnd={endCoalescing}
+                    displayValue={`${Math.round(opacity * 100)}%`}
+                  />
+              </div>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">透明度</span>
+           </div>
+        )}
+
         {/* 属性 */}
         <div className="flex flex-col items-center gap-1 w-14">
             <Popover className="relative">
@@ -444,7 +467,7 @@ const ActionButton: React.FC<{onClick: () => void, disabled: boolean, icon: Reac
     ? "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500" 
     : "bg-slate-200 dark:bg-slate-500 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-400 focus-visible:ring-slate-400";
   return (
-    <div className="flex flex-col items-center gap-1 w-20">
+    <div className="flex flex-col items-center gap-1 w-14">
       <button onClick={onClick} disabled={disabled} className={`${baseClasses} ${colorClasses}`}>
         {icon}
       </button>
@@ -462,9 +485,10 @@ interface SliderProps {
   step: number;
   onInteractionStart: () => void;
   onInteractionEnd: () => void;
+  displayValue?: string;
 }
 
-const Slider: React.FC<SliderProps> = ({ label, value, setValue, min, max, step, onInteractionStart, onInteractionEnd }) => {
+const Slider: React.FC<SliderProps> = ({ label, value, setValue, min, max, step, onInteractionStart, onInteractionEnd, displayValue }) => {
   const handlePointerDown = () => {
     onInteractionStart();
 
@@ -490,6 +514,7 @@ const Slider: React.FC<SliderProps> = ({ label, value, setValue, min, max, step,
         onPointerDown={handlePointerDown}
         className="w-full col-span-2"
       />
+      {displayValue && <span className="text-xs text-slate-500 dark:text-slate-400 col-start-2 col-span-2 text-center -mt-2">{displayValue}</span>}
     </div>
   );
 };

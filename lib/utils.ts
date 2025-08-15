@@ -1,4 +1,4 @@
-import type { Point, AnyPath, Anchor, DragState, RectangleData, EllipseData, VectorPathData } from '../types';
+import type { Point, AnyPath, Anchor, DragState, RectangleData, EllipseData, VectorPathData, ImageData } from '../types';
 
 /**
  * 计算两点之间的欧几里得距离。
@@ -100,6 +100,7 @@ export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T 
             };
         case 'rectangle':
         case 'ellipse':
+        case 'image':
             return { ...path, x: path.x + dx, y: path.y + dy };
     }
 }
@@ -230,4 +231,76 @@ export function getSqDistToSegment(p: Point, p1: Point, p2: Point): { distSq: nu
     const dx = p.x - projX;
     const dy = p.y - projY;
     return { distSq: dx * dx + dy * dy, t: clampedT };
+}
+
+export function rotatePoint(point: Point, center: Point, angle: number): Point {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+    const nx = (cos * dx) - (sin * dy) + center.x;
+    const ny = (sin * dx) + (cos * dy) + center.y;
+    return { x: nx, y: ny };
+}
+
+export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: number): T {
+    const rotate = (p: Point) => rotatePoint(p, center, angle);
+
+    switch(path.tool) {
+        case 'pen':
+        case 'line':
+            return {
+                ...path,
+                anchors: (path as VectorPathData).anchors.map(a => ({
+                    point: rotate(a.point),
+                    handleIn: rotate(a.handleIn),
+                    handleOut: rotate(a.handleOut),
+                }))
+            };
+        case 'rectangle':
+        case 'ellipse':
+        case 'image':
+            const pathCenter = { x: path.x + path.width / 2, y: path.y + path.height / 2 };
+            const newCenter = rotatePoint(pathCenter, center, angle);
+            return { 
+                ...path,
+                x: newCenter.x - path.width / 2,
+                y: newCenter.y - path.height / 2,
+                rotation: (path.rotation || 0) + angle,
+             };
+    }
+}
+
+export function flipPath<T extends AnyPath>(path: T, center: Point, axis: 'horizontal' | 'vertical'): T {
+    const flipPoint = (p: Point): Point => {
+        if (axis === 'horizontal') {
+            return { x: center.x - (p.x - center.x), y: p.y };
+        } else { // vertical
+            return { x: p.x, y: center.y - (p.y - center.y) };
+        }
+    };
+
+    switch (path.tool) {
+        case 'pen':
+        case 'line': {
+            const newAnchors = (path as VectorPathData).anchors.map(a => ({
+                point: flipPoint(a.point),
+                handleIn: flipPoint(a.handleIn),
+                handleOut: flipPoint(a.handleOut),
+            }));
+            return { ...path, anchors: newAnchors };
+        }
+        case 'rectangle':
+        case 'ellipse':
+        case 'image': {
+            const flippedTopLeft = flipPoint({ x: path.x, y: path.y });
+            const flippedBottomRight = flipPoint({ x: path.x + path.width, y: path.y + path.height });
+            
+            return {
+                ...path,
+                x: Math.min(flippedTopLeft.x, flippedBottomRight.x),
+                y: Math.min(flippedTopLeft.y, flippedBottomRight.y),
+            };
+        }
+    }
 }

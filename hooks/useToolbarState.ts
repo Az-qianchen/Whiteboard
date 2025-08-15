@@ -1,6 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Tool, AnyPath } from '../types';
+import type { Tool, AnyPath, ImageData } from '../types';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT } from '../constants';
 
 /**
@@ -132,6 +132,31 @@ export const useToolbarState = (
     if (firstSelectedPath) updateSelectedPaths(() => ({ curveStepCount: val }));
     else setDrawingCurveStepCount(val);
   };
+  
+  // --- Image Opacity Logic ---
+  
+  const selectedImages = useMemo(() => {
+    if (tool !== 'edit' || selectedPathIds.length === 0) return [];
+    return paths.filter(p => selectedPathIds.includes(p.id) && p.tool === 'image') as ImageData[];
+  }, [paths, selectedPathIds, tool]);
+
+  const firstSelectedImage = selectedImages[0] || null;
+
+  const setOpacity = (newOpacity: number) => {
+    if (selectedImages.length > 0) {
+        setPaths(prevPaths =>
+            prevPaths.map(p => {
+                if (selectedPathIds.includes(p.id) && p.tool === 'image') {
+                    return { ...p, opacity: newOpacity };
+                }
+                return p;
+            })
+        );
+    }
+  };
+
+  const opacity = firstSelectedImage ? (firstSelectedImage.opacity ?? 1) : null;
+
 
   // --- Display Values ---
 
@@ -182,6 +207,7 @@ export const useToolbarState = (
     fill, setFill,
     fillStyle, setFillStyle,
     strokeWidth, setStrokeWidth,
+    opacity, setOpacity,
     roughness, setRoughness,
     bowing, setBowing,
     fillWeight, setFillWeight,

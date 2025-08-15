@@ -3,7 +3,7 @@
  * on the canvas intersects with a shape.
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData } from '../types';
 import { dist } from './utils';
 import { samplePath } from './path-fitting';
 import { getPathBoundingBox, doBboxesIntersect } from './geometry';
@@ -52,6 +52,10 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
     const thresholdSq = threshold * threshold;
 
     switch (path.tool) {
+        case 'image': {
+             const { x, y, width, height } = path as ImageData;
+             return point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height;
+        }
         case 'rectangle': {
             const { x, y, width, height } = path as RectangleData;
             const p1 = { x, y };

@@ -24,6 +24,7 @@ interface ShapeBase {
   fill: string;
   fillStyle: string;
   strokeWidth: number;
+  rotation?: number; // in radians
   // RoughJS 属性
   roughness: number;
   bowing: number;
@@ -60,8 +61,18 @@ export interface EllipseData extends ShapeBase {
   height: number;
 }
 
+export interface ImageData extends ShapeBase {
+  tool: 'image';
+  src: string; // data URL
+  opacity: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | RectangleData | EllipseData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData;
 
 // 用于实时手绘的临时路径类型。
 export interface LivePath extends ShapeBase {
@@ -104,4 +115,24 @@ type ResizeDragState = {
   initialPointerPos: Point;
 };
 
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | null;
+// A drag state for scaling multiple shapes
+type ScaleDragState = {
+  type: 'scale';
+  pathIds: string[];
+  handle: ResizeHandlePosition;
+  originalPaths: AnyPath[];
+  initialPointerPos: Point;
+  initialSelectionBbox: BBox;
+};
+
+// A drag state for rotating multiple shapes
+type RotateDragState = {
+    type: 'rotate';
+    pathIds: string[];
+    originalPaths: AnyPath[];
+    center: Point;
+    initialAngle: number;
+};
+
+
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | null;

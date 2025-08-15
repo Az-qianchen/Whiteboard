@@ -1,9 +1,6 @@
-
-
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { Point, DragState, Anchor, AnyPath, VectorPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, LivePath } from '../types';
-import { dist, updatePathAnchors, insertAnchorOnCurve, movePath, getSqDistToSegment } from '../lib/utils';
+import type { Point, DragState, Anchor, AnyPath, VectorPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, LivePath, ImageData } from '../types';
+import { dist, updatePathAnchors, insertAnchorOnCurve, movePath, getSqDistToSegment, rotatePath } from '../lib/utils';
 import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect, getMarqueeRect, resizePath } from '../lib/geometry';
 import { isPointHittingPath, isPathIntersectingMarquee } from '../lib/hit-testing';
 import { sampleCubicBezier, anchorsToPathD, pointsToPathD } from '../lib/path-fitting';
@@ -163,6 +160,64 @@ export const usePointerInteraction = ({
       }
 
       case 'move': {
+        const targetElement = e.target as SVGElement;
+        const handle = targetElement.dataset.handle as ResizeHandlePosition | 'rotate' | undefined;
+
+        // Priority 1: Scale/Rotate handle interaction
+        if (handle && selectedPathIds.length > 0) {
+            const selected = paths.filter(p => selectedPathIds.includes(p.id));
+            const bbox = getPathsBoundingBox(selected, false); // Geometric bbox for scaling
+            if (!bbox) return;
+
+            beginCoalescing();
+            if (handle === 'rotate') {
+                const center = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
+                const startAngle = Math.atan2(point.y - center.y, point.x - center.x);
+                setDragState({
+                    type: 'rotate',
+                    pathIds: selectedPathIds,
+                    originalPaths: selected,
+                    center,
+                    initialAngle: startAngle,
+                });
+            } else {
+                setDragState({
+                    type: 'scale',
+                    pathIds: selectedPathIds,
+                    handle,
+                    originalPaths: selected,
+                    initialPointerPos: point,
+                    initialSelectionBbox: bbox,
+                });
+            }
+            return;
+        }
+        
+        // Priority 1.5: Move existing selection if clicking within its bounds
+        if (selectedPathIds.length > 0) {
+            const selected = paths.filter(p => selectedPathIds.includes(p.id));
+            const selectionHitBbox = getPathsBoundingBox(selected, true); // Use stroked bbox for hit test
+            if (selectionHitBbox &&
+                point.x >= selectionHitBbox.x && point.x <= selectionHitBbox.x + selectionHitBbox.width &&
+                point.y >= selectionHitBbox.y && point.y <= selectionHitBbox.y + selectionHitBbox.height)
+            {
+                beginCoalescing();
+                // The dragState needs the GEOMETRIC bbox for snapping later.
+                const selectionGeometricBbox = getPathsBoundingBox(selected, false);
+                if (!selectionGeometricBbox) return; 
+
+                setDragState({
+                    type: 'move',
+                    pathIds: selectedPathIds,
+                    originalPaths: selected,
+                    initialPointerPos: point,
+                    initialSelectionBbox: selectionGeometricBbox,
+                });
+                return; // Click was handled, so we're done.
+            }
+        }
+
+        // Priority 2: Moving a new selection or starting a marquee
         let clickedPathId: string | null = null;
         for (let i = paths.length - 1; i >= 0; i--) {
             const path = paths[i];
@@ -200,6 +255,7 @@ export const usePointerInteraction = ({
                 });
             }
         } else {
+            // Priority 3: Starting a marquee selection
             if (!e.shiftKey) {
                 setSelectedPathIds([]);
             }
@@ -296,7 +352,7 @@ export const usePointerInteraction = ({
         // Priority 2: Check for resize handle interaction
         if (selectedPathIds.length === 1) {
             const handle = targetElement.dataset.handle as ResizeHandlePosition | undefined;
-            if (handle && singleSelectedPath) {
+            if (handle && singleSelectedPath && (singleSelectedPath.tool === 'rectangle' || singleSelectedPath.tool === 'ellipse')) {
                 beginCoalescing();
                 setDragState({ type: 'resize', pathId: singleSelectedPath.id, handle, originalPath: singleSelectedPath as RectangleData | EllipseData, initialPointerPos: point });
                 return;
@@ -365,6 +421,93 @@ export const usePointerInteraction = ({
         
         beginCoalescing();
         switch (dragState.type) {
+            case 'rotate': {
+                const { center, originalPaths, initialAngle } = dragState;
+                const currentAngle = Math.atan2(snappedMovePoint.y - center.y, snappedMovePoint.x - center.x);
+                let angleDelta = currentAngle - initialAngle;
+
+                if (e.shiftKey) {
+                    const snapIncrement = 15 * (Math.PI / 180); // 15 degrees in radians
+                    angleDelta = Math.round(angleDelta / snapIncrement) * snapIncrement;
+                }
+
+                const rotatedPathMap = new Map<string, AnyPath>();
+                originalPaths.forEach(path => {
+                    const rotated = rotatePath(path, center, angleDelta);
+                    rotatedPathMap.set(path.id, rotated);
+                });
+
+                setPaths(prev => prev.map(p => rotatedPathMap.get(p.id) || p));
+                break;
+            }
+            case 'scale': {
+                const { originalPaths, initialSelectionBbox, handle, initialPointerPos } = dragState;
+                
+                const dummyRect: RectangleData = {
+                    ...initialSelectionBbox,
+                    tool: 'rectangle',
+                    id: '',
+                    color: '',
+                    fill: '',
+                    fillStyle: '',
+                    strokeWidth: 0,
+                    roughness: 0,
+                    bowing: 0,
+                    fillWeight: 0,
+                    hachureAngle: 0,
+                    hachureGap: 0,
+                    curveTightness: 0,
+                    curveStepCount: 0,
+                };
+
+                const newBbox = resizePath(
+                  dummyRect,
+                  handle, snappedMovePoint, initialPointerPos, e.shiftKey
+                ) as RectangleData;
+
+                if (newBbox.width === 0 || newBbox.height === 0 || initialSelectionBbox.width === 0 || initialSelectionBbox.height === 0) break;
+                
+                const scaleX = newBbox.width / initialSelectionBbox.width;
+                const scaleY = newBbox.height / initialSelectionBbox.height;
+
+                const pivot = { x: 0, y: 0 };
+                if (handle.includes('left')) pivot.x = initialSelectionBbox.x + initialSelectionBbox.width;
+                else pivot.x = initialSelectionBbox.x;
+                if (handle.includes('top')) pivot.y = initialSelectionBbox.y + initialSelectionBbox.height;
+                else pivot.y = initialSelectionBbox.y;
+                
+                if (handle === 'top' || handle === 'bottom') pivot.x = initialSelectionBbox.x + initialSelectionBbox.width / 2;
+                if (handle === 'left' || handle === 'right') pivot.y = initialSelectionBbox.y + initialSelectionBbox.height / 2;
+
+                const scaledPathMap = new Map<string, AnyPath>();
+                originalPaths.forEach(p => {
+                    let scaledPath: AnyPath;
+                    if (p.tool === 'pen' || p.tool === 'line') {
+                        const scalePoint = (pt: Point) => ({
+                            x: pivot.x + (pt.x - pivot.x) * scaleX,
+                            y: pivot.y + (pt.y - pivot.y) * scaleY,
+                        });
+                        scaledPath = { ...p, anchors: p.anchors.map(a => ({
+                            point: scalePoint(a.point),
+                            handleIn: scalePoint(a.handleIn),
+                            handleOut: scalePoint(a.handleOut),
+                        }))};
+                    } else {
+                        const shape = p as RectangleData | EllipseData | ImageData;
+                        scaledPath = {
+                            ...shape,
+                            x: pivot.x + (shape.x - pivot.x) * scaleX,
+                            y: pivot.y + (shape.y - pivot.y) * scaleY,
+                            width: shape.width * scaleX,
+                            height: shape.height * scaleY,
+                        };
+                    }
+                    scaledPathMap.set(p.id, scaledPath);
+                });
+
+                setPaths(prev => prev.map(p => scaledPathMap.get(p.id) || p));
+                break;
+            }
             case 'move': {
                 const totalDx = movePoint.x - dragState.initialPointerPos.x;
                 const totalDy = movePoint.y - dragState.initialPointerPos.y;
@@ -591,5 +734,6 @@ export const usePointerInteraction = ({
     previewD,
     drawingShape,
     cancelDrawingShape,
+    dragState,
   };
 };
