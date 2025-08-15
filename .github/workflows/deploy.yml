@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]   # 如果主分支不是 main，改这里
+    branches: [ main ]   # 如果你的默认分支不是 main，请改这里
   workflow_dispatch:
 
 permissions:
@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BUILD_DIR: dist
   NODE_VERSION: "20"
+  BUILD_DIR: dist
 
 jobs:
   build:
@@ -25,21 +25,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 不使用任何缓存，也不指定 cache-dependency-path —— 彻底规避锁文件检测
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm   # 不指定 cache-dependency-path，避免无锁时报错
 
-      - name: Install dependencies (ci if lock exists)
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "Using npm ci"
-            npm ci
-          else
-            echo "No package-lock.json, using npm install"
-            npm install
-          fi
+      # 无锁文件场景，直接 npm install；如果你后来提交了 package-lock.json 也可改成 npm ci
+      - name: Install dependencies
+        run: npm install
 
       - name: Build
         run: npm run build
