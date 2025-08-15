@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]   # 如果你的默认分支不是 main，请改这里
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,8 @@ concurrency:
 env:
   NODE_VERSION: "20"
   BUILD_DIR: dist
+  # 将 Secrets 注入 Vite（前端在构建期使用）
+  VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
 jobs:
   build:
@@ -25,14 +27,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 不使用任何缓存，也不指定 cache-dependency-path —— 彻底规避锁文件检测
+      # 不启用 cache（避免找锁文件报错）
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # 无锁文件场景，直接 npm install；如果你后来提交了 package-lock.json 也可改成 npm ci
-      - name: Install dependencies
+      - name: Install deps (no lockfile)
         run: npm install
 
       - name: Build
