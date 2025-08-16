@@ -1,66 +1,65 @@
+# SVG Whiteboard
 
-# 项目介绍
-这是一个类似 Excalidraw 的白板工具，可以绘制手绘风格的矢量图形。
+A decent whiteboard tool, similar to Excalidraw, for drawing hand-drawn style vector graphics. It gets the job done.
 
-## 功能特性
-- **画笔工具**: 快速绘制具有可调节粗糙度的手绘风格线条。
-- **钢笔工具**: 创建和编辑精确的、平滑的贝塞尔曲线。
-- **AI 绘图**: 通过文本提示生成矢量图形。
-- **形状工具**: 绘制矩形、椭圆和直线。
-- **编辑工具**: 移动锚点和控制手柄，微调任何路径。
-- **丰富的工具栏**: 包括颜色选择器、描边宽度、撤销/重做和清除画布等功能。
-- **平移和缩放**: 流畅的画布导航。
-- **网格与吸附**: 可切换的网格和吸附功能，用于精确对齐。
+## Features
 
-## 快捷键 (Shortcuts)
+- **Brush Tool**: Quickly draw freehand-style lines with adjustable roughness.
+- **Pen Tool**: Create and edit precise, smooth Bézier curves.
+- **Shape Tools**: Draw rectangles, ellipses, and lines.
+- **Edit Tool**: Fine-tune any path by moving anchor points and control handles.
+- **Rich Toolbar**: Includes color pickers, stroke width, undo/redo, and clear canvas functions.
+- **Pan & Zoom**: Smooth canvas navigation.
+- **Grid & Snapping**: Toggleable grid and snapping for precise alignment.
 
-### 工具切换
-- `V`: 编辑工具 (Edit Tool)
-- `B`: 画笔工具 (Brush Tool)
-- `P`: 钢笔工具 (Pen Tool)
-- `A`: 打开 AI 绘图对话框 (Open AI Drawing Dialog)
-- `R`: 矩形工具 (Rectangle Tool)
-- `O`: 椭圆工具 (Ellipse Tool)
-- `L`: 线条工具 (Line Tool)
+## Shortcuts
 
-### 编辑操作
-- `Ctrl/Cmd + Z`: 撤销 (Undo)
-- `Ctrl/Cmd + Shift + Z`: 重做 (Redo)
-- `Backspace` / `Delete`: 删除选中项 (Delete Selection)
-- `Ctrl + 点击路径`: 在路径上添加一个新点 (Add a new point on a path)
-- `Alt + 点击锚点`: 删除一个点 (Delete a point)
-- `Escape`: 取消选择 / 取消当前绘制 (Clear Selection / Cancel Drawing)
-- `Enter`: (使用钢笔工具时) 完成路径 (Finish Path with Pen Tool)
-- `Ctrl/Cmd + C`: 复制选中项 (Copy Selection)
-- `右键 -> 复制画布`: 将整个画布复制为文本格式，用于保存。
-- `Ctrl/Cmd + V`: 粘贴 (支持粘贴图形、图片以及整个画布数据)。
+### Tools
 
-### 画布导航
-- **平移**: 按住鼠标中键并拖动 (Hold middle mouse button and drag)
-- **缩放**: 使用鼠标滚轮 (Use mouse wheel)
-- `G`: 切换网格和吸附 (Toggle Grid & Snapping)
+- `V`: Edit Tool
+- `M`: Move Tool
+- `B`: Brush Tool
+- `P`: Pen Tool
+- `R`: Rectangle Tool
+- `O`: Ellipse Tool
+- `L`: Line Tool
 
-### 绘图辅助
-- `Shift` + 拖动绘制形状: 绘制正方形/正圆 (Draw perfect square/circle)
-- `Shift` + 拖动绘制直线: 按 45° 角度吸附 (Snap line to 45° increments)
-- `Shift` + 拖动控制手柄: 独立（非对称）移动手柄 (Move handle independently)
+### Editing
 
+- `Ctrl/Cmd + Z`: Undo
+- `Ctrl/Cmd + Shift + Z`: Redo
+- `Ctrl/Cmd + C`: Copy Selection
+- `Ctrl/Cmd + V`: Paste (supports shapes, images, and full canvas data)
+- `Backspace` / `Delete`: Delete Selection
+- `Escape`: Clear Selection / Cancel Current Drawing
+- `Enter`: (With Pen/Line tool) Finish Path
+- `Right-click -> Copy Canvas`: Copies the entire canvas as text for saving.
 
-# 项目架构
-该项目采用基于 React Hooks 的现代化架构，以实现关注点分离和最大的可维护性。
+### Drawing Helpers
 
-- `App.tsx`: 作为应用的组合根，将各个部分连接在一起。
-- `components/`: 包含 UI 组件，如 `Toolbar` 和 `Whiteboard`。
-- `hooks/`: 存放大部分应用逻辑的自定义 React Hooks。
-  - `usePaths`: 管理所有路径数据（创建、更新、删除）。
-  - `useToolbarState`: 管理工具栏的状态（颜色、描边宽度、工具等）。
-  - `usePointerInteraction`: 处理所有画布上的指针事件（绘图、编辑、选择）。
-  - `useViewTransform`: 控制画布的平移和缩放。
-- `lib/`: 包含辅助函数和算法，如路径拟合和几何计算。
-- `types.ts`: 定义了整个应用中使用的数据结构和类型。
-- `constants.tsx`: 存储应用范围内的常量，如颜色和图标。
+- `Shift` + Drag Shape: Draw a perfect square/circle.
+- `Shift` + Drag Line: Snap line to 45° increments.
+- `Shift` + Drag Handle: Move a Bézier handle independently (asymmetrically).
+- `Ctrl` + Click on Path: (In Edit mode) Add a new point to a path.
+- `Alt` + Click on Anchor: (In Edit mode) Delete a point from a path.
 
-# 项目规范(不要编辑这一章节)
-1. 每一个功能尽量保持解耦，单一脚本不要过长
-2. 功能实现尽量引用成熟的库
-3. 每个脚本顶部写明该脚本的功能
+### Canvas
+
+- **Pan**: Hold middle mouse button and drag, or `Alt` + drag.
+- **Zoom**: Use the mouse wheel.
+- `G`: Toggle Grid & Snapping
+
+## Project Architecture
+The project uses a modern architecture based on React Hooks to achieve separation of concerns and maximum maintainability.
+
+- `App.tsx`: The composition root of the application, wiring everything together.
+- `components/`: Contains UI components like `Toolbar` and `Whiteboard`.
+- `hooks/`: Contains the majority of the application logic in custom React Hooks.
+  - `usePaths`: Manages all path data (creation, updates, history).
+  - `useToolbarState`: Manages the state of the toolbar (color, stroke width, current tool).
+  - `usePointerInteraction`: Handles all pointer events on the canvas (drawing, editing, selecting).
+  - `useViewTransform`: Controls canvas panning and zooming.
+  - `useGlobalEventHandlers`: Manages global events like hotkeys and clipboard actions.
+- `lib/`: Contains helper functions and algorithms for things like path fitting and geometry calculations.
+- `types.ts`: Defines the data structures and types used throughout the application.
+- `constants.tsx`: Stores application-wide constants like colors and icons.

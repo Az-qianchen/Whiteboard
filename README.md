@@ -1,20 +1,61 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# SVG 白板
 
-# Run and deploy your AI Studio app
+一个功能强大的白板工具，类似于 Excalidraw，用于绘制手绘风格的矢量图形。
 
-This contains everything you need to run your app locally.
+## 功能特性
 
-View your app in AI Studio: https://ai.studio/apps/drive/1_xPdQ1SAhL-CB5ybrNkWMXpSWqr9MB7v
+- **画笔工具**: 快速绘制可调节粗糙度的手绘风格线条。
+- **钢笔工具**: 创建和编辑精确、平滑的贝塞尔曲线。
+- **形状工具**: 绘制矩形、椭圆和直线。
+- **编辑工具**: 通过移动锚点和控制手柄来微调任何路径。
+- **丰富的工具栏**: 包括颜色选择器、描边宽度、撤销/重做和清空画布功能。
+- **平移与缩放**: 流畅的画布导航体验。
+- **网格与吸附**: 可切换的网格和吸附功能，用于精确定位。
 
-## Run Locally
+## 快捷键
 
-**Prerequisites:**  Node.js
+### 工具
+- `V`: 编辑工具
+- `M`: 移动工具
+- `B`: 画笔工具
+- `P`: 钢笔工具
+- `R`: 矩形工具
+- `O`: 椭圆工具
+- `L`: 直线工具
 
+### 编辑
+- `Ctrl/Cmd + Z`: 撤销
+- `Ctrl/Cmd + Shift + Z`: 重做
+- `Ctrl/Cmd + C`: 复制选中项
+- `Ctrl/Cmd + V`: 粘贴 (支持图形、图片和完整的画布数据)
+- `Backspace` / `Delete`: 删除选中项
+- `Escape`: 清除选中 / 取消当前绘制
+- `Enter`: (使用钢笔/直线工具时) 完成路径
+- `右键 -> 复制画布`: 将整个画布复制为文本以便保存。
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 绘图辅助
+- `Shift` + 拖动形状: 绘制正方形/圆形。
+- `Shift` + 拖动直线: 将直线吸附到 45° 增量。
+- `Shift` + 拖动控制柄: (非对称)独立移动贝塞尔曲线的控制柄。
+- `Ctrl` + 点击路径: (在编辑模式下) 在路径上添加新锚点。
+- `Alt` + 点击锚点: (在编辑模式下) 从路径中删除锚点。
+
+### 画布
+- **平移**: 按住鼠标中键并拖动，或 `Alt` + 拖动。
+- **缩放**: 使用鼠标滚轮。
+- `G`: 切换网格和吸附
+
+## 项目架构
+该项目采用基于 React Hooks 的现代架构，以实现关注点分离和最大化的可维护性。
+
+- `App.tsx`: 应用的组合根，将所有部分连接在一起。
+- `components/`: 包含 UI 组件，如 `Toolbar` 和 `Whiteboard`。
+- `hooks/`: 在自定义 React Hooks 中包含了大部分应用逻辑。
+  - `usePaths`: 管理所有路径数据（创建、更新、历史记录）。
+  - `useToolbarState`: 管理工具栏的状态（颜色、描边宽度、当前工具）。
+  - `usePointerInteraction`: 处理画布上的所有指针事件（绘图、编辑、选择）。
+  - `useViewTransform`: 控制画布的平移和缩放。
+  - `useGlobalEventHandlers`: 管理全局事件，如快捷键和剪贴板操作。
+- `lib/`: 包含辅助函数和算法，用于路径拟合和几何计算等。
+- `types.ts`: 定义了整个应用程序中使用的数据结构和类型。
+- `constants.tsx`: 存储应用范围内的常量，如颜色和图标。

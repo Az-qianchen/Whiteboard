@@ -44,8 +44,6 @@ interface ToolbarProps {
   beginCoalescing: () => void;
   endCoalescing: () => void;
 
-  onOpenAiModal: () => void;
-
   isGridVisible: boolean;
   setIsGridVisible: (visible: boolean) => void;
   gridSize: number;
@@ -101,7 +99,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   redo, canRedo,
   clear, canClear,
   beginCoalescing, endCoalescing,
-  onOpenAiModal,
   isGridVisible, setIsGridVisible,
   gridSize, setGridSize,
 }) => {
@@ -211,19 +208,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           ))}
         </RadioGroup>
-        
-        {/* AI Drawing Button */}
-        <div className="flex flex-col items-center gap-1 w-14">
-          <button
-            type="button"
-            title="AI 绘图 (A)"
-            onClick={onOpenAiModal}
-            className="p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-          >
-            {ICONS.AI}
-          </button>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">AI 绘图</span>
-        </div>
       </div>
 
 
@@ -377,18 +361,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </Popover.Button>
                <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
                 <Popover.Panel className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-[#4A5568] rounded-lg shadow-2xl border-2 border-slate-200 dark:border-slate-600 z-20 p-4">
-                    <div className="space-y-4">
-                        <Slider label="粗糙度" value={roughness} setValue={setRoughness} min={0} max={5} step={0.1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                        <Slider label="弯曲度" value={bowing} setValue={setBowing} min={0} max={10} step={0.25} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                        <div className={`transition-opacity ${!isCurvePropsEnabledForCurrentTool ? 'opacity-50 pointer-events-none' : ''}`}>
-                          <Slider label="曲线紧密度" value={curveTightness} setValue={setCurveTightness} min={-1.5} max={1.5} step={0.1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
+                    <div className="flex flex-col gap-4">
+                        {/* Stroke & Curve Properties */}
+                        <div className="space-y-4">
+                            <Slider label="粗糙度" value={roughness} setValue={setRoughness} min={0} max={5} step={0.1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
+                            <Slider label="弯曲度" value={bowing} setValue={setBowing} min={0} max={10} step={0.25} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
+                            <div className={`transition-opacity ${!isCurvePropsEnabledForCurrentTool ? 'opacity-50 pointer-events-none' : ''}`}>
+                              <Slider label="曲线紧密度" value={curveTightness} setValue={setCurveTightness} min={-1.5} max={1.5} step={0.1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
+                            </div>
+                            <div className={`transition-opacity ${!isCurvePropsEnabledForCurrentTool ? 'opacity-50 pointer-events-none' : ''}`}>
+                              <Slider label="曲线步数" value={curveStepCount} setValue={setCurveStepCount} min={1} max={30} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
+                            </div>
                         </div>
-                        <div className={`transition-opacity ${!isCurvePropsEnabledForCurrentTool ? 'opacity-50 pointer-events-none' : ''}`}>
-                          <Slider label="曲线步数" value={curveStepCount} setValue={setCurveStepCount} min={1} max={30} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                        </div>
-                        <Separator />
-                        <div className={`transition-opacity ${!isFillEnabledForCurrentTool || fillStyle === 'solid' ? 'opacity-50' : ''}`}>
-                          <p className={`text-xs text-slate-500 dark:text-slate-400 mb-2 ${isFillEnabledForCurrentTool && fillStyle !== 'solid' ? 'hidden' : ''}`}>填充属性仅适用于非实心样式</p>
+
+                        <div className="h-px bg-slate-200 dark:bg-slate-600" />
+
+                        {/* Fill Properties */}
+                        <div className={`space-y-4 transition-opacity ${!isFillEnabledForCurrentTool || fillStyle === 'solid' ? 'opacity-50' : ''}`}>
+                          <p className={`text-xs text-slate-500 dark:text-slate-400 -mb-2 ${isFillEnabledForCurrentTool && fillStyle !== 'solid' ? 'hidden' : ''}`}>填充属性仅适用于非实心样式</p>
                           <div className={`space-y-4 ${!isFillEnabledForCurrentTool || fillStyle === 'solid' ? 'pointer-events-none' : ''}`}>
                             <Slider label="填充权重" value={fillWeight} setValue={setFillWeight} min={-1} max={5} step={0.25} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
                             <Slider label="影线角度" value={hachureAngle} setValue={setHachureAngle} min={-90} max={90} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />

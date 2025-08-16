@@ -86,12 +86,6 @@ export const ICONS = {
       <line x1="4" y1="20" x2="20" y2="4"></line>
     </svg>
   ),
-  AI: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M10 3L8 8l-5 2 5 2 2 5 2-5 5-2-5-2-2-5Z"/>
-      <path d="M18 13l-2 5-5-2 5-2 2-5 2 5 5 2-5 2Z"/>
-    </svg>
-  ),
   PROPERTIES: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>

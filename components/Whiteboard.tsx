@@ -1,9 +1,9 @@
 
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, Tool, DragState } from '../types';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, Tool, DragState, ImageData } from '../types';
 import { pointsToSimplePathD, anchorsToPathD } from '../lib/path-fitting';
 import { getMarqueeRect, getPathBoundingBox, getPathsBoundingBox } from '../lib/geometry';
 import { renderPathNode } from '../lib/export';
@@ -33,7 +33,7 @@ interface WhiteboardProps {
   dragState: DragState | null;
 }
 
-// 对于画笔工具的实时预览，我们使用一个简单、高性能的路径。
+// For live brush previews, we use a simple, performant path.
 const LivePathPreview: React.FC<{ data: LivePath }> = React.memo(({ data }) => {
   const d = pointsToSimplePathD(data.points);
   return (
@@ -80,7 +80,15 @@ const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo((
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
   const scaledStroke = (width: number) => Math.max(0.5, width / scale);
   const scaledRadius = (r: number) => Math.max(2, r / scale);
-  const hoverRadius = 10 / scale;
+
+  // Constants for unified size and hover effects
+  const BASE_RADIUS = 5; // Base radius in screen pixels
+  const HOVER_RADIUS = 8; // Radius on hover in screen pixels
+  const HIT_RADIUS = 10;  // Clickable area radius in screen pixels
+  const EXPLOSION_OFFSET = 12; // How far handles "explode" out on hover, in screen pixels
+
+  const hoverRadius = HIT_RADIUS / scale; // in world units
+  const explosionOffset = EXPLOSION_OFFSET / scale; // in world units
 
   return (
     <g className="pointer-events-auto">
@@ -110,29 +118,65 @@ const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragSt
       {/* Anchors and Handles */}
       {data.anchors.map((anchor, index) => {
         const isDraggingThis = dragState && 'anchorIndex' in dragState && dragState.pathId === data.id && dragState.anchorIndex === index;
-        
         const canHover = !dragState || isDraggingThis;
-        const isAnchorHovered = canHover && hoveredPoint && dist(anchor.point, hoveredPoint) < hoverRadius;
-        const isHandleInHovered = canHover && hoveredPoint && dist(anchor.handleIn, hoveredPoint) < hoverRadius;
-        const isHandleOutHovered = canHover && hoveredPoint && dist(anchor.handleOut, hoveredPoint) < hoverRadius;
         
-        const isAnythingHovered = isAnchorHovered || isHandleInHovered || isHandleOutHovered;
+        // 1. Check if handles are collapsed onto the anchor point
+        const isCollapsed = dist(anchor.point, anchor.handleIn) < 1 && dist(anchor.point, anchor.handleOut) < 1;
+
+        // 2. Determine display positions
+        let displayHandleIn = anchor.handleIn;
+        let displayHandleOut = anchor.handleOut;
+        let shouldExplode = false;
+
+        if (isCollapsed) {
+            // Define the positions where handles would be if they were exploded
+            const explodedHandleIn = { x: anchor.point.x - explosionOffset, y: anchor.point.y };
+            const explodedHandleOut = { x: anchor.point.x + explosionOffset, y: anchor.point.y };
+
+            const hoverAreaRadius = hoverRadius * 1.5; // Make the hover area for the group a bit larger
+
+            // Check if the pointer is near the anchor OR where the exploded handles would be.
+            // This makes the "exploded" state sticky as the pointer moves from the anchor towards a handle.
+            const isHoveringGroup = canHover && hoveredPoint && (
+              dist(anchor.point, hoveredPoint) < hoverAreaRadius ||
+              dist(explodedHandleIn, hoveredPoint) < hoverAreaRadius ||
+              dist(explodedHandleOut, hoveredPoint) < hoverAreaRadius
+            );
+            
+            if (isHoveringGroup) {
+                shouldExplode = true;
+                displayHandleIn = explodedHandleIn;
+                displayHandleOut = explodedHandleOut;
+            }
+        }
+
+        // 3. Determine visual feedback based on final display positions
+        const isAnchorHovered = canHover && hoveredPoint && dist(anchor.point, hoveredPoint) < hoverRadius;
+        const isDisplayHandleInHovered = canHover && hoveredPoint && dist(displayHandleIn, hoveredPoint) < hoverRadius;
+        const isDisplayHandleOutHovered = canHover && hoveredPoint && dist(displayHandleOut, hoveredPoint) < hoverRadius;
+
+        // 4. Determine if handle lines should be brightly colored
+        const isAnythingHoveredOnGroup = shouldExplode || isAnchorHovered || isDisplayHandleInHovered || isDisplayHandleOutHovered;
+        
+        const areHandlesVisible = (displayHandleIn.x !== anchor.point.x || displayHandleIn.y !== anchor.point.y ||
+                                  displayHandleOut.x !== anchor.point.x || displayHandleOut.y !== anchor.point.y);
 
         return (
           <g key={index}>
-            {/* Handle Lines (only show if they differ from the point) */}
-            { (anchor.handleIn.x !== anchor.point.x || anchor.handleIn.y !== anchor.point.y ||
-               anchor.handleOut.x !== anchor.point.x || anchor.handleOut.y !== anchor.point.y) &&
+            {/* Handle Lines */}
+            {areHandlesVisible && (
               <>
-                <line x1={anchor.handleIn.x} y1={anchor.handleIn.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHovered ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
-                <line x1={anchor.handleOut.x} y1={anchor.handleOut.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHovered ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
+                <line x1={displayHandleIn.x} y1={displayHandleIn.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHoveredOnGroup ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
+                <line x1={displayHandleOut.x} y1={displayHandleOut.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHoveredOnGroup ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
               </>
-            }
-            {/* Anchor Point */}
-            <circle cx={anchor.point.x} cy={anchor.point.y} r={scaledRadius(isAnchorHovered ? 9 : 6)} fill={isAnchorHovered ? "cyan" : "rgba(0, 255, 255, 0.3)"} stroke={isAnchorHovered ? "white" : "rgba(255, 255, 255, 0.5)"} strokeWidth={scaledStroke(1.5)} data-type="anchor" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75"/>
-            {/* Handle Grab Targets */}
-            <circle cx={anchor.handleIn.x} cy={anchor.handleIn.y} r={scaledRadius(isHandleInHovered ? 6 : 3)} fill={isHandleInHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isHandleInHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
-            <circle cx={anchor.handleOut.x} cy={anchor.handleOut.y} r={scaledRadius(isHandleOutHovered ? 6 : 3)} fill={isHandleOutHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isHandleOutHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
+            )}
+
+            {/* Handle Grab Targets - RENDERED FIRST so anchor is on top */}
+            <circle cx={displayHandleIn.x} cy={displayHandleIn.y} r={scaledRadius(isDisplayHandleInHovered ? HOVER_RADIUS : BASE_RADIUS)} fill={isDisplayHandleInHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isDisplayHandleInHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
+            <circle cx={displayHandleOut.x} cy={displayHandleOut.y} r={scaledRadius(isDisplayHandleOutHovered ? HOVER_RADIUS : BASE_RADIUS)} fill={isDisplayHandleOutHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isDisplayHandleOutHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
+
+            {/* Anchor Point - RENDERED LAST */}
+            <circle cx={anchor.point.x} cy={anchor.point.y} r={scaledRadius(isAnchorHovered ? HOVER_RADIUS : BASE_RADIUS)} fill={isAnchorHovered ? "cyan" : "rgba(0, 255, 255, 0.3)"} stroke={isAnchorHovered ? "white" : "rgba(255, 255, 255, 0.5)"} strokeWidth={scaledStroke(1.5)} data-type="anchor" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75"/>
           </g>
         )})}
     </g>
@@ -325,8 +369,12 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     onPointerLeave(e);
   };
 
-  const selectedPaths = paths.filter(p => selectedPathIds.includes(p.id));
+  const selectedPaths = useMemo(() => {
+    return paths.filter(p => selectedPathIds.includes(p.id));
+  }, [paths, selectedPathIds]);
+
   const singleSelectedPath = selectedPaths.length === 1 ? selectedPaths[0] : null;
+
 
   return (
     <div
@@ -371,14 +419,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           </>
         )}
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
-          {/* Render completed paths */}
-          {paths.map((path) => (
-            <RoughPath 
-              key={path.id} 
-              rc={rc} 
-              data={path} 
-            />
-          ))}
+          {/* Render all paths */}
+          {paths.map((path) => {
+            return <RoughPath key={path.id} rc={rc} data={path} />;
+          })}
 
           {/* Render live brush path */}
           {currentLivePath && <LivePathPreview data={currentLivePath} />}

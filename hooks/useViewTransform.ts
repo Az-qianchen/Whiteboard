@@ -9,6 +9,7 @@ import { getPointerPosition as getPointerPositionUtil } from '../lib/utils';
 export const useViewTransform = () => {
   const [viewTransform, setViewTransform] = useState({ scale: 1, translateX: 0, translateY: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [lastPointerPosition, setLastPointerPosition] = useState<Point | null>(null);
 
   /**
    * 处理滚轮事件以实现缩放。
@@ -67,7 +68,9 @@ export const useViewTransform = () => {
     e: { clientX: number, clientY: number },
     svg: SVGSVGElement
   ): Point => {
-    return getPointerPositionUtil(e, svg, viewTransform);
+    const point = getPointerPositionUtil(e, svg, viewTransform);
+    setLastPointerPosition(point);
+    return point;
   }, [viewTransform]);
 
 
@@ -78,5 +81,6 @@ export const useViewTransform = () => {
     handleWheel,
     handlePanMove,
     getPointerPosition,
+    lastPointerPosition,
   };
 };
