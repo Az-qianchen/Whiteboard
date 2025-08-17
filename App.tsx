@@ -1,298 +1,272 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Toolbar } from './components/Toolbar';
+import { SideToolbar } from './components/SideToolbar';
+import { SelectionToolbar } from './components/SelectionToolbar';
 import { Whiteboard } from './components/Whiteboard';
 import { ContextMenu } from './components/ContextMenu';
+import { MainMenu } from './components/MainMenu';
+import { StatusBar } from './components/StatusBar';
 import { usePaths } from './hooks/usePaths';
 import { useToolbarState } from './hooks/useToolbarState';
 import { useViewTransform } from './hooks/useViewTransform';
+import { useDrawing } from './hooks/useDrawing';
+import { useSelection } from './hooks/useSelection';
 import { usePointerInteraction } from './hooks/usePointerInteraction';
-import { useGlobalEventHandlers } from './hooks/useGlobalEventHandlers';
-import { getPathsBoundingBox } from './lib/geometry';
-import { movePath, flipPath } from './lib/utils';
-import { pathsToSvgString, pathsToPngBlob } from './lib/export';
-import { ICONS } from './constants';
-import type { AnyPath, ImageData } from './types';
+import useGlobalEventHandlers from './hooks/useGlobalEventHandlers';
+import { useAppActions } from './hooks/useAppActions';
+import { getLocalStorageItem } from './lib/utils';
+import * as idb from './lib/indexedDB';
+import type { FileSystemFileHandle } from 'wicg-file-system-access';
+
+const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+const modKey = (key: string) => `${isMac ? '⌘' : 'Ctrl+'}${key}`;
+const modShiftKey = (key: string) => `${isMac ? '⇧⌘' : 'Ctrl+Shift+'}${key}`;
 
 const App: React.FC = () => {
-  // Grid State
-  const [isGridVisible, setIsGridVisible] = useState(true);
-  const [gridSize, setGridSize] = useState(20);
-  // Context Menu State
+  // Local UI State
+  const [isGridVisible, setIsGridVisible] = useState(() => getLocalStorageItem('whiteboard_isGridVisible', true));
+  const [gridSize, setGridSize] = useState(() => getLocalStorageItem('whiteboard_gridSize', 20));
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null>(null);
 
-  // Manages all path-related state and actions
-  const pathState = usePaths();
-  const { paths, selectedPathIds, setPaths, setSelectedPathIds, handleDeleteSelected } = pathState;
+  // New state for file handling
+  const [activeFileHandle, setActiveFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [activeFileName, setActiveFileName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Manages view transformations (pan/zoom)
+  // Core Hooks for State Management
+  const pathState = usePaths();
+  const { paths, selectedPathIds, handleDeleteSelected, handleFinishPenPath, handleFinishLinePath } = pathState;
+
+  // Auto-load last file on startup
+  useEffect(() => {
+    const loadLastFile = async () => {
+      try {
+        const handle = await idb.get<FileSystemFileHandle>('last-active-file-handle');
+        if (!handle) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if we have permission to read the file.
+        // We use queryPermission to check silently without prompting the user.
+        if ((await handle.queryPermission({ mode: 'read' })) === 'granted') {
+          const file = await handle.getFile();
+          const contents = await file.text();
+          if (contents) {
+            const data = JSON.parse(contents);
+            if (data?.type === 'whiteboard/shapes' && Array.isArray(data.paths)) {
+              pathState.handleLoadFile(data.paths);
+              setActiveFileHandle(handle);
+              setActiveFileName(handle.name);
+            }
+          }
+        } else {
+          // If permission is not granted, remove the handle from storage so we don't ask again.
+          await idb.del('last-active-file-handle');
+          setActiveFileName(null);
+        }
+      } catch (error) {
+        // This can happen if the file was deleted or moved.
+        console.error("Failed to load last session:", error);
+        // Clean up the stale handle from storage.
+        await idb.del('last-active-file-handle').catch(() => {});
+        setActiveFileName(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLastFile();
+  }, [pathState.handleLoadFile]);
+
+  // Save grid settings to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('whiteboard_isGridVisible', JSON.stringify(isGridVisible));
+  }, [isGridVisible]);
+
+  useEffect(() => {
+    localStorage.setItem('whiteboard_gridSize', JSON.stringify(gridSize));
+  }, [gridSize]);
+
   const viewTransform = useViewTransform();
   const { viewTransform: vt, isPanning, handleWheel, getPointerPosition, lastPointerPosition } = viewTransform;
 
-  // Manages toolbar state (tool, colors, strokes, etc.)
-  const toolbarState = useToolbarState(paths, selectedPathIds, pathState.setPaths, setSelectedPathIds);
+  const toolbarState = useToolbarState(paths, selectedPathIds, pathState.setPaths, pathState.setSelectedPathIds);
 
-  // Manages all pointer interactions (drawing, editing, panning)
-  const pointerInteraction = usePointerInteraction({
-    pathState,
-    toolbarState,
+  // Decoupled Interaction Hooks
+  const drawingInteraction = useDrawing({ pathState, toolbarState, viewTransform, isGridVisible, gridSize });
+  const selectionInteraction = useSelection({ pathState, toolbarState, viewTransform, isGridVisible, gridSize });
+
+  const pointerInteraction = usePointerInteraction({ 
+    tool: toolbarState.tool,
     viewTransform,
-    getPointerPosition,
-    isGridVisible,
-    gridSize,
+    drawingInteraction,
+    selectionInteraction
   });
   
-  const handleCopy = useCallback(async () => {
-    if (selectedPathIds.length > 0) {
-      const selected = paths.filter(p => selectedPathIds.includes(p.id));
-      const clipboardData = {
-        type: 'whiteboard/shapes',
-        version: 1,
-        paths: selected,
-      };
-      try {
-        await navigator.clipboard.writeText(JSON.stringify(clipboardData));
-      } catch (err) {
-        console.error("Failed to copy shapes:", err);
-        alert("Could not copy shapes to clipboard.");
-      }
+  // Encapsulated Action Handlers
+  const appActions = useAppActions({ 
+    paths, 
+    selectedPathIds, 
+    pathState, 
+    toolbarState, 
+    viewTransform, 
+    getPointerPosition,
+    activeFileHandle,
+    setActiveFileHandle,
+    setActiveFileName,
+    activeFileName,
+  });
+  const { 
+    handleCut, handleCopy, handlePaste, handleFlip, handleCopyAsSvg, handleCopyAsPng, 
+    handleSaveFile, handleSaveAs, handleOpen,
+    handleImportClick, handleSvgFileChange, importFileRef,
+    handleConvertToPath,
+    handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
+  } = appActions;
+  
+  // Global Event Listeners (Hotkeys, Clipboard)
+  useGlobalEventHandlers({
+    ...pathState, ...toolbarState, drawingShape: drawingInteraction.drawingShape, cancelDrawingShape: drawingInteraction.cancelDrawingShape, isGridVisible, setIsGridVisible, 
+    handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport: appActions.handleFileImport, 
+    handleSaveFile,
+    handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
+    getPointerPosition, viewTransform: vt, lastPointerPosition
+  });
+
+  const handleClearCanvas = () => {
+    if (!pathState.canClear) return;
+    if (window.confirm('您确定要清空画布吗？这将创建一个新的空白文档。')) {
+      pathState.handleClear();
+      setActiveFileHandle(null);
+      setActiveFileName(null);
+      idb.del('last-active-file-handle').catch(() => {});
     }
-  }, [paths, selectedPathIds]);
-
-  const handlePaste = useCallback(async (options?: { pasteAt?: { x: number; y: number }, clipboardText?: string }) => {
-    let pathsToPaste: AnyPath[] = [];
-    let text = options?.clipboardText;
-
-    // If text wasn't passed directly (e.g., from context menu), try reading from the clipboard API
-    if (typeof text !== 'string') {
-        try {
-            text = await navigator.clipboard.readText();
-        } catch (err) {
-            console.error("Failed to read clipboard text:", err);
-            // Don't alert here, let the global paste handler manage images first.
-            return;
-        }
-    }
-
-    if (!text) return; // Nothing to paste
-
-    try {
-      const data = JSON.parse(text);
-      if (data && data.type === 'whiteboard/shapes' && Array.isArray(data.paths)) {
-        pathsToPaste = data.paths;
-      } else {
-        // Silently ignore if it's not our format, as it might be plain text the user wants to paste elsewhere.
-        return; 
-      }
-    } catch (err) {
-      // Silently ignore parse errors for the same reason.
-      return;
-    }
-
-    if (pathsToPaste.length === 0) return;
-
-    const newPaths: AnyPath[] = [];
-    const newIds: string[] = [];
-
-    const copiedPathsBbox = getPathsBoundingBox(pathsToPaste);
-    let dx = 20 / viewTransform.viewTransform.scale; // Default offset
-    let dy = 20 / viewTransform.viewTransform.scale;
-
-    if (options?.pasteAt && copiedPathsBbox) {
-        // Paste at a specific point, aligning the center of the bounding box
-        const selectionCenterX = copiedPathsBbox.x + copiedPathsBbox.width / 2;
-        const selectionCenterY = copiedPathsBbox.y + copiedPathsBbox.height / 2;
-        dx = options.pasteAt.x - selectionCenterX;
-        dy = options.pasteAt.y - selectionCenterY;
-    }
-
-    pathsToPaste.forEach((path, index) => {
-      const newId = `${Date.now()}-${index}`;
-      const moved = movePath(path, dx, dy);
-      const newPath = { ...moved, id: newId };
-      newPaths.push(newPath);
-      newIds.push(newId);
-    });
-
-    pathState.setPaths(prev => [...prev, ...newPaths]);
-    pathState.setSelectedPathIds(newIds);
-    toolbarState.setTool('move');
-  }, [pathState, toolbarState, viewTransform.viewTransform.scale]);
-
-  const handleFlip = useCallback((axis: 'horizontal' | 'vertical') => {
-      if (selectedPathIds.length === 0) return;
-      const selected = paths.filter(p => selectedPathIds.includes(p.id));
-      const selectionBbox = getPathsBoundingBox(selected);
-      if (!selectionBbox) return;
-
-      const center = {
-          x: selectionBbox.x + selectionBbox.width / 2,
-          y: selectionBbox.y + selectionBbox.height / 2,
-      };
-
-      pathState.setPaths(prev =>
-          prev.map(p => {
-              if (selectedPathIds.includes(p.id)) {
-                  return flipPath(p, center, axis);
-              }
-              return p;
-          })
-      );
-  }, [paths, selectedPathIds, pathState.setPaths]);
-
-  const handleCopyAsSvg = useCallback(async () => {
-    if (selectedPathIds.length === 0) return;
-    const selected = paths.filter(p => selectedPathIds.includes(p.id));
-    
-    try {
-        const svgString = pathsToSvgString(selected);
-        if (svgString) {
-          await navigator.clipboard.writeText(svgString);
-        }
-    } catch (err) {
-        console.error("Failed to copy SVG:", err);
-        alert("Could not copy SVG to clipboard.");
-    }
-  }, [paths, selectedPathIds]);
-
-  const handleCopyAsPng = useCallback(async () => {
-    if (selectedPathIds.length === 0) return;
-    const selected = paths.filter(p => selectedPathIds.includes(p.id));
-
-    try {
-        const blob = await pathsToPngBlob(selected);
-        if (blob) {
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
-        }
-    } catch (err) {
-        console.error("Failed to copy PNG:", err);
-        alert("Could not copy PNG to clipboard.");
-    }
-  }, [paths, selectedPathIds]);
-
+  };
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    
     let pathWasFinished = false;
-    // Finish pen/line path on right click
-    if (toolbarState.tool === 'pen' && pathState.currentPenPath) {
-      pathState.handleFinishPenPath();
-      pathWasFinished = true;
-    } else if (toolbarState.tool === 'line' && pathState.currentLinePath) {
-      pathState.handleFinishLinePath();
-      pathWasFinished = true;
-    }
+    if (toolbarState.tool === 'pen' && pathState.currentPenPath) { handleFinishPenPath(); pathWasFinished = true; } 
+    else if (toolbarState.tool === 'line' && pathState.currentLinePath) { handleFinishLinePath(); pathWasFinished = true; }
     
-    // If a path was finished by this right-click, don't show the context menu.
-    if (pathWasFinished) {
-        return;
-    }
+    if (pathWasFinished) return;
 
     const svg = (e.currentTarget as HTMLElement).querySelector('svg');
     if (!svg) return;
     const worldPos = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
     
-    setContextMenu({
-      isOpen: true,
-      x: e.clientX,
-      y: e.clientY,
-      worldX: worldPos.x,
-      worldY: worldPos.y,
-    });
+    setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, worldX: worldPos.x, worldY: worldPos.y });
   };
 
-  // Use a dedicated hook for all global event listeners (hotkeys, paste, etc.)
-  useGlobalEventHandlers({
-    ...pathState,
-    ...toolbarState,
-    ...pointerInteraction,
-    isGridVisible,
-    setIsGridVisible,
-    handleCopy,
-    handlePaste,
-    getPointerPosition,
-    viewTransform: vt,
-    lastPointerPosition,
-  });
-
-  const cursor = isPanning ? 'grabbing' : (toolbarState.tool === 'move' ? 'grab' : (toolbarState.tool === 'edit' ? 'default' : 'crosshair'));
+  const getCursor = () => {
+    if (isPanning) return 'grabbing';
+    switch (toolbarState.tool) {
+      case 'selection': return toolbarState.selectionMode === 'move' ? 'grab' : 'default';
+      case 'brush': case 'pen': case 'rectangle': case 'ellipse': case 'line': return 'crosshair';
+      default: return 'default';
+    }
+  };
   
-  const contextMenuActions = [
-    { label: '复制', handler: () => void handleCopy(), disabled: selectedPathIds.length === 0, icon: ICONS.COPY },
-    { label: '粘贴', handler: () => void handlePaste({ pasteAt: { x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 } }), icon: ICONS.PASTE },
+  const contextMenuActions: {
+    label: string;
+    handler?: () => void | Promise<void>;
+    disabled?: boolean;
+    isDanger?: boolean;
+    shortcut?: string;
+  }[] = [
+    { label: '剪切', handler: handleCut, disabled: selectedPathIds.length === 0, shortcut: modKey('X') },
+    { label: '复制', handler: handleCopy, disabled: selectedPathIds.length === 0, shortcut: modKey('C') },
+    { label: '粘贴', handler: () => handlePaste({ pasteAt: { x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 } }), shortcut: modKey('V') },
     { label: '---' },
-    { label: '水平翻转', handler: () => handleFlip('horizontal'), disabled: selectedPathIds.length === 0, icon: ICONS.FLIP_HORIZONTAL },
-    { label: '垂直翻转', handler: () => handleFlip('vertical'), disabled: selectedPathIds.length === 0, icon: ICONS.FLIP_VERTICAL },
+    { label: '水平翻转', handler: () => handleFlip('horizontal'), disabled: selectedPathIds.length === 0 },
+    { label: '垂直翻转', handler: () => handleFlip('vertical'), disabled: selectedPathIds.length === 0 },
     { label: '---' },
-    { label: '删除', handler: handleDeleteSelected, disabled: selectedPathIds.length === 0, isDanger: true, icon: ICONS.CLEAR },
+    { label: '上移一层', handler: handleBringForward, disabled: selectedPathIds.length === 0, shortcut: ']' },
+    { label: '下移一层', handler: handleSendBackward, disabled: selectedPathIds.length === 0, shortcut: '[' },
+    { label: '置于顶层', handler: handleBringToFront, disabled: selectedPathIds.length === 0, shortcut: '⇧]' },
+    { label: '置于底层', handler: handleSendToBack, disabled: selectedPathIds.length === 0, shortcut: '⇧[' },
     { label: '---' },
-    { label: '撤销', handler: pathState.handleUndo, disabled: !pathState.canUndo, icon: ICONS.UNDO },
-    { label: '重做', handler: pathState.handleRedo, disabled: !pathState.canRedo, icon: ICONS.REDO },
+    { label: '删除', handler: handleDeleteSelected, disabled: selectedPathIds.length === 0, isDanger: true, shortcut: 'Del' },
+    { label: '---' },
+    { label: '撤销', handler: pathState.handleUndo, disabled: !pathState.canUndo, shortcut: modKey('Z') },
+    { label: '重做', handler: pathState.handleRedo, disabled: !pathState.canRedo, shortcut: modShiftKey('Z') },
   ];
 
-  if (toolbarState.tool === 'move' && selectedPathIds.length > 0) {
-    contextMenuActions.splice(2, 0,
+  if (toolbarState.tool === 'selection' && toolbarState.selectionMode === 'move' && selectedPathIds.length > 0) {
+    contextMenuActions.splice(3, 0,
         { label: '---' },
-        { label: '复制为 SVG', handler: () => void handleCopyAsSvg(), disabled: selectedPathIds.length === 0, icon: ICONS.COPY_SVG },
-        { label: '复制为 PNG', handler: () => void handleCopyAsPng(), disabled: selectedPathIds.length === 0, icon: ICONS.COPY_PNG },
+        { label: '复制为 SVG', handler: handleCopyAsSvg, disabled: selectedPathIds.length === 0 },
+        { label: '复制为 PNG', handler: handleCopyAsPng, disabled: selectedPathIds.length === 0 },
+    );
+  }
+
+  const canConvertToPath = selectedPathIds.length > 0 && paths.some(p => selectedPathIds.includes(p.id) && (p.tool === 'rectangle' || p.tool === 'ellipse'));
+  if (canConvertToPath) {
+    contextMenuActions.splice(6, 0, { label: '转换为路径', handler: handleConvertToPath });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-gradient)] text-[var(--text-primary)]">
+        正在加载...
+      </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen font-sans bg-slate-100 dark:bg-[#2A303C] relative">
-       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-        <Toolbar
-          {...toolbarState}
-          undo={pathState.handleUndo}
-          canUndo={pathState.canUndo}
-          redo={pathState.handleRedo}
-          canRedo={pathState.canRedo}
-          clear={pathState.handleClear}
-          canClear={pathState.canClear}
-          beginCoalescing={pathState.beginCoalescing}
-          endCoalescing={pathState.endCoalescing}
-          isGridVisible={isGridVisible}
-          setIsGridVisible={setIsGridVisible}
-          gridSize={gridSize}
-          setGridSize={setGridSize}
-        />
+    <div className="h-screen w-screen font-sans bg-transparent relative">
+      <input type="file" ref={importFileRef} onChange={handleSvgFileChange} accept=".svg,image/svg+xml" className="hidden" />
+      
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+        <MainMenu onSave={handleSaveFile} onSaveAs={handleSaveAs} onOpen={handleOpen} onImport={handleImportClick} onClear={handleClearCanvas} canClear={pathState.canClear} />
+        {activeFileName && (
+          <div className="bg-[var(--ui-panel-bg)] backdrop-blur-lg text-[var(--text-primary)] text-sm px-3 h-10 flex items-center rounded-lg border border-[var(--ui-panel-border)] shadow-lg">
+            {activeFileName}
+          </div>
+        )}
+      </div>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20"><Toolbar tool={toolbarState.tool} setTool={toolbarState.setTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} /></div>
+      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-20"><SideToolbar {...toolbarState} beginCoalescing={pathState.beginCoalescing} endCoalescing={pathState.endCoalescing} /></div>
+      
+      {toolbarState.tool === 'selection' && selectedPathIds.length > 0 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+          <SelectionToolbar selectionMode={toolbarState.selectionMode} setSelectionMode={toolbarState.setSelectionMode} />
+        </div>
+      )}
+      
+       <div className="absolute bottom-4 left-4 z-20">
+        <StatusBar zoomLevel={vt.scale} onUndo={pathState.handleUndo} canUndo={pathState.canUndo} onRedo={pathState.handleRedo} canRedo={pathState.canRedo} />
        </div>
+      
       <div className="w-full h-full">
         <Whiteboard
           paths={paths}
           tool={toolbarState.tool}
+          selectionMode={toolbarState.selectionMode}
           currentLivePath={pathState.currentBrushPath}
-          drawingShape={pointerInteraction.drawingShape}
+          drawingShape={drawingInteraction.drawingShape}
           currentPenPath={pathState.currentPenPath}
           currentLinePath={pathState.currentLinePath}
-          previewD={pointerInteraction.previewD}
+          previewD={drawingInteraction.previewD}
           selectedPathIds={selectedPathIds}
-          marquee={pointerInteraction.marquee}
+          marquee={selectionInteraction.marquee}
           onPointerDown={pointerInteraction.onPointerDown}
           onPointerMove={pointerInteraction.onPointerMove}
-  
           onPointerUp={pointerInteraction.onPointerUp}
           onPointerLeave={pointerInteraction.onPointerLeave}
           viewTransform={vt}
-          cursor={cursor}
+          cursor={getCursor()}
           onWheel={handleWheel}
           onContextMenu={handleContextMenu}
           isGridVisible={isGridVisible}
           gridSize={gridSize}
-          dragState={pointerInteraction.dragState}
+          dragState={selectionInteraction.dragState}
         />
       </div>
-      {contextMenu?.isOpen && (
-        <ContextMenu
-          isOpen={contextMenu.isOpen}
-          position={{ x: contextMenu.x, y: contextMenu.y }}
-          actions={contextMenuActions}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
+      {contextMenu?.isOpen && (<ContextMenu isOpen={contextMenu.isOpen} position={{ x: contextMenu.x, y: contextMenu.y }} actions={contextMenuActions} onClose={() => setContextMenu(null)} />)}
     </div>
   );
 };

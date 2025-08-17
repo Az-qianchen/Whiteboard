@@ -6,8 +6,24 @@
     <title>SVG Whiteboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      :root {
+        --bg-gradient: #17171c;
+        --ui-panel-bg: rgba(40, 42, 48, 0.75);
+        --ui-popover-bg: rgba(30, 32, 36, 0.95);
+        --ui-panel-border: rgba(110, 120, 130, 0.2);
+        --text-primary: rgb(220, 230, 240);
+        --text-secondary: rgb(130, 140, 150);
+        --accent-primary: rgb(22, 163, 175);
+        --accent-secondary: rgba(22, 163, 175, 0.2);
+        --danger: rgb(239, 68, 68);
+        --danger-bg: rgba(239, 68, 68, 0.1);
+        --ui-hover-bg: rgba(255, 255, 255, 0.08);
+        --separator: rgba(110, 120, 130, 0.4);
+        --grid-line: rgba(110, 120, 130, 0.15);
+      }
       body {
         overscroll-behavior: none;
+        background: var(--bg-gradient);
       }
       /* Hide number input spinners */
       .hide-spinners::-webkit-outer-spin-button,
@@ -27,12 +43,13 @@
     "react/": "https://esm.sh/react@18.2.0/",
     "roughjs/": "https://esm.sh/roughjs@4.6.6/",
     "hotkeys-js": "https://unpkg.com/hotkeys-js/dist/hotkeys.esm.js",
-    "@headlessui/react": "https://esm.sh/@headlessui/react@2.1.2?external=react"
+    "@headlessui/react": "https://esm.sh/@headlessui/react@2.1.2?external=react",
+    "paper": "https://esm.sh/paper@0.12.17"
   }
 }
 </script>
 </head>
-  <body class="bg-slate-100 dark:bg-[#2A303C]">
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

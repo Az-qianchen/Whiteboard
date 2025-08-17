@@ -3,16 +3,21 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, Tool, DragState, ImageData } from '../types';
-import { pointsToSimplePathD, anchorsToPathD } from '../lib/path-fitting';
-import { getMarqueeRect, getPathBoundingBox, getPathsBoundingBox } from '../lib/geometry';
-import { renderPathNode } from '../lib/export';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode } from '../types';
 import { getPointerPosition } from '../lib/utils';
-import { dist } from '../lib/utils';
+
+// Import new sub-components
+import { Grid } from './whiteboard/Grid';
+import { PathsRenderer } from './whiteboard/PathsRenderer';
+import { LivePreviewRenderer } from './whiteboard/LivePreviewRenderer';
+import { ControlsRenderer } from './whiteboard/ControlsRenderer';
+import { Marquee } from './whiteboard/Marquee';
+
 
 interface WhiteboardProps {
   paths: AnyPath[];
   tool: Tool;
+  selectionMode: SelectionMode;
   currentLivePath: LivePath | null;
   drawingShape: DrawingShape | null;
   currentPenPath: VectorPathData | null;
@@ -33,300 +38,10 @@ interface WhiteboardProps {
   dragState: DragState | null;
 }
 
-// For live brush previews, we use a simple, performant path.
-const LivePathPreview: React.FC<{ data: LivePath }> = React.memo(({ data }) => {
-  const d = pointsToSimplePathD(data.points);
-  return (
-    <path
-      d={d}
-      stroke={data.color}
-      strokeWidth={data.strokeWidth}
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="pointer-events-none"
-    />
-  );
-});
-
-// For completed paths, we use RoughJS to render them in a hand-drawn style.
-const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React.memo(({ rc, data }) => {
-  const gRef = useRef<SVGGElement>(null);
-
-  useEffect(() => {
-    if (!rc || !gRef.current) return;
-
-    const g = gRef.current;
-    
-    // Clear previously rendered path to prevent duplication on data change
-    while (g.firstChild) {
-      g.removeChild(g.firstChild);
-    }
-    
-    const node = renderPathNode(rc, data);
-    
-    if (node) {
-      g.appendChild(node);
-    }
-
-  }, [rc, data]);
-
-  // Use pointer-events-none so the root SVG can handle hit detection for selection.
-  // Interactive controls (anchors, resize handles) will have pointer-events-auto/all so they can be clicked.
-  return <g ref={gRef} className="pointer-events-none" />;
-});
-
-
-const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
-  const scaledStroke = (width: number) => Math.max(0.5, width / scale);
-  const scaledRadius = (r: number) => Math.max(2, r / scale);
-
-  // Constants for unified size and hover effects
-  const BASE_RADIUS = 5; // Base radius in screen pixels
-  const HOVER_RADIUS = 8; // Radius on hover in screen pixels
-  const HIT_RADIUS = 10;  // Clickable area radius in screen pixels
-  const EXPLOSION_OFFSET = 12; // How far handles "explode" out on hover, in screen pixels
-
-  const hoverRadius = HIT_RADIUS / scale; // in world units
-  const explosionOffset = EXPLOSION_OFFSET / scale; // in world units
-
-  return (
-    <g className="pointer-events-auto">
-      {/* Active point highlight */}
-      {dragState && 'anchorIndex' in dragState && dragState.pathId === data.id && dragState.anchorIndex < data.anchors.length && (
-        <>
-          {dragState.type === 'anchor' && (
-            <circle
-              cx={data.anchors[dragState.anchorIndex].point.x}
-              cy={data.anchors[dragState.anchorIndex].point.y}
-              r={scaledRadius(10)}
-              fill="rgba(59, 130, 246, 0.3)" // blue-500
-              className="pointer-events-none"
-            />
-          )}
-          {(dragState.type === 'handleIn' || dragState.type === 'handleOut') && (
-            <circle
-              cx={dragState.type === 'handleIn' ? data.anchors[dragState.anchorIndex].handleIn.x : data.anchors[dragState.anchorIndex].handleOut.x}
-              cy={dragState.type === 'handleIn' ? data.anchors[dragState.anchorIndex].handleIn.y : data.anchors[dragState.anchorIndex].handleOut.y}
-              r={scaledRadius(10)}
-              fill="rgba(168, 85, 247, 0.3)" // purple-500
-              className="pointer-events-none"
-            />
-          )}
-        </>
-      )}
-      {/* Anchors and Handles */}
-      {data.anchors.map((anchor, index) => {
-        const isDraggingThis = dragState && 'anchorIndex' in dragState && dragState.pathId === data.id && dragState.anchorIndex === index;
-        const canHover = !dragState || isDraggingThis;
-        
-        // 1. Check if handles are collapsed onto the anchor point
-        const isCollapsed = dist(anchor.point, anchor.handleIn) < 1 && dist(anchor.point, anchor.handleOut) < 1;
-
-        // 2. Determine display positions
-        let displayHandleIn = anchor.handleIn;
-        let displayHandleOut = anchor.handleOut;
-        let shouldExplode = false;
-
-        if (isCollapsed) {
-            // Define the positions where handles would be if they were exploded
-            const explodedHandleIn = { x: anchor.point.x - explosionOffset, y: anchor.point.y };
-            const explodedHandleOut = { x: anchor.point.x + explosionOffset, y: anchor.point.y };
-
-            const hoverAreaRadius = hoverRadius * 1.5; // Make the hover area for the group a bit larger
-
-            // Check if the pointer is near the anchor OR where the exploded handles would be.
-            // This makes the "exploded" state sticky as the pointer moves from the anchor towards a handle.
-            const isHoveringGroup = canHover && hoveredPoint && (
-              dist(anchor.point, hoveredPoint) < hoverAreaRadius ||
-              dist(explodedHandleIn, hoveredPoint) < hoverAreaRadius ||
-              dist(explodedHandleOut, hoveredPoint) < hoverAreaRadius
-            );
-            
-            if (isHoveringGroup) {
-                shouldExplode = true;
-                displayHandleIn = explodedHandleIn;
-                displayHandleOut = explodedHandleOut;
-            }
-        }
-
-        // 3. Determine visual feedback based on final display positions
-        const isAnchorHovered = canHover && hoveredPoint && dist(anchor.point, hoveredPoint) < hoverRadius;
-        const isDisplayHandleInHovered = canHover && hoveredPoint && dist(displayHandleIn, hoveredPoint) < hoverRadius;
-        const isDisplayHandleOutHovered = canHover && hoveredPoint && dist(displayHandleOut, hoveredPoint) < hoverRadius;
-
-        // 4. Determine if handle lines should be brightly colored
-        const isAnythingHoveredOnGroup = shouldExplode || isAnchorHovered || isDisplayHandleInHovered || isDisplayHandleOutHovered;
-        
-        const areHandlesVisible = (displayHandleIn.x !== anchor.point.x || displayHandleIn.y !== anchor.point.y ||
-                                  displayHandleOut.x !== anchor.point.x || displayHandleOut.y !== anchor.point.y);
-
-        return (
-          <g key={index}>
-            {/* Handle Lines */}
-            {areHandlesVisible && (
-              <>
-                <line x1={displayHandleIn.x} y1={displayHandleIn.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHoveredOnGroup ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
-                <line x1={displayHandleOut.x} y1={displayHandleOut.y} x2={anchor.point.x} y2={anchor.point.y} stroke={isAnythingHoveredOnGroup ? "cyan" : "rgba(0, 255, 255, 0.25)"} strokeWidth={scaledStroke(1)} className="pointer-events-none transition-colors duration-75" />
-              </>
-            )}
-
-            {/* Handle Grab Targets - RENDERED FIRST so anchor is on top */}
-            <circle cx={displayHandleIn.x} cy={displayHandleIn.y} r={scaledRadius(isDisplayHandleInHovered ? HOVER_RADIUS : BASE_RADIUS)} fill={isDisplayHandleInHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isDisplayHandleInHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleIn" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
-            <circle cx={displayHandleOut.x} cy={displayHandleOut.y} r={scaledRadius(isDisplayHandleOutHovered ? HOVER_RADIUS : BASE_RADIUS)} fill={isDisplayHandleOutHovered ? "white" : "rgba(255, 255, 255, 0.6)"} stroke={isDisplayHandleOutHovered ? "cyan" : "rgba(0, 255, 255, 0.4)"} strokeWidth={scaledStroke(1)} data-type="handleOut" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75" />
-
-            {/* Anchor Point - RENDERED LAST */}
-            <circle cx={anchor.point.x} cy={anchor.point.y} r={scaledRadius(isAnchorHovered ? HOVER_RADIUS : BASE_RADIUS)} fill={isAnchorHovered ? "cyan" : "rgba(0, 255, 255, 0.3)"} stroke={isAnchorHovered ? "white" : "rgba(255, 255, 255, 0.5)"} strokeWidth={scaledStroke(1.5)} data-type="anchor" data-path-id={data.id} data-anchor-index={index} className="pointer-events-all cursor-move transition-all duration-75"/>
-          </g>
-        )})}
-    </g>
-  );
-});
-
-const ShapeControls: React.FC<{ path: RectangleData | EllipseData, scale: number }> = React.memo(({ path, scale }) => {
-    const bbox = getPathBoundingBox(path, false);
-    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
-    const handleSize = 8 / scale;
-    const halfHandleSize = handleSize / 2;
-
-    const handles: { pos: Point, name: ResizeHandlePosition, cursor: string }[] = [];
-    const { x, y, width, height } = bbox;
-    handles.push({ pos: { x, y }, name: 'top-left', cursor: 'nwse-resize' });
-    handles.push({ pos: { x: x + width, y }, name: 'top-right', cursor: 'nesw-resize' });
-    handles.push({ pos: { x, y: y + height }, name: 'bottom-left', cursor: 'nesw-resize' });
-    handles.push({ pos: { x: x + width, y: y + height }, name: 'bottom-right', cursor: 'nwse-resize' });
-    handles.push({ pos: { x: x + width / 2, y }, name: 'top', cursor: 'ns-resize' });
-    handles.push({ pos: { x: x + width, y: y + height / 2 }, name: 'right', cursor: 'ew-resize' });
-    handles.push({ pos: { x: x + width / 2, y: y + height }, name: 'bottom', cursor: 'ns-resize' });
-    handles.push({ pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' });
-    
-    return (
-        <g className="pointer-events-auto">
-            <rect
-                x={bbox.x}
-                y={bbox.y}
-                width={bbox.width}
-                height={bbox.height}
-                fill="none"
-                stroke="cyan"
-                strokeWidth={scaledStroke(1)}
-                strokeDasharray={`${4 / scale} ${4 / scale}`}
-                className="pointer-events-none"
-            />
-            {handles.map(({ pos, name, cursor }) => (
-                <rect
-                    key={name}
-                    x={pos.x - halfHandleSize}
-                    y={pos.y - halfHandleSize}
-                    width={handleSize}
-                    height={handleSize}
-                    fill="white"
-                    stroke="cyan"
-                    strokeWidth={scaledStroke(1)}
-                    data-handle={name}
-                    style={{ cursor }}
-                    className="pointer-events-all"
-                />
-            ))}
-        </g>
-    );
-});
-
-const IndividualHighlight: React.FC<{ path: AnyPath, scale: number }> = React.memo(({ path, scale }) => {
-    const bbox = getPathBoundingBox(path, false);
-    if (!bbox) return null;
-    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
-
-    return (
-        <rect
-            x={bbox.x}
-            y={bbox.y}
-            width={bbox.width}
-            height={bbox.height}
-            fill="none"
-            stroke="rgba(0, 150, 255, 0.9)"
-            strokeWidth={scaledStroke(1)}
-            strokeDasharray={`${3 / scale} ${3 / scale}`}
-            className="pointer-events-none"
-        />
-    );
-});
-
-
-const MultiSelectionControls: React.FC<{ paths: AnyPath[], scale: number }> = React.memo(({ paths, scale }) => {
-    const bbox = getPathsBoundingBox(paths);
-    if (!bbox) return null;
-
-    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
-    const handleSize = 8 / scale;
-    const halfHandleSize = handleSize / 2;
-    const rotationHandleOffset = 20 / scale;
-
-    const handles: { pos: Point, name: ResizeHandlePosition, cursor: string }[] = [];
-    const { x, y, width, height } = bbox;
-    handles.push({ pos: { x, y }, name: 'top-left', cursor: 'nwse-resize' });
-    handles.push({ pos: { x: x + width, y }, name: 'top-right', cursor: 'nesw-resize' });
-    handles.push({ pos: { x, y: y + height }, name: 'bottom-left', cursor: 'nesw-resize' });
-    handles.push({ pos: { x: x + width, y: y + height }, name: 'bottom-right', cursor: 'nwse-resize' });
-    handles.push({ pos: { x: x + width / 2, y }, name: 'top', cursor: 'ns-resize' });
-    handles.push({ pos: { x: x + width, y: y + height / 2 }, name: 'right', cursor: 'ew-resize' });
-    handles.push({ pos: { x: x + width / 2, y: y + height }, name: 'bottom', cursor: 'ns-resize' });
-    handles.push({ pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' });
-    
-    const topCenter = { x: x + width / 2, y: y };
-    const rotationHandlePos = { x: topCenter.x, y: topCenter.y - rotationHandleOffset };
-
-    return (
-        <g className="pointer-events-auto" data-type="selection-controls">
-            <rect
-                x={bbox.x}
-                y={bbox.y}
-                width={bbox.width}
-                height={bbox.height}
-                fill="none"
-                stroke="cyan"
-                strokeWidth={scaledStroke(1)}
-                className="pointer-events-none"
-            />
-            {/* Rotation Handle Line */}
-            <line
-                x1={topCenter.x} y1={topCenter.y}
-                x2={rotationHandlePos.x} y2={rotationHandlePos.y}
-                stroke="cyan" strokeWidth={scaledStroke(1)} className="pointer-events-none"
-            />
-            {/* Rotation Handle Circle */}
-            <circle
-                cx={rotationHandlePos.x} cy={rotationHandlePos.y}
-                r={handleSize / 1.5}
-                fill="white" stroke="cyan" strokeWidth={scaledStroke(1)}
-                data-handle="rotate"
-                style={{ cursor: 'alias' }}
-                className="pointer-events-all"
-            />
-            {/* Resize Handles */}
-            {handles.map(({ pos, name, cursor }) => (
-                <rect
-                    key={name}
-                    x={pos.x - halfHandleSize}
-                    y={pos.y - halfHandleSize}
-                    width={handleSize}
-                    height={handleSize}
-                    fill="white"
-                    stroke="cyan"
-                    strokeWidth={scaledStroke(1)}
-                    data-handle={name}
-                    style={{ cursor }}
-                    className="pointer-events-all"
-                />
-            ))}
-        </g>
-    );
-});
-
-
 export const Whiteboard: React.FC<WhiteboardProps> = ({
   paths,
   tool,
+  selectionMode,
   currentLivePath,
   drawingShape,
   currentPenPath,
@@ -355,7 +70,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       setRc(rough.svg(svgRef.current));
     }
   }, []);
-  
+
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (svgRef.current) {
         const point = getPointerPosition(e, svgRef.current, viewTransform);
@@ -373,12 +88,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     return paths.filter(p => selectedPathIds.includes(p.id));
   }, [paths, selectedPathIds]);
 
-  const singleSelectedPath = selectedPaths.length === 1 ? selectedPaths[0] : null;
-
-
   return (
     <div
-      className="w-full h-full bg-white dark:bg-[#343b47] overflow-hidden touch-none"
+      className="w-full h-full bg-transparent overflow-hidden touch-none"
       onWheel={onWheel}
       style={{ cursor }}
       onContextMenu={onContextMenu}
@@ -391,141 +103,35 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         onPointerUp={onPointerUp}
         onPointerLeave={handlePointerLeave}
       >
-        {isGridVisible && (
-          <>
-            <defs>
-              <pattern
-                id="grid"
-                width={gridSize * viewTransform.scale}
-                height={gridSize * viewTransform.scale}
-                patternUnits="userSpaceOnUse"
-                x={viewTransform.translateX}
-                y={viewTransform.translateY}
-              >
-                <path
-                  d={`M ${gridSize * viewTransform.scale} 0 L 0 0 0 ${gridSize * viewTransform.scale}`}
-                  fill="none"
-                  className="stroke-slate-200 dark:stroke-slate-600"
-                  strokeWidth="1"
-                />
-              </pattern>
-            </defs>
-            <rect
-              className="pointer-events-none"
-              width="100%"
-              height="100%"
-              fill="url(#grid)"
-            />
-          </>
-        )}
+        <Grid isGridVisible={isGridVisible} gridSize={gridSize} viewTransform={viewTransform} />
+        
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
-          {/* Render all paths */}
-          {paths.map((path) => {
-            return <RoughPath key={path.id} rc={rc} data={path} />;
-          })}
-
-          {/* Render live brush path */}
-          {currentLivePath && <LivePathPreview data={currentLivePath} />}
           
-          {/* Render live shape drawing */}
-          {drawingShape && (
-            <g>
-              {drawingShape.tool === 'rectangle' && (
-                  <rect
-                      x={drawingShape.x}
-                      y={drawingShape.y}
-                      width={drawingShape.width}
-                      height={drawingShape.height}
-                      fill={drawingShape.fill === 'transparent' ? 'none' : drawingShape.fill}
-                      stroke={drawingShape.color}
-                      strokeWidth={1 / viewTransform.scale}
-                      strokeDasharray={`4 ${4 / viewTransform.scale}`}
-                      className="pointer-events-none"
-                  />
-              )}
-              {drawingShape.tool === 'ellipse' && (
-                  <ellipse
-                      cx={drawingShape.x + drawingShape.width / 2}
-                      cy={drawingShape.y + drawingShape.height / 2}
-                      rx={Math.abs(drawingShape.width / 2)}
-                      ry={Math.abs(drawingShape.height / 2)}
-                      fill={drawingShape.fill === 'transparent' ? 'none' : drawingShape.fill}
-                      stroke={drawingShape.color}
-                      strokeWidth={1 / viewTransform.scale}
-                      strokeDasharray={`4 ${4 / viewTransform.scale}`}
-                      className="pointer-events-none"
-                  />
-              )}
-              {drawingShape.tool === 'line' && drawingShape.anchors.length > 1 && (
-                 <path d={anchorsToPathD(drawingShape.anchors)} fill="none" stroke={drawingShape.color} strokeWidth={1 / viewTransform.scale} strokeDasharray={`4 ${4 / viewTransform.scale}`} className="pointer-events-none" />
-              )}
-            </g>
-          )}
+          <PathsRenderer paths={paths} rc={rc} />
 
-          {/* Render pen preview path */}
-          {previewD && (
-            <path
-              d={previewD}
-              fill="none"
-              stroke="cyan"
-              strokeWidth={1 / viewTransform.scale}
-              strokeDasharray={`4 ${4 / viewTransform.scale}`}
-              className="pointer-events-none"
-            />
-          )}
-
-          {/* Render current pen path, treated as "selected" for correct curve preview */}
-          {currentPenPath && (
-            <RoughPath 
-              rc={rc} 
-              data={currentPenPath} 
-            />
-          )}
-          {currentLinePath && (
-             <RoughPath rc={rc} data={currentLinePath} />
-          )}
-
-          {/* Render controls for selected paths */}
-          {tool === 'edit' && singleSelectedPath && (
-            <>
-              {(singleSelectedPath.tool === 'pen' || singleSelectedPath.tool === 'line') && 
-                <VectorPathControls key={singleSelectedPath.id} data={singleSelectedPath as VectorPathData} scale={viewTransform.scale} dragState={dragState} hoveredPoint={currentPointerPos} />
-              }
-              {(singleSelectedPath.tool === 'rectangle' || singleSelectedPath.tool === 'ellipse') &&
-                <ShapeControls key={singleSelectedPath.id} path={singleSelectedPath as RectangleData | EllipseData} scale={viewTransform.scale} />
-              }
-            </>
-          )}
-
-          {tool === 'move' && selectedPaths.length > 0 && (
-            <>
-              {selectedPaths.length > 1 &&
-                selectedPaths.map(p => (
-                  <IndividualHighlight key={`highlight-${p.id}`} path={p} scale={viewTransform.scale} />
-                ))}
-              <MultiSelectionControls paths={selectedPaths} scale={viewTransform.scale} />
-            </>
-          )}
-
-          {/* Render controls for current pen path */}
-          {currentPenPath && (
-            <VectorPathControls data={currentPenPath} scale={viewTransform.scale} dragState={dragState} hoveredPoint={currentPointerPos} />
-          )}
-          {currentLinePath && (
-            <VectorPathControls data={currentLinePath} scale={viewTransform.scale} dragState={dragState} hoveredPoint={currentPointerPos}/>
-          )}
+          <LivePreviewRenderer
+            currentLivePath={currentLivePath}
+            drawingShape={drawingShape}
+            currentPenPath={currentPenPath}
+            currentLinePath={currentLinePath}
+            previewD={previewD}
+            rc={rc}
+            viewTransform={viewTransform}
+          />
           
-          {/* Render marquee selection box */}
-          {marquee && (
-            <rect
-              {...getMarqueeRect(marquee)}
-              fill="rgba(0, 100, 255, 0.1)"
-              stroke="rgba(0, 100, 255, 0.5)"
-              strokeWidth={1 / viewTransform.scale}
-              strokeDasharray={`4 ${4 / viewTransform.scale}`}
-              className="pointer-events-none"
-            />
-          )}
+          <ControlsRenderer
+            tool={tool}
+            selectionMode={selectionMode}
+            selectedPaths={selectedPaths}
+            currentPenPath={currentPenPath}
+            currentLinePath={currentLinePath}
+            scale={viewTransform.scale}
+            dragState={dragState}
+            hoveredPoint={currentPointerPos}
+          />
+          
+          <Marquee marquee={marquee} viewTransform={viewTransform} />
+          
         </g>
       </svg>
     </div>

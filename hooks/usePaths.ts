@@ -54,6 +54,23 @@ export const usePaths = () => {
       }
     });
   }, []);
+  
+  const endCoalescing = useCallback(() => {
+    isCoalescingOp.current = false;
+  }, []);
+
+  /**
+   * Loads a new set of paths, completely replacing the current state and history.
+   * Used for opening a file.
+   */
+  const handleLoadFile = useCallback((newPaths: AnyPath[]) => {
+    setHistState({ history: [newPaths], index: 0 });
+    setCurrentBrushPath(null);
+    setCurrentPenPath(null);
+    setCurrentLinePath(null);
+    setSelectedPathIds([]);
+    endCoalescing();
+  }, [endCoalescing]);
 
   /**
    * 在开始一系列应合并的快速更新之前调用此函数。
@@ -78,13 +95,6 @@ export const usePaths = () => {
       });
     }
     isCoalescingOp.current = true;
-  }, []);
-
-  /**
-   * 在一系列更新完成后调用此函数。
-   */
-  const endCoalescing = useCallback(() => {
-    isCoalescingOp.current = false;
   }, []);
 
   const finishBrushPath = () => {
@@ -146,20 +156,58 @@ export const usePaths = () => {
     }
   };
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     endCoalescing();
     setPaths([]);
-    setCurrentBrushPath(null);
-    setCurrentPenPath(null);
-    setCurrentLinePath(null);
-    setSelectedPathIds([]);
-  };
+  }, [setPaths, endCoalescing]);
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedPathIds.length === 0) return;
     setPaths(prev => prev.filter(p => !selectedPathIds.includes(p.id)));
     setSelectedPathIds([]);
   }, [selectedPathIds, setPaths, setSelectedPathIds]);
+
+  const handleReorder = useCallback((direction: 'forward' | 'backward' | 'front' | 'back') => {
+    if (selectedPathIds.length === 0) return;
+
+    setPaths(currentPaths => {
+      const newPaths = [...currentPaths];
+      const selectedSet = new Set(selectedPathIds);
+
+      switch (direction) {
+        case 'forward':
+          for (let i = newPaths.length - 2; i >= 0; i--) {
+            const currentPath = newPaths[i];
+            const nextPath = newPaths[i + 1];
+            if (selectedSet.has(currentPath.id) && !selectedSet.has(nextPath.id)) {
+              [newPaths[i], newPaths[i + 1]] = [nextPath, currentPath];
+            }
+          }
+          return newPaths;
+        case 'backward':
+          for (let i = 1; i < newPaths.length; i++) {
+            const currentPath = newPaths[i];
+            const prevPath = newPaths[i - 1];
+            if (selectedSet.has(currentPath.id) && !selectedSet.has(prevPath.id)) {
+              [newPaths[i], newPaths[i - 1]] = [prevPath, currentPath];
+            }
+          }
+          return newPaths;
+        case 'front': {
+          const selectedItems = newPaths.filter(p => selectedSet.has(p.id));
+          const otherItems = newPaths.filter(p => !selectedSet.has(p.id));
+          return [...otherItems, ...selectedItems];
+        }
+        case 'back': {
+          const selectedItems = newPaths.filter(p => selectedSet.has(p.id));
+          const otherItems = newPaths.filter(p => !selectedSet.has(p.id));
+          return [...selectedItems, ...otherItems];
+        }
+        default:
+          return currentPaths;
+      }
+    });
+  }, [selectedPathIds, setPaths]);
 
   const canUndo = (currentPenPath && currentPenPath.anchors.length > 0) || (currentLinePath && currentLinePath.anchors.length > 0) || historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -190,5 +238,7 @@ export const usePaths = () => {
     handleClear,
     canClear,
     handleDeleteSelected,
+    handleLoadFile,
+    handleReorder,
   };
 };

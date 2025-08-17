@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef, Fragment } from 'react';
 import { Transition } from '@headlessui/react';
 
@@ -7,10 +8,10 @@ interface ContextMenuProps {
   position: { x: number; y: number };
   actions: {
     label: string;
-    handler?: () => void;
+    handler?: () => void | Promise<void>;
     disabled?: boolean;
     isDanger?: boolean;
-    icon?: React.ReactNode;
+    shortcut?: string;
   }[];
   onClose: () => void;
 }
@@ -48,26 +49,28 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
       <div
         ref={menuRef}
         style={{ top: position.y, left: position.x }}
-        className="fixed z-50 w-48 min-w-max bg-white dark:bg-[#4A5568] rounded-lg shadow-2xl border border-slate-200 dark:border-slate-600 p-1"
+        className="fixed z-50 w-48 min-w-max bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-1"
       >
         <div className="flex flex-col">
           {actions.map((action, index) => (
-             action.label === '---' ? <div key={`sep-${index}`} className="h-px my-1 bg-slate-200 dark:bg-slate-600" /> : (
+             action.label === '---' ? <div key={`sep-${index}`} className="h-px my-1 bg-[var(--separator)]" /> : (
             <button
               key={action.label}
-              onClick={() => {
-                action.handler?.();
+              onClick={async () => {
+                if (action.handler) {
+                  await action.handler();
+                }
                 onClose();
               }}
               disabled={action.disabled}
-              className={`w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`w-full flex items-center justify-between p-2 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 action.isDanger
-                  ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50'
-                  : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600'
+                  ? 'text-[var(--danger)] hover:bg-[var(--danger-bg)]'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]'
               }`}
             >
-              {action.icon && <div className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400">{action.icon}</div>}
-              <span className="flex-grow">{action.label}</span>
+              <span className="flex-grow pr-4">{action.label}</span>
+              {action.shortcut && <span className="text-xs text-[var(--text-secondary)]">{action.shortcut}</span>}
             </button>
             )
           ))}

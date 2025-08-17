@@ -4,9 +4,8 @@
  */
 
 import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData } from '../types';
-import { dist } from './utils';
 import { samplePath } from './path-fitting';
-import { getPathBoundingBox, doBboxesIntersect } from './geometry';
+import { getPathBoundingBox, doBboxesIntersect, dist, rotatePoint } from './geometry';
 
 /**
  * Calculates the squared distance from a point to a line segment.
@@ -52,25 +51,34 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
     const thresholdSq = threshold * threshold;
 
     switch (path.tool) {
-        case 'image': {
-             const { x, y, width, height } = path as ImageData;
-             return point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height;
-        }
+        case 'image':
         case 'rectangle': {
-            const { x, y, width, height } = path as RectangleData;
+            const { x, y, width, height, rotation } = path as RectangleData | ImageData;
+            let testPoint = point;
+
+            if (rotation) {
+                const center = { x: x + width / 2, y: y + height / 2 };
+                testPoint = rotatePoint(point, center, -rotation);
+            }
+            
+            // Check for hit on the fill area first. This is the most common case.
+            const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
+            if (isInside) return true;
+
+            // If not inside, check for hit on the stroke, which is important for transparent shapes.
             const p1 = { x, y };
             const p2 = { x: x + width, y };
             const p3 = { x: x + width, y: y + height };
             const p4 = { x, y: y + height };
             return (
-                distSqToSegment(point, p1, p2) < thresholdSq ||
-                distSqToSegment(point, p2, p3) < thresholdSq ||
-                distSqToSegment(point, p3, p4) < thresholdSq ||
-                distSqToSegment(point, p4, p1) < thresholdSq
+                distSqToSegment(testPoint, p1, p2) < thresholdSq ||
+                distSqToSegment(testPoint, p2, p3) < thresholdSq ||
+                distSqToSegment(testPoint, p3, p4) < thresholdSq ||
+                distSqToSegment(testPoint, p4, p1) < thresholdSq
             );
         }
         case 'ellipse': {
-            const { x, y, width, height } = path as EllipseData;
+            const { x, y, width, height, rotation } = path as EllipseData;
             const cx = x + width / 2;
             const cy = y + height / 2;
             const rx = Math.abs(width / 2);
@@ -81,10 +89,24 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
               return dist(point, {x: cx, y: cy}) < threshold;
             }
 
-            // Sample points along the ellipse and check distance to the segments
+            let testPoint = point;
+            if (rotation) {
+                const center = { x: cx, y: cy };
+                testPoint = rotatePoint(point, center, -rotation);
+            }
+
+            // Check for hit on fill using ellipse equation
+            if (rx > 0 && ry > 0) {
+                const dx = testPoint.x - cx;
+                const dy = testPoint.y - cy;
+                const value = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+                if (value <= 1) return true;
+            }
+
+            // If not inside, check for hit on stroke by sampling
             const ellipsePoints = sampleEllipse(cx, cy, rx, ry);
             for (let i = 0; i < ellipsePoints.length - 1; i++) {
-                if (distSqToSegment(point, ellipsePoints[i], ellipsePoints[i+1]) < thresholdSq) {
+                if (distSqToSegment(testPoint, ellipsePoints[i], ellipsePoints[i+1]) < thresholdSq) {
                     return true;
                 }
             }

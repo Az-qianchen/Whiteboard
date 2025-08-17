@@ -1,44 +1,66 @@
-
 /**
  * This hook manages all global event listeners for the application,
  * such as keyboard shortcuts and clipboard events.
  */
-import { useEffect } from 'react';
+import React, { useEffect, Dispatch, SetStateAction } from 'react';
 import hotkeys from 'hotkeys-js';
-import type { AnyPath, ImageData, Point, Tool } from '../types';
-import { usePaths } from './usePaths';
-import { useToolbarState } from './useToolbarState';
-import { usePointerInteraction } from './usePointerInteraction';
+import type { AnyPath, DrawingShape, ImageData, Point, Tool, VectorPathData, SelectionMode } from '../types';
 
-// Define the properties this hook will receive.
-// It's a combination of the return types of other hooks.
-type PathState = ReturnType<typeof usePaths>;
-type ToolbarState = ReturnType<typeof useToolbarState>;
-type PointerInteraction = ReturnType<typeof usePointerInteraction>;
-
-interface GlobalEventHandlersProps extends PathState, ToolbarState, PointerInteraction {
+// By defining the props interface directly, we break the module import cycle
+// that was likely causing type resolution issues in other files.
+interface GlobalEventHandlersProps {
+  // from usePaths
+  selectedPathIds: string[];
+  setSelectedPathIds: Dispatch<SetStateAction<string[]>>;
+  currentPenPath: VectorPathData | null;
+  handleCancelPenPath: () => void;
+  handleFinishPenPath: (isClosed?: boolean) => void;
+  currentLinePath: VectorPathData | null;
+  handleCancelLinePath: () => void;
+  handleFinishLinePath: () => void;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  handleDeleteSelected: () => void;
+  setPaths: (updater: React.SetStateAction<AnyPath[]>) => void;
+  // from useToolbarState
+  setTool: (tool: Tool) => void;
+  setSelectionMode: Dispatch<SetStateAction<SelectionMode>>;
+  // from usePointerInteraction
+  drawingShape: DrawingShape | null;
+  cancelDrawingShape: () => void;
+  // from App
   isGridVisible: boolean;
-  setIsGridVisible: (visible: boolean) => void;
-  handleCopy: () => void;
-  handlePaste: (options?: { pasteAt?: { x: number; y: number }, clipboardText?: string }) => void;
+  setIsGridVisible: Dispatch<SetStateAction<boolean>>;
+  handleCut: () => void | Promise<void>;
+  handleCopy: () => void | Promise<void>;
+  handlePaste: (options?: { pasteAt?: { x: number; y: number }, clipboardText?: string }) => void | Promise<void>;
+  handleImportClick: () => void;
+  handleFileImport: (file: File) => void | Promise<void>;
+  handleSaveFile: () => void | Promise<void>;
+  handleBringForward: () => void;
+  handleSendBackward: () => void;
+  handleBringToFront: () => void;
+  handleSendToBack: () => void;
   getPointerPosition: (e: { clientX: number, clientY: number }, svg: SVGSVGElement) => Point;
   viewTransform: { scale: number };
   lastPointerPosition: Point | null;
 }
 
 
-export const useGlobalEventHandlers = ({
+const useGlobalEventHandlers = ({
   // from usePaths
   selectedPathIds, setSelectedPathIds,
   currentPenPath, handleCancelPenPath, handleFinishPenPath,
   currentLinePath, handleCancelLinePath, handleFinishLinePath,
   handleUndo, handleRedo, handleDeleteSelected, setPaths,
   // from useToolbarState
-  setTool,
+  setTool, setSelectionMode,
   // from usePointerInteraction
   drawingShape, cancelDrawingShape,
   // from App
-  isGridVisible, setIsGridVisible, handleCopy, handlePaste, getPointerPosition, viewTransform, lastPointerPosition
+  isGridVisible, setIsGridVisible, handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport, handleSaveFile, 
+  handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
+  getPointerPosition, viewTransform, lastPointerPosition
 }: GlobalEventHandlersProps) => {
 
   // Handle keyboard shortcuts using hotkeys-js library
@@ -47,8 +69,8 @@ export const useGlobalEventHandlers = ({
     hotkeys('v,m,b,p,r,o,l,escape,enter,backspace,delete', (event, handler) => {
       event.preventDefault();
       switch (handler.key) {
-        case 'v': setTool('edit'); break;
-        case 'm': setTool('move'); break;
+        case 'v': setTool('selection'); setSelectionMode('edit'); break;
+        case 'm': setTool('selection'); setSelectionMode('move'); break;
         case 'b': setTool('brush'); break;
         case 'p': setTool('pen'); break;
         case 'r': setTool('rectangle'); break;
@@ -76,6 +98,16 @@ export const useGlobalEventHandlers = ({
       setIsGridVisible(!isGridVisible);
     });
 
+    hotkeys('],[,shift+],shift+[', (event, handler) => {
+      event.preventDefault();
+      switch (handler.key) {
+        case ']': handleBringForward(); break;
+        case '[': handleSendBackward(); break;
+        case 'shift+]': handleBringToFront(); break;
+        case 'shift+[': handleSendToBack(); break;
+      }
+    });
+
     // For undo/redo/copy/paste, we want them to work even in input fields.
     const originalFilter = hotkeys.filter;
     hotkeys.filter = () => true;
@@ -90,6 +122,15 @@ export const useGlobalEventHandlers = ({
         handleRedo();
     });
     
+    hotkeys('command+x, ctrl+x', (event) => {
+      const activeElement = document.activeElement;
+      const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
+      if (!isInput) {
+        event.preventDefault();
+        void handleCut();
+      }
+    });
+
     hotkeys('command+c, ctrl+c', (event) => {
       const activeElement = document.activeElement;
       const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
@@ -98,20 +139,35 @@ export const useGlobalEventHandlers = ({
         void handleCopy();
       }
     });
+    
+    hotkeys('command+i, ctrl+i', (event) => {
+      event.preventDefault();
+      handleImportClick();
+    });
+
+    hotkeys('command+s, ctrl+s', (event) => {
+      event.preventDefault();
+      void handleSaveFile();
+    });
 
     // Cleanup on unmount
     return () => {
       hotkeys.filter = originalFilter;
       hotkeys.unbind('v,m,b,p,r,o,l,escape,enter,backspace,delete');
       hotkeys.unbind('g');
+      hotkeys.unbind('],[,shift+],shift+[');
       hotkeys.unbind('command+z, ctrl+z');
       hotkeys.unbind('command+shift+z, ctrl+shift+z');
+      hotkeys.unbind('command+x, ctrl+x');
       hotkeys.unbind('command+c, ctrl+c');
+      hotkeys.unbind('command+i, ctrl+i');
+      hotkeys.unbind('command+s, ctrl+s');
     };
   }, [
     selectedPathIds,
     setSelectedPathIds,
     setTool,
+    setSelectionMode,
     currentPenPath,
     currentLinePath,
     handleCancelPenPath,
@@ -123,7 +179,15 @@ export const useGlobalEventHandlers = ({
     handleDeleteSelected,
     drawingShape,
     cancelDrawingShape,
+    handleCut,
     handleCopy,
+    handlePaste,
+    handleImportClick,
+    handleSaveFile,
+    handleBringForward,
+    handleSendBackward,
+    handleBringToFront,
+    handleSendToBack,
     isGridVisible,
     setIsGridVisible
   ]);
@@ -186,7 +250,7 @@ export const useGlobalEventHandlers = ({
 
                             setPaths((prev: AnyPath[]) => [...prev, newImage]);
                             setSelectedPathIds([newImage.id]);
-                            setTool('move' as Tool);
+                            setTool('selection' as Tool);
                         };
                         img.src = src;
                     };
@@ -230,4 +294,28 @@ export const useGlobalEventHandlers = ({
         document.removeEventListener('paste', handleGlobalPaste);
     };
   }, [handlePaste, getPointerPosition, setPaths, setSelectedPathIds, setTool, viewTransform.scale, lastPointerPosition]);
+  
+  // Global drag-and-drop handler for SVG files
+  useEffect(() => {
+      const handleDrop = (e: DragEvent) => {
+          e.preventDefault();
+          const file = e.dataTransfer?.files?.[0];
+          if (file && file.type === 'image/svg+xml') {
+              void handleFileImport(file);
+          }
+      };
+      const handleDragOver = (e: DragEvent) => {
+          e.preventDefault();
+      };
+
+      window.addEventListener('drop', handleDrop);
+      window.addEventListener('dragover', handleDragOver);
+
+      return () => {
+          window.removeEventListener('drop', handleDrop);
+          window.removeEventListener('dragover', handleDragOver);
+      };
+  }, [handleFileImport]);
 };
+
+export default useGlobalEventHandlers;

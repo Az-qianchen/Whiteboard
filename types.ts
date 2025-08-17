@@ -18,12 +18,21 @@ export interface BBox {
   height: number;
 }
 
+export type EndpointStyle = 'none' | 'arrow' | 'triangle' | 'dot' | 'square' | 'circle' | 'diamond' | 'bar' | 'butt' | 'round' | 'square_cap' | 'reverse_arrow';
+
 interface ShapeBase {
   id: string;
   color: string;
   fill: string;
   fillStyle: string;
   strokeWidth: number;
+  strokeLineDash?: [number, number];
+  strokeLineCapStart?: EndpointStyle;
+  strokeLineCapEnd?: EndpointStyle;
+  strokeLineJoin?: 'miter' | 'round' | 'bevel';
+  endpointSize?: number; // 端点尺寸 (描边宽度的倍数)
+  endpointFill?: 'solid' | 'hollow'; // 端点填充样式
+  opacity?: number;
   rotation?: number; // in radians
   // RoughJS 属性
   roughness: number;
@@ -33,6 +42,11 @@ interface ShapeBase {
   hachureGap: number; // 填充影线之间的间隙
   curveTightness: number; // 用于 rc.curve
   curveStepCount: number; // 用于 rc.curve
+  curveFitting?: number; // 用于 rc.curve
+  preserveVertices?: boolean;
+  disableMultiStroke?: boolean;
+  disableMultiStrokeFill?: boolean;
+  simplification?: number;
 }
 
 // 任何已存储、可编辑路径的基础接口。
@@ -51,6 +65,7 @@ export interface RectangleData extends ShapeBase {
   y: number;
   width: number;
   height: number;
+  borderRadius?: number;
 }
 
 export interface EllipseData extends ShapeBase {
@@ -64,11 +79,11 @@ export interface EllipseData extends ShapeBase {
 export interface ImageData extends ShapeBase {
   tool: 'image';
   src: string; // data URL
-  opacity: number;
   x: number;
   y: number;
   width: number;
   height: number;
+  borderRadius?: number;
 }
 
 // 任何已存储并已转换为锚点的路径的通用类型。
@@ -86,7 +101,9 @@ export type DrawingShape = RectangleData | EllipseData | VectorPathData;
 // A brush path that is being drawn, represented by a series of points.
 export type BrushPathWithPoints = LivePath;
 
-export type Tool = 'pen' | 'brush' | 'edit' | 'rectangle' | 'ellipse' | 'line' | 'move';
+export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'ellipse' | 'line';
+
+export type SelectionMode = 'move' | 'edit';
 
 export type ResizeHandlePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'right' | 'bottom' | 'left';
 
@@ -111,7 +128,7 @@ type ResizeDragState = {
   type: 'resize';
   pathId: string;
   handle: ResizeHandlePosition;
-  originalPath: RectangleData | EllipseData;
+  originalPath: RectangleData | EllipseData | ImageData;
   initialPointerPos: Point;
 };
 
@@ -134,5 +151,13 @@ type RotateDragState = {
     initialAngle: number;
 };
 
+// A drag state for changing border radius
+type BorderRadiusDragState = {
+  type: 'border-radius';
+  pathId: string;
+  originalPath: RectangleData | ImageData;
+  initialPointerPos: Point;
+};
 
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | null;
+
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | null;

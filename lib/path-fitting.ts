@@ -5,7 +5,7 @@
  * strokes into vector-based bezier curves.
  */
 import type { Point, Anchor, LivePath, VectorPathData } from '../types';
-import { dist } from './utils';
+import { dist } from './geometry';
 // The 'points-on-curve' library is now included at the bottom of this file.
 
 /**
@@ -91,7 +91,7 @@ function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): 
     return numerator / denominator;
 }
 
-function ramerDouglasPeucker(points: Point[], epsilon: number): Point[] {
+export function ramerDouglasPeucker(points: Point[], epsilon: number): Point[] {
     if (points.length < 3) return points;
 
     let dmax = 0;
@@ -161,7 +161,7 @@ function fitCurve(points: Point[], scaleFactor: number = 0.2): Anchor[] {
 
 
 export function convertLivePathToVectorPath(path: LivePath): VectorPathData {
-    const epsilon = path.strokeWidth * 0.5;
+    const epsilon = path.strokeWidth * (path.simplification ?? 0.5);
     const simplifiedPoints = ramerDouglasPeucker(path.points, epsilon);
     
     const anchors = fitCurve(simplifiedPoints);
@@ -174,6 +174,11 @@ export function convertLivePathToVectorPath(path: LivePath): VectorPathData {
         fill: path.fill,
         fillStyle: path.fillStyle,
         strokeWidth: path.strokeWidth,
+        strokeLineDash: path.strokeLineDash,
+        strokeLineCapStart: path.strokeLineCapStart,
+        strokeLineCapEnd: path.strokeLineCapEnd,
+        strokeLineJoin: path.strokeLineJoin,
+        endpointSize: path.endpointSize,
         roughness: path.roughness,
         bowing: path.bowing,
         fillWeight: path.fillWeight,
@@ -181,6 +186,11 @@ export function convertLivePathToVectorPath(path: LivePath): VectorPathData {
         hachureGap: path.hachureGap,
         curveTightness: path.curveTightness,
         curveStepCount: path.curveStepCount,
+        curveFitting: path.curveFitting,
+        preserveVertices: path.preserveVertices,
+        disableMultiStroke: path.disableMultiStroke,
+        disableMultiStrokeFill: path.disableMultiStrokeFill,
+        simplification: path.simplification,
     };
 }
 

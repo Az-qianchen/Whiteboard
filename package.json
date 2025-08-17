@@ -13,7 +13,8 @@
     "react-dom": "18.2.0",
     "roughjs": "4.6.6",
     "hotkeys-js": "latest",
-    "@headlessui/react": "2.1.2"
+    "@headlessui/react": "2.1.2",
+    "paper": "0.12.17"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
