@@ -1,7 +1,11 @@
+/**
+ * 本文件定义了一个自定义 Hook (usePaths)，用于管理应用中所有路径数据。
+ * 它负责处理路径的创建、更新、删除，并维护一个支持撤销/重做的历史记录栈。
+ */
 
 import React, { useState, useRef, useCallback } from 'react';
-import type { AnyPath, LivePath, VectorPathData } from '../types';
-import { convertLivePathToVectorPath } from '../lib/path-fitting';
+import type { AnyPath, LivePath, VectorPathData, BrushPathData } from '../types';
+import { brushToVectorPath } from '../lib/drawing';
 
 const MAX_HISTORY = 200;
 
@@ -99,8 +103,10 @@ export const usePaths = () => {
 
   const finishBrushPath = () => {
     if (currentBrushPath && currentBrushPath.points.length > 1) {
-      const vectorPath = convertLivePathToVectorPath(currentBrushPath);
-      setPaths(prev => [...prev, vectorPath]);
+      const vectorPathData = brushToVectorPath({
+        ...currentBrushPath,
+      });
+      setPaths(prev => [...prev, vectorPathData]);
     }
     setCurrentBrushPath(null);
   };
@@ -113,9 +119,9 @@ export const usePaths = () => {
     setCurrentPenPath(null);
   };
 
-  const handleCancelPenPath = () => {
+  const handleCancelPenPath = useCallback(() => {
     setCurrentPenPath(null);
-  };
+  }, []);
 
   const handleFinishLinePath = () => {
     if (currentLinePath && currentLinePath.anchors.length > 1) {
@@ -124,9 +130,9 @@ export const usePaths = () => {
     setCurrentLinePath(null);
   };
   
-  const handleCancelLinePath = () => {
+  const handleCancelLinePath = useCallback(() => {
     setCurrentLinePath(null);
-  };
+  }, []);
 
   const handleUndo = () => {
     endCoalescing();
@@ -158,8 +164,18 @@ export const usePaths = () => {
 
   const handleClear = useCallback(() => {
     endCoalescing();
-    setPaths([]);
-  }, [setPaths, endCoalescing]);
+    // This resets the entire history to a single blank state.
+    setHistState({ history: [[]], index: 0 });
+    
+    // It's crucial to also clear any in-progress drawing states
+    // that are managed by this hook.
+    setCurrentBrushPath(null);
+    setCurrentPenPath(null);
+    setCurrentLinePath(null);
+    
+    // And reset any selections.
+    setSelectedPathIds([]);
+  }, [endCoalescing]);
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedPathIds.length === 0) return;
@@ -211,7 +227,8 @@ export const usePaths = () => {
 
   const canUndo = (currentPenPath && currentPenPath.anchors.length > 0) || (currentLinePath && currentLinePath.anchors.length > 0) || historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
-  const canClear = paths.length > 0 || (currentBrushPath && currentBrushPath.points.length > 0) || (currentLinePath && currentLinePath.anchors.length > 0);
+  const canClear = paths.length > 0 || !!currentBrushPath || !!currentPenPath || !!currentLinePath;
+
 
   return {
     paths,

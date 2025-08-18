@@ -1,3 +1,7 @@
+/**
+ * 本文件是 Whiteboard 的子组件，负责渲染所有已经完成并存储的绘图路径。
+ * 它使用 RoughJS 库来创建手绘风格的 SVG 图形。
+ */
 
 import React, { useRef, useEffect } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';

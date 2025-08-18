@@ -1,7 +1,8 @@
 /**
- * This hook manages all global event listeners for the application,
- * such as keyboard shortcuts and clipboard events.
+ * 本文件定义了一个自定义 Hook (useGlobalEventHandlers)，用于集中管理全局事件监听器。
+ * 它负责处理整个应用的键盘快捷键（hotkeys）和剪贴板事件（如复制、粘贴、剪切）。
  */
+
 import React, { useEffect, Dispatch, SetStateAction } from 'react';
 import hotkeys from 'hotkeys-js';
 import type { AnyPath, DrawingShape, ImageData, Point, Tool, VectorPathData, SelectionMode } from '../types';
@@ -41,6 +42,8 @@ interface GlobalEventHandlersProps {
   handleSendBackward: () => void;
   handleBringToFront: () => void;
   handleSendToBack: () => void;
+  handleGroup: () => void;
+  handleUngroup: () => void;
   getPointerPosition: (e: { clientX: number, clientY: number }, svg: SVGSVGElement) => Point;
   viewTransform: { scale: number };
   lastPointerPosition: Point | null;
@@ -60,13 +63,14 @@ const useGlobalEventHandlers = ({
   // from App
   isGridVisible, setIsGridVisible, handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport, handleSaveFile, 
   handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
+  handleGroup, handleUngroup,
   getPointerPosition, viewTransform, lastPointerPosition
 }: GlobalEventHandlersProps) => {
 
   // Handle keyboard shortcuts using hotkeys-js library
   useEffect(() => {
     // These shortcuts should follow the default filter (not trigger in inputs)
-    hotkeys('v,m,b,p,r,o,l,escape,enter,backspace,delete', (event, handler) => {
+    hotkeys('v,m,b,p,r,o,l,a,escape,enter,backspace,delete', (event, handler) => {
       event.preventDefault();
       switch (handler.key) {
         case 'v': setTool('selection'); setSelectionMode('edit'); break;
@@ -76,6 +80,7 @@ const useGlobalEventHandlers = ({
         case 'r': setTool('rectangle'); break;
         case 'o': setTool('ellipse'); break;
         case 'l': setTool('line'); break;
+        case 'a': setTool('arc'); break;
         case 'escape':
           if (selectedPathIds.length > 0) setSelectedPathIds([]);
           if (currentPenPath) handleCancelPenPath();
@@ -150,10 +155,20 @@ const useGlobalEventHandlers = ({
       void handleSaveFile();
     });
 
+    hotkeys('command+g, ctrl+g', (event) => {
+      event.preventDefault();
+      handleGroup();
+    });
+
+    hotkeys('command+shift+g, ctrl+shift+g', (event) => {
+      event.preventDefault();
+      handleUngroup();
+    });
+
     // Cleanup on unmount
     return () => {
       hotkeys.filter = originalFilter;
-      hotkeys.unbind('v,m,b,p,r,o,l,escape,enter,backspace,delete');
+      hotkeys.unbind('v,m,b,p,r,o,l,a,escape,enter,backspace,delete');
       hotkeys.unbind('g');
       hotkeys.unbind('],[,shift+],shift+[');
       hotkeys.unbind('command+z, ctrl+z');
@@ -162,6 +177,8 @@ const useGlobalEventHandlers = ({
       hotkeys.unbind('command+c, ctrl+c');
       hotkeys.unbind('command+i, ctrl+i');
       hotkeys.unbind('command+s, ctrl+s');
+      hotkeys.unbind('command+g, ctrl+g');
+      hotkeys.unbind('command+shift+g, ctrl+shift+g');
     };
   }, [
     selectedPathIds,
@@ -188,6 +205,8 @@ const useGlobalEventHandlers = ({
     handleSendBackward,
     handleBringToFront,
     handleSendToBack,
+    handleGroup,
+    handleUngroup,
     isGridVisible,
     setIsGridVisible
   ]);

@@ -1,3 +1,7 @@
+/**
+ * 本文件是 React 应用的入口点。
+ * 它负责将主组件 App 挂载到 HTML 页面中的根 DOM 元素上。
+ */
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';

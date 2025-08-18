@@ -1,9 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
-import type { Point, DragState, AnyPath, VectorPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, ImageData } from '../types';
-import { updatePathAnchors, insertAnchorOnCurve, movePath, getSqDistToSegment, rotatePath } from '../lib/geometry';
-import { getPathsBoundingBox, resizePath, getMarqueeRect, dist } from '../lib/geometry';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import type { Point, DragState, AnyPath, VectorPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, ImageData, PolygonData, BrushPathData } from '../types';
+import { updatePathAnchors, insertAnchorOnCurve, movePath, getSqDistToSegment, rotatePath, getPathsBoundingBox, resizePath, getMarqueeRect, dist, sampleCubicBezier, scalePath } from '../lib/drawing';
 import { isPointHittingPath, isPathIntersectingMarquee } from '../lib/hit-testing';
-import { sampleCubicBezier } from '../lib/path-fitting';
 
 // Define the props the hook will receive
 interface SelectionInteractionProps {
@@ -40,6 +38,29 @@ export const useSelection = ({
     return { x: Math.round(point.x / gridSize) * gridSize, y: Math.round(point.y / gridSize) * gridSize };
   }, [isGridVisible, gridSize]);
 
+  // Effect to automatically clear stale drag state if paths change from underneath it
+  useEffect(() => {
+    if (dragState) {
+      const pathExists = (pathId: string) => paths.some((p: AnyPath) => p.id === pathId);
+
+      let isStale = false;
+      if (dragState.type === 'anchor' || dragState.type === 'handleIn' || dragState.type === 'handleOut' || dragState.type === 'resize' || dragState.type === 'border-radius') {
+        if (!pathExists(dragState.pathId)) {
+          isStale = true;
+        }
+      } else if (dragState.type === 'move' || dragState.type === 'scale' || dragState.type === 'rotate') {
+        if (!dragState.pathIds.every(pathExists)) {
+          isStale = true;
+        }
+      }
+
+      if (isStale) {
+        setDragState(null);
+      }
+    }
+  }, [paths, dragState]);
+
+
   // --- Pointer Down Logic ---
 
   const handlePointerDownForMove = (point: Point, e: React.PointerEvent<SVGSVGElement>) => {
@@ -50,9 +71,9 @@ export const useSelection = ({
     if (handle && selectedPathIds.length > 0) {
       if (handle === 'border-radius' && pathId) {
         const path = paths.find((p: AnyPath) => p.id === pathId);
-        if (path && (path.tool === 'rectangle' || path.tool === 'image')) {
+        if (path && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon')) {
           beginCoalescing();
-          setDragState({ type: 'border-radius', pathId: path.id, originalPath: path as RectangleData | ImageData, initialPointerPos: point });
+          setDragState({ type: 'border-radius', pathId: path.id, originalPath: path as RectangleData | ImageData | PolygonData, initialPointerPos: point });
           return;
         }
       }
@@ -140,12 +161,12 @@ export const useSelection = ({
 
     if (handle && pathId) {
       const path = paths.find((p: AnyPath) => p.id === pathId);
-      if (path && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image')) {
+      if (path && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon')) {
           beginCoalescing();
           if (handle === 'border-radius') {
-              setDragState({ type: 'border-radius', pathId: path.id, originalPath: path as RectangleData | ImageData, initialPointerPos: point });
+              setDragState({ type: 'border-radius', pathId: path.id, originalPath: path as RectangleData | ImageData | PolygonData, initialPointerPos: point });
           } else {
-              setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as RectangleData | EllipseData | ImageData, initialPointerPos: point });
+              setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as RectangleData | EllipseData | ImageData | PolygonData, initialPointerPos: point });
           }
           return;
       }
@@ -203,7 +224,10 @@ export const useSelection = ({
       if (e.shiftKey) {
         setSelectedPathIds((prev: string[]) => isSelected ? prev.filter(id => id !== clickedPathId) : [...prev, clickedPathId]);
       } else {
-        if (!isSelected) setSelectedPathIds([clickedPathId]);
+        // The previous logic was flawed. When not holding shift, a click
+        // should always result in the clicked item being the sole selection,
+        // regardless of its previous selection state.
+        setSelectedPathIds([clickedPathId]);
       }
     } else {
       if (!e.shiftKey) setSelectedPathIds([]);
@@ -268,24 +292,23 @@ export const useSelection = ({
             const snappedMovePoint = snapToGrid(movePoint);
             const dummyRect: RectangleData = { ...initialSelectionBbox, tool: 'rectangle', id: '', color: '', fill: '', fillStyle: '', strokeWidth: 0, roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 0, curveTightness: 0, curveStepCount: 0 };
             const newBbox = resizePath(dummyRect, handle, snappedMovePoint, initialPointerPos, e.shiftKey) as RectangleData;
+            
             if (newBbox.width !== 0 && newBbox.height !== 0 && initialSelectionBbox.width !== 0 && initialSelectionBbox.height !== 0) {
-              const [scaleX, scaleY] = [newBbox.width / initialSelectionBbox.width, newBbox.height / initialSelectionBbox.height];
-              const pivot = { x: handle.includes('left') ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x, y: handle.includes('top') ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y };
-              if (handle === 'top' || handle === 'bottom') pivot.x = initialSelectionBbox.x + initialSelectionBbox.width / 2;
-              if (handle === 'left' || handle === 'right') pivot.y = initialSelectionBbox.y + initialSelectionBbox.height / 2;
-              const scalePoint = (pt: Point) => ({ x: pivot.x + (pt.x - pivot.x) * scaleX, y: pivot.y + (pt.y - pivot.y) * scaleY });
+              const scaleX = newBbox.width / initialSelectionBbox.width;
+              const scaleY = newBbox.height / initialSelectionBbox.height;
               
-              transformedShapes = originalPaths.map(p => {
-                  let scaledPath: AnyPath;
-                  if ('anchors' in p) {
-                      scaledPath = { ...p, anchors: p.anchors.map(a => ({ point: scalePoint(a.point), handleIn: scalePoint(a.handleIn), handleOut: scalePoint(a.handleOut) }))};
-                  } else if ('x' in p && 'y' in p && 'width' in p && 'height' in p){
-                      scaledPath = { ...p, x: pivot.x + (p.x - pivot.x) * scaleX, y: pivot.y + (p.y - pivot.y) * scaleY, width: p.width * scaleX, height: p.height * scaleY };
-                  } else {
-                      scaledPath = p;
-                  }
-                  return scaledPath;
-              });
+              const handleIsLeft = handle.includes('left');
+              const handleIsTop = handle.includes('top');
+              let pivot: Point;
+              if (handle === 'top' || handle === 'bottom') {
+                pivot = { x: initialSelectionBbox.x + initialSelectionBbox.width / 2, y: handleIsTop ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y };
+              } else if (handle === 'left' || handle === 'right') {
+                pivot = { x: handleIsLeft ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x, y: initialSelectionBbox.y + initialSelectionBbox.height / 2 };
+              } else {
+                pivot = { x: handleIsLeft ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x, y: handleIsTop ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y };
+              }
+              
+              transformedShapes = originalPaths.map(p => scalePath(p, pivot, scaleX, scaleY));
             }
             break;
           }
@@ -325,7 +348,26 @@ export const useSelection = ({
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     if (dragState) {
       if (isClosingPath.current) {
-          setPaths((prev: AnyPath[]) => prev.map(p => p.id === isClosingPath.current!.pathId ? { ...p, isClosed: true } : p));
+        const { pathId, anchorIndex } = isClosingPath.current;
+        setPaths((prev: AnyPath[]) => prev.map(p => {
+            if (p.id === pathId) {
+                const vectorPath = p as VectorPathData;
+                const anchors = [...vectorPath.anchors];
+                const len = anchors.length;
+                if (len < 2) return { ...vectorPath, isClosed: true };
+
+                if (anchorIndex === 0) { // Dragged start anchor to end
+                    const startAnchor = anchors.shift()!; // Remove start anchor
+                    anchors[anchors.length - 1].handleOut = startAnchor.handleOut;
+                } else { // Dragged end anchor to start
+                    const endAnchor = anchors.pop()!; // Remove end anchor
+                    anchors[0].handleIn = endAnchor.handleIn;
+                }
+                
+                return { ...vectorPath, anchors, isClosed: true };
+            }
+            return p;
+        }));
       }
       endCoalescing();
       isClosingPath.current = null;

@@ -1,3 +1,7 @@
+/**
+ * 本文件定义了一个自定义 Hook (useViewTransform)，用于管理画布的视图变换。
+ * 它处理画布的平移（pan）和缩放（zoom）逻辑。
+ */
 
 import React, { useState, useCallback } from 'react';
 import type { Point } from '../types';

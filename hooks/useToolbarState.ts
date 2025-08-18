@@ -1,8 +1,8 @@
-
 import { useState, useMemo, useEffect } from 'react';
-import type { Tool, AnyPath, ImageData, SelectionMode, RectangleData, EndpointStyle } from '../types';
-import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_CURVE_FITTING, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL, DEFAULT_SIMPLIFICATION } from '../constants';
+import type { Tool, AnyPath, ImageData, SelectionMode, RectangleData, PolygonData, EndpointStyle, GroupData, VectorPathData } from '../types';
+import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL, ENDPOINT_STYLES } from '../constants';
 import { getLocalStorageItem } from '../lib/utils';
+import { simplifyPath } from '../lib/drawing';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -15,7 +15,9 @@ export const useToolbarState = (
   paths: AnyPath[], 
   selectedPathIds: string[], 
   setPaths: React.Dispatch<React.SetStateAction<AnyPath[]>>,
-  setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>
+  setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>,
+  beginCoalescing: () => void,
+  endCoalescing: () => void
 ) => {
   const [tool, setToolInternal] = useState<Tool>(() => getLocalStorageItem('whiteboard_tool', 'brush'));
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('move');
@@ -26,14 +28,15 @@ export const useToolbarState = (
   const [drawingFillStyle, setDrawingFillStyle] = useState<string>(() => getLocalStorageItem('whiteboard_drawingFillStyle', 'hachure'));
   const [drawingStrokeWidth, setDrawingStrokeWidth] = useState<number>(() => getLocalStorageItem('whiteboard_drawingStrokeWidth', 8));
   const [drawingOpacity, setDrawingOpacity] = useState<number>(() => getLocalStorageItem('whiteboard_drawingOpacity', 1));
+  const [drawingSides, setDrawingSides] = useState<number>(() => getLocalStorageItem('whiteboard_drawingSides', 6));
   const [drawingBorderRadius, setDrawingBorderRadius] = useState<number>(() => getLocalStorageItem('whiteboard_drawingBorderRadius', 0));
   const [drawingStrokeLineDash, setDrawingStrokeLineDash] = useState<[number, number] | undefined>(() => getLocalStorageItem('whiteboard_drawingStrokeLineDash', undefined));
   const [drawingStrokeLineCapStart, setDrawingStrokeLineCapStart] = useState<EndpointStyle>(() => getLocalStorageItem('whiteboard_drawingStrokeLineCapStart', 'round'));
   const [drawingStrokeLineCapEnd, setDrawingStrokeLineCapEnd] = useState<EndpointStyle>(() => getLocalStorageItem('whiteboard_drawingStrokeLineCapEnd', 'round'));
-  const [drawingStrokeLineJoin, setDrawingStrokeLineJoin] = useState<'miter' | 'round' | 'bevel'>(() => getLocalStorageItem('whiteboard_drawingStrokeLineJoin', 'round'));
   const [drawingEndpointSize, setDrawingEndpointSize] = useState<number>(() => getLocalStorageItem('whiteboard_drawingEndpointSize', 1));
   const [drawingEndpointFill, setDrawingEndpointFill] = useState<'solid' | 'hollow'>(() => getLocalStorageItem('whiteboard_drawingEndpointFill', 'hollow'));
   
+  const [drawingIsRough, setDrawingIsRough] = useState<boolean>(() => getLocalStorageItem('whiteboard_drawingIsRough', true));
   // RoughJS 属性
   const [drawingRoughness, setDrawingRoughness] = useState<number>(() => getLocalStorageItem('whiteboard_drawingRoughness', DEFAULT_ROUGHNESS));
   const [drawingBowing, setDrawingBowing] = useState<number>(() => getLocalStorageItem('whiteboard_drawingBowing', DEFAULT_BOWING));
@@ -42,11 +45,11 @@ export const useToolbarState = (
   const [drawingHachureGap, setDrawingHachureGap] = useState<number>(() => getLocalStorageItem('whiteboard_drawingHachureGap', DEFAULT_HACHURE_GAP));
   const [drawingCurveTightness, setDrawingCurveTightness] = useState<number>(() => getLocalStorageItem('whiteboard_drawingCurveTightness', DEFAULT_CURVE_TIGHTNESS));
   const [drawingCurveStepCount, setDrawingCurveStepCount] = useState<number>(() => getLocalStorageItem('whiteboard_drawingCurveStepCount', DEFAULT_CURVE_STEP_COUNT));
-  const [drawingCurveFitting, setDrawingCurveFitting] = useState<number>(() => getLocalStorageItem('whiteboard_drawingCurveFitting', DEFAULT_CURVE_FITTING));
   const [drawingPreserveVertices, setDrawingPreserveVertices] = useState<boolean>(() => getLocalStorageItem('whiteboard_drawingPreserveVertices', DEFAULT_PRESERVE_VERTICES));
   const [drawingDisableMultiStroke, setDrawingDisableMultiStroke] = useState<boolean>(() => getLocalStorageItem('whiteboard_drawingDisableMultiStroke', DEFAULT_DISABLE_MULTI_STROKE));
   const [drawingDisableMultiStrokeFill, setDrawingDisableMultiStrokeFill] = useState<boolean>(() => getLocalStorageItem('whiteboard_drawingDisableMultiStrokeFill', DEFAULT_DISABLE_MULTI_STROKE_FILL));
-  const [drawingSimplification, setDrawingSimplification] = useState<number>(() => getLocalStorageItem('whiteboard_drawingSimplification', DEFAULT_SIMPLIFICATION));
+
+  const [originalPathsForSimplify, setOriginalPathsForSimplify] = useState<AnyPath[] | null>(null);
 
   useEffect(() => { localStorage.setItem('whiteboard_tool', JSON.stringify(tool)); }, [tool]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingColor', JSON.stringify(drawingColor)); }, [drawingColor]);
@@ -54,13 +57,14 @@ export const useToolbarState = (
   useEffect(() => { localStorage.setItem('whiteboard_drawingFillStyle', JSON.stringify(drawingFillStyle)); }, [drawingFillStyle]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingStrokeWidth', JSON.stringify(drawingStrokeWidth)); }, [drawingStrokeWidth]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingOpacity', JSON.stringify(drawingOpacity)); }, [drawingOpacity]);
+  useEffect(() => { localStorage.setItem('whiteboard_drawingSides', JSON.stringify(drawingSides)); }, [drawingSides]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingBorderRadius', JSON.stringify(drawingBorderRadius)); }, [drawingBorderRadius]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingStrokeLineDash', JSON.stringify(drawingStrokeLineDash)); }, [drawingStrokeLineDash]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingStrokeLineCapStart', JSON.stringify(drawingStrokeLineCapStart)); }, [drawingStrokeLineCapStart]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingStrokeLineCapEnd', JSON.stringify(drawingStrokeLineCapEnd)); }, [drawingStrokeLineCapEnd]);
-  useEffect(() => { localStorage.setItem('whiteboard_drawingStrokeLineJoin', JSON.stringify(drawingStrokeLineJoin)); }, [drawingStrokeLineJoin]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingEndpointSize', JSON.stringify(drawingEndpointSize)); }, [drawingEndpointSize]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingEndpointFill', JSON.stringify(drawingEndpointFill)); }, [drawingEndpointFill]);
+  useEffect(() => { localStorage.setItem('whiteboard_drawingIsRough', JSON.stringify(drawingIsRough)); }, [drawingIsRough]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingRoughness', JSON.stringify(drawingRoughness)); }, [drawingRoughness]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingBowing', JSON.stringify(drawingBowing)); }, [drawingBowing]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingFillWeight', JSON.stringify(drawingFillWeight)); }, [drawingFillWeight]);
@@ -68,11 +72,9 @@ export const useToolbarState = (
   useEffect(() => { localStorage.setItem('whiteboard_drawingHachureGap', JSON.stringify(drawingHachureGap)); }, [drawingHachureGap]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingCurveTightness', JSON.stringify(drawingCurveTightness)); }, [drawingCurveTightness]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingCurveStepCount', JSON.stringify(drawingCurveStepCount)); }, [drawingCurveStepCount]);
-  useEffect(() => { localStorage.setItem('whiteboard_drawingCurveFitting', JSON.stringify(drawingCurveFitting)); }, [drawingCurveFitting]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingPreserveVertices', JSON.stringify(drawingPreserveVertices)); }, [drawingPreserveVertices]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingDisableMultiStroke', JSON.stringify(drawingDisableMultiStroke)); }, [drawingDisableMultiStroke]);
   useEffect(() => { localStorage.setItem('whiteboard_drawingDisableMultiStrokeFill', JSON.stringify(drawingDisableMultiStrokeFill)); }, [drawingDisableMultiStrokeFill]);
-  useEffect(() => { localStorage.setItem('whiteboard_drawingSimplification', JSON.stringify(drawingSimplification)); }, [drawingSimplification]);
 
 
   const selectedPaths = useMemo(() => {
@@ -87,20 +89,30 @@ export const useToolbarState = (
   // Effect to adopt the style of a selected object as the new drawing default.
   useEffect(() => {
     if (firstSelectedPath) {
+      const isMarker = (style: EndpointStyle) => ENDPOINT_STYLES.some(s => s.name === style && s.name !== 'none');
+      
       setDrawingColor(firstSelectedPath.color);
       setDrawingFill(firstSelectedPath.fill ?? 'transparent');
       setDrawingFillStyle(firstSelectedPath.fillStyle ?? 'hachure');
       setDrawingStrokeWidth(firstSelectedPath.strokeWidth);
       setDrawingOpacity(firstSelectedPath.opacity ?? 1);
-      if (firstSelectedPath.tool === 'rectangle' || firstSelectedPath.tool === 'image') {
-        setDrawingBorderRadius((firstSelectedPath as RectangleData | ImageData).borderRadius ?? 0);
+      if (firstSelectedPath.tool === 'rectangle' || firstSelectedPath.tool === 'image' || firstSelectedPath.tool === 'polygon') {
+        setDrawingBorderRadius((firstSelectedPath as RectangleData | ImageData | PolygonData).borderRadius ?? 0);
+      }
+      if (firstSelectedPath.tool === 'polygon') {
+        setDrawingSides((firstSelectedPath as PolygonData).sides ?? 6);
       }
       setDrawingStrokeLineDash(firstSelectedPath.strokeLineDash ?? undefined);
-      setDrawingStrokeLineCapStart(firstSelectedPath.strokeLineCapStart ?? 'round');
-      setDrawingStrokeLineCapEnd(firstSelectedPath.strokeLineCapEnd ?? 'round');
-      setDrawingStrokeLineJoin(firstSelectedPath.strokeLineJoin ?? 'round');
+      
+      const startCap = firstSelectedPath.strokeLineCapStart ?? 'round';
+      setDrawingStrokeLineCapStart(isMarker(startCap) ? startCap : 'round');
+      
+      const endCap = firstSelectedPath.strokeLineCapEnd ?? 'round';
+      setDrawingStrokeLineCapEnd(isMarker(endCap) ? endCap : 'round');
+
       setDrawingEndpointSize(firstSelectedPath.endpointSize ?? 1);
       setDrawingEndpointFill(firstSelectedPath.endpointFill ?? 'hollow');
+      setDrawingIsRough(firstSelectedPath.isRough ?? true);
       setDrawingRoughness(firstSelectedPath.roughness ?? DEFAULT_ROUGHNESS);
       setDrawingBowing(firstSelectedPath.bowing ?? DEFAULT_BOWING);
       setDrawingFillWeight(firstSelectedPath.fillWeight ?? DEFAULT_FILL_WEIGHT);
@@ -108,11 +120,9 @@ export const useToolbarState = (
       setDrawingHachureGap(firstSelectedPath.hachureGap ?? DEFAULT_HACHURE_GAP);
       setDrawingCurveTightness(firstSelectedPath.curveTightness ?? DEFAULT_CURVE_TIGHTNESS);
       setDrawingCurveStepCount(firstSelectedPath.curveStepCount ?? DEFAULT_CURVE_STEP_COUNT);
-      setDrawingCurveFitting(firstSelectedPath.curveFitting ?? DEFAULT_CURVE_FITTING);
       setDrawingPreserveVertices(firstSelectedPath.preserveVertices ?? DEFAULT_PRESERVE_VERTICES);
       setDrawingDisableMultiStroke(firstSelectedPath.disableMultiStroke ?? DEFAULT_DISABLE_MULTI_STROKE);
       setDrawingDisableMultiStrokeFill(firstSelectedPath.disableMultiStrokeFill ?? DEFAULT_DISABLE_MULTI_STROKE_FILL);
-      setDrawingSimplification(firstSelectedPath.simplification ?? DEFAULT_SIMPLIFICATION);
     }
   }, [firstSelectedPath]);
 
@@ -120,44 +130,21 @@ export const useToolbarState = (
   const updateSelectedPaths = (updater: (path: AnyPath) => Partial<AnyPath>) => {
     if (selectedPathIds.length === 0) return;
     
+    // Helper to recursively apply updates to a path and its children if it's a group.
+    const applyRecursiveUpdate = (path: AnyPath, propsToUpdate: Partial<AnyPath>): AnyPath => {
+      if (path.tool === 'group') {
+        const updatedChildren = path.children.map(child => applyRecursiveUpdate(child, propsToUpdate));
+        return { ...path, ...propsToUpdate, children: updatedChildren } as AnyPath;
+      }
+      return { ...path, ...propsToUpdate } as AnyPath;
+    };
+
     setPaths(prevPaths =>
       prevPaths.map(p => {
         if (selectedPathIds.includes(p.id)) {
-          // 获取当前在工具栏中显示的所有属性。
-          // 这确保了当用户编辑一个旧图形时，任何缺失的现代属性
-          // (如 curveStepCount) 都会以当前工具栏的设置为准被添加进去。
-          const currentToolbarProps = {
-            color,
-            fill,
-            fillStyle,
-            strokeWidth,
-            strokeLineDash,
-            strokeLineCapStart,
-            strokeLineCapEnd,
-            strokeLineJoin,
-            endpointSize,
-            endpointFill,
-            opacity,
-            roughness,
-            bowing,
-            fillWeight,
-            hachureAngle,
-            hachureGap,
-            curveTightness,
-            curveStepCount,
-            curveFitting,
-            preserveVertices,
-            disableMultiStroke,
-            disableMultiStrokeFill,
-            simplification,
-          };
+          // The updater provides the specific properties to change, e.g., { strokeWidth: 5 }
           const updatedProps = updater(p);
-
-          // Spread 顺序很重要:
-          // 1. 从路径 p 本身开始
-          // 2. 使用当前工具栏的值覆盖，以 "升级" 缺失的属性
-          // 3. 使用 updater 返回的特定更新覆盖
-          return { ...p, ...currentToolbarProps, ...updatedProps } as AnyPath;
+          return applyRecursiveUpdate(p, updatedProps);
         }
         return p;
       })
@@ -201,11 +188,6 @@ export const useToolbarState = (
     else setDrawingStrokeLineCapEnd(newCap);
   };
 
-  const setStrokeLineJoin = (newJoin: 'miter' | 'round' | 'bevel') => {
-    if (firstSelectedPath) updateSelectedPaths(() => ({ strokeLineJoin: newJoin }));
-    else setDrawingStrokeLineJoin(newJoin);
-  };
-
   const setEndpointSize = (newSize: number) => {
     if (firstSelectedPath) updateSelectedPaths(() => ({ endpointSize: newSize }));
     else setDrawingEndpointSize(newSize);
@@ -214,6 +196,11 @@ export const useToolbarState = (
   const setEndpointFill = (newFill: 'solid' | 'hollow') => {
     if (firstSelectedPath) updateSelectedPaths(() => ({ endpointFill: newFill }));
     else setDrawingEndpointFill(newFill);
+  };
+
+  const setIsRough = (val: boolean) => {
+    if (firstSelectedPath) updateSelectedPaths(() => ({ isRough: val }));
+    else setDrawingIsRough(val);
   };
 
   const setRoughness = (val: number) => {
@@ -251,16 +238,19 @@ export const useToolbarState = (
     else setDrawingCurveStepCount(val);
   };
 
-  const setCurveFitting = (val: number) => {
-    if (firstSelectedPath) updateSelectedPaths(() => ({ curveFitting: val }));
-    else setDrawingCurveFitting(val);
-  };
-  
   const setOpacity = (newOpacity: number) => {
     if (firstSelectedPath) {
       updateSelectedPaths(() => ({ opacity: newOpacity }));
     } else {
       setDrawingOpacity(newOpacity);
+    }
+  };
+
+  const setSides = (newSides: number) => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'polygon') {
+      updateSelectedPaths(() => ({ sides: Math.max(3, newSides) }));
+    } else {
+      setDrawingSides(Math.max(3, newSides));
     }
   };
 
@@ -279,28 +269,77 @@ export const useToolbarState = (
     else setDrawingDisableMultiStrokeFill(val);
   };
 
-  const setSimplification = (val: number) => {
-    if (firstSelectedPath) updateSelectedPaths(() => ({ simplification: val }));
-    else setDrawingSimplification(val);
+  const beginSimplify = () => {
+    if (selectedPathIds.length > 0) {
+      const selected = paths.filter(p => selectedPathIds.includes(p.id));
+      setOriginalPathsForSimplify(selected);
+      beginCoalescing();
+    }
   };
 
+  const setSimplify = (tolerance: number) => {
+    if (!originalPathsForSimplify) return;
 
-  // --- Rectangle/Image Border Radius Logic ---
-  const selectedRectsAndImages = useMemo(() => {
+    const simplifyRecursively = (path: AnyPath): AnyPath => {
+      if (path.tool === 'group') {
+        return { ...path, children: (path as GroupData).children.map(simplifyRecursively) };
+      }
+      if ((path.tool === 'pen' || path.tool === 'line') && 'anchors' in path) {
+        return simplifyPath(path as VectorPathData, tolerance);
+      }
+      return path;
+    };
+
+    const simplifiedPaths = originalPathsForSimplify.map(simplifyRecursively);
+
+    const simplifiedMap = new Map(simplifiedPaths.map(p => [p.id, p]));
+    setPaths(prev => prev.map(p => simplifiedMap.get(p.id) || p));
+  };
+  
+  const endSimplify = () => {
+    setOriginalPathsForSimplify(null);
+    endCoalescing();
+  };
+
+  const isSimplifiable = useMemo(() => {
+    if (selectedPaths.length === 0) return false;
+    const checkPath = (p: AnyPath): boolean => {
+      // Brush paths are converted to vector paths, so they are simplifiable
+      if (p.tool === 'pen' || p.tool === 'line' || p.tool === 'brush') return true;
+      if (p.tool === 'group') return (p as GroupData).children.some(checkPath);
+      return false;
+    };
+    return selectedPaths.some(checkPath);
+  }, [selectedPaths]);
+
+
+  // --- Rectangle/Image/Polygon Border Radius Logic ---
+  const selectedRectsImagesAndPolygons = useMemo(() => {
     if (selectedPathIds.length === 0) return [];
-    return paths.filter(p => selectedPathIds.includes(p.id) && (p.tool === 'rectangle' || p.tool === 'image')) as (RectangleData | ImageData)[];
+    return paths.filter(p => selectedPathIds.includes(p.id) && (p.tool === 'rectangle' || p.tool === 'image' || p.tool === 'polygon')) as (RectangleData | ImageData | PolygonData)[];
   }, [paths, selectedPathIds]);
-  const firstSelectedRectOrImage = selectedRectsAndImages[0] || null;
+  const firstSelectedRectImageOrPolygon = selectedRectsImagesAndPolygons[0] || null;
   const setBorderRadius = (newRadius: number) => {
-    if (selectedRectsAndImages.length > 0) {
+    if (selectedRectsImagesAndPolygons.length > 0) {
       updateSelectedPaths(() => ({ borderRadius: Math.max(0, newRadius) }));
     } else {
       setDrawingBorderRadius(Math.max(0, newRadius));
     }
   };
-  const borderRadius = (firstSelectedRectOrImage || tool === 'rectangle')
-    ? (firstSelectedRectOrImage?.borderRadius ?? drawingBorderRadius)
+  const borderRadius = (firstSelectedRectImageOrPolygon || tool === 'rectangle' || tool === 'polygon')
+    ? (firstSelectedRectImageOrPolygon?.borderRadius ?? drawingBorderRadius)
     : null;
+
+  // --- Polygon Sides Logic ---
+  const selectedPolygons = useMemo(() => {
+    if (selectedPathIds.length === 0) return [];
+    return paths.filter(p => selectedPathIds.includes(p.id) && p.tool === 'polygon') as PolygonData[];
+  }, [paths, selectedPathIds]);
+  const firstSelectedPolygon = selectedPolygons[0] || null;
+  const sides = (firstSelectedPolygon || tool === 'polygon')
+    ? (firstSelectedPolygon?.sides ?? drawingSides)
+    : null;
+
 
   // --- Display Values ---
 
@@ -315,10 +354,11 @@ export const useToolbarState = (
   const strokeLineDash = displayValue('strokeLineDash', drawingStrokeLineDash);
   const strokeLineCapStart = displayValue('strokeLineCapStart', drawingStrokeLineCapStart);
   const strokeLineCapEnd = displayValue('strokeLineCapEnd', drawingStrokeLineCapEnd);
-  const strokeLineJoin = displayValue('strokeLineJoin', drawingStrokeLineJoin);
+  const strokeLineJoin = 'round'; // Always round
   const endpointSize = displayValue('endpointSize', drawingEndpointSize);
   const endpointFill = displayValue('endpointFill', drawingEndpointFill);
   const opacity = displayValue('opacity', drawingOpacity);
+  const isRough = displayValue('isRough', drawingIsRough);
   const roughness = displayValue('roughness', drawingRoughness);
   const bowing = displayValue('bowing', drawingBowing);
   const fillWeight = displayValue('fillWeight', drawingFillWeight);
@@ -326,11 +366,9 @@ export const useToolbarState = (
   const hachureGap = displayValue('hachureGap', drawingHachureGap);
   const curveTightness = displayValue('curveTightness', drawingCurveTightness);
   const curveStepCount = displayValue('curveStepCount', drawingCurveStepCount);
-  const curveFitting = displayValue('curveFitting', drawingCurveFitting);
   const preserveVertices = displayValue('preserveVertices', drawingPreserveVertices);
   const disableMultiStroke = displayValue('disableMultiStroke', drawingDisableMultiStroke);
   const disableMultiStrokeFill = displayValue('disableMultiStrokeFill', drawingDisableMultiStrokeFill);
-  const simplification = displayValue('simplification', drawingSimplification);
   
   const setTool = (newTool: Tool) => {
     if (newTool === tool) return;
@@ -353,11 +391,13 @@ export const useToolbarState = (
     strokeLineDash, setStrokeLineDash,
     strokeLineCapStart, setStrokeLineCapStart,
     strokeLineCapEnd, setStrokeLineCapEnd,
-    strokeLineJoin, setStrokeLineJoin,
+    strokeLineJoin,
     endpointSize, setEndpointSize,
     endpointFill, setEndpointFill,
     opacity, setOpacity,
+    sides, setSides,
     borderRadius, setBorderRadius,
+    isRough, setIsRough,
     roughness, setRoughness,
     bowing, setBowing,
     fillWeight, setFillWeight,
@@ -365,11 +405,13 @@ export const useToolbarState = (
     hachureGap, setHachureGap,
     curveTightness, setCurveTightness,
     curveStepCount, setCurveStepCount,
-    curveFitting, setCurveFitting,
     preserveVertices, setPreserveVertices,
     disableMultiStroke, setDisableMultiStroke,
     disableMultiStrokeFill, setDisableMultiStrokeFill,
-    simplification, setSimplification,
+    beginSimplify,
+    setSimplify,
+    endSimplify,
+    isSimplifiable,
     firstSelectedPath,
   };
 };

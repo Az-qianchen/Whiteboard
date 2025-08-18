@@ -1,6 +1,10 @@
+/**
+ * 本文件是应用的主组件 (App)。
+ * 它负责整合所有 UI 组件，如工具栏、白板、菜单等，
+ * 并通过组合多个自定义 Hooks 来管理整个应用的状态。
+ */
 
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Toolbar } from './components/Toolbar';
 import { SideToolbar } from './components/SideToolbar';
 import { SelectionToolbar } from './components/SelectionToolbar';
@@ -19,6 +23,9 @@ import { useAppActions } from './hooks/useAppActions';
 import { getLocalStorageItem } from './lib/utils';
 import * as idb from './lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData } from './types';
+import { getPathsBoundingBox } from './lib/drawing';
+import { StyleLibraryPopover } from './components/side-toolbar';
 
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 const modKey = (key: string) => `${isMac ? '⌘' : 'Ctrl+'}${key}`;
@@ -29,6 +36,13 @@ const App: React.FC = () => {
   const [isGridVisible, setIsGridVisible] = useState(() => getLocalStorageItem('whiteboard_isGridVisible', true));
   const [gridSize, setGridSize] = useState(() => getLocalStorageItem('whiteboard_gridSize', 20));
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null>(null);
+  const [backgroundColor, setBackgroundColor] = useState(() => getLocalStorageItem('whiteboard_backgroundColor', '#17171c'));
+  const [styleClipboard, setStyleClipboard] = useState<StyleClipboardData | null>(null);
+  const [isStatusBarCollapsed, setIsStatusBarCollapsed] = useState(() => getLocalStorageItem('whiteboard_isStatusBarCollapsed', false));
+  const [styleLibrary, setStyleLibrary] = useState<StyleClipboardData[]>(() => getLocalStorageItem('whiteboard_styleLibrary', []));
+  const [isStyleLibraryOpen, setIsStyleLibraryOpen] = useState(() => getLocalStorageItem('whiteboard_isStyleLibraryOpen', false));
+  const [styleLibraryPosition, setStyleLibraryPosition] = useState(() => getLocalStorageItem('whiteboard_styleLibraryPosition', { x: window.innerWidth - 350, y: 100 }));
+
 
   // New state for file handling
   const [activeFileHandle, setActiveFileHandle] = useState<FileSystemFileHandle | null>(null);
@@ -55,9 +69,10 @@ const App: React.FC = () => {
           const file = await handle.getFile();
           const contents = await file.text();
           if (contents) {
-            const data = JSON.parse(contents);
+            const data: WhiteboardData = JSON.parse(contents);
             if (data?.type === 'whiteboard/shapes' && Array.isArray(data.paths)) {
               pathState.handleLoadFile(data.paths);
+              setBackgroundColor(data.backgroundColor ?? '#17171c');
               setActiveFileHandle(handle);
               setActiveFileName(handle.name);
             }
@@ -81,7 +96,7 @@ const App: React.FC = () => {
     loadLastFile();
   }, [pathState.handleLoadFile]);
 
-  // Save grid settings to localStorage when they change
+  // Save UI settings to localStorage when they change
   useEffect(() => {
     localStorage.setItem('whiteboard_isGridVisible', JSON.stringify(isGridVisible));
   }, [isGridVisible]);
@@ -90,10 +105,30 @@ const App: React.FC = () => {
     localStorage.setItem('whiteboard_gridSize', JSON.stringify(gridSize));
   }, [gridSize]);
 
+  useEffect(() => {
+    localStorage.setItem('whiteboard_backgroundColor', JSON.stringify(backgroundColor));
+  }, [backgroundColor]);
+
+  useEffect(() => {
+    localStorage.setItem('whiteboard_isStatusBarCollapsed', JSON.stringify(isStatusBarCollapsed));
+  }, [isStatusBarCollapsed]);
+  
+  useEffect(() => {
+    localStorage.setItem('whiteboard_styleLibrary', JSON.stringify(styleLibrary));
+  }, [styleLibrary]);
+  
+  useEffect(() => {
+    localStorage.setItem('whiteboard_isStyleLibraryOpen', JSON.stringify(isStyleLibraryOpen));
+  }, [isStyleLibraryOpen]);
+  
+  useEffect(() => {
+    localStorage.setItem('whiteboard_styleLibraryPosition', JSON.stringify(styleLibraryPosition));
+  }, [styleLibraryPosition]);
+
   const viewTransform = useViewTransform();
   const { viewTransform: vt, isPanning, handleWheel, getPointerPosition, lastPointerPosition } = viewTransform;
 
-  const toolbarState = useToolbarState(paths, selectedPathIds, pathState.setPaths, pathState.setSelectedPathIds);
+  const toolbarState = useToolbarState(paths, selectedPathIds, pathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
 
   // Decoupled Interaction Hooks
   const drawingInteraction = useDrawing({ pathState, toolbarState, viewTransform, isGridVisible, gridSize });
@@ -106,9 +141,31 @@ const App: React.FC = () => {
     selectionInteraction
   });
   
+  const handleSetTool = useCallback((newTool: Tool) => {
+    if (newTool === toolbarState.tool) return;
+
+    // Cancel any in-progress drawing before switching tools.
+    if (drawingInteraction.drawingShape) {
+        drawingInteraction.cancelDrawingShape();
+    }
+    if (pathState.currentPenPath) {
+        pathState.handleCancelPenPath();
+    }
+    if (pathState.currentLinePath) {
+        pathState.handleCancelLinePath();
+    }
+    if (pathState.currentBrushPath) {
+        // A brush path is only finalized on pointer up. If we switch tools, it should be discarded.
+        pathState.setCurrentBrushPath(null);
+    }
+    
+    toolbarState.setTool(newTool);
+  }, [toolbarState, pathState, drawingInteraction]);
+
   // Encapsulated Action Handlers
   const appActions = useAppActions({ 
     paths, 
+    backgroundColor,
     selectedPathIds, 
     pathState, 
     toolbarState, 
@@ -118,6 +175,11 @@ const App: React.FC = () => {
     setActiveFileHandle,
     setActiveFileName,
     activeFileName,
+    setBackgroundColor,
+    styleClipboard,
+    setStyleClipboard,
+    styleLibrary,
+    setStyleLibrary,
   });
   const { 
     handleCut, handleCopy, handlePaste, handleFlip, handleCopyAsSvg, handleCopyAsPng, 
@@ -125,32 +187,60 @@ const App: React.FC = () => {
     handleImportClick, handleSvgFileChange, importFileRef,
     handleConvertToPath,
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
+    handleExportAsSvg, handleExportAsPng,
+    handleGroup, handleUngroup, handleCopyStyle, handlePasteStyle,
+    handleAddStyle, handleApplyStyle, handleSaveStyleLibrary, handleLoadStyleLibrary,
   } = appActions;
   
   // Global Event Listeners (Hotkeys, Clipboard)
   useGlobalEventHandlers({
-    ...pathState, ...toolbarState, drawingShape: drawingInteraction.drawingShape, cancelDrawingShape: drawingInteraction.cancelDrawingShape, isGridVisible, setIsGridVisible, 
+    ...pathState, ...toolbarState, 
+    setTool: handleSetTool,
+    drawingShape: drawingInteraction.drawingShape, cancelDrawingShape: drawingInteraction.cancelDrawingShape, isGridVisible, setIsGridVisible, 
     handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport: appActions.handleFileImport, 
     handleSaveFile,
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
+    handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition
   });
 
+  const canClearCanvas = pathState.canClear || !!drawingInteraction.drawingShape;
+
+  const canvasBbox = paths.length > 0 ? getPathsBoundingBox(paths, true) : null;
+  const elementCount = paths.length;
+  const canvasWidth = canvasBbox ? Math.round(canvasBbox.width) : 0;
+  const canvasHeight = canvasBbox ? Math.round(canvasBbox.height) : 0;
+
   const handleClearCanvas = () => {
-    if (!pathState.canClear) return;
-    if (window.confirm('您确定要清空画布吗？这将创建一个新的空白文档。')) {
-      pathState.handleClear();
-      setActiveFileHandle(null);
-      setActiveFileName(null);
-      idb.del('last-active-file-handle').catch(() => {});
-    }
+    if (!canClearCanvas) return;
+    drawingInteraction.cancelDrawingShape();
+    pathState.handleClear();
+    toolbarState.setTool('selection');
+    setBackgroundColor('#17171c');
+
+    setActiveFileHandle(null);
+    setActiveFileName(null);
+    idb.del('last-active-file-handle').catch(() => {});
   };
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    // Special handling for canceling arc drawing
+    if (toolbarState.tool === 'arc' && drawingInteraction.drawingShape) {
+        drawingInteraction.cancelDrawingShape();
+        return;
+    }
+
     let pathWasFinished = false;
-    if (toolbarState.tool === 'pen' && pathState.currentPenPath) { handleFinishPenPath(); pathWasFinished = true; } 
-    else if (toolbarState.tool === 'line' && pathState.currentLinePath) { handleFinishLinePath(); pathWasFinished = true; }
+    if (toolbarState.tool === 'pen' && pathState.currentPenPath) { 
+      handleFinishPenPath(); 
+      pathWasFinished = true; 
+    }
+    if (toolbarState.tool === 'line' && pathState.currentLinePath) {
+      handleFinishLinePath();
+      pathWasFinished = true;
+    }
     
     if (pathWasFinished) return;
 
@@ -165,11 +255,14 @@ const App: React.FC = () => {
     if (isPanning) return 'grabbing';
     switch (toolbarState.tool) {
       case 'selection': return toolbarState.selectionMode === 'move' ? 'grab' : 'default';
-      case 'brush': case 'pen': case 'rectangle': case 'ellipse': case 'line': return 'crosshair';
+      case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
       default: return 'default';
     }
   };
   
+  const canGroup = selectedPathIds.length > 1;
+  const canUngroup = paths.some(p => selectedPathIds.includes(p.id) && p.tool === 'group');
+
   const contextMenuActions: {
     label: string;
     handler?: () => void | Promise<void>;
@@ -181,8 +274,14 @@ const App: React.FC = () => {
     { label: '复制', handler: handleCopy, disabled: selectedPathIds.length === 0, shortcut: modKey('C') },
     { label: '粘贴', handler: () => handlePaste({ pasteAt: { x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 } }), shortcut: modKey('V') },
     { label: '---' },
+    { label: '复制样式', handler: handleCopyStyle, disabled: selectedPathIds.length !== 1 },
+    { label: '粘贴样式', handler: handlePasteStyle, disabled: !styleClipboard || selectedPathIds.length === 0 },
+    { label: '---' },
     { label: '水平翻转', handler: () => handleFlip('horizontal'), disabled: selectedPathIds.length === 0 },
     { label: '垂直翻转', handler: () => handleFlip('vertical'), disabled: selectedPathIds.length === 0 },
+    { label: '---' },
+    { label: '编组', handler: handleGroup, disabled: !canGroup, shortcut: modKey('G') },
+    { label: '取消编组', handler: handleUngroup, disabled: !canUngroup, shortcut: modShiftKey('G') },
     { label: '---' },
     { label: '上移一层', handler: handleBringForward, disabled: selectedPathIds.length === 0, shortcut: ']' },
     { label: '下移一层', handler: handleSendBackward, disabled: selectedPathIds.length === 0, shortcut: '[' },
@@ -203,9 +302,9 @@ const App: React.FC = () => {
     );
   }
 
-  const canConvertToPath = selectedPathIds.length > 0 && paths.some(p => selectedPathIds.includes(p.id) && (p.tool === 'rectangle' || p.tool === 'ellipse'));
+  const canConvertToPath = selectedPathIds.length > 0 && paths.some(p => selectedPathIds.includes(p.id) && (p.tool === 'rectangle' || p.tool === 'ellipse' || p.tool === 'polygon' || p.tool === 'line' || p.tool === 'brush' || p.tool === 'arc'));
   if (canConvertToPath) {
-    contextMenuActions.splice(6, 0, { label: '转换为路径', handler: handleConvertToPath });
+    contextMenuActions.splice(15, 0, { label: '转换为路径', handler: handleConvertToPath });
   }
 
   if (isLoading) {
@@ -220,28 +319,69 @@ const App: React.FC = () => {
     <div className="h-screen w-screen font-sans bg-transparent relative">
       <input type="file" ref={importFileRef} onChange={handleSvgFileChange} accept=".svg,image/svg+xml" className="hidden" />
       
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
-        <MainMenu onSave={handleSaveFile} onSaveAs={handleSaveAs} onOpen={handleOpen} onImport={handleImportClick} onClear={handleClearCanvas} canClear={pathState.canClear} />
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
+        <MainMenu 
+          onSave={handleSaveFile} 
+          onSaveAs={handleSaveAs} 
+          onOpen={handleOpen} 
+          onImport={handleImportClick} 
+          onClear={handleClearCanvas} 
+          canClear={canClearCanvas}
+          onExportSvg={handleExportAsSvg}
+          onExportPng={handleExportAsPng}
+          canExport={paths.length > 0}
+          backgroundColor={backgroundColor}
+          setBackgroundColor={setBackgroundColor}
+        />
         {activeFileName && (
-          <div className="bg-[var(--ui-panel-bg)] backdrop-blur-lg text-[var(--text-primary)] text-sm px-3 h-10 flex items-center rounded-lg border border-[var(--ui-panel-border)] shadow-lg">
+          <div className="bg-[var(--ui-panel-bg)] backdrop-blur-lg text-[var(--text-primary)] text-sm px-3 h-12 flex items-center rounded-lg border border-[var(--ui-panel-border)] shadow-lg">
             {activeFileName}
           </div>
         )}
       </div>
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20"><Toolbar tool={toolbarState.tool} setTool={toolbarState.setTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} /></div>
-      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-20"><SideToolbar {...toolbarState} beginCoalescing={pathState.beginCoalescing} endCoalescing={pathState.endCoalescing} /></div>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20"><Toolbar tool={toolbarState.tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} /></div>
+      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-20">
+        <SideToolbar 
+            {...toolbarState} 
+            beginCoalescing={pathState.beginCoalescing} 
+            endCoalescing={pathState.endCoalescing}
+            onToggleStyleLibrary={() => setIsStyleLibraryOpen(prev => !prev)}
+            isStyleLibraryOpen={isStyleLibraryOpen}
+        />
+      </div>
       
-      {toolbarState.tool === 'selection' && selectedPathIds.length > 0 && (
+      {toolbarState.tool === 'selection' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-          <SelectionToolbar selectionMode={toolbarState.selectionMode} setSelectionMode={toolbarState.setSelectionMode} />
+          <SelectionToolbar 
+            selectionMode={toolbarState.selectionMode} 
+            setSelectionMode={toolbarState.setSelectionMode}
+            isSimplifiable={toolbarState.isSimplifiable}
+            beginSimplify={toolbarState.beginSimplify}
+            setSimplify={toolbarState.setSimplify}
+            endSimplify={toolbarState.endSimplify}
+          />
         </div>
       )}
       
        <div className="absolute bottom-4 left-4 z-20">
-        <StatusBar zoomLevel={vt.scale} onUndo={pathState.handleUndo} canUndo={pathState.canUndo} onRedo={pathState.handleRedo} canRedo={pathState.canRedo} />
+        <StatusBar 
+          zoomLevel={vt.scale} 
+          onUndo={pathState.handleUndo} 
+          canUndo={pathState.canUndo} 
+          onRedo={pathState.handleRedo} 
+          canRedo={pathState.canRedo} 
+          elementCount={elementCount}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          isCollapsed={isStatusBarCollapsed}
+          onToggleCollapse={() => setIsStatusBarCollapsed(prev => !prev)}
+        />
        </div>
       
-      <div className="w-full h-full">
+      <div 
+        className="w-full h-full"
+        style={{ backgroundColor }}
+      >
         <Whiteboard
           paths={paths}
           tool={toolbarState.tool}
@@ -266,6 +406,21 @@ const App: React.FC = () => {
           dragState={selectionInteraction.dragState}
         />
       </div>
+      
+      <StyleLibraryPopover
+        isOpen={isStyleLibraryOpen}
+        onClose={() => setIsStyleLibraryOpen(false)}
+        position={styleLibraryPosition}
+        onPositionChange={setStyleLibraryPosition}
+        library={styleLibrary}
+        setLibrary={setStyleLibrary}
+        selectedPath={toolbarState.firstSelectedPath}
+        onAddStyle={handleAddStyle}
+        onApplyStyle={handleApplyStyle}
+        onSaveLibrary={handleSaveStyleLibrary}
+        onLoadLibrary={handleLoadStyleLibrary}
+      />
+      
       {contextMenu?.isOpen && (<ContextMenu isOpen={contextMenu.isOpen} position={{ x: contextMenu.x, y: contextMenu.y }} actions={contextMenuActions} onClose={() => setContextMenu(null)} />)}
     </div>
   );

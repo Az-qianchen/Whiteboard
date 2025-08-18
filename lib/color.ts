@@ -1,3 +1,7 @@
+/**
+ * 本文件包含颜色处理的工具函数。
+ * 它提供了在不同颜色格式（如 HEX, RGB, HSL）之间进行解析和转换的功能。
+ */
 
 export interface HSLA {
   h: number;

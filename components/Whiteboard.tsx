@@ -1,4 +1,8 @@
-
+/**
+ * 本文件定义了白板的核心组件。
+ * 它负责渲染所有的绘图路径、实时预览、选择框以及编辑控件，
+ * 并处理画布上的所有指针事件（如鼠标按下、移动、抬起）。
+ */
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';

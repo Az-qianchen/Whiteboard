@@ -1,3 +1,7 @@
+/**
+ * 本文件是 Whiteboard 的子组件，负责在画布背景上渲染网格图案。
+ * 网格的可见性和大小由外部传入的 props 控制。
+ */
 
 import React from 'react';
 

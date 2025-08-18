@@ -1,3 +1,7 @@
+/**
+ * 本文件定义了一个指针交互的协调器 Hook (usePointerInteraction)。
+ * 它根据当前选择的工具，将画布上的指针事件（如按下、移动、抬起）分发给相应的处理逻辑（例如，绘图或选择）。
+ */
 
 import React from 'react';
 import type { Tool } from '../types';

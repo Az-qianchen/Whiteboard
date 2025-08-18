@@ -1,3 +1,7 @@
+/**
+ * 本文件定义了整个应用中使用的所有 TypeScript 类型和接口。
+ * 这有助于确保代码的类型安全和可读性，定义了如点、路径、工具等核心数据结构。
+ */
 
 export interface Point {
   x: number;
@@ -32,6 +36,7 @@ interface ShapeBase {
   strokeLineJoin?: 'miter' | 'round' | 'bevel';
   endpointSize?: number; // 端点尺寸 (描边宽度的倍数)
   endpointFill?: 'solid' | 'hollow'; // 端点填充样式
+  isRough?: boolean; // 是否使用手绘风格渲染
   opacity?: number;
   rotation?: number; // in radians
   // RoughJS 属性
@@ -42,11 +47,9 @@ interface ShapeBase {
   hachureGap: number; // 填充影线之间的间隙
   curveTightness: number; // 用于 rc.curve
   curveStepCount: number; // 用于 rc.curve
-  curveFitting?: number; // 用于 rc.curve
   preserveVertices?: boolean;
   disableMultiStroke?: boolean;
   disableMultiStrokeFill?: boolean;
-  simplification?: number;
 }
 
 // 任何已存储、可编辑路径的基础接口。
@@ -59,12 +62,27 @@ export interface VectorPathData extends AnchoredPathBase {
   tool: 'pen' | 'line';
 }
 
+export interface BrushPathData extends ShapeBase {
+  tool: 'brush';
+  points: Point[];
+}
+
 export interface RectangleData extends ShapeBase {
   tool: 'rectangle';
   x: number;
   y: number;
   width: number;
   height: number;
+  borderRadius?: number;
+}
+
+export interface PolygonData extends ShapeBase {
+  tool: 'polygon';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  sides: number;
   borderRadius?: number;
 }
 
@@ -86,22 +104,44 @@ export interface ImageData extends ShapeBase {
   borderRadius?: number;
 }
 
+export interface ArcData extends ShapeBase {
+  tool: 'arc';
+  points: [Point, Point, Point]; // start, end, via
+}
+
+export interface GroupData extends ShapeBase {
+  tool: 'group';
+  children: AnyPath[];
+}
+
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData;
+
+export interface WhiteboardData {
+  type: 'whiteboard/shapes';
+  version: number;
+  paths: AnyPath[];
+  backgroundColor?: string;
+}
 
 // 用于实时手绘的临时路径类型。
 export interface LivePath extends ShapeBase {
   id: string;
-  tool: 'pen' | 'brush';
+  tool: 'brush';
   points: Point[];
 }
 
-export type DrawingShape = RectangleData | EllipseData | VectorPathData;
+export interface DrawingArcData extends ShapeBase {
+  tool: 'arc';
+  points: Point[]; // 0 to 3 points
+}
+
+export type DrawingShape = RectangleData | EllipseData | VectorPathData | PolygonData | DrawingArcData;
 
 // A brush path that is being drawn, represented by a series of points.
 export type BrushPathWithPoints = LivePath;
 
-export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'ellipse' | 'line';
+export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc';
 
 export type SelectionMode = 'move' | 'edit';
 
@@ -128,7 +168,7 @@ type ResizeDragState = {
   type: 'resize';
   pathId: string;
   handle: ResizeHandlePosition;
-  originalPath: RectangleData | EllipseData | ImageData;
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData;
   initialPointerPos: Point;
 };
 
@@ -155,9 +195,42 @@ type RotateDragState = {
 type BorderRadiusDragState = {
   type: 'border-radius';
   pathId: string;
-  originalPath: RectangleData | ImageData;
+  originalPath: RectangleData | ImageData | PolygonData;
   initialPointerPos: Point;
 };
 
 
 export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | null;
+
+export interface StyleClipboardData {
+  color?: string;
+  fill?: string;
+  fillStyle?: string;
+  strokeWidth?: number;
+  strokeLineDash?: [number, number];
+  strokeLineCapStart?: EndpointStyle;
+  strokeLineCapEnd?: EndpointStyle;
+  strokeLineJoin?: 'miter' | 'round' | 'bevel';
+  endpointSize?: number;
+  endpointFill?: 'solid' | 'hollow';
+  isRough?: boolean;
+  opacity?: number;
+  roughness?: number;
+  bowing?: number;
+  fillWeight?: number;
+  hachureAngle?: number;
+  hachureGap?: number;
+  curveTightness?: number;
+  curveStepCount?: number;
+  preserveVertices?: boolean;
+  disableMultiStroke?: boolean;
+  disableMultiStrokeFill?: boolean;
+  borderRadius?: number;
+  sides?: number;
+}
+
+export interface StyleLibraryData {
+  type: 'whiteboard/style-library';
+  version: number;
+  styles: StyleClipboardData[];
+}

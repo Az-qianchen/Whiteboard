@@ -1,4 +1,7 @@
-
+/**
+ * 本文件包含了整个应用中使用的常量。
+ * 这包括颜色配置、RoughJS 的默认参数以及 UI 中使用的 SVG 图标等。
+ */
 
 import React from 'react';
 import type { EndpointStyle } from './types';
@@ -16,17 +19,15 @@ export const COLORS = [
 // RoughJS 的默认参数
 export const DEFAULT_ROUGHNESS = 1.2;
 export const DEFAULT_BOWING = 1;
-// 使用 -1 作为哨兵值，让 RoughJS 根据描边宽度计算默认值
-export const DEFAULT_FILL_WEIGHT = -1;
-export const DEFAULT_HACHURE_GAP = -1;
+// Sensible defaults that are not the special "-1" value.
+export const DEFAULT_FILL_WEIGHT = 0.5;
+export const DEFAULT_HACHURE_GAP = 4;
 export const DEFAULT_HACHURE_ANGLE = -41; // 度
 export const DEFAULT_CURVE_TIGHTNESS = 0;
 export const DEFAULT_CURVE_STEP_COUNT = 9;
-export const DEFAULT_CURVE_FITTING = 0.95;
 export const DEFAULT_PRESERVE_VERTICES = false;
 export const DEFAULT_DISABLE_MULTI_STROKE = false;
 export const DEFAULT_DISABLE_MULTI_STROKE_FILL = false;
-export const DEFAULT_SIMPLIFICATION = 0.5;
 
 
 export const ICONS = {
@@ -82,6 +83,11 @@ export const ICONS = {
       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
     </svg>
   ),
+  POLYGON: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 5 L2 22 L22 22 Z"></path>
+    </svg>
+  ),
   ELLIPSE: (
      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <circle cx="12" cy="12" r="10"></circle>
@@ -90,6 +96,13 @@ export const ICONS = {
   LINE: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <line x1="4" y1="20" x2="20" y2="4"></line>
+    </svg>
+  ),
+  ARC: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <g transform="rotate(90 12 12)">
+        <path d="M20 20a12 12 0 0 0-16-16"/>
+      </g>
     </svg>
   ),
   PROPERTIES: (
@@ -179,6 +192,14 @@ export const ICONS = {
       <path d="M14.5 10.5 18 7l4 4-3.5 3.5a2.12 2.12 0 0 1-3 0v0a2.12 2.12 0 0 1 0-3Z"/>
     </svg>
   ),
+  SIMPLIFY_PATH: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3 6c1.6-1.6 4.3-1.6 6 0 1.7 1.7 4.4 1.7 6 0 1.7-1.7 4.3-1.7 6 0"/>
+      <path d="M12 10v4"/>
+      <path d="m15 12-3 3-3-3"/>
+      <path d="M3 18c5-5 13-5 18 0"/>
+    </svg>
+  ),
   BRING_FORWARD: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 8v8"/><path d="m16 12-4-4-4 4"/>
@@ -199,20 +220,13 @@ export const ICONS = {
       <path d="M4 8V4h12v12h-4"/><rect x="8" y="8" width="12" height="12" rx="2"/>
     </svg>
   ),
-  ENDPOINT_BUTT_CAP: (
-    <svg viewBox="0 0 24 24" fill="none">
-        <line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="4" strokeLinecap="butt" />
+  CHEVRON_LEFT: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <polyline points="15 18 9 12 15 6"></polyline>
     </svg>
   ),
-  ENDPOINT_ROUND_CAP: (
-    <svg viewBox="0 0 24 24" fill="none">
-        <line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-    </svg>
-  ),
-  ENDPOINT_SQUARE_CAP: (
-    <svg viewBox="0 0 24 24" fill="none">
-        <line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="4" strokeLinecap="square" />
-    </svg>
+  BACKGROUND_COLOR: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 14 14"/><path d="M22 11h-4.3c-.5 0-.9.4-.9.9v4.3c0 .5.4.9.9.9H22"/></svg>
   ),
   ENDPOINT_NONE: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -267,24 +281,15 @@ export const ICONS = {
         <line x1="20" y1="7" x2="20" y2="17" />
     </svg>
   ),
-  LINEJOIN_MITER: (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M8 16V8H16" stroke="currentColor" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter" fill="none"/>
-    </svg>
-  ),
-  LINEJOIN_ROUND: (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M8 16V8H16" stroke="currentColor" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="round" fill="none"/>
-    </svg>
-  ),
-  LINEJOIN_BEVEL: (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M8 16V8H16" stroke="currentColor" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="bevel" fill="none"/>
-    </svg>
-  ),
-  STROKE_STYLE: (
+  ENDPOINT_SETTINGS: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M4 16Q8 8 12 16T20 16" />
+      <path d="M4 12h12"/>
+      <path d="m12 8 4 4-4 4"/>
+    </svg>
+  ),
+  DASH_SETTINGS: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 12h1.5M9.5 12h1.5M15.5 12h1.5"/>
     </svg>
   ),
   ENDPOINT_FILL_SOLID: (
@@ -297,13 +302,29 @@ export const ICONS = {
         <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
     </svg>
   ),
+  STYLE_LIBRARY: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M15.002 4.001a8 8 0 1 0 4 12c-1.637-2.137-.425-5.188 1-7 1.25-1.625.5-4-1-4-1.5 0-2.25 1.125-2.5 2.5-.25 1.375.25 3.375 1 4.5.75 1.125 1.637 2.137 1.5 3.5"/>
+      <circle cx="12" cy="12" r="1"/>
+      <circle cx="10" cy="10" r="1"/>
+      <circle cx="14" cy="10" r="1"/>
+      <circle cx="14" cy="14" r="1"/>
+      <circle cx="10" cy="14" r="1"/>
+    </svg>
+  ),
+  PLUS: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  ),
+  TRASH: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  ),
 };
-
-export const LINE_CAP_STYLES: { name: EndpointStyle; title: string; icon: JSX.Element }[] = [
-    { name: 'butt', title: '直角', icon: ICONS.ENDPOINT_BUTT_CAP },
-    { name: 'round', title: '圆形', icon: ICONS.ENDPOINT_ROUND_CAP },
-    { name: 'square_cap', title: '方形', icon: ICONS.ENDPOINT_SQUARE_CAP },
-];
 
 export const ENDPOINT_STYLES: { name: EndpointStyle; title: string; icon: JSX.Element }[] = [
     { name: 'none', title: '无', icon: ICONS.ENDPOINT_NONE },

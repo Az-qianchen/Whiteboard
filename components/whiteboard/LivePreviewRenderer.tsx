@@ -1,8 +1,13 @@
+/**
+ * 本文件是 Whiteboard 的子组件，负责渲染正在绘制的图形的实时预览效果。
+ * 这包括画笔的笔迹、正在拖拽的矩形/椭圆的虚线框，以及钢笔工具的预览线段。
+ */
 
 import React from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { LivePath, DrawingShape, VectorPathData } from '../../types';
 import { pointsToSimplePathD, anchorsToPathD } from '../../lib/path-fitting';
+import { getPolygonPathD } from '../../lib/drawing';
 import { RoughPath } from './PathsRenderer';
 
 // For live brush previews, we use a simple, performant path.
@@ -71,6 +76,24 @@ export const LivePreviewRenderer: React.FC<LivePreviewRendererProps> = React.mem
               stroke={drawingShape.color}
               strokeWidth={1 / viewTransform.scale}
               strokeDasharray={`4 ${4 / viewTransform.scale}`}
+              className="pointer-events-none"
+            />
+          )}
+          {drawingShape.tool === 'polygon' && (
+            <path
+              d={getPolygonPathD(
+                drawingShape.x,
+                drawingShape.y,
+                drawingShape.width,
+                drawingShape.height,
+                drawingShape.sides,
+                drawingShape.borderRadius
+              )}
+              fill={drawingShape.fill === 'transparent' ? 'none' : drawingShape.fill}
+              stroke={drawingShape.color}
+              strokeWidth={1 / viewTransform.scale}
+              strokeDasharray={`4 ${4 / viewTransform.scale}`}
+              strokeLinejoin="round"
               className="pointer-events-none"
             />
           )}

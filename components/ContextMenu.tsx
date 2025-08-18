@@ -1,4 +1,7 @@
-
+/**
+ * 本文件定义了右键上下文菜单组件。
+ * 它是一个通用组件，用于在指定位置显示一个操作列表，如剪切、复制、粘贴等。
+ */
 
 import React, { useEffect, useRef, Fragment } from 'react';
 import { Transition } from '@headlessui/react';

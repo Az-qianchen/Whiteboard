@@ -1,11 +1,11 @@
 /**
- * This file contains logic for hit-testing, i.e., determining if a point
- * on the canvas intersects with a shape.
+ * 本文件包含了图形命中检测的逻辑。
+ * 它用于判断一个点是否与某个图形的描边或填充区域相交，
+ * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData } from '../types';
-import { samplePath } from './path-fitting';
-import { getPathBoundingBox, doBboxesIntersect, dist, rotatePoint } from './geometry';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc } from './drawing';
 
 /**
  * Calculates the squared distance from a point to a line segment.
@@ -37,6 +37,19 @@ function sampleEllipse(cx: number, cy: number, rx: number, ry: number, steps: nu
     return points;
 }
 
+function isPointInPolygon(point: Point, vs: Point[]): boolean {
+    const x = point.x, y = point.y;
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        const xi = vs[i].x, yi = vs[i].y;
+        const xj = vs[j].x, yj = vs[j].y;
+        const intersect = ((yi > y) !== (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
 /**
  * Checks if a point is hitting the stroke of a given path with a tolerance.
  * @param point The point to check.
@@ -51,6 +64,37 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
     const thresholdSq = threshold * threshold;
 
     switch (path.tool) {
+        case 'brush': {
+            const brushPath = path as BrushPathData;
+            if (!brushPath.points || brushPath.points.length < 2) {
+                if (brushPath.points && brushPath.points.length === 1) {
+                    return dist(point, brushPath.points[0]) < threshold;
+                }
+                return false;
+            }
+            for (let i = 0; i < brushPath.points.length - 1; i++) {
+                if (distSqToSegment(point, brushPath.points[i], brushPath.points[i+1]) < thresholdSq) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        case 'arc': {
+            const arcPath = path as ArcData;
+            const pathPoints = sampleArc(arcPath.points[0], arcPath.points[1], arcPath.points[2]);
+            if (pathPoints.length < 2) return false;
+
+            for (let i = 0; i < pathPoints.length - 1; i++) {
+                if (distSqToSegment(point, pathPoints[i], pathPoints[i+1]) < thresholdSq) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        case 'group': {
+            const groupPath = path as GroupData;
+            return groupPath.children.some(child => isPointHittingPath(point, child, scale));
+        }
         case 'image':
         case 'rectangle': {
             const { x, y, width, height, rotation } = path as RectangleData | ImageData;
@@ -76,6 +120,30 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 distSqToSegment(testPoint, p3, p4) < thresholdSq ||
                 distSqToSegment(testPoint, p4, p1) < thresholdSq
             );
+        }
+        case 'polygon': {
+            const { x, y, width, height, sides, rotation } = path as PolygonData;
+            let testPoint = point;
+            
+            if (rotation) {
+                const center = { x: x + width / 2, y: y + height / 2 };
+                testPoint = rotatePoint(point, center, -rotation);
+            }
+            
+            const vertices = getPolygonVertices(x, y, width, height, sides);
+
+            // Check for hit on fill area first.
+            if (isPointInPolygon(testPoint, vertices)) return true;
+
+            // If not inside, check for hit on the stroke.
+            for (let i = 0; i < vertices.length; i++) {
+                const p1 = vertices[i];
+                const p2 = vertices[(i + 1) % vertices.length];
+                if (distSqToSegment(testPoint, p1, p2) < thresholdSq) {
+                    return true;
+                }
+            }
+            return false;
         }
         case 'ellipse': {
             const { x, y, width, height, rotation } = path as EllipseData;

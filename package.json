@@ -1,5 +1,5 @@
 {
-  "name": "svg-whiteboard6",
+  "name": "svg-whiteboard7",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,7 +14,9 @@
     "roughjs": "4.6.6",
     "hotkeys-js": "latest",
     "@headlessui/react": "2.1.2",
-    "paper": "0.12.17"
+    "paper": "0.12.17",
+    "browser-fs-access": "latest",
+    "svgo": "3.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

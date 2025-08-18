@@ -1,3 +1,8 @@
+/**
+ * 本文件提供了一个基于 IndexedDB 的简单键值存储包装器。
+ * 它用于在客户端持久化存储数据，例如保存最后使用的文件句柄，以便在下次打开时恢复。
+ */
+
 // A simple key-value store using IndexedDB
 // Based on idb-keyval library's concept
 

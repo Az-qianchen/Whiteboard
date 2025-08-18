@@ -1,3 +1,9 @@
+/**
+ * 本文件负责处理 SVG 导入逻辑。
+ * 它使用 paper.js 库将 SVG 字符串解析为应用内部所使用的数据格式（AnyPath），
+ * 从而允许用户将外部 SVG 文件导入到白板中。
+ */
+
 import paper from 'paper';
 import type { AnyPath, VectorPathData, Anchor, Point, RectangleData, EllipseData } from '../types';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '../constants';
@@ -35,13 +41,32 @@ const getSharedSvgProps = (item: paper.Item) => {
     const rotationInRadians = item.rotation ? item.rotation * (Math.PI / 180) : 0;
     const dashArray = (item.dashArray && item.dashArray.length >= 2) ? [item.dashArray[0], item.dashArray[1]] as [number, number] : undefined;
 
+    // Use hasFill() and hasStroke() for more robust color parsing.
+    // This correctly handles fill="none" and stroke="none" attributes.
+    // The `item` is a leaf node from paper.js and should be a PathItem derivative,
+    // which has these methods, but we check for them due to generic types.
+    const hasFill = typeof (item as any).hasFill === 'function' && (item as any).hasFill();
+    const hasStroke = typeof (item as any).hasStroke === 'function' && (item as any).hasStroke();
+
+    let capStyle: 'round' | 'butt' | 'square_cap' = 'round'; // Default to round
+    if (item.strokeCap === 'square') {
+        capStyle = 'square_cap';
+    } else if (item.strokeCap === 'butt') {
+        capStyle = 'butt';
+    }
+
     return {
         id: `${Date.now()}-${Math.random()}`,
-        color: paperColorToCss(item.strokeColor),
-        strokeWidth: item.strokeWidth ?? 1,
+        color: hasStroke ? paperColorToCss(item.strokeColor) : 'transparent',
+        strokeWidth: hasStroke ? (item.strokeWidth ?? 1) : 0,
         strokeLineDash: dashArray,
-        fill: paperColorToCss(item.fillColor),
+        strokeLineJoin: item.strokeJoin as 'miter' | 'round' | 'bevel' | undefined,
+        strokeLineCapStart: capStyle,
+        strokeLineCapEnd: capStyle,
+        fill: hasFill ? paperColorToCss(item.fillColor) : 'transparent',
+        opacity: item.opacity ?? 1,
         // Default "smooth" properties for imported SVGs, as they are not hand-drawn
+        isRough: false,
         fillStyle: 'solid', // Most SVGs use solid fills
         roughness: 0,
         bowing: 0,

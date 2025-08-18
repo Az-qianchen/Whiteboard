@@ -34,6 +34,44 @@
       .hide-spinners {
         -moz-appearance: textfield;
       }
+      
+      /* Custom Scrollbar Styles */
+      /* For Webkit-based browsers (Chrome, Safari, Edge) */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background-color: var(--separator);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--accent-primary);
+      }
+
+      /* For Firefox */
+      * {
+          scrollbar-width: thin;
+          scrollbar-color: var(--separator) transparent;
+      }
+
+      /* Responsive sidebar */
+      @media (max-height: 800px) {
+        .sidebar-label {
+          display: none;
+        }
+        .sidebar-container {
+          gap: 0.5rem; /* 8px, from gap-4 (16px) */
+        }
+      }
     </style>
   <script type="importmap">
 {
@@ -44,7 +82,9 @@
     "roughjs/": "https://esm.sh/roughjs@4.6.6/",
     "hotkeys-js": "https://unpkg.com/hotkeys-js/dist/hotkeys.esm.js",
     "@headlessui/react": "https://esm.sh/@headlessui/react@2.1.2?external=react",
-    "paper": "https://esm.sh/paper@0.12.17"
+    "paper": "https://esm.sh/paper@0.12.17",
+    "browser-fs-access": "https://esm.sh/browser-fs-access",
+    "svgo": "https://esm.sh/svgo@3.3.2"
   }
 }
 </script>

@@ -60,6 +60,6 @@ The project uses a modern architecture based on React Hooks to achieve separatio
   - `usePointerInteraction`: Handles all pointer events on the canvas (drawing, editing, selecting).
   - `useViewTransform`: Controls canvas panning and zooming.
   - `useGlobalEventHandlers`: Manages global events like hotkeys and clipboard actions.
-- `lib/`: Contains helper functions and algorithms for things like path fitting and geometry calculations.
+- `lib/`: Contains helper functions and algorithms. The `drawing` subdirectory handles all geometric calculations and transformations.
 - `types.ts`: Defines the data structures and types used throughout the application.
 - `constants.tsx`: Stores application-wide constants like colors and icons.

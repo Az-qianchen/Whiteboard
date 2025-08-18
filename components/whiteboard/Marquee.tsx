@@ -1,7 +1,10 @@
+/**
+ * 本文件是 Whiteboard 的子组件，负责渲染拖拽选择时出现的虚线选择框（Marquee）。
+ */
 
 import React from 'react';
 import type { Point } from '../../types';
-import { getMarqueeRect } from '../../lib/geometry';
+import { getMarqueeRect } from '../../lib/drawing';
 
 interface MarqueeProps {
   marquee: { start: Point; end: Point } | null;

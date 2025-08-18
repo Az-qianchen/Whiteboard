@@ -1,3 +1,8 @@
+/**
+ * 本文件提供了一系列通用工具函数。
+ * 包括将客户端坐标转换为 SVG 坐标的函数，以及安全地从 localStorage 读取和解析数据的方法。
+ */
+
 import type { Point } from './types';
 
 /**

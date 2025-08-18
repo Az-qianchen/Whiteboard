@@ -1,4 +1,7 @@
-
+/**
+ * 本文件定义了一个可重用的颜色选择器组件。
+ * 它提供了通过 HSL/A 滑块、HEX 输入、预设颜色和屏幕取色器来选择颜色的功能。
+ */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { HSLA, parseColor, hslaToHslaString, hslaToHex } from '../lib/color';
