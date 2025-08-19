@@ -1,9 +1,11 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, Fragment } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import { ICONS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '../../constants';
-import type { AnyPath, StyleClipboardData, RectangleData } from '../../types';
-import { renderPathNode } from '../../lib/export';
+import type { AnyPath, StyleClipboardData, RectangleData, MaterialData } from '../../types';
+import { renderPathNode, pathsToSvgString } from '../../lib/export';
+import { Tab, Popover, Transition } from '@headlessui/react';
+
 
 const StyleSwatch: React.FC<{ style: StyleClipboardData }> = React.memo(({ style }) => {
     const svgRef = useRef<SVGSVGElement>(null);
@@ -49,18 +51,41 @@ const StyleSwatch: React.FC<{ style: StyleClipboardData }> = React.memo(({ style
 });
 
 
+const MaterialSwatch: React.FC<{ material: MaterialData }> = React.memo(({ material }) => {
+    const svgString = useMemo(() => {
+        return pathsToSvgString(material.shapes, 0); // Use 0 padding for a tight fit
+    }, [material.shapes]);
+
+    if (!svgString) return null;
+
+    return (
+        <div className="w-full h-full bg-white/5 rounded-md p-1 flex items-center justify-center pointer-events-none">
+            <img 
+                src={`data:image/svg+xml;base64,${btoa(svgString)}`} 
+                alt="Material preview"
+                className="max-w-full max-h-full"
+            />
+        </div>
+    );
+});
+
+
 interface StyleLibraryPanelProps {
   isOpen: boolean;
   onClose: () => void;
   position: { x: number; y: number };
   onPositionChange: (newPos: { x: number; y: number }) => void;
-  library: StyleClipboardData[];
-  setLibrary: React.Dispatch<React.SetStateAction<StyleClipboardData[]>>;
-  selectedPath: AnyPath | null;
+  styleLibrary: StyleClipboardData[];
+  setStyleLibrary: React.Dispatch<React.SetStateAction<StyleClipboardData[]>>;
+  materialLibrary: MaterialData[];
+  setMaterialLibrary: React.Dispatch<React.SetStateAction<MaterialData[]>>;
+  selectedPathIds: string[];
   onAddStyle: () => void;
   onApplyStyle: (style: StyleClipboardData) => void;
-  onSaveLibrary: () => void;
-  onLoadLibrary: () => void;
+  onAddMaterial: () => void;
+  onApplyMaterial: (material: MaterialData, position?: { x: number; y: number }) => void;
+  onSaveLibrary: () => Promise<void>;
+  onLoadLibrary: () => Promise<void>;
 }
 
 export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
@@ -68,11 +93,15 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
   onClose,
   position,
   onPositionChange,
-  library,
-  setLibrary,
-  selectedPath,
+  styleLibrary,
+  setStyleLibrary,
+  materialLibrary,
+  setMaterialLibrary,
+  selectedPathIds,
   onAddStyle,
   onApplyStyle,
+  onAddMaterial,
+  onApplyMaterial,
   onSaveLibrary,
   onLoadLibrary,
 }) => {
@@ -106,16 +135,35 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
     window.addEventListener('pointerup', handlePointerUp);
   };
     
-  const canAddStyle = selectedPath !== null && selectedPath.tool !== 'group';
+  const canAddStyle = selectedPathIds.length === 1;
+  const canAddMaterial = selectedPathIds.length > 0;
 
   const handleDeleteStyle = (index: number) => {
-    setLibrary(prev => prev.filter((_, i) => i !== index));
+    setStyleLibrary(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const handleDeleteMaterial = (index: number) => {
+    setMaterialLibrary(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragStartMaterial = (e: React.DragEvent, material: MaterialData) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(material));
+    e.dataTransfer.effectAllowed = 'copy';
   };
   
   if (!isOpen) {
     return null;
   }
   
+  const tabs = ['样式', '素材'];
+
+  const handleClearLibrary = () => {
+      if (window.confirm('您确定要清空所有样式和素材吗？此操作无法撤销。')) {
+          setStyleLibrary([]);
+          setMaterialLibrary([]);
+      }
+  };
+
   return (
     <div
       ref={panelRef}
@@ -125,83 +173,143 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
         top: position.y,
       }}
     >
-      <div
-        className="flex items-center justify-between p-2 pl-4 cursor-grab active:cursor-grabbing border-b border-[var(--ui-panel-border)]"
-        onPointerDown={handleDragPointerDown}
-      >
-        <h3 className="text-sm font-medium text-[var(--text-primary)] select-none">样式库</h3>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]"
-          title="关闭面板"
+      <Tab.Group as="div" className="flex flex-col flex-grow">
+        <div
+          className="flex items-center justify-between p-2 cursor-grab active:cursor-grabbing border-b border-[var(--ui-panel-border)]"
+          onPointerDown={handleDragPointerDown}
         >
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-      </div>
-      <div className="p-4 flex flex-col gap-4">
-        <div className="flex justify-end items-center -mt-2">
-            <button
-                onClick={onAddStyle}
-                disabled={!canAddStyle}
-                className="p-2 h-8 w-8 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed"
-                title="从选区添加样式"
-            >
-                {ICONS.PLUS}
-            </button>
+
+          <div onPointerDown={e => e.stopPropagation()}>
+            <Tab.List className="flex space-x-1 rounded-lg bg-black/20 p-1">
+              {tabs.map(tab => (
+                <Tab as={Fragment} key={tab}>
+                  {({ selected }) => (
+                    <button
+                      className={`w-16 rounded-md py-1.5 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-[var(--ui-popover-bg)] ring-[var(--accent-primary)] ${
+                        selected
+                          ? 'bg-white text-gray-900 shadow'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] hover:text-white'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  )}
+                </Tab>
+              ))}
+            </Tab.List>
+          </div>
+
+          <div className="flex items-center">
+              <Popover as="div" className="relative">
+                <Popover.Button onPointerDown={e => e.stopPropagation()} className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]" title="素材库选项">
+                  {ICONS.MORE_VERTICAL}
+                </Popover.Button>
+                 <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                  <Popover.Panel className="absolute top-full mt-1 right-0 w-48 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-50 p-1">
+                    {({ close }) => (
+                      <div className="flex flex-col">
+                        <button onClick={async () => { await onLoadLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]">
+                          <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.OPEN}</div>
+                          <span>加载...</span>
+                        </button>
+                        <button onClick={async () => { await onSaveLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]">
+                          <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.SAVE}</div>
+                          <span>保存...</span>
+                        </button>
+                        <div className="h-px my-1 bg-[var(--separator)]" />
+                        <button onClick={() => { handleClearLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger)] hover:bg-[var(--danger-bg)]">
+                          <div className="w-4 h-4 flex-shrink-0">{ICONS.TRASH}</div>
+                          <span>清空素材库</span>
+                        </button>
+                      </div>
+                    )}
+                  </Popover.Panel>
+                </Transition>
+              </Popover>
+
+              <button
+                onClick={onClose}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]"
+                title="关闭面板"
+              >
+                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+          </div>
         </div>
         
-        <div className="max-h-60 overflow-y-auto p-2 -mt-4">
-          {library.length > 0 ? (
-            <div className="grid grid-cols-5 gap-2">
-                {library.map((style, index) => (
-                    <div key={index} className="relative group">
-                        <button 
-                          onClick={() => onApplyStyle(style)} 
-                          title="应用样式"
-                          className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
-                        >
-                            <div className="w-full h-full transition-transform transform group-hover:scale-110">
-                                <StyleSwatch style={style} />
-                            </div>
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteStyle(index)} 
-                          className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="删除样式"
-                        >
-                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                    </div>
-                ))}
+        <Tab.Panels className="p-2">
+          <Tab.Panel>
+            <div className="max-h-60 overflow-y-auto p-2">
+                <div className="grid grid-cols-5 gap-2">
+                    <button
+                        onClick={onAddStyle}
+                        disabled={!canAddStyle}
+                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="从选区添加样式"
+                    >
+                        {ICONS.PLUS}
+                    </button>
+                    {styleLibrary.map((style, index) => (
+                        <div key={index} className="relative group">
+                            <button 
+                              onClick={() => onApplyStyle(style)} 
+                              title="应用样式"
+                              className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
+                            >
+                                <div className="w-full h-full transition-transform transform group-hover:scale-110">
+                                    <StyleSwatch style={style} />
+                                </div>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteStyle(index)} 
+                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="删除样式"
+                            >
+                               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
-            ) : (
-              <div className="text-center text-xs text-[var(--text-secondary)] py-4">
-                样式库为空。
-                <br/>
-                选中一个对象并点击“+”添加。
-              </div>
-            )}
-        </div>
-
-        <div className="h-px bg-[var(--separator)]" />
-
-        <div className="grid grid-cols-2 gap-2">
-            <button
-                onClick={onLoadLibrary}
-                className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm transition-colors text-[var(--text-primary)] bg-black/20 hover:bg-black/40"
-            >
-                {ICONS.OPEN}
-                <span>加载...</span>
-            </button>
-              <button
-                onClick={onSaveLibrary}
-                className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm transition-colors text-[var(--text-primary)] bg-black/20 hover:bg-black/40"
-            >
-                {ICONS.SAVE}
-                <span>保存...</span>
-            </button>
-        </div>
-      </div>
+          </Tab.Panel>
+          <Tab.Panel>
+             <div className="max-h-60 overflow-y-auto p-2">
+                <div className="grid grid-cols-3 gap-2">
+                     <button
+                        onClick={onAddMaterial}
+                        disabled={!canAddMaterial}
+                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="从选区添加素材"
+                    >
+                        {ICONS.PLUS}
+                    </button>
+                    {materialLibrary.map((material, index) => (
+                        <div key={index} className="relative group">
+                            <button 
+                              draggable
+                              onDragStart={(e) => handleDragStartMaterial(e, material)}
+                              title="拖拽素材"
+                              className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
+                            >
+                                <div className="w-full h-full transition-transform transform group-hover:scale-110">
+                                    <MaterialSwatch material={material} />
+                                </div>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteMaterial(index)} 
+                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="删除素材"
+                            >
+                               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          </Tab.Panel>
+        </Tab.Panels>
+      </Tab.Group>
     </div>
   );
 };

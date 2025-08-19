@@ -1,5 +1,3 @@
-
-
 import type { AnyPath } from '../../types';
 import rough from 'roughjs/bin/rough';
 import { getPathsBoundingBox } from '../../drawing';
@@ -9,15 +7,15 @@ import { optimize } from 'svgo';
 /**
  * Creates an SVG string from an array of path data, with an option to optimize it using SVGO.
  * @param paths - The array of paths to include in the SVG.
+ * @param padding - Optional padding around the bounding box. Defaults to 20.
  * @returns An optimized SVG string, or null if no paths are provided.
  */
-export function pathsToSvgString(paths: AnyPath[]): string | null {
+export function pathsToSvgString(paths: AnyPath[], padding: number = 20): string | null {
   if (paths.length === 0) return null;
 
   const bbox = getPathsBoundingBox(paths, true);
   if (!bbox) return null;
 
-  const padding = 20;
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('xmlns', svgNS);
@@ -45,8 +43,6 @@ export function pathsToSvgString(paths: AnyPath[]): string | null {
           name: 'preset-default',
           params: {
             overrides: {
-              // Our app uses images, so we should not remove them.
-              removeRasterImages: false,
               // Keep the viewBox because it's critical for scaling and positioning.
               removeViewBox: false,
             },

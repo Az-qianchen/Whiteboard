@@ -105,6 +105,12 @@ export const ICONS = {
       </g>
     </svg>
   ),
+  LASSO: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M6.3 12.3A5.1 5.1 0 1 0 12 17.4a5.1 5.1 0 0 0 0-10.2h-.1"/>
+      <path d="M12 2a10 10 0 1 0 10 10"/>
+    </svg>
+  ),
   PROPERTIES: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
@@ -303,13 +309,8 @@ export const ICONS = {
     </svg>
   ),
   STYLE_LIBRARY: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M15.002 4.001a8 8 0 1 0 4 12c-1.637-2.137-.425-5.188 1-7 1.25-1.625.5-4-1-4-1.5 0-2.25 1.125-2.5 2.5-.25 1.375.25 3.375 1 4.5.75 1.125 1.637 2.137 1.5 3.5"/>
-      <circle cx="12" cy="12" r="1"/>
-      <circle cx="10" cy="10" r="1"/>
-      <circle cx="14" cy="10" r="1"/>
-      <circle cx="14" cy="14" r="1"/>
-      <circle cx="10" cy="14" r="1"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="currentColor" className="h-5 w-5">
+      <path d="M896 554.666667h-42.666667v298.666666H170.666667v-298.666666H128l384-384 384 384z m-640-8.533334V768h512v-221.866667l-256-256-256 256z m174.933333-76.8h170.666667v85.333334h-170.666667v-85.333334z" />
     </svg>
   ),
   PLUS: (
@@ -324,7 +325,32 @@ export const ICONS = {
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   ),
+  MORE_VERTICAL: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="1"></circle>
+      <circle cx="12" cy="5" r="1"></circle>
+      <circle cx="12" cy="19" r="1"></circle>
+    </svg>
+  ),
+  ALIGN_LEFT: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>,
+  ALIGN_HORIZONTAL_CENTER: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="12" y1="21" x2="12" y2="3"/><rect x="3" y="6" width="6" height="12" rx="2"/><rect x="15" y="10" width="6" height="4" rx="2"/></svg>,
+  ALIGN_RIGHT: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+  ALIGN_TOP: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="10" y1="3" x2="10" y2="21"/><line x1="6" y1="3" x2="6" y2="21"/><line x1="14" y1="3" x2="14" y2="21"/><line x1="18" y1="3" x2="18" y2="21"/></svg>,
+  ALIGN_VERTICAL_CENTER: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="21" y1="12" x2="3" y2="12"/><rect x="6" y="3" width="12" height="6" rx="2"/><rect x="10" y="15" width="4" height="6" rx="2"/></svg>,
+  ALIGN_BOTTOM: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="10" y1="21" x2="10" y2="3"/><line x1="6" y1="21" x2="6" y2="3"/><line x1="14" y1="21" x2="14" y2="3"/><line x1="18" y1="21" x2="18" y2="3"/></svg>,
+  DISTRIBUTE_HORIZONTAL: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="21" y1="17" x2="3" y2="17"/><line x1="21" y1="7" x2="3" y2="7"/><rect x="4" y="12" width="4" height="5" rx="1"/><rect x="16" y="7" width="4" height="5" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/></svg>,
+  DISTRIBUTE_VERTICAL: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="17" y1="21" x2="17" y2="3"/><line x1="7" y1="21" x2="7" y2="3"/><rect x="12" y="4" width="5" height="4" rx="1"/><rect x="7" y="16" width="5" height="4" rx="1"/><rect x="4" y="10" width="16" height="4" rx="1"/></svg>,
+  ALIGN_DISTRIBUTE: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><rect x="3" y="14" width="4" height="4"/><rect x="17" y="14" width="4" height="4"/><rect x="10" y="14" width="4" height="4"/></svg>,
 };
+
+// Fix alignment icon rotation
+ICONS.ALIGN_LEFT = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="3" y1="21" x2="3" y2="3"/><rect x="7" y="4" width="10" height="5" rx="1"/><rect x="7" y="12" width="14" height="5" rx="1"/></svg>;
+ICONS.ALIGN_HORIZONTAL_CENTER = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="12" y1="21" x2="12" y2="3"/><rect x="3" y="6" width="6" height="12" rx="2"/><rect x="15" y="10" width="6" height="4" rx="2"/></svg>;
+ICONS.ALIGN_RIGHT = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="21" y1="21" x2="21" y2="3"/><rect x="10" y="4" width="7" height="5" rx="1"/><rect x="3" y="12" width="14" height="5" rx="1"/></svg>;
+ICONS.ALIGN_TOP = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="3" y1="3" x2="21" y2="3"/><rect x="4" y="7" width="5" height="10" rx="1"/><rect x="12" y="7" width="5" height="14" rx="1"/></svg>;
+ICONS.ALIGN_VERTICAL_CENTER = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="3" y1="12" x2="21" y2="12"/><rect x="6" y="3" width="12" height="6" rx="2"/><rect x="10" y="15" width="4" height="6" rx="2"/></svg>;
+ICONS.ALIGN_BOTTOM = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="3" y1="21" x2="21" y2="21"/><rect x="4" y="10" width="5" height="7" rx="1"/><rect x="12" y="3" width="5" height="14" rx="1"/></svg>;
+
 
 export const ENDPOINT_STYLES: { name: EndpointStyle; title: string; icon: JSX.Element }[] = [
     { name: 'none', title: '无', icon: ICONS.ENDPOINT_NONE },

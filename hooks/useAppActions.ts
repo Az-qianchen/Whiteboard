@@ -1,8 +1,8 @@
 import React, { useCallback, useRef } from 'react';
-import { getPathsBoundingBox, rectangleToVectorPath, ellipseToVectorPath, movePath, flipPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, rotatePath } from '../lib/drawing';
+import { getPathsBoundingBox, rectangleToVectorPath, ellipseToVectorPath, movePath, flipPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, rotatePath, alignPaths, distributePaths } from '../lib/drawing';
 import { pathsToSvgString, pathsToPngBlob } from '../lib/export';
 import { importSvg } from '../lib/import';
-import type { AnyPath, Point, Tool, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, WhiteboardData, ArcData, GroupData, StyleClipboardData, StyleLibraryData } from '../types';
+import type { AnyPath, Point, Tool, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, WhiteboardData, ArcData, GroupData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode } from '../types';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import { fileOpen, fileSave } from 'browser-fs-access';
@@ -19,6 +19,8 @@ interface AppActionsProps {
     setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>;
     handleLoadFile: (newPaths: AnyPath[]) => void;
     handleReorder: (direction: 'forward' | 'backward' | 'front' | 'back') => void;
+    beginCoalescing: () => void;
+    endCoalescing: () => void;
   };
   toolbarState: {
     setTool: (tool: Tool) => void;
@@ -27,6 +29,7 @@ interface AppActionsProps {
     viewTransform: {
       scale: number;
     }
+    getPointerPosition: (e: { clientX: number, clientY: number }, svg: SVGSVGElement) => Point;
   };
   getPointerPosition: (e: { clientX: number, clientY: number }, svg: SVGSVGElement) => Point;
   activeFileHandle: FileSystemFileHandle | null;
@@ -38,6 +41,8 @@ interface AppActionsProps {
   setStyleClipboard: React.Dispatch<React.SetStateAction<StyleClipboardData | null>>;
   styleLibrary: StyleClipboardData[];
   setStyleLibrary: React.Dispatch<React.SetStateAction<StyleClipboardData[]>>;
+  materialLibrary: MaterialData[];
+  setMaterialLibrary: React.Dispatch<React.SetStateAction<MaterialData[]>>;
 }
 
 export const useAppActions = ({
@@ -57,6 +62,8 @@ export const useAppActions = ({
   setStyleClipboard,
   styleLibrary,
   setStyleLibrary,
+  materialLibrary,
+  setMaterialLibrary,
 }: AppActionsProps) => {
 
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -264,7 +271,9 @@ export const useAppActions = ({
   const handleImportClick = () => importFileRef.current?.click();
 
   const handleFileImport = useCallback(async (file: File) => {
-      if (file.type !== 'image/svg+xml') { alert('Please select an SVG file.'); return; }
+      if (!file.type.startsWith('image/svg') && !file.name.endsWith('.svg')) { 
+        alert('Please select an SVG file.'); return; 
+      }
       try {
           const svgString = await file.text();
           const importedPaths = importSvg(svgString);
@@ -510,7 +519,30 @@ export const useAppActions = ({
     }
   }, [styleClipboard, handleApplyStyle]);
 
-  // --- Style Library Actions ---
+  const handleAlign = useCallback((alignment: Alignment) => {
+    const selected = paths.filter(p => selectedPathIds.includes(p.id));
+    if (selected.length < 2) return;
+
+    pathState.beginCoalescing();
+    const aligned = alignPaths(selected, alignment);
+    const alignedMap = new Map(aligned.map(p => [p.id, p]));
+    pathState.setPaths(prev => prev.map(p => alignedMap.get(p.id) || p));
+    pathState.endCoalescing();
+  }, [paths, selectedPathIds, pathState]);
+
+  const handleDistribute = useCallback((axis: 'horizontal' | 'vertical', options: { spacing?: number | null; mode: DistributeMode }) => {
+    const selected = paths.filter(p => selectedPathIds.includes(p.id));
+    if (selected.length < 2) return;
+
+    pathState.beginCoalescing();
+    const distributed = distributePaths(selected, axis, options);
+    const distributedMap = new Map(distributed.map(p => [p.id, p]));
+    pathState.setPaths(prev => prev.map(p => distributedMap.get(p.id) || p));
+    pathState.endCoalescing();
+  }, [paths, selectedPathIds, pathState]);
+
+
+  // --- Library Actions ---
 
   const handleAddStyle = useCallback(() => {
     if (selectedPathIds.length !== 1) return;
@@ -540,55 +572,106 @@ export const useAppActions = ({
     setStyleLibrary(prev => [...prev, style]);
   }, [paths, selectedPathIds, setStyleLibrary]);
 
-  const handleSaveStyleLibrary = useCallback(async () => {
-    if (styleLibrary.length === 0) {
-        alert("样式库为空，无需保存。");
+  const handleAddMaterial = useCallback(() => {
+    if (selectedPathIds.length === 0) return;
+    const selectedPaths = paths.filter(p => selectedPathIds.includes(p.id));
+    const bbox = getPathsBoundingBox(selectedPaths);
+    if (!bbox) return;
+
+    // Normalize paths by moving them relative to the top-left of their bounding box
+    const normalizedShapes = selectedPaths.map(p => movePath(p, -bbox.x, -bbox.y));
+    
+    const newMaterial: MaterialData = { shapes: normalizedShapes };
+    setMaterialLibrary(prev => [...prev, newMaterial]);
+  }, [paths, selectedPathIds, setMaterialLibrary]);
+
+  const handleApplyMaterial = useCallback((material: MaterialData, position?: Point) => {
+    const svgEl = document.querySelector('svg');
+    if (!svgEl) return;
+    
+    const targetCenter = position ?? viewTransform.getPointerPosition({
+      clientX: svgEl.clientWidth / 2,
+      clientY: svgEl.clientHeight / 2,
+    }, svgEl);
+
+    const materialBbox = getPathsBoundingBox(material.shapes);
+    const dx = materialBbox ? targetCenter.x - (materialBbox.x + materialBbox.width / 2) : targetCenter.x;
+    const dy = materialBbox ? targetCenter.y - (materialBbox.y + materialBbox.height / 2) : targetCenter.y;
+    
+    const newPaths: AnyPath[] = [];
+    const newIds: string[] = [];
+
+    const deepCopyAndMove = (path: AnyPath): AnyPath => {
+      const newId = `${Date.now()}-${Math.random()}`;
+      newIds.push(newId);
+      const newPath = { ...path, id: newId };
+      if (newPath.tool === 'group') {
+        newPath.children = (newPath as GroupData).children.map(deepCopyAndMove);
+      }
+      return movePath(newPath, dx, dy);
+    };
+
+    material.shapes.forEach(shape => {
+      newPaths.push(deepCopyAndMove(shape));
+    });
+
+    pathState.setPaths(prev => [...prev, ...newPaths]);
+    pathState.setSelectedPathIds(newIds);
+  }, [pathState, viewTransform]);
+
+  const handleSaveLibrary = useCallback(async () => {
+    if (styleLibrary.length === 0 && materialLibrary.length === 0) {
+        alert("素材库为空，无需保存。");
         return;
     }
-    const fileData: StyleLibraryData = { type: 'whiteboard/style-library', version: 1, styles: styleLibrary };
+    const fileData: LibraryData = { type: 'whiteboard/library', version: 2, styles: styleLibrary, materials: materialLibrary };
     const jsonString = JSON.stringify(fileData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
 
     try {
         await fileSave(blob, {
-            fileName: 'styles.stylelib',
-            extensions: ['.stylelib'],
-            description: 'Whiteboard Style Library',
+            fileName: 'library.wblib',
+            extensions: ['.wblib'],
+            description: 'Whiteboard Library File',
         });
     } catch (err: any) {
         if (err.name !== 'AbortError') {
-            console.error("Failed to save style library:", err);
-            alert("无法保存样式库。");
+            console.error("Failed to save library:", err);
+            alert("无法保存素材库。");
         }
     }
-  }, [styleLibrary]);
+  }, [styleLibrary, materialLibrary]);
 
-  const handleLoadStyleLibrary = useCallback(async () => {
+  const handleLoadLibrary = useCallback(async () => {
       try {
           const file = await fileOpen({
-              description: 'Whiteboard Style Library',
-              extensions: ['.stylelib'],
+              description: 'Whiteboard Library File',
+              extensions: ['.wblib', '.stylelib'],
               multiple: false,
-          });
+          }) as FileWithHandle;
 
           const content = await file.text();
-          const data: StyleLibraryData = JSON.parse(content);
+          const data: LibraryData | any = JSON.parse(content);
 
-          if (data?.type === 'whiteboard/style-library' && Array.isArray(data.styles)) {
-              if (styleLibrary.length > 0 && !window.confirm("这将替换您当前的样式库。要继续吗？")) {
+          const isNewFormat = data?.type === 'whiteboard/library' && Array.isArray(data.styles) && Array.isArray(data.materials);
+          const isOldFormat = data?.type === 'whiteboard/style-library' && Array.isArray(data.styles);
+
+          if (isNewFormat || isOldFormat) {
+              if ((styleLibrary.length > 0 || materialLibrary.length > 0) && !window.confirm("这将替换您当前的素材库。要继续吗？")) {
                   return;
               }
-              setStyleLibrary(data.styles);
+              setStyleLibrary(data.styles || []);
+              setMaterialLibrary(data.materials || []);
           } else {
-              alert('无效的样式库文件格式。');
+              alert('无效的素材库文件格式。');
           }
       } catch (err: any) {
           if (err.name !== 'AbortError') {
-              console.error("Failed to load style library:", err);
-              alert("无法加载样式库。文件可能已损坏。");
+              console.error("Failed to load library:", err);
+              alert("无法加载素材库。文件可能已损坏。");
           }
       }
-  }, [styleLibrary.length, setStyleLibrary]);
+  }, [styleLibrary.length, materialLibrary.length, setStyleLibrary, setMaterialLibrary]);
 
 
   return {
@@ -618,7 +701,11 @@ export const useAppActions = ({
     handlePasteStyle,
     handleApplyStyle,
     handleAddStyle,
-    handleSaveStyleLibrary,
-    handleLoadStyleLibrary,
+    handleAddMaterial,
+    handleApplyMaterial,
+    handleSaveLibrary: handleSaveLibrary,
+    handleLoadLibrary: handleLoadLibrary,
+    handleAlign,
+    handleDistribute,
   };
 };

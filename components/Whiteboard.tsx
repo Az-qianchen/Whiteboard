@@ -16,6 +16,7 @@ import { PathsRenderer } from './whiteboard/PathsRenderer';
 import { LivePreviewRenderer } from './whiteboard/LivePreviewRenderer';
 import { ControlsRenderer } from './whiteboard/ControlsRenderer';
 import { Marquee } from './whiteboard/Marquee';
+import { Lasso } from './whiteboard/Lasso';
 
 
 interface WhiteboardProps {
@@ -29,6 +30,7 @@ interface WhiteboardProps {
   previewD: string | null;
   selectedPathIds: string[];
   marquee: { start: Point; end: Point } | null;
+  lassoPath: Point[] | null;
   onPointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerMove: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -53,6 +55,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   previewD,
   selectedPathIds,
   marquee,
+  lassoPath,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -135,6 +138,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />
+          <Lasso lassoPath={lassoPath} />
           
         </g>
       </svg>

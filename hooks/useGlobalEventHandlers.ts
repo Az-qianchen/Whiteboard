@@ -313,28 +313,6 @@ const useGlobalEventHandlers = ({
         document.removeEventListener('paste', handleGlobalPaste);
     };
   }, [handlePaste, getPointerPosition, setPaths, setSelectedPathIds, setTool, viewTransform.scale, lastPointerPosition]);
-  
-  // Global drag-and-drop handler for SVG files
-  useEffect(() => {
-      const handleDrop = (e: DragEvent) => {
-          e.preventDefault();
-          const file = e.dataTransfer?.files?.[0];
-          if (file && file.type === 'image/svg+xml') {
-              void handleFileImport(file);
-          }
-      };
-      const handleDragOver = (e: DragEvent) => {
-          e.preventDefault();
-      };
-
-      window.addEventListener('drop', handleDrop);
-      window.addEventListener('dragover', handleDragOver);
-
-      return () => {
-          window.removeEventListener('drop', handleDrop);
-          window.removeEventListener('dragover', handleDragOver);
-      };
-  }, [handleFileImport]);
 };
 
 export default useGlobalEventHandlers;

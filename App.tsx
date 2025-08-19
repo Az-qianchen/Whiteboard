@@ -23,9 +23,10 @@ import { useAppActions } from './hooks/useAppActions';
 import { getLocalStorageItem } from './lib/utils';
 import * as idb from './lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData } from './types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, Alignment } from './types';
 import { getPathsBoundingBox } from './lib/drawing';
 import { StyleLibraryPopover } from './components/side-toolbar';
+import { ICONS } from './constants';
 
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 const modKey = (key: string) => `${isMac ? '⌘' : 'Ctrl+'}${key}`;
@@ -39,9 +40,11 @@ const App: React.FC = () => {
   const [backgroundColor, setBackgroundColor] = useState(() => getLocalStorageItem('whiteboard_backgroundColor', '#17171c'));
   const [styleClipboard, setStyleClipboard] = useState<StyleClipboardData | null>(null);
   const [isStatusBarCollapsed, setIsStatusBarCollapsed] = useState(() => getLocalStorageItem('whiteboard_isStatusBarCollapsed', false));
+  const [isSideToolbarCollapsed, setIsSideToolbarCollapsed] = useState(() => getLocalStorageItem('whiteboard_isSideToolbarCollapsed', false));
   const [styleLibrary, setStyleLibrary] = useState<StyleClipboardData[]>(() => getLocalStorageItem('whiteboard_styleLibrary', []));
+  const [materialLibrary, setMaterialLibrary] = useState<MaterialData[]>(() => getLocalStorageItem('whiteboard_materialLibrary', []));
   const [isStyleLibraryOpen, setIsStyleLibraryOpen] = useState(() => getLocalStorageItem('whiteboard_isStyleLibraryOpen', false));
-  const [styleLibraryPosition, setStyleLibraryPosition] = useState(() => getLocalStorageItem('whiteboard_styleLibraryPosition', { x: window.innerWidth - 350, y: 100 }));
+  const [styleLibraryPosition, setStyleLibraryPosition] = useState(() => getLocalStorageItem('whiteboard_styleLibraryPosition', { x: window.innerWidth - 400, y: 150 }));
 
 
   // New state for file handling
@@ -114,8 +117,16 @@ const App: React.FC = () => {
   }, [isStatusBarCollapsed]);
   
   useEffect(() => {
+    localStorage.setItem('whiteboard_isSideToolbarCollapsed', JSON.stringify(isSideToolbarCollapsed));
+  }, [isSideToolbarCollapsed]);
+  
+  useEffect(() => {
     localStorage.setItem('whiteboard_styleLibrary', JSON.stringify(styleLibrary));
   }, [styleLibrary]);
+
+  useEffect(() => {
+    localStorage.setItem('whiteboard_materialLibrary', JSON.stringify(materialLibrary));
+  }, [materialLibrary]);
   
   useEffect(() => {
     localStorage.setItem('whiteboard_isStyleLibraryOpen', JSON.stringify(isStyleLibraryOpen));
@@ -162,6 +173,30 @@ const App: React.FC = () => {
     toolbarState.setTool(newTool);
   }, [toolbarState, pathState, drawingInteraction]);
 
+  const handleToggleStyleLibrary = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setIsStyleLibraryOpen(prevIsOpen => {
+      const nextIsOpen = !prevIsOpen;
+      if (nextIsOpen) {
+        const popoverWidth = 288; // w-72 from StyleLibraryPopover
+        const estimatedPopoverHeight = 320; // Estimated from StyleLibraryPopover layout
+        const gap = 16; // gap from sidebar
+        const margin = 16; // viewport margin
+
+        const buttonRect = event.currentTarget.getBoundingClientRect();
+        
+        const idealX = buttonRect.left - popoverWidth - gap;
+        const idealY = buttonRect.top;
+
+        // Clamp position to be within viewport
+        const clampedX = Math.max(margin, Math.min(idealX, window.innerWidth - popoverWidth - margin));
+        const clampedY = Math.max(margin, Math.min(idealY, window.innerHeight - estimatedPopoverHeight - margin));
+        
+        setStyleLibraryPosition({ x: clampedX, y: clampedY });
+      }
+      return nextIsOpen;
+    });
+  };
+
   // Encapsulated Action Handlers
   const appActions = useAppActions({ 
     paths, 
@@ -180,6 +215,8 @@ const App: React.FC = () => {
     setStyleClipboard,
     styleLibrary,
     setStyleLibrary,
+    materialLibrary,
+    setMaterialLibrary,
   });
   const { 
     handleCut, handleCopy, handlePaste, handleFlip, handleCopyAsSvg, handleCopyAsPng, 
@@ -189,7 +226,9 @@ const App: React.FC = () => {
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
     handleExportAsSvg, handleExportAsPng,
     handleGroup, handleUngroup, handleCopyStyle, handlePasteStyle,
-    handleAddStyle, handleApplyStyle, handleSaveStyleLibrary, handleLoadStyleLibrary,
+    handleAddStyle, handleApplyStyle, handleSaveLibrary, handleLoadLibrary,
+    handleAddMaterial, handleApplyMaterial,
+    handleAlign, handleDistribute,
   } = appActions;
   
   // Global Event Listeners (Hotkeys, Clipboard)
@@ -254,7 +293,9 @@ const App: React.FC = () => {
   const getCursor = () => {
     if (isPanning) return 'grabbing';
     switch (toolbarState.tool) {
-      case 'selection': return toolbarState.selectionMode === 'move' ? 'grab' : 'default';
+      case 'selection': 
+        if (toolbarState.selectionMode === 'lasso') return 'crosshair';
+        return toolbarState.selectionMode === 'move' ? 'grab' : 'default';
       case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
       default: return 'default';
     }
@@ -306,6 +347,37 @@ const App: React.FC = () => {
   if (canConvertToPath) {
     contextMenuActions.splice(15, 0, { label: '转换为路径', handler: handleConvertToPath });
   }
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // Necessary to allow dropping
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    // Handle material drop from style library
+    const materialJSON = e.dataTransfer.getData('application/json');
+    if (materialJSON) {
+        try {
+            const material = JSON.parse(materialJSON) as MaterialData;
+            const svg = (e.currentTarget as HTMLElement).querySelector('svg');
+            if (svg && material.shapes) {
+                const dropPoint = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+                appActions.handleApplyMaterial(material, dropPoint);
+            }
+            return;
+        } catch (err) {
+            console.error("Failed to handle material drop", err);
+        }
+    }
+
+    // Handle file drop from filesystem
+    const file = e.dataTransfer?.files?.[0];
+    if (file && (file.type === 'image/svg+xml' || file.name.endsWith('.svg'))) {
+        appActions.handleFileImport(file);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -316,7 +388,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-screen font-sans bg-transparent relative">
+    <div className="h-screen w-screen font-sans bg-transparent relative overflow-hidden">
       <input type="file" ref={importFileRef} onChange={handleSvgFileChange} accept=".svg,image/svg+xml" className="hidden" />
       
       <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
@@ -340,18 +412,29 @@ const App: React.FC = () => {
         )}
       </div>
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20"><Toolbar tool={toolbarState.tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} /></div>
-      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-20">
+      
+      <button
+        onClick={() => setIsSideToolbarCollapsed(prev => !prev)}
+        className="absolute top-4 right-4 z-30 h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-lg border border-[var(--ui-panel-border)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+        title={isSideToolbarCollapsed ? '展开工具栏' : '折叠工具栏'}
+      >
+        <div className={`transition-transform duration-300 ${isSideToolbarCollapsed ? '' : 'rotate-180'}`}>
+          {ICONS.CHEVRON_LEFT}
+        </div>
+      </button>
+
+      <div className={`absolute top-1/2 -translate-y-1/2 right-4 z-20 transition-transform duration-300 ease-in-out ${isSideToolbarCollapsed ? 'translate-x-[calc(100%+1rem)]' : 'translate-x-0'}`}>
         <SideToolbar 
             {...toolbarState} 
             beginCoalescing={pathState.beginCoalescing} 
             endCoalescing={pathState.endCoalescing}
-            onToggleStyleLibrary={() => setIsStyleLibraryOpen(prev => !prev)}
+            onToggleStyleLibrary={handleToggleStyleLibrary}
             isStyleLibraryOpen={isStyleLibraryOpen}
         />
       </div>
       
       {toolbarState.tool === 'selection' && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30">
           <SelectionToolbar 
             selectionMode={toolbarState.selectionMode} 
             setSelectionMode={toolbarState.setSelectionMode}
@@ -359,6 +442,9 @@ const App: React.FC = () => {
             beginSimplify={toolbarState.beginSimplify}
             setSimplify={toolbarState.setSimplify}
             endSimplify={toolbarState.endSimplify}
+            selectedPathIds={selectedPathIds}
+            onAlign={handleAlign}
+            onDistribute={handleDistribute}
           />
         </div>
       )}
@@ -381,6 +467,8 @@ const App: React.FC = () => {
       <div 
         className="w-full h-full"
         style={{ backgroundColor }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
       >
         <Whiteboard
           paths={paths}
@@ -393,6 +481,7 @@ const App: React.FC = () => {
           previewD={drawingInteraction.previewD}
           selectedPathIds={selectedPathIds}
           marquee={selectionInteraction.marquee}
+          lassoPath={selectionInteraction.lassoPath}
           onPointerDown={pointerInteraction.onPointerDown}
           onPointerMove={pointerInteraction.onPointerMove}
           onPointerUp={pointerInteraction.onPointerUp}
@@ -412,13 +501,17 @@ const App: React.FC = () => {
         onClose={() => setIsStyleLibraryOpen(false)}
         position={styleLibraryPosition}
         onPositionChange={setStyleLibraryPosition}
-        library={styleLibrary}
-        setLibrary={setStyleLibrary}
-        selectedPath={toolbarState.firstSelectedPath}
+        styleLibrary={styleLibrary}
+        setStyleLibrary={setStyleLibrary}
+        materialLibrary={materialLibrary}
+        setMaterialLibrary={setMaterialLibrary}
+        selectedPathIds={selectedPathIds}
         onAddStyle={handleAddStyle}
         onApplyStyle={handleApplyStyle}
-        onSaveLibrary={handleSaveStyleLibrary}
-        onLoadLibrary={handleLoadStyleLibrary}
+        onSaveLibrary={handleSaveLibrary}
+        onLoadLibrary={handleLoadLibrary}
+        onAddMaterial={handleAddMaterial}
+        onApplyMaterial={handleApplyMaterial}
       />
       
       {contextMenu?.isOpen && (<ContextMenu isOpen={contextMenu.isOpen} position={{ x: contextMenu.x, y: contextMenu.y }} actions={contextMenuActions} onClose={() => setContextMenu(null)} />)}

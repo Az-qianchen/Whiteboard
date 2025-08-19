@@ -37,7 +37,7 @@ function sampleEllipse(cx: number, cy: number, rx: number, ry: number, steps: nu
     return points;
 }
 
-function isPointInPolygon(point: Point, vs: Point[]): boolean {
+export function isPointInPolygon(point: Point, vs: Point[]): boolean {
     const x = point.x, y = point.y;
     let inside = false;
     for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
@@ -217,4 +217,63 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
 
   // A simple bbox intersection check is usually sufficient and performant.
   return doBboxesIntersect(pathBbox, marqueeRect);
+}
+
+export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): boolean {
+    const pathBbox = getPathBoundingBox(path, true);
+    if (!pathBbox) return false;
+
+    if (lassoPoints.length < 3) return false;
+
+    let minX = lassoPoints[0].x, minY = lassoPoints[0].y, maxX = lassoPoints[0].x, maxY = lassoPoints[0].y;
+    for (const p of lassoPoints) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+    }
+    const lassoBbox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+
+    if (!doBboxesIntersect(pathBbox, lassoBbox)) {
+        return false;
+    }
+
+    const bboxPoints = [
+        { x: pathBbox.x, y: pathBbox.y },
+        { x: pathBbox.x + pathBbox.width, y: pathBbox.y },
+        { x: pathBbox.x + pathBbox.width, y: pathBbox.y + pathBbox.height },
+        { x: pathBbox.x, y: pathBbox.y + pathBbox.height },
+    ];
+    if (bboxPoints.some(p => isPointInPolygon(p, lassoPoints))) {
+        return true;
+    }
+
+    const center = { x: pathBbox.x + pathBbox.width / 2, y: pathBbox.y + pathBbox.height / 2 };
+    if (isPointInPolygon(center, lassoPoints)) {
+        return true;
+    }
+    
+    let pathSamples: Point[] = [];
+    switch (path.tool) {
+        case 'brush':
+            pathSamples = (path as BrushPathData).points;
+            break;
+        case 'arc':
+            pathSamples = sampleArc((path as ArcData).points[0], (path as ArcData).points[1], (path as ArcData).points[2]);
+            break;
+        case 'pen':
+        case 'line':
+            pathSamples = samplePath((path as VectorPathData).anchors, 20, (path as VectorPathData).isClosed);
+            break;
+        case 'group':
+            return (path as GroupData).children.some(child => isPathIntersectingLasso(child, lassoPoints));
+        default:
+            pathSamples = bboxPoints;
+    }
+
+    if (pathSamples.some(p => isPointInPolygon(p, lassoPoints))) {
+        return true;
+    }
+    
+    return false;
 }

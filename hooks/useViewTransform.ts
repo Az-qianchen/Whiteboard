@@ -16,38 +16,49 @@ export const useViewTransform = () => {
   const [lastPointerPosition, setLastPointerPosition] = useState<Point | null>(null);
 
   /**
-   * 处理滚轮事件以实现缩放。
+   * 处理滚轮事件以实现缩放或平移。
    * @param e - 滚轮事件。
    */
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const { deltaY, clientX, clientY } = e;
-    const zoomFactor = 1.1;
-    const { scale, translateX, translateY } = viewTransform;
+    const { deltaX, deltaY, ctrlKey, clientX, clientY } = e;
 
-    const newScale = deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+    if (ctrlKey) {
+      // 平移逻辑 (在触控板上双指拖动，或在鼠标上按住 Ctrl 并滚动)
+      setViewTransform(prev => ({
+          ...prev,
+          translateX: prev.translateX - deltaX,
+          translateY: prev.translateY - deltaY,
+      }));
+    } else {
+      // 缩放逻辑 (在触控板上捏合，或在鼠标上常规滚动)
+      const zoomFactor = 1.1;
+      const { scale, translateX, translateY } = viewTransform;
 
-    const svg = e.currentTarget.querySelector('svg');
-    if (!svg) return;
-    
-    // 计算鼠标指针在SVG坐标系中的位置
-    const point = svg.createSVGPoint();
-    point.x = clientX;
-    point.y = clientY;
-    
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const svgPoint = point.matrixTransform(ctm.inverse());
+      const newScale = deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
 
-    // 计算新的平移量，以鼠标指针为中心进行缩放
-    const newTranslateX = svgPoint.x - (svgPoint.x - translateX) * (newScale / scale);
-    const newTranslateY = svgPoint.y - (svgPoint.y - translateY) * (newScale / scale);
+      const svg = e.currentTarget.querySelector('svg');
+      if (!svg) return;
+      
+      // 计算鼠标指针在SVG坐标系中的位置
+      const point = svg.createSVGPoint();
+      point.x = clientX;
+      point.y = clientY;
+      
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const svgPoint = point.matrixTransform(ctm.inverse());
 
-    setViewTransform({
-      scale: newScale,
-      translateX: newTranslateX,
-      translateY: newTranslateY
-    });
+      // 计算新的平移量，以鼠标指针为中心进行缩放
+      const newTranslateX = svgPoint.x - (svgPoint.x - translateX) * (newScale / scale);
+      const newTranslateY = svgPoint.y - (svgPoint.y - translateY) * (newScale / scale);
+
+      setViewTransform({
+        scale: newScale,
+        translateX: newTranslateX,
+        translateY: newTranslateY
+      });
+    }
   };
 
   /**

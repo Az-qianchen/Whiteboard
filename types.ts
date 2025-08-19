@@ -143,7 +143,7 @@ export type BrushPathWithPoints = LivePath;
 
 export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc';
 
-export type SelectionMode = 'move' | 'edit';
+export type SelectionMode = 'move' | 'edit' | 'lasso';
 
 export type ResizeHandlePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'right' | 'bottom' | 'left';
 
@@ -229,8 +229,24 @@ export interface StyleClipboardData {
   sides?: number;
 }
 
+export interface MaterialData {
+  shapes: AnyPath[];
+}
+
+// This is a legacy type for backward compatibility
 export interface StyleLibraryData {
   type: 'whiteboard/style-library';
   version: number;
   styles: StyleClipboardData[];
 }
+
+export interface LibraryData {
+  type: 'whiteboard/library';
+  version: number;
+  styles: StyleClipboardData[];
+  materials: MaterialData[];
+}
+
+export type Alignment = 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom';
+
+export type DistributeMode = 'edges' | 'centers';

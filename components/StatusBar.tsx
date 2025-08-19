@@ -68,7 +68,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <button
         onClick={onToggleCollapse}
         title={isCollapsed ? "展开状态栏" : "折叠状态栏"}
-        className="p-2 h-8 w-8 rounded-md flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
+        className="p-2 h-10 w-10 rounded-lg flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
       >
         <div className={`transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}>
           {ICONS.CHEVRON_LEFT}

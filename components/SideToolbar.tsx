@@ -4,13 +4,12 @@
  * 或设置新图形默认样式的控件。
  */
 
-import React, { useMemo, useState } from 'react';
-import type { Tool, AnyPath, VectorPathData, GroupData, StyleClipboardData } from '../../types';
-import { ICONS } from '../constants';
+import React, { useMemo } from 'react';
+import type { Tool, AnyPath, VectorPathData } from '../../types';
+import { ICONS } from '../../constants';
 
 import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover } from './side-toolbar';
 
-// The props interface remains the same, as it receives all state from the parent
 interface SideToolbarProps {
   tool: Tool;
   color: string;
@@ -62,8 +61,7 @@ interface SideToolbarProps {
   beginCoalescing: () => void;
   endCoalescing: () => void;
   firstSelectedPath: AnyPath | null;
-  // Style Library Control
-  onToggleStyleLibrary: () => void;
+  onToggleStyleLibrary: (event: React.MouseEvent<HTMLButtonElement>) => void;
   isStyleLibraryOpen: boolean;
 }
 
@@ -106,7 +104,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
   return (
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 flex flex-col items-center gap-4 text-[var(--text-primary)]">
-      
       <NumericInput
         label="透明度"
         value={opacity}
@@ -196,7 +193,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       
       <div className="flex flex-col items-center gap-1 w-14" title="样式库">
         <button 
-          onClick={onToggleStyleLibrary}
+          onClick={e => onToggleStyleLibrary(e)}
           className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
             isStyleLibraryOpen
               ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)]'
@@ -208,7 +205,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
         </button>
         <span className="text-xs font-medium text-[var(--text-secondary)] sidebar-label">样式库</span>
       </div>
-
     </div>
   );
 };

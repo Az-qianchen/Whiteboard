@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { Point, DragState, AnyPath, VectorPathData, DrawingShape, RectangleData, EllipseData, ResizeHandlePosition, ImageData, PolygonData, BrushPathData } from '../types';
 import { updatePathAnchors, insertAnchorOnCurve, movePath, getSqDistToSegment, rotatePath, getPathsBoundingBox, resizePath, getMarqueeRect, dist, sampleCubicBezier, scalePath } from '../lib/drawing';
-import { isPointHittingPath, isPathIntersectingMarquee } from '../lib/hit-testing';
+import { isPointHittingPath, isPathIntersectingMarquee, isPathIntersectingLasso } from '../lib/hit-testing';
 
 // Define the props the hook will receive
 interface SelectionInteractionProps {
@@ -27,11 +27,12 @@ export const useSelection = ({
 }: SelectionInteractionProps) => {
   const [dragState, setDragState] = useState<DragState>(null);
   const [marquee, setMarquee] = useState<{ start: Point; end: Point } | null>(null);
+  const [lassoPath, setLassoPath] = useState<Point[] | null>(null);
   const isClosingPath = useRef<{ pathId: string; anchorIndex: number } | null>(null);
 
   const { getPointerPosition, viewTransform: vt } = viewTransform;
   const { paths, setPaths, selectedPathIds, setSelectedPathIds, beginCoalescing, endCoalescing } = pathState;
-  const { selectionMode } = toolbarState;
+  const { selectionMode, setSelectionMode } = toolbarState;
   
   const snapToGrid = useCallback((point: Point): Point => {
     if (!isGridVisible) return point;
@@ -234,19 +235,31 @@ export const useSelection = ({
       setMarquee({ start: point, end: point });
     }
   };
+  
+  const handlePointerDownForLasso = (point: Point, e: React.PointerEvent<SVGSVGElement>) => {
+    if (!e.shiftKey) setSelectedPathIds([]);
+    setLassoPath([point]);
+  };
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     const point = getPointerPosition(e, e.currentTarget);
     if (selectionMode === 'move') {
       handlePointerDownForMove(point, e);
-    } else { // 'edit'
+    } else if (selectionMode === 'edit') {
       handlePointerDownForEdit(point, e);
+    } else if (selectionMode === 'lasso') {
+      handlePointerDownForLasso(point, e);
     }
   };
 
   // --- Pointer Move Logic ---
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const movePoint = getPointerPosition(e, e.currentTarget);
+
+    if (lassoPath) {
+      setLassoPath(prev => [...(prev ?? []), movePoint]);
+      return;
+    }
 
     if (dragState) {
       if (dragState.type === 'anchor' || dragState.type === 'handleIn' || dragState.type === 'handleOut') {
@@ -346,6 +359,20 @@ export const useSelection = ({
   // --- Pointer Up/Leave Logic ---
 
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (lassoPath && lassoPath.length > 1) {
+      const intersectingIds = paths.filter((path: AnyPath) => isPathIntersectingLasso(path, lassoPath)).map((path: AnyPath) => path.id);
+      
+      if (e.shiftKey) {
+        setSelectedPathIds((ids: string[]) => Array.from(new Set([...ids, ...intersectingIds])));
+      } else {
+        setSelectedPathIds(intersectingIds);
+      }
+
+      setLassoPath(null);
+      setSelectionMode('move');
+      return;
+    }
+    
     if (dragState) {
       if (isClosingPath.current) {
         const { pathId, anchorIndex } = isClosingPath.current;
@@ -390,6 +417,10 @@ export const useSelection = ({
   };
   
   const onPointerLeave = () => {
+    if (lassoPath) {
+      setLassoPath(null);
+      setSelectionMode('move');
+    }
     if (dragState) { 
       endCoalescing(); 
       setDragState(null); 
@@ -397,5 +428,5 @@ export const useSelection = ({
     if (marquee) setMarquee(null);
   };
 
-  return { onPointerDown, onPointerMove, onPointerUp, onPointerLeave, marquee, dragState };
+  return { onPointerDown, onPointerMove, onPointerUp, onPointerLeave, marquee, dragState, lassoPath };
 };
