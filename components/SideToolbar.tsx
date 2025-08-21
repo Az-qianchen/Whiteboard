@@ -189,7 +189,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       
       <StylePropertiesPopover {...props} />
 
-      <div className="h-px w-full bg-[var(--separator)] my-1"></div>
+      <div className="h-px w-full bg-[var(--ui-separator)] my-1"></div>
       
       <div className="flex flex-col items-center gap-1 w-14" title="样式库">
         <button 

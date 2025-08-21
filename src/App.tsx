@@ -411,12 +411,6 @@ const App: React.FC = () => {
         canvasHeight={canvasHeight}
         isStatusBarCollapsed={isStatusBarCollapsed}
         onToggleStatusBarCollapse={() => setIsStatusBarCollapsed(prev => !prev)}
-        paths={paths}
-        selectedPathIds={selectedPathIds}
-        setSelectedPathIds={pathState.setSelectedPathIds}
-        onTogglePathProperty={pathState.togglePathsProperty}
-        onReorderPaths={pathState.reorderPaths}
-        onDeletePaths={pathState.handleDeletePaths}
       />
 
       <main className="flex-grow h-full relative">

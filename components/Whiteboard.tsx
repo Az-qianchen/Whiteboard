@@ -95,6 +95,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     return paths.filter(p => selectedPathIds.includes(p.id));
   }, [paths, selectedPathIds]);
 
+  const visiblePaths = useMemo(() => paths.filter(p => p.isVisible !== false), [paths]);
+
   return (
     <div
       className="w-full h-full bg-transparent overflow-hidden touch-none"
@@ -114,7 +116,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
           
-          <PathsRenderer paths={paths} rc={rc} />
+          <PathsRenderer paths={visiblePaths} rc={rc} />
 
           <LivePreviewRenderer
             currentLivePath={currentLivePath}
@@ -138,7 +140,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />
-          <Lasso lassoPath={lassoPath} />
+          <Lasso lassoPath={lassoPath} viewTransform={viewTransform} />
           
         </g>
       </svg>

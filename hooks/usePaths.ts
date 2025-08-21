@@ -176,12 +176,17 @@ export const usePaths = () => {
     // And reset any selections.
     setSelectedPathIds([]);
   }, [endCoalescing]);
+  
+  const handleDeletePaths = useCallback((idsToDelete: string[]) => {
+    if (idsToDelete.length === 0) return;
+    setPaths(prev => prev.filter(p => !idsToDelete.includes(p.id)));
+    // Also remove them from selection if they were selected
+    setSelectedPathIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+  }, [setPaths, setSelectedPathIds]);
 
   const handleDeleteSelected = useCallback(() => {
-    if (selectedPathIds.length === 0) return;
-    setPaths(prev => prev.filter(p => !selectedPathIds.includes(p.id)));
-    setSelectedPathIds([]);
-  }, [selectedPathIds, setPaths, setSelectedPathIds]);
+    handleDeletePaths(selectedPathIds);
+  }, [selectedPathIds, handleDeletePaths]);
 
   const handleReorder = useCallback((direction: 'forward' | 'backward' | 'front' | 'back') => {
     if (selectedPathIds.length === 0) return;
@@ -225,6 +230,35 @@ export const usePaths = () => {
     });
   }, [selectedPathIds, setPaths]);
 
+  const togglePathsProperty = useCallback((pathIds: string[], property: 'isVisible' | 'isLocked') => {
+      setPaths(prevPaths => prevPaths.map(p => {
+          if (pathIds.includes(p.id)) {
+              // isVisible defaults to true, isLocked defaults to false
+              const currentVal = p[property] ?? (property === 'isVisible' ? true : false);
+              return { ...p, [property]: !currentVal };
+          }
+          return p;
+      }));
+  }, [setPaths]);
+
+  const reorderPaths = useCallback((draggedId: string, targetId: string, position: 'above' | 'below') => {
+      setPaths(currentPaths => {
+          const pathsCopy = [...currentPaths];
+          const draggedIndex = pathsCopy.findIndex(p => p.id === draggedId);
+          if (draggedIndex === -1) return currentPaths;
+
+          const [draggedItem] = pathsCopy.splice(draggedIndex, 1);
+
+          const targetIndexRaw = pathsCopy.findIndex(p => p.id === targetId);
+          if (targetIndexRaw === -1) return currentPaths;
+          
+          const finalIndex = position === 'above' ? targetIndexRaw + 1 : targetIndexRaw;
+
+          pathsCopy.splice(finalIndex, 0, draggedItem);
+          return pathsCopy;
+      });
+  }, [setPaths]);
+
   const canUndo = (currentPenPath && currentPenPath.anchors.length > 0) || (currentLinePath && currentLinePath.anchors.length > 0) || historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
   const canClear = paths.length > 0 || !!currentBrushPath || !!currentPenPath || !!currentLinePath;
@@ -255,7 +289,10 @@ export const usePaths = () => {
     handleClear,
     canClear,
     handleDeleteSelected,
+    handleDeletePaths,
     handleLoadFile,
     handleReorder,
+    togglePathsProperty,
+    reorderPaths,
   };
 };

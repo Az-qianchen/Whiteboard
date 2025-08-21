@@ -1,96 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SVG Whiteboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      :root {
-        --bg-gradient: #17171c;
-        --ui-panel-bg: rgba(40, 42, 48, 0.75);
-        --ui-popover-bg: rgba(30, 32, 36, 0.95);
-        --ui-panel-border: rgba(110, 120, 130, 0.2);
-        --text-primary: rgb(220, 230, 240);
-        --text-secondary: rgb(130, 140, 150);
-        --accent-primary: rgb(22, 163, 175);
-        --accent-secondary: rgba(22, 163, 175, 0.2);
-        --danger: rgb(239, 68, 68);
-        --danger-bg: rgba(239, 68, 68, 0.1);
-        --ui-hover-bg: rgba(255, 255, 255, 0.08);
-        --separator: rgba(110, 120, 130, 0.4);
-        --grid-line: rgba(110, 120, 130, 0.15);
-      }
-      body {
-        overscroll-behavior: none;
-        background: var(--bg-gradient);
-      }
-      /* Hide number input spinners */
-      .hide-spinners::-webkit-outer-spin-button,
-      .hide-spinners::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-      .hide-spinners {
-        -moz-appearance: textfield;
-      }
-      
-      /* Custom Scrollbar Styles */
-      /* For Webkit-based browsers (Chrome, Safari, Edge) */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background-color: var(--separator);
-        border-radius: 10px;
-        border: 2px solid transparent;
-        background-clip: content-box;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--accent-primary);
-      }
-
-      /* For Firefox */
-      * {
-          scrollbar-width: thin;
-          scrollbar-color: var(--separator) transparent;
-      }
-
-      /* Responsive sidebar */
-      @media (max-height: 800px) {
-        .sidebar-label {
-          display: none;
-        }
-        .sidebar-container {
-          gap: 0.5rem; /* 8px, from gap-4 (16px) */
-        }
-      }
-    </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@18.2.0",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "roughjs/": "https://esm.sh/roughjs@^4.6.6/",
+    "svgo/dist/svgo.browser.js": "https://esm.sh/svgo@3.3.2/dist/svgo.browser.js",
+    "@headlessui/react": "https://esm.sh/@headlessui/react@^2.2.7?external=react,react-dom",
+    "hotkeys-js": "https://esm.sh/hotkeys-js@^3.13.15",
+    "paper": "https://esm.sh/paper@^0.12.18",
+    "browser-fs-access": "https://esm.sh/browser-fs-access@^0.38.0",
     "react-dom/": "https://esm.sh/react-dom@18.2.0/",
     "react/": "https://esm.sh/react@18.2.0/",
-    "roughjs/": "https://esm.sh/roughjs@4.6.6/",
-    "hotkeys-js": "https://unpkg.com/hotkeys-js/dist/hotkeys.esm.js",
-    "@headlessui/react": "https://esm.sh/@headlessui/react@2.1.2?external=react",
-    "paper": "https://esm.sh/paper@0.12.17",
-    "browser-fs-access": "https://esm.sh/browser-fs-access",
-    "svgo": "https://esm.sh/svgo@3.3.2"
+    "svgo/": "https://esm.sh/svgo@^4.0.0/"
   }
 }
 </script>
+<style>
+  :root {
+    /* Base & Text */
+    --bg-color: #121215;
+    --text-primary: rgb(240, 240, 245);
+    --text-secondary: rgb(160, 160, 165);
+
+    /* Accent Colors */
+    --accent-primary: #3B82F6; /* blue-500 */
+    --accent-secondary: rgb(63, 63, 70); /* gray-700 - Used for active states on non-accented items */
+    --accent-bg: rgba(59, 130, 246, 0.15); /* Transparent accent for backgrounds */
+    --accent-solid-bg: var(--accent-primary);
+    --text-on-accent-solid: #FFFFFF;
+    
+    /* Danger / Destructive Actions */
+    --danger-text: #F43F5E; /* rose-500 */
+    --danger-bg: rgba(244, 63, 94, 0.15);
+
+    /* UI Panels & Elements */
+    --ui-panel-bg: rgba(28, 28, 32, 0.75);
+    --ui-popover-bg: rgba(28, 28, 32, 0.90);
+    --ui-panel-border: rgba(255, 255, 255, 0.1);
+    --ui-separator: rgba(255, 255, 255, 0.1);
+    --ui-subtle-ring: rgba(255, 255, 255, 0.15);
+    
+    /* Interactive States */
+    --ui-hover-bg: rgba(255, 255, 255, 0.1);
+    --ui-element-bg: rgba(0, 0, 0, 0.2);
+    --ui-element-bg-hover: rgba(255, 255, 255, 0.08);
+    --ui-element-bg-active: rgba(255, 255, 255, 0.12);
+    --ui-element-bg-inactive: rgba(0, 0, 0, 0.3);
+
+    /* Canvas Specific */
+    --grid-line: rgba(255, 255, 255, 0.07);
+    --accent-highlight-fill: rgba(59, 130, 246, 0.1);
+    --accent-highlight-stroke: rgba(59, 130, 246, 0.7);
+    --accent-primary-muted: #2563EB; /* A bit darker blue */
+    --accent-primary-highlight: rgba(59, 130, 246, 0.2);
+    
+    /* Custom Scrollbar for Style Library */
+    --scrollbar-bg: transparent;
+    --scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
+    --scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.3);
+  }
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
+  }
+  /* Hide number input spinners */
+  .hide-spinners::-webkit-outer-spin-button,
+  .hide-spinners::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .hide-spinners {
+    -moz-appearance: textfield;
+  }
+  /* Custom scrollbar for webkit browsers */
+  .style-library-grid::-webkit-scrollbar,
+  .layers-panel-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  .style-library-grid::-webkit-scrollbar-track,
+  .layers-panel-list::-webkit-scrollbar-track {
+    background: var(--scrollbar-bg);
+  }
+  .style-library-grid::-webkit-scrollbar-thumb,
+  .layers-panel-list::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-bg);
+    border-radius: 10px;
+    border: 2px solid var(--ui-popover-bg); /* Use popover bg for the border */
+  }
+  .style-library-grid::-webkit-scrollbar-thumb:hover,
+  .layers-panel-list::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover-bg);
+  }
+  /* Tweak slider styles for better theme integration */
+  input[type=range].themed-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+  }
+  input[type=range].themed-slider::-webkit-slider-runnable-track {
+    background: var(--ui-element-bg);
+    height: 0.25rem;
+    border-radius: 0.25rem;
+  }
+  input[type=range].themed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -0.375rem;
+    background-color: var(--text-primary);
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    border: 2px solid var(--accent-primary);
+  }
+  input[type=range].themed-slider::-moz-range-track {
+    background: var(--ui-element-bg);
+    height: 0.25rem;
+    border-radius: 0.25rem;
+  }
+  input[type=range].themed-slider::-moz-range-thumb {
+    background-color: var(--text-primary);
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    border: 2px solid var(--accent-primary);
+  }
+</style>
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

@@ -3,7 +3,7 @@
  * 它是一个通用组件，用于在指定位置显示一个操作列表，如剪切、复制、粘贴等。
  */
 
-import React, { useEffect, useRef, Fragment } from 'react';
+import React, { useState, useLayoutEffect, useEffect, useRef, Fragment } from 'react';
 import { Transition } from '@headlessui/react';
 
 interface ContextMenuProps {
@@ -21,6 +21,7 @@ interface ContextMenuProps {
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, actions, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [adjustedPosition, setAdjustedPosition] = useState(position);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -38,6 +39,32 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
     };
   }, [isOpen, onClose]);
 
+  // Adjust position to stay within viewport
+  useLayoutEffect(() => {
+    if (isOpen && menuRef.current) {
+      const menu = menuRef.current;
+      const { offsetWidth: menuWidth, offsetHeight: menuHeight } = menu;
+      const { innerWidth: viewportWidth, innerHeight: viewportHeight } = window;
+      const margin = 5; // 5px margin from the edge
+
+      let newX = position.x;
+      let newY = position.y;
+
+      if (newX + menuWidth + margin > viewportWidth) {
+        newX = viewportWidth - menuWidth - margin;
+      }
+      if (newY + menuHeight + margin > viewportHeight) {
+        newY = viewportHeight - menuHeight - margin;
+      }
+      
+      newX = Math.max(margin, newX);
+      newY = Math.max(margin, newY);
+
+      setAdjustedPosition({ x: newX, y: newY });
+    }
+  }, [isOpen, position]);
+
+
   return (
     <Transition
       show={isOpen}
@@ -51,12 +78,12 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
     >
       <div
         ref={menuRef}
-        style={{ top: position.y, left: position.x }}
+        style={{ top: adjustedPosition.y, left: adjustedPosition.x }}
         className="fixed z-50 w-48 min-w-max bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-1"
       >
         <div className="flex flex-col">
           {actions.map((action, index) => (
-             action.label === '---' ? <div key={`sep-${index}`} className="h-px my-1 bg-[var(--separator)]" /> : (
+             action.label === '---' ? <div key={`sep-${index}`} className="h-px my-1 bg-[var(--ui-separator)]" /> : (
             <button
               key={action.label}
               onClick={async () => {
@@ -68,8 +95,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
               disabled={action.disabled}
               className={`w-full flex items-center justify-between p-2 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 action.isDanger
-                  ? 'text-[var(--danger)] hover:bg-[var(--danger-bg)]'
-                  : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]'
+                  ? 'text-[var(--danger-text)] hover:bg-[var(--danger-bg)]'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]'
               }`}
             >
               <span className="flex-grow pr-4">{action.label}</span>

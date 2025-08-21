@@ -21,6 +21,21 @@ interface SelectionToolbarProps {
   onDistribute: (axis: 'horizontal' | 'vertical', options: { spacing: number | null; mode: DistributeMode }) => void;
 }
 
+const MODES = [
+  { name: 'move', title: '移动/变换 (M)', icon: ICONS.MOVE },
+  { name: 'edit', title: '编辑锚点 (V)', icon: ICONS.EDIT },
+  { name: 'lasso', title: '套索选择', icon: ICONS.LASSO },
+];
+
+const ALIGN_BUTTONS = [
+  { name: 'left', title: '左对齐', icon: ICONS.ALIGN_LEFT },
+  { name: 'h-center', title: '水平居中', icon: ICONS.ALIGN_HORIZONTAL_CENTER },
+  { name: 'right', title: '右对齐', icon: ICONS.ALIGN_RIGHT },
+  { name: 'top', title: '顶端对齐', icon: ICONS.ALIGN_TOP },
+  { name: 'v-center', title: '垂直居中', icon: ICONS.ALIGN_VERTICAL_CENTER },
+  { name: 'bottom', title: '底端对齐', icon: ICONS.ALIGN_BOTTOM },
+];
+
 export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ 
   selectionMode, 
   setSelectionMode,
@@ -32,12 +47,6 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   onAlign,
   onDistribute,
 }) => {
-  const modes = [
-    { name: 'move', title: '移动/变换 (M)', icon: ICONS.MOVE },
-    { name: 'edit', title: '编辑锚点 (V)', icon: ICONS.EDIT },
-    { name: 'lasso', title: '套索选择', icon: ICONS.LASSO },
-  ];
-  
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
   const [distributeSpacing, setDistributeSpacing] = useState<string>('');
@@ -62,19 +71,9 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   const canAlign = selectedPathIds.length >= 2;
   const canDistribute = selectedPathIds.length >= 2;
 
-
-  const alignButtons = [
-    { name: 'left', title: '左对齐', icon: ICONS.ALIGN_LEFT },
-    { name: 'h-center', title: '水平居中', icon: ICONS.ALIGN_HORIZONTAL_CENTER },
-    { name: 'right', title: '右对齐', icon: ICONS.ALIGN_RIGHT },
-    { name: 'top', title: '顶端对齐', icon: ICONS.ALIGN_TOP },
-    { name: 'v-center', title: '垂直居中', icon: ICONS.ALIGN_VERTICAL_CENTER },
-    { name: 'bottom', title: '底端对齐', icon: ICONS.ALIGN_BOTTOM },
-  ];
-
   return (
     <div className="flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
-      {modes.map((mode) => (
+      {MODES.map((mode) => (
         <button
           key={mode.name}
           type="button"
@@ -82,8 +81,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           onClick={() => setSelectionMode(mode.name as SelectionMode)}
           className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
             selectionMode === mode.name
-              ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)]'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]'
+              ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
           }`}
         >
           {mode.icon}
@@ -94,7 +93,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           <Popover className="relative">
             <Popover.Button
               title="简化路径"
-              className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]"
+              className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
             >
               {ICONS.SIMPLIFY_PATH}
             </Popover.Button>
@@ -117,7 +116,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           <Popover className="relative">
              <Popover.Button
                   title="对齐与分布"
-                  className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]"
+                  className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 >
                   {ICONS.ALIGN_DISTRIBUTE}
             </Popover.Button>
@@ -127,33 +126,33 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     <div>
                       <label className="text-sm font-semibold text-[var(--text-primary)]">对齐</label>
                       <div className="grid grid-cols-6 gap-1 mt-2">
-                        {alignButtons.map(btn => (
-                           <button key={btn.name} onClick={() => onAlign(btn.name as Alignment)} title={btn.title} disabled={!canAlign} className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed">{btn.icon}</button>
+                        {ALIGN_BUTTONS.map(btn => (
+                           <button key={btn.name} onClick={() => onAlign(btn.name as Alignment)} title={btn.title} disabled={!canAlign} className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed">{btn.icon}</button>
                         ))}
                       </div>
                     </div>
                     
-                    <div className="h-px bg-[var(--separator)]" />
+                    <div className="h-px bg-[var(--ui-separator)]" />
 
                     <div>
                       <label className="text-sm font-semibold text-[var(--text-primary)]">分布</label>
                       <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => handleDistribute('horizontal')} disabled={!canDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-black/20 hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
-                        <button onClick={() => handleDistribute('vertical')} disabled={!canDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-black/20 hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
+                        <button onClick={() => handleDistribute('horizontal')} disabled={!canDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
+                        <button onClick={() => handleDistribute('vertical')} disabled={!canDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-3">
                          <div>
                             <RadioGroup value={distributeMode} onChange={setDistributeMode}>
                               <RadioGroup.Label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">均匀间隔</RadioGroup.Label>
-                              <div className="flex bg-black/20 rounded-md p-1">
-                                <RadioGroup.Option value="edges" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-sm cursor-pointer ${checked ? 'bg-white/20 text-white' : 'text-[var(--text-secondary)] hover:bg-white/10'}`}>边</RadioGroup.Option>
-                                <RadioGroup.Option value="centers" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-sm cursor-pointer ${checked ? 'bg-white/20 text-white' : 'text-[var(--text-secondary)] hover:bg-white/10'}`}>中心</RadioGroup.Option>
+                              <div className="flex bg-[var(--ui-element-bg)] rounded-md p-1">
+                                <RadioGroup.Option value="edges" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-sm cursor-pointer ${checked ? 'bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>边</RadioGroup.Option>
+                                <RadioGroup.Option value="centers" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-sm cursor-pointer ${checked ? 'bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>中心</RadioGroup.Option>
                               </div>
                             </RadioGroup>
                          </div>
                          <div>
                             <label htmlFor="dist-spacing" className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">固定间距</label>
-                             <div className="flex items-center bg-black/20 rounded-md h-[34px] px-2">
+                             <div className="flex items-center bg-[var(--ui-element-bg)] rounded-md h-[34px] px-2">
                               <input
                                 id="dist-spacing"
                                 type="number"

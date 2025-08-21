@@ -1,66 +1,59 @@
-<!-- 
-  此文件是项目的主要文档文件。
-  它使用 Markdown 格式，提供了对项目功能、快捷键和技术架构的详细介绍。
--->
+# SVG Whiteboard
 
-# SVG 白板
+A decent whiteboard tool, similar to Excalidraw, for drawing hand-drawn style vector graphics. It gets the job done.
 
-一个功能强大的白板工具，类似于 Excalidraw，用于绘制手绘风格的矢量图形。
+## Features
 
-## 功能特性
+- **Brush Tool**: Quickly draw freehand-style lines with adjustable roughness.
+- **Pen Tool**: Create and edit precise, smooth Bézier curves.
+- **Shape Tools**: Draw rectangles, ellipses, and lines.
+- **Edit Tool**: Fine-tune any path by moving anchor points and control handles.
+- **Rich Toolbar**: Includes color pickers, stroke width, undo/redo, and clear canvas functions.
+- **Pan & Zoom**: Smooth canvas navigation.
+- **Grid & Snapping**: Toggleable grid and snapping for precise alignment.
 
-- **画笔工具**: 快速绘制可调节粗糙度的手绘风格线条。
-- **钢笔工具**: 创建和编辑精确、平滑的贝塞尔曲线。
-- **形状工具**: 绘制矩形、椭圆和直线。
-- **编辑工具**: 通过移动锚点和控制手柄来微调任何路径。
-- **丰富的工具栏**: 包括颜色选择器、描边宽度、撤销/重做和清空画布功能。
-- **平移与缩放**: 流畅的画布导航体验。
-- **网格与吸附**: 可切换的网格和吸附功能，用于精确定位。
+## Shortcuts
 
-## 快捷键
+### Tools
 
-### 工具
-- `V`: 编辑工具
-- `M`: 移动工具
-- `B`: 画笔工具
-- `P`: 钢笔工具
-- `R`: 矩形工具
-- `O`: 椭圆工具
-- `L`: 直线工具
+- `V`: Edit Tool
+- `M`: Move Tool
+- `B`: Brush Tool
+- `P`: Pen Tool
+- `R`: Rectangle Tool
+- `O`: Ellipse Tool
+- `L`: Line Tool
 
-### 编辑
-- `Ctrl/Cmd + Z`: 撤销
-- `Ctrl/Cmd + Shift + Z`: 重做
-- `Ctrl/Cmd + C`: 复制选中项
-- `Ctrl/Cmd + V`: 粘贴 (支持图形、图片和完整的画布数据)
-- `Backspace` / `Delete`: 删除选中项
-- `Escape`: 清除选中 / 取消当前绘制
-- `Enter`: (使用钢笔/直线工具时) 完成路径
-- `右键 -> 复制画布`: 将整个画布复制为文本以便保存。
+### Editing
 
-### 绘图辅助
-- `Shift` + 拖动形状: 绘制正方形/圆形。
-- `Shift` + 拖动直线: 将直线吸附到 45° 增量。
-- `Shift` + 拖动控制柄: (非对称)独立移动贝塞尔曲线的控制柄。
-- `Ctrl` + 点击路径: (在编辑模式下) 在路径上添加新锚点。
-- `Alt` + 点击锚点: (在编辑模式下) 从路径中删除锚点。
+- `Ctrl/Cmd + Z`: Undo
+- `Ctrl/Cmd + Shift + Z`: Redo
+- `Ctrl/Cmd + C`: Copy Selection
+- `Ctrl/Cmd + V`: Paste (supports shapes, images, and full canvas data)
+- `Backspace` / `Delete`: Delete Selection
+- `Escape`: Clear Selection / Cancel Current Drawing
+- `Enter`: (With Pen/Line tool) Finish Path
 
-### 画布
-- **平移**: 按住鼠标中键并拖动，或 `Alt` + 拖动。
-- **缩放**: 使用鼠标滚轮。
-- `G`: 切换网格和吸附
+### Drawing Helpers
 
-## 项目架构
-该项目采用基于 React Hooks 的现代架构，以实现关注点分离和最大化的可维护性。
+- `Shift` + Drag Shape: Draw a perfect square/circle.
+- `Shift` + Drag Line: Snap line to 45° increments.
+- `Shift` + Drag Handle: Move a Bézier handle independently (asymmetrically).
+- `Ctrl` + Click on Path: (In Edit mode) Add a new point to a path.
+- `Alt` + Click on Anchor: (In Edit mode) Delete a point from a path.
 
-- `App.tsx`: 应用的组合根，将所有部分连接在一起。
-- `components/`: 包含 UI 组件，如 `Toolbar` 和 `Whiteboard`。
-- `hooks/`: 在自定义 React Hooks 中包含了大部分应用逻辑。
-  - `usePaths`: 管理所有路径数据（创建、更新、历史记录）。
-  - `useToolbarState`: 管理工具栏的状态（颜色、描边宽度、当前工具）。
-  - `usePointerInteraction`: 处理画布上的所有指针事件（绘图、编辑、选择）。
-  - `useViewTransform`: 控制画布的平移和缩放。
-  - `useGlobalEventHandlers`: 管理全局事件，如快捷键和剪贴板操作。
-- `lib/`: 包含辅助函数和算法。`drawing` 子目录处理所有几何计算和转换。
-- `types.ts`: 定义了整个应用程序中使用的数据结构和类型。
-- `constants.tsx`: 存储应用范围内的常量，如颜色和图标。
+### Canvas
+
+- **Pan**: Hold middle mouse button and drag, or `Alt` + drag.
+- **Zoom**: Use the mouse wheel.
+- `G`: Toggle Grid & Snapping
+
+## Project Architecture
+The project uses a modern architecture based on React Hooks to achieve separation of concerns and maximum maintainability.
+
+- `src/App.tsx`: The composition root of the application, wiring everything together.
+- `src/components/`: Contains UI components like `Toolbar` and `Whiteboard`.
+- `src/hooks/`: Contains the majority of the application logic in custom React Hooks.
+- `src/lib/`: Contains helper functions and algorithms.
+- `src/types.ts`: Defines the data structures and types used throughout the application.
+- `src/constants.tsx`: Stores application-wide constants like colors and icons.

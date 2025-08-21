@@ -47,21 +47,35 @@ const StyleSwatch: React.FC<{ style: StyleClipboardData }> = React.memo(({ style
         }
     }, [rc, pathData]);
 
-    return <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 32 32" className="bg-white/5 rounded-md" />;
+    return <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 32 32" className="bg-[var(--ui-element-bg)] rounded-md" />;
 });
 
 
 const MaterialSwatch: React.FC<{ material: MaterialData }> = React.memo(({ material }) => {
-    const svgString = useMemo(() => {
-        return pathsToSvgString(material.shapes, 0); // Use 0 padding for a tight fit
-    }, [material.shapes]);
+    const [svgString, setSvgString] = useState<string | null>(null);
 
-    if (!svgString) return null;
+    useEffect(() => {
+        let isCancelled = false;
+        const generateSvg = async () => {
+            const str = await pathsToSvgString(material.shapes, 0);
+            if (!isCancelled) {
+                setSvgString(str);
+            }
+        };
+        generateSvg();
+        return () => {
+            isCancelled = true;
+        };
+    }, [material]);
+
+    if (!svgString) {
+        return <div className="w-full h-full bg-[var(--ui-element-bg)] rounded-md p-1 flex items-center justify-center pointer-events-none" />;
+    }
 
     return (
-        <div className="w-full h-full bg-white/5 rounded-md p-1 flex items-center justify-center pointer-events-none">
+        <div className="w-full h-full bg-[var(--ui-element-bg)] rounded-md p-1 flex items-center justify-center pointer-events-none">
             <img 
-                src={`data:image/svg+xml;base64,${btoa(svgString)}`} 
+                src={`data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`} 
                 alt="Material preview"
                 className="max-w-full max-h-full"
             />
@@ -86,6 +100,7 @@ interface StyleLibraryPanelProps {
   onApplyMaterial: (material: MaterialData, position?: { x: number; y: number }) => void;
   onSaveLibrary: () => Promise<void>;
   onLoadLibrary: () => Promise<void>;
+  onClearLibrary: () => void;
 }
 
 export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
@@ -104,10 +119,15 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
   onApplyMaterial,
   onSaveLibrary,
   onLoadLibrary,
+  onClearLibrary,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const handleDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // If the click is on a button or an interactive child, don't start a drag.
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
     if (e.button !== 0) return;
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
@@ -157,13 +177,6 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
   
   const tabs = ['样式', '素材'];
 
-  const handleClearLibrary = () => {
-      if (window.confirm('您确定要清空所有样式和素材吗？此操作无法撤销。')) {
-          setStyleLibrary([]);
-          setMaterialLibrary([]);
-      }
-  };
-
   return (
     <div
       ref={panelRef}
@@ -179,16 +192,16 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
           onPointerDown={handleDragPointerDown}
         >
 
-          <div onPointerDown={e => e.stopPropagation()}>
-            <Tab.List className="flex space-x-1 rounded-lg bg-black/20 p-1">
+          <div>
+            <Tab.List className="flex space-x-1 rounded-lg bg-[var(--ui-element-bg)] p-1">
               {tabs.map(tab => (
                 <Tab as={Fragment} key={tab}>
                   {({ selected }) => (
                     <button
                       className={`w-16 rounded-md py-1.5 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-[var(--ui-popover-bg)] ring-[var(--accent-primary)] ${
                         selected
-                          ? 'bg-white text-gray-900 shadow'
-                          : 'text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] hover:text-white'
+                          ? 'bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] shadow'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
                       }`}
                     >
                       {tab}
@@ -201,23 +214,23 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
 
           <div className="flex items-center">
               <Popover as="div" className="relative">
-                <Popover.Button onPointerDown={e => e.stopPropagation()} className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]" title="素材库选项">
+                <Popover.Button className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]" title="素材库选项">
                   {ICONS.MORE_VERTICAL}
                 </Popover.Button>
                  <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
                   <Popover.Panel className="absolute top-full mt-1 right-0 w-48 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-50 p-1">
                     {({ close }) => (
                       <div className="flex flex-col">
-                        <button onClick={async () => { await onLoadLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]">
+                        <button onClick={async () => { await onLoadLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]">
                           <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.OPEN}</div>
                           <span>加载...</span>
                         </button>
-                        <button onClick={async () => { await onSaveLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]">
+                        <button onClick={async () => { await onSaveLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]">
                           <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.SAVE}</div>
                           <span>保存...</span>
                         </button>
-                        <div className="h-px my-1 bg-[var(--separator)]" />
-                        <button onClick={() => { handleClearLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger)] hover:bg-[var(--danger-bg)]">
+                        <div className="h-px my-1 bg-[var(--ui-separator)]" />
+                        <button onClick={() => { onClearLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]">
                           <div className="w-4 h-4 flex-shrink-0">{ICONS.TRASH}</div>
                           <span>清空素材库</span>
                         </button>
@@ -229,8 +242,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
 
               <button
                 onClick={onClose}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]"
+                className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 title="关闭面板"
               >
                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -240,12 +252,12 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
         
         <Tab.Panels className="p-2">
           <Tab.Panel>
-            <div className="max-h-60 overflow-y-auto p-2">
+            <div className="max-h-60 overflow-y-auto p-2 style-library-grid">
                 <div className="grid grid-cols-5 gap-2">
                     <button
                         onClick={onAddStyle}
                         disabled={!canAddStyle}
-                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="从选区添加样式"
                     >
                         {ICONS.PLUS}
@@ -263,7 +275,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             </button>
                             <button 
                               onClick={() => handleDeleteStyle(index)} 
-                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除样式"
                             >
                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -274,12 +286,12 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
             </div>
           </Tab.Panel>
           <Tab.Panel>
-             <div className="max-h-60 overflow-y-auto p-2">
+             <div className="max-h-60 overflow-y-auto p-2 style-library-grid">
                 <div className="grid grid-cols-3 gap-2">
                      <button
                         onClick={onAddMaterial}
                         disabled={!canAddMaterial}
-                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="从选区添加素材"
                     >
                         {ICONS.PLUS}
@@ -298,7 +310,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             </button>
                             <button 
                               onClick={() => handleDeleteMaterial(index)} 
-                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除素材"
                             >
                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>

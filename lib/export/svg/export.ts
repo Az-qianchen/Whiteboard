@@ -1,8 +1,7 @@
-import type { AnyPath } from '../../types';
+import type { AnyPath } from '../../../types';
 import rough from 'roughjs/bin/rough';
 import { getPathsBoundingBox } from '../../drawing';
 import { renderPathNode } from '../core/render';
-import { optimize } from 'svgo';
 
 /**
  * Creates an SVG string from an array of path data, with an option to optimize it using SVGO.
@@ -10,7 +9,7 @@ import { optimize } from 'svgo';
  * @param padding - Optional padding around the bounding box. Defaults to 20.
  * @returns An optimized SVG string, or null if no paths are provided.
  */
-export function pathsToSvgString(paths: AnyPath[], padding: number = 20): string | null {
+export async function pathsToSvgString(paths: AnyPath[], padding: number = 20): Promise<string | null> {
   if (paths.length === 0) return null;
 
   const bbox = getPathsBoundingBox(paths, true);
@@ -36,6 +35,7 @@ export function pathsToSvgString(paths: AnyPath[], padding: number = 20): string
 
   // --- NEW OPTIMIZATION STEP ---
   try {
+    const { optimize } = await import('svgo/dist/svgo.browser.js');
     const { data } = optimize(rawSvgString, {
       multipass: true,
       plugins: [

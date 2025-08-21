@@ -63,7 +63,7 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
                                 </div>
                             </div>
 
-                            <div className="h-px bg-[var(--separator)]" />
+                            <div className="h-px bg-[var(--ui-separator)]" />
 
                             <div className="space-y-4">
                                 <Slider label="填充权重" value={fillWeight} setValue={setFillWeight} min={0.1} max={5} step={0.1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />

@@ -109,6 +109,7 @@ export const useSelection = ({
 
     let clickedPathId: string | null = null;
     for (let i = paths.length - 1; i >= 0; i--) {
+      if (paths[i].isLocked) continue;
       if (isPointHittingPath(point, paths[i], vt.scale)) {
         clickedPathId = paths[i].id;
         break;
@@ -177,6 +178,7 @@ export const useSelection = ({
       let pathToAddTo: VectorPathData | null = null;
       for (let i = paths.length - 1; i >= 0; i--) {
         const p = paths[i];
+        if (p.isLocked) continue;
         if ((p.tool === 'pen' || p.tool === 'line') && isPointHittingPath(point, p, vt.scale)) {
           pathToAddTo = p as VectorPathData;
           break;
@@ -214,6 +216,7 @@ export const useSelection = ({
     
     let clickedPathId: string | null = null;
     for (let i = paths.length - 1; i >= 0; i--) {
+      if (paths[i].isLocked) continue;
       if (isPointHittingPath(point, paths[i], vt.scale)) {
         clickedPathId = paths[i].id;
         break;
@@ -303,130 +306,109 @@ export const useSelection = ({
           case 'scale': {
             const { originalPaths, initialSelectionBbox, handle, initialPointerPos } = dragState;
             const snappedMovePoint = snapToGrid(movePoint);
-            const dummyRect: RectangleData = { ...initialSelectionBbox, tool: 'rectangle', id: '', color: '', fill: '', fillStyle: '', strokeWidth: 0, roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 0, curveTightness: 0, curveStepCount: 0 };
-            const newBbox = resizePath(dummyRect, handle, snappedMovePoint, initialPointerPos, e.shiftKey) as RectangleData;
-            
-            if (newBbox.width !== 0 && newBbox.height !== 0 && initialSelectionBbox.width !== 0 && initialSelectionBbox.height !== 0) {
-              const scaleX = newBbox.width / initialSelectionBbox.width;
-              const scaleY = newBbox.height / initialSelectionBbox.height;
-              
-              const handleIsLeft = handle.includes('left');
-              const handleIsTop = handle.includes('top');
-              let pivot: Point;
-              if (handle === 'top' || handle === 'bottom') {
-                pivot = { x: initialSelectionBbox.x + initialSelectionBbox.width / 2, y: handleIsTop ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y };
-              } else if (handle === 'left' || handle === 'right') {
-                pivot = { x: handleIsLeft ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x, y: initialSelectionBbox.y + initialSelectionBbox.height / 2 };
-              } else {
-                pivot = { x: handleIsLeft ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x, y: handleIsTop ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y };
-              }
-              
-              transformedShapes = originalPaths.map(p => scalePath(p, pivot, scaleX, scaleY));
-            }
-            break;
-          }
-          case 'move': {
-            const { initialPointerPos, initialSelectionBbox, originalPaths } = dragState;
-            const dxUnsnapped = movePoint.x - initialPointerPos.x;
-            const dyUnsnapped = movePoint.y - initialPointerPos.y;
-            const newBboxTopLeft = {
-              x: initialSelectionBbox.x + dxUnsnapped,
-              y: initialSelectionBbox.y + dyUnsnapped,
-            };
-            const snappedBboxTopLeft = snapToGrid(newBboxTopLeft);
-            const dx = snappedBboxTopLeft.x - initialSelectionBbox.x;
-            const dy = snappedBboxTopLeft.y - initialSelectionBbox.y;
-            transformedShapes = originalPaths.map(op => movePath(op, dx, dy));
+            const dummyRect: RectangleData = { ...initialSelectionBbox, tool: 'rectangle', id: '', color: '', fill: '', fillStyle: '', strokeWidth: 0, roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 4, curveTightness: 0, curveStepCount: 9 };
+            const resizedRect = resizePath(dummyRect, handle, snappedMovePoint, initialPointerPos, e.shiftKey);
+            const scaleX = resizedRect.width / initialSelectionBbox.width;
+            const scaleY = resizedRect.height / initialSelectionBbox.height;
+            const pivot = { x: 0, y: 0 };
+            if (handle.includes('right')) pivot.x = initialSelectionBbox.x; else if (handle.includes('left')) pivot.x = initialSelectionBbox.x + initialSelectionBbox.width; else pivot.x = initialSelectionBbox.x + initialSelectionBbox.width / 2;
+            if (handle.includes('bottom')) pivot.y = initialSelectionBbox.y; else if (handle.includes('top')) pivot.y = initialSelectionBbox.y + initialSelectionBbox.height; else pivot.y = initialSelectionBbox.y + initialSelectionBbox.height / 2;
+            transformedShapes = originalPaths.map(p => scalePath(p, pivot, scaleX, scaleY));
             break;
           }
           case 'resize': {
+            const { originalPath, handle, initialPointerPos } = dragState;
             const snappedMovePoint = snapToGrid(movePoint);
-            const resizedShape = resizePath(dragState.originalPath, dragState.handle, snappedMovePoint, dragState.initialPointerPos, e.shiftKey);
-            transformedShapes = [resizedShape];
+            transformedShapes = [resizePath(originalPath, handle, snappedMovePoint, initialPointerPos, e.shiftKey)];
+            break;
+          }
+          case 'move': {
+            const { originalPaths, initialPointerPos } = dragState;
+            const dx = movePoint.x - initialPointerPos.x;
+            const dy = movePoint.y - initialPointerPos.y;
+            transformedShapes = originalPaths.map(p => movePath(p, dx, dy));
             break;
           }
         }
-        if (transformedShapes.length > 0) {
-          const transformedMap = new Map(transformedShapes.map(p => [p.id, p]));
-          setPaths((prev: AnyPath[]) => prev.map(p => transformedMap.get(p.id) || p));
-        }
+        const transformedMap = new Map(transformedShapes.map(p => [p.id, p]));
+        setPaths((prev: AnyPath[]) => prev.map(p => transformedMap.get(p.id) || p));
       }
     } else if (marquee) {
-        setMarquee(m => m ? { ...m, end: movePoint } : null);
-    }
-  };
-
-  // --- Pointer Up/Leave Logic ---
-
-  const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (lassoPath && lassoPath.length > 1) {
-      const intersectingIds = paths.filter((path: AnyPath) => isPathIntersectingLasso(path, lassoPath)).map((path: AnyPath) => path.id);
-      
-      if (e.shiftKey) {
-        setSelectedPathIds((ids: string[]) => Array.from(new Set([...ids, ...intersectingIds])));
-      } else {
-        setSelectedPathIds(intersectingIds);
-      }
-
-      setLassoPath(null);
-      setSelectionMode('move');
-      return;
-    }
-    
-    if (dragState) {
-      if (isClosingPath.current) {
-        const { pathId, anchorIndex } = isClosingPath.current;
-        setPaths((prev: AnyPath[]) => prev.map(p => {
-            if (p.id === pathId) {
-                const vectorPath = p as VectorPathData;
-                const anchors = [...vectorPath.anchors];
-                const len = anchors.length;
-                if (len < 2) return { ...vectorPath, isClosed: true };
-
-                if (anchorIndex === 0) { // Dragged start anchor to end
-                    const startAnchor = anchors.shift()!; // Remove start anchor
-                    anchors[anchors.length - 1].handleOut = startAnchor.handleOut;
-                } else { // Dragged end anchor to start
-                    const endAnchor = anchors.pop()!; // Remove end anchor
-                    anchors[0].handleIn = endAnchor.handleIn;
-                }
-                
-                return { ...vectorPath, anchors, isClosed: true };
-            }
-            return p;
-        }));
-      }
-      endCoalescing();
-      isClosingPath.current = null;
-      setDragState(null);
-    }
-    
-    if (marquee) {
-      if (dist(marquee.start, marquee.end) >= DRAG_THRESHOLD) {
-        const marqueeRect = getMarqueeRect(marquee);
-        const intersectingIds = paths.filter((path: AnyPath) => isPathIntersectingMarquee(path, marqueeRect)).map((path: AnyPath) => path.id);
-        
-        if (e.shiftKey) {
-          setSelectedPathIds((ids: string[]) => Array.from(new Set([...ids, ...intersectingIds])));
-        } else {
-          setSelectedPathIds(intersectingIds);
-        }
-      }
-      setMarquee(null);
+      setMarquee({ start: marquee.start, end: movePoint });
     }
   };
   
-  const onPointerLeave = () => {
+  const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (dragState) {
+        if (isClosingPath.current) {
+            const { pathId, anchorIndex } = isClosingPath.current;
+            setPaths((prev: AnyPath[]) => prev.map(p => {
+                if (p.id === pathId && 'anchors' in p && p.anchors) {
+                    const newAnchors = [...p.anchors];
+                    if (anchorIndex === 0) {
+                        newAnchors.shift(); // remove first
+                    } else {
+                        newAnchors.pop(); // remove last
+                    }
+                    return { ...p, anchors: newAnchors, isClosed: true };
+                }
+                return p;
+            }));
+            isClosingPath.current = null;
+        }
+        endCoalescing();
+        setDragState(null);
+    }
+
+    if (marquee) {
+        const marqueeRect = getMarqueeRect(marquee);
+        if (marqueeRect.width > 1 || marqueeRect.height > 1) {
+            const intersectingIds = paths
+                .filter((p: AnyPath) => !p.isLocked && isPathIntersectingMarquee(p, marqueeRect))
+                .map((p: AnyPath) => p.id);
+
+            if (e.shiftKey) {
+                setSelectedPathIds((prev: string[]) => {
+                    const newIds = new Set(prev);
+                    intersectingIds.forEach((id: string) => {
+                        if (newIds.has(id)) newIds.delete(id); else newIds.add(id);
+                    });
+                    return Array.from(newIds);
+                });
+            } else {
+                setSelectedPathIds(intersectingIds);
+            }
+        }
+        setMarquee(null);
+    }
+
     if (lassoPath) {
-      setLassoPath(null);
-      setSelectionMode('move');
+        if (lassoPath.length > 2) {
+            const intersectingIds = paths
+                .filter((p: AnyPath) => !p.isLocked && isPathIntersectingLasso(p, lassoPath))
+                .map((p: AnyPath) => p.id);
+            
+            if (e.shiftKey) {
+                setSelectedPathIds((prev: string[]) => {
+                    const newIds = new Set(prev);
+                    intersectingIds.forEach((id: string) => {
+                        if (newIds.has(id)) newIds.delete(id); else newIds.add(id);
+                    });
+                    return Array.from(newIds);
+                });
+            } else {
+                setSelectedPathIds(intersectingIds);
+            }
+        }
+        setLassoPath(null);
     }
-    if (dragState) { 
-      endCoalescing(); 
-      setDragState(null); 
-    }
-    if (marquee) setMarquee(null);
   };
 
-  return { onPointerDown, onPointerMove, onPointerUp, onPointerLeave, marquee, dragState, lassoPath };
+  const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
+      if (dragState || marquee || lassoPath) {
+          onPointerUp(e);
+      }
+  };
+  
+  return { onPointerDown, onPointerMove, onPointerUp, onPointerLeave, dragState, marquee, lassoPath };
 };

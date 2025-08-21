@@ -6,9 +6,10 @@ import type { Point } from '../../types';
 
 interface LassoProps {
   lassoPath: Point[] | null;
+  viewTransform: { scale: number };
 }
 
-export const Lasso: React.FC<LassoProps> = React.memo(({ lassoPath }) => {
+export const Lasso: React.FC<LassoProps> = React.memo(({ lassoPath, viewTransform }) => {
   if (!lassoPath || lassoPath.length < 2) {
     return null;
   }
@@ -16,12 +17,13 @@ export const Lasso: React.FC<LassoProps> = React.memo(({ lassoPath }) => {
   const pointsString = lassoPath.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
-    <polyline
+    <polygon
       points={pointsString}
-      fill="rgba(22, 163, 175, 0.1)"
-      stroke="rgba(22, 163, 175, 0.5)"
-      strokeWidth={1}
-      strokeDasharray="4 4"
+      fill="var(--accent-highlight-fill)"
+      stroke="var(--accent-highlight-stroke)"
+      strokeWidth={1 / viewTransform.scale}
+      strokeDasharray={`${4 / viewTransform.scale} ${4 / viewTransform.scale}`}
+      strokeLinejoin="round"
       className="pointer-events-none"
     />
   );

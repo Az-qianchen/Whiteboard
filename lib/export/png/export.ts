@@ -1,5 +1,3 @@
-
-
 import type { AnyPath } from '../../types';
 import { getPathsBoundingBox } from '../../drawing';
 import { pathsToSvgString } from '../svg/export';
@@ -11,8 +9,8 @@ import { pathsToSvgString } from '../svg/export';
  * @returns A Promise that resolves to a Blob, or null.
  */
 export function pathsToPngBlob(paths: AnyPath[], backgroundColor: string): Promise<Blob | null> {
-    return new Promise((resolve) => {
-        const svgString = pathsToSvgString(paths);
+    return new Promise(async (resolve) => {
+        const svgString = await pathsToSvgString(paths);
         if (!svgString) {
             resolve(null);
             return;

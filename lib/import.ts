@@ -4,14 +4,13 @@
  * 从而允许用户将外部 SVG 文件导入到白板中。
  */
 
-import paper from 'paper';
 import type { AnyPath, VectorPathData, Anchor, Point, RectangleData, EllipseData } from '../types';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '../constants';
 
 /**
  * Converts a paper.js Point object to our internal Point type.
  */
-function paperPointToPoint(p: paper.Point): Point {
+function paperPointToPoint(p: any): Point {
     return { x: p.x, y: p.y };
 }
 
@@ -19,7 +18,7 @@ function paperPointToPoint(p: paper.Point): Point {
  * Converts a paper.js Color object to a CSS color string (rgba/rgb), preserving alpha.
  * Returns 'transparent' for null/undefined colors.
  */
-function paperColorToCss(c: paper.Color | null | undefined): string {
+function paperColorToCss(c: any | null | undefined): string {
     if (!c) return 'transparent';
     
     // paper.js color components are 0-1. We need 0-255 for rgb().
@@ -37,7 +36,7 @@ function paperColorToCss(c: paper.Color | null | undefined): string {
 }
 
 // Shared properties for any new path created from an SVG item
-const getSharedSvgProps = (item: paper.Item) => {
+const getSharedSvgProps = (item: any) => {
     const rotationInRadians = item.rotation ? item.rotation * (Math.PI / 180) : 0;
     const dashArray = (item.dashArray && item.dashArray.length >= 2) ? [item.dashArray[0], item.dashArray[1]] as [number, number] : undefined;
 
@@ -86,7 +85,8 @@ const getSharedSvgProps = (item: paper.Item) => {
  * @param svgString The raw SVG content as a string.
  * @returns An array of AnyPath objects compatible with the whiteboard.
  */
-export function importSvg(svgString: string): AnyPath[] {
+export async function importSvg(svgString: string): Promise<AnyPath[]> {
+    const paper = (await import('paper')).default as any;
     const project = new paper.Project(document.createElement('canvas'));
     
     project.importSVG(svgString, {
@@ -111,7 +111,7 @@ export function importSvg(svgString: string): AnyPath[] {
         const isComplex = Math.abs(item.matrix.b) > 1e-6 || Math.abs(item.matrix.c) > 1e-6;
 
         if (item instanceof paper.Shape.Rectangle && !isComplex) {
-            const rect = item as paper.Shape.Rectangle;
+            const rect = item as any;
             newPath = {
                 ...getSharedSvgProps(rect),
                 tool: 'rectangle',
@@ -121,7 +121,7 @@ export function importSvg(svgString: string): AnyPath[] {
                 height: rect.bounds.height,
             } as RectangleData;
         } else if (item instanceof paper.Shape.Ellipse && !isComplex) {
-            const ellipse = item as paper.Shape.Ellipse;
+            const ellipse = item as any;
             newPath = {
                 ...getSharedSvgProps(ellipse),
                 tool: 'ellipse',
@@ -133,9 +133,9 @@ export function importSvg(svgString: string): AnyPath[] {
         } else {
             // For all other cases (Paths, complex Shapes, etc.), convert to a generic vector path
             // to ensure visual fidelity is maintained.
-            const path = (item as any).toPath ? ((item as any).toPath() as paper.Path) : null;
+            const path = (item as any).toPath ? ((item as any).toPath()) : null;
             if (path && path.segments && path.segments.length > 0) {
-                 const anchors: Anchor[] = path.segments.map((segment: paper.Segment) => ({
+                 const anchors: Anchor[] = path.segments.map((segment: any) => ({
                     point: paperPointToPoint(segment.point),
                     handleIn: paperPointToPoint(segment.point.add(segment.handleIn)),
                     handleOut: paperPointToPoint(segment.point.add(segment.handleOut)),

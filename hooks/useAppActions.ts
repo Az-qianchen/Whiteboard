@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { getPathsBoundingBox, rectangleToVectorPath, ellipseToVectorPath, movePath, flipPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, rotatePath, alignPaths, distributePaths } from '../lib/drawing';
 import { pathsToSvgString, pathsToPngBlob } from '../lib/export';
 import { importSvg } from '../lib/import';
-import type { AnyPath, Point, Tool, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, WhiteboardData, ArcData, GroupData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode } from '../types';
+import type { AnyPath, Point, Tool, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, WhiteboardData, ArcData, GroupData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, ImageData } from '../types';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import { fileOpen, fileSave } from 'browser-fs-access';
@@ -115,7 +115,7 @@ export const useAppActions = ({
         const trimmedText = text.trim();
         if (trimmedText.startsWith('<svg') && trimmedText.includes('</svg')) {
             try {
-                const svgPaths = importSvg(trimmedText);
+                const svgPaths = await importSvg(trimmedText);
                 if (svgPaths.length > 0) pathsToPaste = svgPaths;
             } catch (err) {
                 console.error("Failed to parse pasted SVG:", err);
@@ -203,7 +203,7 @@ export const useAppActions = ({
     if (selectedPathIds.length === 0) return;
     const selected = paths.filter(p => selectedPathIds.includes(p.id));
     try {
-        const svgString = pathsToSvgString(selected);
+        const svgString = await pathsToSvgString(selected);
         if (svgString) await navigator.clipboard.writeText(svgString);
     } catch (err) { console.error("Failed to copy SVG:", err); alert("Could not copy SVG to clipboard."); }
   }, [paths, selectedPathIds]);
@@ -222,7 +222,7 @@ export const useAppActions = ({
       alert("画布为空，无法导出。");
       return;
     }
-    const svgString = pathsToSvgString(paths);
+    const svgString = await pathsToSvgString(paths);
     if (!svgString) {
       alert("生成 SVG 失败。");
       return;
@@ -276,7 +276,7 @@ export const useAppActions = ({
       }
       try {
           const svgString = await file.text();
-          const importedPaths = importSvg(svgString);
+          const importedPaths = await importSvg(svgString);
           if (importedPaths.length === 0) { alert('No editable paths found in the SVG.'); return; }
           
           const bbox = getPathsBoundingBox(importedPaths);
@@ -304,7 +304,7 @@ export const useAppActions = ({
   };
 
   const handleSaveAs = useCallback(async () => {
-    if (paths.length === 0 && backgroundColor === '#17171c') {
+    if (paths.length === 0 && backgroundColor === '#121215') {
       alert("画布上没有任何内容可以保存。");
       return;
     }
@@ -338,7 +338,7 @@ export const useAppActions = ({
   }, [paths, backgroundColor, activeFileName, setActiveFileHandle, setActiveFileName]);
 
   const handleSaveFile = useCallback(async () => {
-    if (paths.length === 0 && backgroundColor === '#17171c') {
+    if (paths.length === 0 && backgroundColor === '#121215') {
       alert("画布上没有任何内容可以保存。");
       return;
     }
@@ -373,7 +373,7 @@ export const useAppActions = ({
 
       if (data?.type === 'whiteboard/shapes' && Array.isArray(data.paths)) {
         pathState.handleLoadFile(data.paths);
-        setBackgroundColor(data.backgroundColor ?? '#17171c');
+        setBackgroundColor(data.backgroundColor ?? '#121215');
         const handle = file.handle; // FileWithHandle has a .handle property
         setActiveFileHandle(handle || null);
         setActiveFileName(file.name);
@@ -526,7 +526,7 @@ export const useAppActions = ({
     pathState.beginCoalescing();
     const aligned = alignPaths(selected, alignment);
     const alignedMap = new Map(aligned.map(p => [p.id, p]));
-    pathState.setPaths(prev => prev.map(p => alignedMap.get(p.id) || p));
+    pathState.setPaths(prev => prev.map(p => (alignedMap.get(p.id) ?? p) as AnyPath));
     pathState.endCoalescing();
   }, [paths, selectedPathIds, pathState]);
 
@@ -537,7 +537,7 @@ export const useAppActions = ({
     pathState.beginCoalescing();
     const distributed = distributePaths(selected, axis, options);
     const distributedMap = new Map(distributed.map(p => [p.id, p]));
-    pathState.setPaths(prev => prev.map(p => distributedMap.get(p.id) || p));
+    pathState.setPaths((prev: AnyPath[]) => prev.map(p => (distributedMap.get(p.id) ?? p) as AnyPath));
     pathState.endCoalescing();
   }, [paths, selectedPathIds, pathState]);
 
@@ -673,6 +673,13 @@ export const useAppActions = ({
       }
   }, [styleLibrary.length, materialLibrary.length, setStyleLibrary, setMaterialLibrary]);
 
+  const handleClearLibrary = useCallback(() => {
+    if (window.confirm('您确定要清空所有样式和素材吗？此操作无法撤销。')) {
+        setStyleLibrary([]);
+        setMaterialLibrary([]);
+    }
+  }, [setStyleLibrary, setMaterialLibrary]);
+
 
   return {
     importFileRef,
@@ -703,8 +710,9 @@ export const useAppActions = ({
     handleAddStyle,
     handleAddMaterial,
     handleApplyMaterial,
-    handleSaveLibrary: handleSaveLibrary,
-    handleLoadLibrary: handleLoadLibrary,
+    handleSaveLibrary,
+    handleLoadLibrary,
+    handleClearLibrary,
     handleAlign,
     handleDistribute,
   };

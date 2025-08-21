@@ -1,5 +1,5 @@
 {
-  "name": "svg-whiteboard7",
+  "name": "svg-whiteboard11",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,12 +11,12 @@
   "dependencies": {
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "roughjs": "4.6.6",
-    "hotkeys-js": "latest",
-    "@headlessui/react": "2.1.2",
-    "paper": "0.12.17",
-    "browser-fs-access": "latest",
-    "svgo": "3.3.2"
+    "roughjs": "^4.6.6",
+    "@headlessui/react": "^2.2.7",
+    "hotkeys-js": "^3.13.15",
+    "paper": "^0.12.18",
+    "browser-fs-access": "^0.38.0",
+    "svgo": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

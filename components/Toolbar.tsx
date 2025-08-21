@@ -17,21 +17,22 @@ interface ToolbarProps {
   setGridSize: (size: number) => void;
 }
 
+const ALL_TOOL_BUTTONS = [
+  { name: 'selection', title: '选择 (V)', icon: ICONS.EDIT },
+  { name: 'brush', title: '画笔 (B)', icon: ICONS.BRUSH },
+  { name: 'pen', title: '钢笔 (P)', icon: ICONS.PEN },
+  { name: 'polygon', title: '多边形', icon: ICONS.POLYGON },
+  { name: 'rectangle', title: '矩形 (R)', icon: ICONS.RECTANGLE },
+  { name: 'ellipse', title: '椭圆 (O)', icon: ICONS.ELLIPSE },
+  { name: 'arc', title: '圆弧 (A)', icon: ICONS.ARC },
+  { name: 'line', title: '线条 (L)', icon: ICONS.LINE },
+];
+
 export const Toolbar: React.FC<ToolbarProps> = ({
   tool, setTool,
   isGridVisible, setIsGridVisible,
   gridSize, setGridSize,
 }) => {
-  const allToolButtons = [
-    { name: 'selection', title: '选择 (V)', icon: ICONS.EDIT },
-    { name: 'brush', title: '画笔 (B)', icon: ICONS.BRUSH },
-    { name: 'pen', title: '钢笔 (P)', icon: ICONS.PEN },
-    { name: 'polygon', title: '多边形', icon: ICONS.POLYGON },
-    { name: 'rectangle', title: '矩形 (R)', icon: ICONS.RECTANGLE },
-    { name: 'ellipse', title: '椭圆 (O)', icon: ICONS.ELLIPSE },
-    { name: 'arc', title: '圆弧 (A)', icon: ICONS.ARC },
-    { name: 'line', title: '线条 (L)', icon: ICONS.LINE },
-  ];
 
   return (
     <RadioGroup
@@ -40,7 +41,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       className="w-full max-w-5xl bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl px-2 py-2 flex items-center justify-center gap-x-1 text-[var(--text-primary)]"
     >
       
-      {allToolButtons.map((toolItem) => (
+      {ALL_TOOL_BUTTONS.map((toolItem) => (
         <RadioGroup.Option
           key={toolItem.name}
           value={toolItem.name as Tool}
@@ -48,8 +49,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={toolItem.title}
           className={({ checked }) => `p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
             checked
-              ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)]'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]'
+              ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
           }`}
         >
           {toolItem.icon}
@@ -59,7 +60,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <Separator />
 
       <Popover className="relative">
-        <Popover.Button className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${isGridVisible ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)]'}`} title="网格与吸附 (G)">
+        <Popover.Button className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-[var(--ui-subtle-ring)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${isGridVisible ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`} title="网格与吸附 (G)">
           {ICONS.GRID}
         </Popover.Button>
         <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
@@ -71,14 +72,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   id="grid-switch"
                   checked={isGridVisible}
                   onChange={setIsGridVisible}
-                  className={`${isGridVisible ? 'bg-[var(--accent-primary)]' : 'bg-black/30'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]`}
+                  className={`${isGridVisible ? 'bg-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg-inactive)]'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-popover-bg)]`}
                 >
                   <span className={`${isGridVisible ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                 </Switch>
               </div>
               <div className={`grid grid-cols-2 items-center gap-2 transition-opacity ${!isGridVisible ? 'opacity-50' : ''}`}>
                 <label htmlFor="grid-size-input" className="text-sm font-medium text-[var(--text-primary)]">网格大小</label>
-                <div className="flex items-center bg-black/20 rounded-md h-8 px-2">
+                <div className="flex items-center bg-[var(--ui-element-bg)] rounded-md h-8 px-2">
                   <input
                     id="grid-size-input"
                     type="number"
@@ -101,4 +102,4 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
 // --- 子组件 ---
 
-const Separator = () => <div className="h-8 w-px bg-[var(--separator)] hidden sm:block mx-1"></div>;
+const Separator = () => <div className="h-8 w-px bg-[var(--ui-separator)] hidden sm:block mx-1"></div>;

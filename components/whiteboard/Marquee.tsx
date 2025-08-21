@@ -19,8 +19,8 @@ export const Marquee: React.FC<MarqueeProps> = React.memo(({ marquee, viewTransf
   return (
     <rect
       {...getMarqueeRect(marquee)}
-      fill="rgba(22, 163, 175, 0.1)"
-      stroke="rgba(22, 163, 175, 0.5)"
+      fill="var(--accent-highlight-fill)"
+      stroke="var(--accent-highlight-stroke)"
       strokeWidth={1 / viewTransform.scale}
       strokeDasharray={`4 ${4 / viewTransform.scale}`}
       className="pointer-events-none"

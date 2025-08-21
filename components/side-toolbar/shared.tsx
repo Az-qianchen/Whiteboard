@@ -54,7 +54,7 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
           value={value} 
           onChange={(e) => setValue(Number(e.target.value))} 
           onPointerDown={handlePointerDown} 
-          className="w-full accent-[var(--accent-primary)]" 
+          className="w-full themed-slider" 
         />
       </div>
       {displayValue && <span className="text-xs text-[var(--text-secondary)] col-start-2 col-span-2 text-center -mt-2">{displayValue}</span>}

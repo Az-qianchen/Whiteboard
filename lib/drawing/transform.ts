@@ -10,7 +10,7 @@ export function resizePath(
     currentPos: Point,
     initialPos: Point,
     keepAspectRatio: boolean
-): AnyPath {
+): RectangleData | EllipseData | ImageData | PolygonData {
     const dx = currentPos.x - initialPos.x;
     const dy = currentPos.y - initialPos.y;
 
@@ -149,7 +149,7 @@ export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: num
     }
 }
 
-export function flipPath<T extends AnyPath>(path: T, center: Point, axis: 'horizontal' | 'vertical'): T {
+export function flipPath(path: AnyPath, center: Point, axis: 'horizontal' | 'vertical'): AnyPath {
     const flipPoint = (p: Point): Point => {
         if (axis === 'horizontal') {
             return { x: 2 * center.x - p.x, y: p.y };
@@ -191,7 +191,6 @@ export function flipPath<T extends AnyPath>(path: T, center: Point, axis: 'horiz
         case 'ellipse':
         case 'image':
         case 'polygon': {
-            const shapePath = path as RectangleData | EllipseData | ImageData | PolygonData;
             let vectorPath: VectorPathData;
             if (path.tool === 'rectangle') {
                 vectorPath = rectangleToVectorPath(path as RectangleData);
@@ -199,7 +198,7 @@ export function flipPath<T extends AnyPath>(path: T, center: Point, axis: 'horiz
                 vectorPath = ellipseToVectorPath(path as EllipseData);
             } else if (path.tool === 'polygon') {
                 vectorPath = polygonToVectorPath(path as PolygonData);
-            } else {
+            } else { // image
                  const rectData: RectangleData = { ...path, tool: 'rectangle' };
                  vectorPath = rectangleToVectorPath(rectData);
             }
@@ -210,14 +209,17 @@ export function flipPath<T extends AnyPath>(path: T, center: Point, axis: 'horiz
                 const newHandleOut = flipPoint(anchor.handleIn);
                 return { point: newPoint, handleIn: newHandleIn, handleOut: newHandleOut };
             });
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { x, y, width, height, borderRadius, sides, src, tool, ...baseProps } = path as any;
             
             return {
-                ...path,
+                ...baseProps,
                 id: `${path.id}-flipped`,
                 tool: 'pen',
                 anchors: flippedAnchors,
                 isClosed: true
-            } as any;
+            } as VectorPathData;
         }
         case 'group': {
             const groupPath = path as GroupData;

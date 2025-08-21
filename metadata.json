@@ -1,5 +1,5 @@
 {
-  "name": "SVG Whiteboard7",
+  "name": "SVG Whiteboard11",
   "description": "A simple and elegant digital whiteboard application that allows users to draw freely. Features include color selection, adjustable stroke widths, undo, and clear functions, all rendered in a smooth SVG canvas.",
   "requestFramePermissions": []
 }

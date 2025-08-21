@@ -24,18 +24,18 @@ export const useViewTransform = () => {
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e;
 
     if (ctrlKey) {
-      // 平移逻辑 (在触控板上双指拖动，或在鼠标上按住 Ctrl 并滚动)
-      setViewTransform(prev => ({
-          ...prev,
-          translateX: prev.translateX - deltaX,
-          translateY: prev.translateY - deltaY,
-      }));
-    } else {
-      // 缩放逻辑 (在触控板上捏合，或在鼠标上常规滚动)
-      const zoomFactor = 1.1;
+      // 缩放逻辑 (在触控板上捏合，或在鼠标上按住 Ctrl 并滚动)
       const { scale, translateX, translateY } = viewTransform;
 
-      const newScale = deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+      // The deltaY from a pinch gesture is often small.
+      // This factor is tuned for a smooth trackpad zoom.
+      // It also works reasonably well with a mouse wheel.
+      const scaleMultiplier = 1 - deltaY * 0.005;
+      const newScale = Math.max(0.1, Math.min(10, scale * scaleMultiplier));
+
+      if (Math.abs(scale - newScale) < 1e-9) {
+          return;
+      }
 
       const svg = e.currentTarget.querySelector('svg');
       if (!svg) return;
@@ -58,6 +58,13 @@ export const useViewTransform = () => {
         translateX: newTranslateX,
         translateY: newTranslateY
       });
+    } else {
+      // 平移逻辑 (在触控板上双指拖动，或在鼠标上常规滚动)
+      setViewTransform(prev => ({
+          ...prev,
+          translateX: prev.translateX - deltaX,
+          translateY: prev.translateY - deltaY,
+      }));
     }
   };
 
