@@ -9,6 +9,8 @@ import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider } from './side-toolbar';
 
+type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
+
 interface SelectionToolbarProps {
   selectionMode: SelectionMode;
   setSelectionMode: (mode: SelectionMode) => void;
@@ -19,6 +21,10 @@ interface SelectionToolbarProps {
   selectedPathIds: string[];
   onAlign: (alignment: Alignment) => void;
   onDistribute: (axis: 'horizontal' | 'vertical', options: { spacing: number | null; mode: DistributeMode }) => void;
+  onBooleanOperation: (operation: BooleanOperation) => void;
+  onMask: () => void;
+  isTraceable: boolean;
+  onTraceImage: () => void;
 }
 
 const MODES = [
@@ -36,6 +42,13 @@ const ALIGN_BUTTONS = [
   { name: 'bottom', title: '底端对齐', icon: ICONS.ALIGN_BOTTOM },
 ];
 
+const BOOLEAN_BUTTONS: { name: BooleanOperation, title: string, icon: JSX.Element }[] = [
+    { name: 'unite', title: '并集', icon: ICONS.BOOLEAN_UNION },
+    { name: 'subtract', title: '减去', icon: ICONS.BOOLEAN_SUBTRACT },
+    { name: 'intersect', title: '相交', icon: ICONS.BOOLEAN_INTERSECT },
+    { name: 'exclude', title: '排除', icon: ICONS.BOOLEAN_EXCLUDE },
+];
+
 export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ 
   selectionMode, 
   setSelectionMode,
@@ -46,6 +59,10 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   selectedPathIds,
   onAlign,
   onDistribute,
+  onBooleanOperation,
+  onMask,
+  isTraceable,
+  onTraceImage,
 }) => {
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
@@ -68,8 +85,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     onDistribute(axis, { spacing, mode: distributeMode });
   };
   
-  const canAlign = selectedPathIds.length >= 2;
-  const canDistribute = selectedPathIds.length >= 2;
+  const canAlignOrDistribute = selectedPathIds.length >= 2;
+  const canPerformBooleanOrMask = selectedPathIds.length >= 2;
 
   return (
     <div className="flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
@@ -112,7 +129,17 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           </Popover>
       )}
 
-      {canAlign && (
+      {isTraceable && (
+        <button
+          onClick={onTraceImage}
+          title="将图片转换为矢量图"
+          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+        >
+          {ICONS.TRACE_IMAGE}
+        </button>
+      )}
+
+      {canAlignOrDistribute && (
           <Popover className="relative">
              <Popover.Button
                   title="对齐与分布"
@@ -127,7 +154,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                       <label className="text-sm font-semibold text-[var(--text-primary)]">对齐</label>
                       <div className="grid grid-cols-6 gap-1 mt-2">
                         {ALIGN_BUTTONS.map(btn => (
-                           <button key={btn.name} onClick={() => onAlign(btn.name as Alignment)} title={btn.title} disabled={!canAlign} className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed">{btn.icon}</button>
+                           <button key={btn.name} onClick={() => onAlign(btn.name as Alignment)} title={btn.title} disabled={!canAlignOrDistribute} className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed">{btn.icon}</button>
                         ))}
                       </div>
                     </div>
@@ -137,16 +164,16 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     <div>
                       <label className="text-sm font-semibold text-[var(--text-primary)]">分布</label>
                       <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => handleDistribute('horizontal')} disabled={!canDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
-                        <button onClick={() => handleDistribute('vertical')} disabled={!canDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
+                        <button onClick={() => handleDistribute('horizontal')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
+                        <button onClick={() => handleDistribute('vertical')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-3">
                          <div>
                             <RadioGroup value={distributeMode} onChange={setDistributeMode}>
                               <RadioGroup.Label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">均匀间隔</RadioGroup.Label>
                               <div className="flex bg-[var(--ui-element-bg)] rounded-md p-1">
-                                <RadioGroup.Option value="edges" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-sm cursor-pointer ${checked ? 'bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>边</RadioGroup.Option>
-                                <RadioGroup.Option value="centers" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-sm cursor-pointer ${checked ? 'bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>中心</RadioGroup.Option>
+                                <RadioGroup.Option value="edges" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>边</RadioGroup.Option>
+                                <RadioGroup.Option value="centers" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>中心</RadioGroup.Option>
                               </div>
                             </RadioGroup>
                          </div>
@@ -171,6 +198,46 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             </Transition>
           </Popover>
       )}
+
+      {canPerformBooleanOrMask && (
+        <Popover className="relative">
+            <Popover.Button
+                title="布尔运算"
+                className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+            >
+                {ICONS.BOOLEAN_UNION}
+            </Popover.Button>
+            <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                <Popover.Panel className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-2">
+                    {({ close }) => (
+                        <div className="flex items-center gap-1">
+                            {BOOLEAN_BUTTONS.map(btn => (
+                                <button
+                                    key={btn.name}
+                                    onClick={() => { onBooleanOperation(btn.name); close(); }}
+                                    title={btn.title}
+                                    className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                                >
+                                    {btn.icon}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </Popover.Panel>
+            </Transition>
+        </Popover>
+      )}
+
+      {canPerformBooleanOrMask && (
+        <button
+          onClick={onMask}
+          title="使用顶层对象作为蒙版"
+          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+        >
+          {ICONS.MASK}
+        </button>
+      )}
+
     </div>
   );
 };

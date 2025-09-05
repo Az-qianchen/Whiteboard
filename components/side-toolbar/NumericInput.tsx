@@ -29,15 +29,25 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
     beginCoalescing,
     endCoalescing,
 }) => {
-    const [localValue, setLocalValue] = useState(Math.round(valueTransformer.toDisplay(value)).toString());
+    const [localValue, setLocalValue] = useState(() => Math.round(valueTransformer.toDisplay(value)).toString());
+    const [isFocused, setIsFocused] = useState(false);
 
     useEffect(() => {
-        setLocalValue(Math.round(valueTransformer.toDisplay(value)).toString());
-    }, [value, valueTransformer]);
+        // Only update from the value prop if the input is not focused.
+        // This prevents the user's input from being overwritten during typing
+        // when the parent component re-renders for other reasons.
+        if (!isFocused) {
+            setLocalValue(Math.round(valueTransformer.toDisplay(value)).toString());
+        }
+    }, [value, valueTransformer, isFocused]);
 
     const handleCommit = () => {
         let numericValue = parseInt(localValue, 10);
-        if (isNaN(numericValue)) numericValue = valueTransformer.toDisplay(min);
+        if (isNaN(numericValue)) {
+            // If the input is empty or invalid, revert to the last valid value on blur.
+            setLocalValue(Math.round(valueTransformer.toDisplay(value)).toString());
+            return;
+        }
         
         const displayMin = valueTransformer.toDisplay(min);
         const displayMax = valueTransformer.toDisplay(max);
@@ -45,7 +55,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
         numericValue = Math.max(displayMin, Math.min(displayMax, numericValue));
         
         setValue(valueTransformer.fromDisplay(numericValue));
-        setLocalValue(numericValue.toString());
+        // The useEffect will now sync the localValue after the prop updates and focus is lost.
     };
 
     const handleWheelUpdate = (increment: number) => {
@@ -60,7 +70,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
     const handleWheel = useWheelCoalescer(beginCoalescing, endCoalescing);
 
     return (
-        <div className="flex flex-col items-center gap-1 w-16" title={label}>
+        <div className="flex flex-col items-center w-16" title={label}>
             <div 
                 className="flex items-center bg-black/20 rounded-md h-9 px-2 w-full cursor-ns-resize" 
                 onWheel={(e) => handleWheel(e, handleWheelUpdate)}
@@ -71,14 +81,25 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
                     pattern="[0-9]*" 
                     value={localValue} 
                     onChange={(e) => setLocalValue(e.target.value.replace(/[^0-9]/g, ''))} 
-                    onBlur={handleCommit} 
-                    onKeyDown={(e) => { if (e.key === 'Enter') { handleCommit(); (e.currentTarget as HTMLInputElement).blur(); } }} 
-                    className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] pointer-events-none" 
+                    onFocus={() => setIsFocused(true)} 
+                    onBlur={() => {
+                        handleCommit();
+                        setIsFocused(false);
+                    }} 
+                    onKeyDown={(e) => { 
+                        if (e.key === 'Enter') { 
+                            handleCommit(); 
+                            e.currentTarget.blur(); 
+                        } else if (e.key === 'Escape') {
+                            setLocalValue(Math.round(valueTransformer.toDisplay(value)).toString());
+                            e.currentTarget.blur();
+                        }
+                    }} 
+                    className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)]" 
                     aria-label={label} 
                 />
                 <span className="text-sm text-[var(--text-secondary)]">{unit}</span>
             </div>
-            <span className="text-xs font-medium text-[var(--text-secondary)] sidebar-label">{label}</span>
         </div>
     );
 });

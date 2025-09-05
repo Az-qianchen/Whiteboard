@@ -26,6 +26,7 @@ export type EndpointStyle = 'none' | 'arrow' | 'triangle' | 'dot' | 'square' | '
 
 interface ShapeBase {
   id: string;
+  name?: string; // 用于图层，特别是组
   color: string;
   fill: string;
   fillStyle: string;
@@ -52,6 +53,13 @@ interface ShapeBase {
   preserveVertices?: boolean;
   disableMultiStroke?: boolean;
   disableMultiStrokeFill?: boolean;
+  // 效果
+  blur?: number;
+  shadowEnabled?: boolean;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  shadowBlur?: number;
+  shadowColor?: string;
 }
 
 // 任何已存储、可编辑路径的基础接口。
@@ -76,6 +84,14 @@ export interface RectangleData extends ShapeBase {
   width: number;
   height: number;
   borderRadius?: number;
+}
+
+export interface FrameData extends ShapeBase {
+  tool: 'frame';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface PolygonData extends ShapeBase {
@@ -106,6 +122,18 @@ export interface ImageData extends ShapeBase {
   borderRadius?: number;
 }
 
+export interface TextData extends ShapeBase {
+  tool: 'text';
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  textAlign: 'left' | 'center' | 'right';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface ArcData extends ShapeBase {
   tool: 'arc';
   points: [Point, Point, Point]; // start, end, via
@@ -114,10 +142,12 @@ export interface ArcData extends ShapeBase {
 export interface GroupData extends ShapeBase {
   tool: 'group';
   children: AnyPath[];
+  isCollapsed?: boolean; // 用于图层面板UI
+  mask?: 'clip'; // 新增：用于标识遮罩组
 }
 
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | TextData | FrameData;
 
 export interface WhiteboardData {
   type: 'whiteboard/shapes';
@@ -138,12 +168,12 @@ export interface DrawingArcData extends ShapeBase {
   points: Point[]; // 0 to 3 points
 }
 
-export type DrawingShape = RectangleData | EllipseData | VectorPathData | PolygonData | DrawingArcData;
+export type DrawingShape = RectangleData | EllipseData | VectorPathData | PolygonData | DrawingArcData | FrameData;
 
 // A brush path that is being drawn, represented by a series of points.
 export type BrushPathWithPoints = LivePath;
 
-export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc';
+export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'text' | 'frame';
 
 export type SelectionMode = 'move' | 'edit' | 'lasso';
 
@@ -170,7 +200,7 @@ type ResizeDragState = {
   type: 'resize';
   pathId: string;
   handle: ResizeHandlePosition;
-  originalPath: RectangleData | EllipseData | ImageData | PolygonData;
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData;
   initialPointerPos: Point;
 };
 
@@ -201,8 +231,25 @@ type BorderRadiusDragState = {
   initialPointerPos: Point;
 };
 
+// A drag state for editing an arc
+type ArcDragState = {
+  type: 'arc';
+  pathId: string;
+  pointIndex: 0 | 1 | 2; // 0: start, 1: end, 2: via
+};
 
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | null;
+// A drag state for cropping an image
+type CropDragState = {
+  type: 'crop';
+  pathId: string;
+  handle: ResizeHandlePosition;
+  initialCropRect: BBox; // The state of the CROP RECT at the start of the drag
+  originalImage: ImageData; // The state of the image at the start of CROP MODE
+  initialPointerPos: Point;
+};
+
+
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
 
 export interface StyleClipboardData {
   color?: string;
@@ -229,6 +276,17 @@ export interface StyleClipboardData {
   disableMultiStrokeFill?: boolean;
   borderRadius?: number;
   sides?: number;
+  // Text properties
+  fontFamily?: string;
+  fontSize?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  // Effects
+  blur?: number;
+  shadowEnabled?: boolean;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  shadowBlur?: number;
+  shadowColor?: string;
 }
 
 export interface MaterialData {
@@ -252,3 +310,9 @@ export interface LibraryData {
 export type Alignment = 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom';
 
 export type DistributeMode = 'edges' | 'centers';
+
+export interface PngExportOptions {
+  scale: number;
+  highQuality: boolean;
+  transparentBg: boolean;
+}

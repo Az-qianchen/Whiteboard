@@ -19,10 +19,16 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
+/**
+ * 通用的右键上下文菜单组件。
+ * @param {ContextMenuProps} props - 组件的 props。
+ * @returns {React.ReactElement} 渲染后的上下文菜单。
+ */
 export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, actions, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const [finalPosition, setFinalPosition] = useState<{x: number, y: number} | null>(null);
 
+  // 处理点击菜单外部时关闭菜单的逻辑
   useEffect(() => {
     if (!isOpen) return;
 
@@ -32,21 +38,30 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
       }
     };
 
-    // Use mousedown to catch clicks before they trigger other actions
+    // 使用 mousedown 捕获点击事件，以在其他操作触发前执行
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
+  
+  // 当菜单打开或位置改变时，重置计算好的位置
+  useEffect(() => {
+    if (isOpen) {
+      setFinalPosition(null);
+    }
+  }, [isOpen, position]);
 
-  // Adjust position to stay within viewport
+  // 调整菜单位置，确保其在视口内完全可见
   useLayoutEffect(() => {
-    if (isOpen && menuRef.current) {
+    // 仅当菜单打开且尚未计算最终位置时运行
+    if (isOpen && menuRef.current && !finalPosition) {
       const menu = menuRef.current;
       const { offsetWidth: menuWidth, offsetHeight: menuHeight } = menu;
       const { innerWidth: viewportWidth, innerHeight: viewportHeight } = window;
-      const margin = 5; // 5px margin from the edge
+      const margin = 5; // 距离边缘 5px
 
+      // 从原始的 `position` prop 开始计算
       let newX = position.x;
       let newY = position.y;
 
@@ -60,10 +75,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
       newX = Math.max(margin, newX);
       newY = Math.max(margin, newY);
 
-      setAdjustedPosition({ x: newX, y: newY });
+      setFinalPosition({ x: newX, y: newY });
     }
-  }, [isOpen, position]);
+  }, [isOpen, position, finalPosition]);
 
+  // 初始渲染时使用原始位置，以避免 (0,0) 闪烁
+  // 在最终位置计算出来后，再切换到最终位置
+  const currentPosition = finalPosition || position;
 
   return (
     <Transition
@@ -78,7 +96,12 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
     >
       <div
         ref={menuRef}
-        style={{ top: adjustedPosition.y, left: adjustedPosition.x }}
+        style={{
+          top: currentPosition.y,
+          left: currentPosition.x,
+          // 仅当最终位置计算完成后才显示菜单
+          visibility: finalPosition ? 'visible' : 'hidden',
+        }}
         className="fixed z-50 w-48 min-w-max bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-1"
       >
         <div className="flex flex-col">

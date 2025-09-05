@@ -1,6 +1,3 @@
-
-
-
 import type { EndpointStyle } from '../../types';
 
 /**
@@ -19,10 +16,7 @@ export function createSvgMarker(
     marker.setAttribute('id', id);
     marker.setAttribute('markerUnits', 'strokeWidth');
 
-    let orient = isStart ? 'auto-start-reverse' : 'auto';
-    if (type === 'reverse_arrow') {
-        orient = isStart ? 'auto' : 'auto-start-reverse';
-    }
+    const orient = isStart ? 'auto-start-reverse' : 'auto';
     marker.setAttribute('orient', orient);
 
     const useSolidFill = endpointFill === 'solid';
@@ -32,13 +26,21 @@ export function createSvgMarker(
 
     switch (type) {
         case 'arrow':
-        case 'reverse_arrow':
             marker.setAttribute('refX', '8');
             marker.setAttribute('refY', '5');
             marker.setAttribute('markerWidth', `${1.5 * endpointSize}`);
             marker.setAttribute('markerHeight', `${1.5 * endpointSize}`);
             shape = document.createElementNS(svgNS, 'path');
             shape.setAttribute('d', 'M 0 2 L 8 5 L 0 8');
+            break;
+        case 'reverse_arrow': // This is now a fork
+            marker.setAttribute('refX', '10');
+            marker.setAttribute('refY', '5');
+            marker.setAttribute('markerWidth', `${2.5 * endpointSize}`);
+            marker.setAttribute('markerHeight', `${2.5 * endpointSize}`);
+            shape = document.createElementNS(svgNS, 'path');
+            // This is a V-shape pointing right (>).
+            shape.setAttribute('d', 'M 0 0 L 10 5 L 0 10');
             break;
         case 'triangle':
             marker.setAttribute('refX', '10');
@@ -48,13 +50,13 @@ export function createSvgMarker(
             shape = document.createElementNS(svgNS, 'path');
             shape.setAttribute('d', `M 0 0 L 10 5 L 0 10 z`);
             break;
-        case 'dot':
+        case 'dot': // Inverted triangle
             marker.setAttribute('refX', '0');
             marker.setAttribute('refY', '5');
             marker.setAttribute('markerWidth', `${1.8 * endpointSize}`);
             marker.setAttribute('markerHeight', `${1.8 * endpointSize}`);
             shape = document.createElementNS(svgNS, 'path');
-            shape.setAttribute('d', `M 0 5 L 10 0 L 10 10 z`);
+            shape.setAttribute('d', `M 10 0 L 0 5 L 10 10 z`);
             break;
         case 'circle':
             marker.setAttribute('refX', `${size / 2}`);

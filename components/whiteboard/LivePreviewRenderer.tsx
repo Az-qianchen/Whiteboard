@@ -53,7 +53,7 @@ export const LivePreviewRenderer: React.FC<LivePreviewRendererProps> = React.mem
       {/* Render live shape drawing */}
       {drawingShape && (
         <g>
-          {drawingShape.tool === 'rectangle' && (
+          {(drawingShape.tool === 'rectangle' || drawingShape.tool === 'frame') && (
             <rect
               x={drawingShape.x}
               y={drawingShape.y}

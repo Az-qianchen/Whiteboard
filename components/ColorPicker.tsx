@@ -5,15 +5,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { HSLA, parseColor, hslaToHslaString, hslaToHex } from '../lib/color';
+import { ICONS } from '../constants';
 
-// Reduced preset colors as requested
+// 预设颜色数组
 const PRESET_COLORS = [
   '#FFFFFF', // White
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#3B82F6', // Blue
-  '#22C55E', // Green
-  '#A855F7', // Purple
+  '#f03e3e', // oc-red-6
+  '#f76707', // oc-orange-6
+  '#228be6', // oc-blue-6
+  '#40c057', // oc-green-6
+  '#7950f2', // oc-violet-6
 ];
 
 interface ColorPickerProps {
@@ -23,18 +24,27 @@ interface ColorPickerProps {
   onInteractionEnd?: () => void;
 }
 
+/**
+ * 一个功能丰富的颜色选择器组件。
+ * @param {ColorPickerProps} props - 组件的 props。
+ * @returns {React.ReactElement} 渲染后的颜色选择器。
+ */
 export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInteractionStart, onInteractionEnd }) => {
   const [hsla, setHsla] = useState<HSLA>(() => parseColor(color));
   const [hexInput, setHexInput] = useState(() => hslaToHex(hsla));
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  // Update internal state if the prop changes from outside
+  // 当外部传入的 color prop 变化时，更新内部状态
   useEffect(() => {
     const newHsla = parseColor(color);
     setHsla(newHsla);
     setHexInput(hslaToHex(newHsla));
   }, [color]);
 
+  /**
+   * 处理 HSLA 值的变化。
+   * @param {Partial<HSLA>} newHsla - 新的 HSLA 部分值。
+   */
   const handleHslaChange = (newHsla: Partial<HSLA>) => {
     const updatedHsla = { ...hsla, ...newHsla };
     setHsla(updatedHsla);
@@ -42,10 +52,17 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
     onChange(hslaToHslaString(updatedHsla));
   };
   
+  /**
+   * 处理 HEX 输入框的变化。
+   * @param {React.ChangeEvent<HTMLInputElement>} e - 输入事件对象。
+   */
   const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setHexInput(e.target.value);
   };
 
+  /**
+   * 提交 HEX 输入框的值。
+   */
   const handleHexInputCommit = () => {
     const newHsla = parseColor(hexInput);
     const finalHsla = {...newHsla, a: hsla.a};
@@ -53,6 +70,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
     onChange(hslaToHslaString(finalHsla));
   };
   
+  /**
+   * 处理透明度输入框的变化。
+   * @param {React.ChangeEvent<HTMLInputElement>} e - 输入事件对象。
+   */
   const handleAlphaInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = parseInt(e.target.value, 10);
     if (!isNaN(value)) {
@@ -61,6 +82,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
     }
   };
 
+  /**
+   * 创建一个处理滑块拖拽事件的高阶函数。
+   * @param {(percentage: number) => void} updateFn - 根据百分比更新值的函数。
+   * @param {number} [snapSteps] - 可选的吸附步数。
+   * @returns {(e: React.PointerEvent<HTMLDivElement>) => void} - 指针按下事件的处理函数。
+   */
   const createSliderHandler = (updateFn: (percentage: number) => void, snapSteps?: number) => (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     
@@ -95,6 +122,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
     document.addEventListener('pointerup', handlePointerUp);
   };
 
+  /**
+   * 使用浏览器的 EyeDropper API 从屏幕取色。
+   */
   const handleEyeDropper = async () => {
     if (!('EyeDropper' in window)) {
         alert("Your browser does not support the EyeDropper API.");
@@ -105,7 +135,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
         const result = await eyeDropper.open();
         onChange(result.sRGBHex);
     } catch (e) {
-      // User cancelled the eyedropper
+      // 用户取消了取色器
     }
   };
   
@@ -185,7 +215,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
            
             {'EyeDropper' in window && (
                 <button onClick={handleEyeDropper} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors" title="Pick color from screen">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 2-4.3 4.3a1 1 0 0 0 0 1.4l.7.7a1 1 0 0 0 1.4 0L18 4Z"/><path d="m20.3 6.7.7-.7a1 1 0 0 0 0-1.4l-2.6-2.6a1 1 0 0 0-1.4 0l-.7.7"/><path d="m14 8-4 4-1 3 3-1 4-4"/><path d="m18 12 2-2"/><path d="m2 22 5.5-1.5L21.5 6.5l-4-4L3.5 16.5 2 22Z"/></svg>
+                    {ICONS.EYEDROPPER}
                 </button>
             )}
         </div>

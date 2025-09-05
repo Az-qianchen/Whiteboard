@@ -9,29 +9,59 @@ interface GridProps {
   isGridVisible: boolean;
   gridSize: number;
   viewTransform: { scale: number; translateX: number; translateY: number };
+  gridSubdivisions: number;
+  gridOpacity: number;
 }
 
-export const Grid: React.FC<GridProps> = React.memo(({ isGridVisible, gridSize, viewTransform }) => {
+export const Grid: React.FC<GridProps> = React.memo(({ isGridVisible, gridSize, viewTransform, gridSubdivisions, gridOpacity }) => {
   if (!isGridVisible) {
     return null;
   }
 
+  const SUBGRID_VISIBILITY_THRESHOLD = 5; // 如果二级网格线之间的距离小于5像素，则隐藏它们。
+  const scaledGridSize = gridSize * viewTransform.scale;
+  const scaledSubGridSize = scaledGridSize / gridSubdivisions;
+  const showSubgrid = gridSubdivisions > 1 && scaledSubGridSize >= SUBGRID_VISIBILITY_THRESHOLD;
+
+  // 使用模运算使网格相对于画布原点保持静止。
+  // 主图案的偏移足以使嵌套的子图案在平移时保持静止。
+  const patternX = viewTransform.translateX % scaledGridSize;
+  const patternY = viewTransform.translateY % scaledGridSize;
+
+
   return (
     <>
       <defs>
+        {showSubgrid && (
+          <pattern
+            id="subgrid"
+            width={scaledSubGridSize}
+            height={scaledSubGridSize}
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d={`M ${scaledSubGridSize} 0 L 0 0 0 ${scaledSubGridSize}`}
+              fill="none"
+              stroke="var(--subgrid-line)"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+          </pattern>
+        )}
         <pattern
           id="grid"
-          width={gridSize * viewTransform.scale}
-          height={gridSize * viewTransform.scale}
+          width={scaledGridSize}
+          height={scaledGridSize}
           patternUnits="userSpaceOnUse"
-          x={viewTransform.translateX}
-          y={viewTransform.translateY}
+          x={patternX}
+          y={patternY}
         >
+          {showSubgrid && <rect width={scaledGridSize} height={scaledGridSize} fill="url(#subgrid)" />}
           <path
-            d={`M ${gridSize * viewTransform.scale} 0 L 0 0 0 ${gridSize * viewTransform.scale}`}
+            d={`M ${scaledGridSize} 0 L 0 0 0 ${scaledGridSize}`}
             fill="none"
             stroke="var(--grid-line)"
-            strokeWidth="1"
+            strokeWidth="4"
           />
         </pattern>
       </defs>
@@ -40,6 +70,7 @@ export const Grid: React.FC<GridProps> = React.memo(({ isGridVisible, gridSize, 
         width="100%"
         height="100%"
         fill="url(#grid)"
+        opacity={gridOpacity}
       />
     </>
   );

@@ -23,15 +23,17 @@ export const useViewTransform = () => {
     e.preventDefault();
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e;
 
-    if (ctrlKey) {
-      // 缩放逻辑 (在触控板上捏合，或在鼠标上按住 Ctrl 并滚动)
+    // 区分平移和缩放手势的启发式方法：
+    // - ctrlKey 被激活：绝对是缩放（触控板上的捏合手势）。
+    // - deltaX 为 0：很可能是鼠标滚轮，所以是缩放。
+    // - deltaX 不为 0：很可能是触控板平移。
+    if (ctrlKey || deltaX === 0) {
+      // 缩放逻辑 (鼠标滚轮、按住 Ctrl 并滚动，或在触控板上捏合)
       const { scale, translateX, translateY } = viewTransform;
 
-      // The deltaY from a pinch gesture is often small.
-      // This factor is tuned for a smooth trackpad zoom.
-      // It also works reasonably well with a mouse wheel.
-      const scaleMultiplier = 1 - deltaY * 0.005;
-      const newScale = Math.max(0.1, Math.min(10, scale * scaleMultiplier));
+      // 使用加法缩放以获得线性手感
+      const zoomStep = 0.001;
+      const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
 
       if (Math.abs(scale - newScale) < 1e-9) {
           return;
@@ -59,7 +61,7 @@ export const useViewTransform = () => {
         translateY: newTranslateY
       });
     } else {
-      // 平移逻辑 (在触控板上双指拖动，或在鼠标上常规滚动)
+      // 平移逻辑 (在触控板上用双指滑动)
       setViewTransform(prev => ({
           ...prev,
           translateX: prev.translateX - deltaX,

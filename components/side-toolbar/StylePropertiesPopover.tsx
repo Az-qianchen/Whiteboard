@@ -31,7 +31,6 @@ interface StylePropertiesPopoverProps {
   endCoalescing: () => void;
 }
 
-
 export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = React.memo((props) => {
     const {
         isRough, setIsRough, roughness, setRoughness, bowing, setBowing,
@@ -43,7 +42,7 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
     } = props;
     
     return (
-        <div className="flex flex-col items-center gap-1 w-14" title="样式属性">
+        <div className="flex flex-col items-center w-14" title="样式属性">
             <Popover className="relative">
                 <Popover.Button className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]" title="样式属性">
                     {ICONS.PROPERTIES}
@@ -62,7 +61,7 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
                                     <SwitchControl label="禁用多重描边" enabled={disableMultiStroke} setEnabled={setDisableMultiStroke} />
                                 </div>
                             </div>
-
+                            
                             <div className="h-px bg-[var(--ui-separator)]" />
 
                             <div className="space-y-4">
@@ -75,7 +74,6 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
                     </Popover.Panel>
                 </Transition>
             </Popover>
-            <span className="text-xs font-medium text-[var(--text-secondary)] sidebar-label">样式</span>
         </div>
     );
 });

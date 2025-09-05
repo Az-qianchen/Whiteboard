@@ -1,6 +1,3 @@
-
-
-
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { Point, EndpointStyle } from '../../types';
 import { rotatePoint } from '../../drawing';
@@ -87,21 +84,33 @@ export function createCapNode(
             const node = rc.linearPath(toPoints(points, point), lineMarkerOptions);
             return applyRoundCaps(node);
         }
-        case 'reverse_arrow': {
-            const length = strokeWidth * 1.5 * sizeMultiplier;
-            const base = strokeWidth * 1.5 * sizeMultiplier;
-            // The tip of the arrow should be at the origin (0,0).
-            // For a reverse arrow, the wings point forward from the tip. This creates a "<" shape pointing left in local coords.
-            const points: Point[] = [ { x: length, y: -base / 2 }, { x: 0, y: 0 }, { x: length, y: base / 2 } ];
-            const node = rc.linearPath(toPoints(points, point), lineMarkerOptions);
-            return applyRoundCaps(node);
+        case 'reverse_arrow': { // This is now a fork.
+            const length = strokeWidth * 2 * sizeMultiplier;
+            const angle_offset = Math.PI / 7; // ~25.7 degrees
+            
+            // local coords, fork point is at (0,0) which is the line endpoint
+            // branches go outwards (positive x)
+            const p1 = { x: length, y: -length * Math.tan(angle_offset) };
+            const p2 = { x: length, y: length * Math.tan(angle_offset) };
+
+            const points1 = toPoints([{x: 0, y:0}, p1], point);
+            const points2 = toPoints([{x: 0, y:0}, p2], point);
+
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const node1 = rc.line(points1[0][0], points1[0][1], points1[1][0], points1[1][1], lineMarkerOptions);
+            if(node1) g.appendChild(node1);
+            const node2 = rc.line(points2[0][0], points2[0][1], points2[1][0], points2[1][1], lineMarkerOptions);
+            if(node2) g.appendChild(node2);
+
+            return applyRoundCaps(g);
         }
         
         // These are fillable line markers
-        case 'dot': { // This is the "inverted triangle" (tip-connected, outward pointing)
+        case 'dot': { // Inverted triangle
             const height = strokeWidth * 1.5 * sizeMultiplier;
-            const halfBase = height * 0.866; 
-            const points: Point[] = [ { x: 0, y: 0 }, { x: height, y: -halfBase }, { x: height, y: halfBase } ];
+            const halfBase = height * 0.866; // Equilateral
+            // Inward pointing triangle "<"
+            const points: Point[] = [ { x: height, y: -halfBase }, { x: 0, y: 0 }, { x: height, y: halfBase } ];
             const node = rc.polygon(toPoints(points, point), useSolidFill ? solidFillMarkerOptions : hollowFillMarkerOptions);
             return applyRoundCaps(node);
         }

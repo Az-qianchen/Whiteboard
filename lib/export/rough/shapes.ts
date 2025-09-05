@@ -1,26 +1,6 @@
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { RectangleData, EllipseData, ImageData, PolygonData } from '../../types';
-import { getPolygonPathD } from '../../drawing';
-
-/**
- * Generates an SVG path string for a rounded rectangle.
- * @returns An SVG path `d` attribute string.
- */
-function getRoundedRectPathD(x: number, y: number, width: number, height: number, radius: number): string {
-    const r = Math.min(radius, width / 2, height / 2);
-    if (r <= 0.1) {
-        return `M${x},${y} L${x + width},${y} L${x + width},${y + height} L${x},${y + height} Z`;
-    }
-    
-    const x_r = x + r;
-    const x_w_r = x + width - r;
-    const y_r = y + r;
-    const y_h_r = y + height - r;
-    const x_w = x + width;
-    const y_h = y + height;
-
-    return `M${x_r},${y} L${x_w_r},${y} A${r},${r} 0 0 1 ${x_w},${y_r} L${x_w},${y_h_r} A${r},${r} 0 0 1 ${x_w_r},${y_h} L${x_r},${y_h} A${r},${r} 0 0 1 ${x},${y_h_r} L${x},${y_r} A${r},${r} 0 0 1 ${x_r},${y} Z`;
-}
+import type { RectangleData, EllipseData, ImageData, PolygonData, FrameData } from '../../types';
+import { getPolygonPathD, getRoundedRectPathD } from '../../drawing';
 
 export function renderImage(data: ImageData): SVGElement {
     const imgData = data as ImageData;
@@ -51,6 +31,7 @@ export function renderImage(data: ImageData): SVGElement {
         image.setAttribute('width', String(imgData.width));
         image.setAttribute('height', String(imgData.height));
         image.setAttribute('clip-path', `url(#${clipId})`);
+        image.setAttribute('preserveAspectRatio', 'none');
         g.appendChild(image);
         return g;
     } else {
@@ -60,11 +41,12 @@ export function renderImage(data: ImageData): SVGElement {
         image.setAttribute('y', String(imgData.y));
         image.setAttribute('width', String(imgData.width));
         image.setAttribute('height', String(imgData.height));
+        image.setAttribute('preserveAspectRatio', 'none');
         return image;
     }
 }
 
-export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData | PolygonData, options: any): SVGElement | null {
+export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData | PolygonData | FrameData, options: any): SVGElement | null {
     if (data.tool === 'ellipse') {
         const { x, y, width, height } = data as EllipseData;
         const cx = x + width / 2;
@@ -76,6 +58,19 @@ export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData
         // allowing stroke-linejoin to correctly round the corners.
         const d = getRoundedRectPathD(x, y, width, height, borderRadius ?? 0);
         return rc.path(d, options);
+    } else if (data.tool === 'frame') {
+        const { x, y, width, height } = data as FrameData;
+        const frameOptions = {
+            ...options,
+            stroke: 'hsl(210, 10%, 60%)',
+            strokeWidth: 2,
+            strokeLineDash: [8, 4],
+            fill: 'transparent',
+            roughness: 0,
+            bowing: 0
+        };
+        const d = getRoundedRectPathD(x, y, width, height, 0);
+        return rc.path(d, frameOptions);
     } else if (data.tool === 'polygon') {
         const { x, y, width, height, sides, borderRadius } = data as PolygonData;
         const d = getPolygonPathD(x, y, width, height, sides, borderRadius);

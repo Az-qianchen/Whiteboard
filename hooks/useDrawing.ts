@@ -4,10 +4,10 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData } from '../types';
-import { snapAngle, dist } from '../lib/drawing';
-import { pointsToPathD } from '../lib/path-fitting';
-import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
+import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, TextData, FrameData } from '../types';
+import { snapAngle, dist, measureText } from '../../lib/drawing';
+import { pointsToPathD } from '../../lib/path-fitting';
+import { calculateArcPathD, getCircleFromThreePoints } from '../../lib/drawing/arc';
 
 // Props definition
 interface DrawingInteractionProps {
@@ -16,10 +16,13 @@ interface DrawingInteractionProps {
   viewTransform: any;
   isGridVisible: boolean;
   gridSize: number;
+  gridSubdivisions: number;
 }
 
 /**
- * Custom hook to manage all pointer interactions related to DRAWING tools.
+ * 自定义钩子，用于管理所有与绘图工具相关的指针交互。
+ * @param props - 包含路径状态、工具栏状态、视图变换和网格设置的对象。
+ * @returns 处理指针事件的函数和当前正在绘制的图形的状态。
  */
 export const useDrawing = ({
   pathState,
@@ -27,6 +30,7 @@ export const useDrawing = ({
   viewTransform,
   isGridVisible,
   gridSize,
+  gridSubdivisions,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -49,7 +53,8 @@ export const useDrawing = ({
     endpointSize, endpointFill,
     isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
     curveTightness, curveStepCount, preserveVertices,
-    disableMultiStroke, disableMultiStrokeFill
+    disableMultiStroke, disableMultiStrokeFill,
+    fontSize, textAlign, text,
   } = toolbarState;
 
   // Effect to clear the preview line when the pen/line path is finalized or cancelled.
@@ -59,20 +64,34 @@ export const useDrawing = ({
     }
   }, [currentPenPath, currentLinePath]);
 
+  /**
+   * 将点吸附到网格。
+   * @param point - 要吸附的原始点。
+   * @returns 吸附到网格后的新点。
+   */
   const snapToGrid = useCallback((point: Point): Point => {
     if (!isGridVisible) return point;
+    const snapSize = gridSubdivisions > 1 ? gridSize / gridSubdivisions : gridSize;
     return {
-      x: Math.round(point.x / gridSize) * gridSize,
-      y: Math.round(point.y / gridSize) * gridSize,
+      x: Math.round(point.x / snapSize) * snapSize,
+      y: Math.round(point.y / snapSize) * snapSize,
     };
-  }, [isGridVisible, gridSize]);
+  }, [isGridVisible, gridSize, gridSubdivisions]);
 
+  /**
+   * 取消当前正在绘制的图形。
+   */
   const cancelDrawingShape = useCallback(() => {
     setDrawingShape(null);
     setPreviewD(null);
   }, []);
 
+  /**
+   * 处理指针按下事件，根据当前选择的工具开始一个新的绘图操作。
+   * @param e - React 指针事件。
+   */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
     const id = Date.now().toString();
@@ -97,6 +116,26 @@ export const useDrawing = ({
         setCurrentBrushPath(newPath);
         break;
       }
+      case 'frame': {
+        initialPointRef.current = snappedPoint;
+        const newShape: FrameData = {
+          id,
+          tool: 'frame',
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          width: 0,
+          height: 0,
+          // Frames have a fixed style, not from the toolbar
+          color: 'grey', 
+          fill: 'transparent',
+          fillStyle: 'solid',
+          strokeWidth: 2,
+          isRough: false, 
+          roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 0, curveTightness: 0, curveStepCount: 9,
+        };
+        setDrawingShape(newShape);
+        break;
+      }
       case 'rectangle':
       case 'polygon':
       case 'ellipse': {
@@ -113,6 +152,33 @@ export const useDrawing = ({
           ...sharedProps,
         };
         setDrawingShape(newShape);
+        break;
+      }
+      case 'text': {
+        const defaultText = text || '文本';
+        const fontFamily = 'Excalifont';
+        const { width, height } = measureText(defaultText, fontSize, fontFamily);
+
+        const newText: TextData = {
+            id,
+            tool: 'text',
+            text: defaultText,
+            x: snappedPoint.x,
+            y: snappedPoint.y,
+            width,
+            height,
+            fontFamily,
+            fontSize,
+            textAlign,
+            ...sharedProps,
+            // Text specific overrides
+            fill: 'transparent',
+            fillStyle: 'solid',
+            strokeWidth: 0,
+        };
+        setPaths((prev: AnyPath[]) => [...prev, newText]);
+        toolbarState.setTool('selection');
+        pathState.setSelectedPathIds([id]);
         break;
       }
       case 'arc': {
@@ -194,6 +260,10 @@ export const useDrawing = ({
     }
   };
 
+  /**
+   * 处理指针移动事件，根据当前绘图状态更新图形或预览。
+   * @param e - React 指针事件。
+   */
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
@@ -223,7 +293,7 @@ export const useDrawing = ({
         points: [...currentBrushPath.points, point],
       });
     } else if (drawingShape) {
-      if (drawingShape.tool === 'rectangle' || drawingShape.tool === 'ellipse' || drawingShape.tool === 'polygon') {
+      if (drawingShape.tool === 'rectangle' || drawingShape.tool === 'ellipse' || drawingShape.tool === 'polygon' || drawingShape.tool === 'frame') {
         if (!initialPointRef.current) return;
         const startPoint = initialPointRef.current;
 
@@ -300,7 +370,14 @@ export const useDrawing = ({
     }
   };
 
+  /**
+   * 处理指针抬起事件，完成当前的绘图操作。
+   * @param e - React 指针事件。
+   */
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     initialPointRef.current = null;
     if (tool === 'pen' && isDraggingPenHandle) {
         setIsDraggingPenHandle(false);
@@ -310,8 +387,8 @@ export const useDrawing = ({
       finishBrushPath();
     } else if (drawingShape && drawingShape.tool !== 'arc') {
       let isZeroSize = false;
-      if (drawingShape.tool === 'rectangle' || drawingShape.tool === 'ellipse' || drawingShape.tool === 'polygon') {
-          isZeroSize = drawingShape.width < 1 || drawingShape.height < 1;
+      if (drawingShape.tool === 'rectangle' || drawingShape.tool === 'ellipse' || drawingShape.tool === 'polygon' || drawingShape.tool === 'frame') {
+          isZeroSize = drawingShape.width < 5 || drawingShape.height < 5;
       }
 
       if (!isZeroSize) {
@@ -321,6 +398,10 @@ export const useDrawing = ({
     }
   };
 
+  /**
+   * 处理指针离开画布事件，通常用于取消或完成进行中的绘图操作。
+   * @param e - React 指针事件。
+   */
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     // If the mouse leaves while drawing, we treat it like a pointer up to finalize the shape.
     if (currentBrushPath || (isDrawingShape && drawingShape.tool !== 'arc')) {

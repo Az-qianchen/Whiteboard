@@ -57,7 +57,7 @@ const MaterialSwatch: React.FC<{ material: MaterialData }> = React.memo(({ mater
     useEffect(() => {
         let isCancelled = false;
         const generateSvg = async () => {
-            const str = await pathsToSvgString(material.shapes, 0);
+            const str = await pathsToSvgString(material.shapes, { padding: 0 });
             if (!isCancelled) {
                 setSvgString(str);
             }
@@ -200,7 +200,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                     <button
                       className={`w-16 rounded-md py-1.5 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-[var(--ui-popover-bg)] ring-[var(--accent-primary)] ${
                         selected
-                          ? 'bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] shadow'
+                          ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                           : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
                       }`}
                     >
@@ -230,9 +230,12 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                           <span>保存...</span>
                         </button>
                         <div className="h-px my-1 bg-[var(--ui-separator)]" />
-                        <button onClick={() => { onClearLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]">
+                        <button onClick={() => {
+                          onClearLibrary();
+                          close();
+                        }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]">
                           <div className="w-4 h-4 flex-shrink-0">{ICONS.TRASH}</div>
-                          <span>清空素材库</span>
+                          <span>清空图库</span>
                         </button>
                       </div>
                     )}
@@ -245,7 +248,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                 className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 title="关闭面板"
               >
-                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                 {ICONS.X}
               </button>
           </div>
         </div>
@@ -275,10 +278,10 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             </button>
                             <button 
                               onClick={() => handleDeleteStyle(index)} 
-                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除样式"
                             >
-                               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                               {ICONS.TRASH}
                             </button>
                         </div>
                     ))}
@@ -310,10 +313,10 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             </button>
                             <button 
                               onClick={() => handleDeleteMaterial(index)} 
-                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除素材"
                             >
-                               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                               {ICONS.TRASH}
                             </button>
                         </div>
                     ))}

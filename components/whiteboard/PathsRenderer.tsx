@@ -30,14 +30,15 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath }> = React
 interface PathsRendererProps {
   paths: AnyPath[];
   rc: RoughSVG | null;
+  isBackground?: boolean;
 }
 
-export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc }) => {
+export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground }) => {
   return (
-    <>
+    <g opacity={isBackground ? 0.3 : 1} style={{ pointerEvents: isBackground ? 'none' : 'auto' }}>
       {paths.map((path) => (
         <RoughPath key={path.id} rc={rc} data={path} />
       ))}
-    </>
+    </g>
   );
 });

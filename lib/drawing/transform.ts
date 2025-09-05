@@ -1,21 +1,47 @@
-import paper from 'paper';
-import type { AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData, ImageData, Anchor, BrushPathData, PolygonData, ArcData, GroupData, Alignment, BBox, DistributeMode } from '../../types';
+/**
+ * 本文件包含了用于对画布上的对象进行几何变换的函数，如移动、旋转、缩放等。
+ */
+import type { AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData, FrameData, BBox } from '../../types';
 import { rotatePoint } from './geom';
-import { getPolygonVertices } from './polygon';
-import { getPathBoundingBox, getPathsBoundingBox } from './bbox';
+import { rectangleToVectorPath, ellipseToVectorPath, polygonToVectorPath } from './convert';
 
+/**
+ * 调整图形的大小。
+ * @param originalPath - 原始图形数据。
+ * @param handle - 拖拽的控制手柄位置。
+ * @param currentPos - 当前指针位置。
+ * @param initialPos - 初始指针位置。
+ * @param keepAspectRatio - 是否保持宽高比。
+ * @param rotationCenter - （可选）旋转中心点。
+ * @returns 返回一个调整大小后的新图形对象。
+ */
 export function resizePath(
-    originalPath: RectangleData | EllipseData | ImageData | PolygonData,
+    originalPath: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData,
     handle: ResizeHandlePosition,
     currentPos: Point,
     initialPos: Point,
-    keepAspectRatio: boolean
-): RectangleData | EllipseData | ImageData | PolygonData {
-    const dx = currentPos.x - initialPos.x;
-    const dy = currentPos.y - initialPos.y;
+    keepAspectRatio: boolean,
+    rotationCenter?: Point
+): RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData {
+    const { rotation } = originalPath;
+
+    let localCurrentPos = currentPos;
+    let localInitialPos = initialPos;
+
+    if (rotation) {
+        const center = rotationCenter || { 
+            x: originalPath.x + originalPath.width / 2, 
+            y: originalPath.y + originalPath.height / 2 
+        };
+        localCurrentPos = rotatePoint(currentPos, center, -rotation);
+        localInitialPos = rotatePoint(initialPos, center, -rotation);
+    }
+    
+    const dx = localCurrentPos.x - localInitialPos.x;
+    const dy = localCurrentPos.y - localInitialPos.y;
 
     let { x, y, width, height } = originalPath;
-    const originalAspectRatio = width / height;
+    const originalAspectRatio = (originalPath.width === 0 || originalPath.height === 0) ? 1 : originalPath.width / originalPath.height;
 
     const handleLeft = handle.includes('left');
     const handleRight = handle.includes('right');
@@ -34,18 +60,29 @@ export function resizePath(
     }
 
     if (keepAspectRatio) {
-        if (handle.includes('left') || handle.includes('right')) {
-            const newHeight = width / originalAspectRatio;
-            if (handleTop) {
-              y += height - newHeight;
-            }
+        const isCorner = !handle.includes('left') && !handle.includes('right') ? false : !handle.includes('top') && !handle.includes('bottom') ? false : true;
+
+        if (handle === 'top' || handle === 'bottom') {
+            const newWidth = Math.abs(height) * originalAspectRatio;
+            x += (width - newWidth) / 2;
+            width = newWidth;
+        } else if (handle === 'left' || handle === 'right') {
+            const newHeight = Math.abs(width) / originalAspectRatio;
+            y += (height - newHeight) / 2;
             height = newHeight;
-        } else { // top, bottom, or corners
-             const newWidth = height * originalAspectRatio;
-             if (handleLeft) {
-               x += width - newWidth;
-             }
-             width = newWidth;
+        } else if (isCorner) { // Corners
+            // Determine master axis by larger visual change, scaled by aspect ratio to be fair
+            if (Math.abs(dx) * originalAspectRatio > Math.abs(dy)) { // Width change is dominant
+                const oldHeight = Math.abs(height);
+                const newHeight = Math.abs(width) / originalAspectRatio;
+                height = (height > 0) ? newHeight : -newHeight;
+                if(handleTop) y += oldHeight - newHeight;
+            } else { // Height change is dominant
+                const oldWidth = Math.abs(width);
+                const newWidth = Math.abs(height) * originalAspectRatio;
+                width = (width > 0) ? newWidth : -newWidth;
+                if(handleLeft) x += oldWidth - newWidth;
+            }
         }
     }
     
@@ -61,6 +98,68 @@ export function resizePath(
     return { ...originalPath, x, y, width, height };
 }
 
+/**
+ * 变换裁剪矩形。
+ * @param initialCropRect - 拖拽开始时的裁剪矩形。
+ * @param originalImage - 正在裁剪的原始图像数据。
+ * @param handle - 拖拽的控制手柄位置。
+ * @param currentPos - 当前指针位置。
+ * @param initialPos - 初始指针位置。
+ * @returns 返回一个新的裁剪 BBox 对象。
+ */
+export function transformCropRect(
+    initialCropRect: BBox,
+    originalImage: ImageData,
+    handle: ResizeHandlePosition,
+    currentPos: Point,
+    initialPos: Point,
+): BBox {
+    const rotationCenter = {
+        x: originalImage.x + originalImage.width / 2,
+        y: originalImage.y + originalImage.height / 2,
+    };
+    
+    const resized = resizePath(
+        { ...initialCropRect, tool: 'rectangle', id: '', color:'', fill:'', fillStyle:'', strokeWidth:0, roughness:0,bowing:0,fillWeight:0,hachureAngle:0,hachureGap:0,curveTightness:0,curveStepCount:9, rotation: originalImage.rotation },
+        handle,
+        currentPos,
+        initialPos,
+        false, // no aspect ratio for crop
+        rotationCenter
+    );
+
+    // Now constrain the result within originalImage bounds
+    const o_x1 = originalImage.x;
+    const o_y1 = originalImage.y;
+    const o_x2 = originalImage.x + originalImage.width;
+    const o_y2 = originalImage.y + originalImage.height;
+
+    const r_x1 = resized.x;
+    const r_y1 = resized.y;
+    const r_x2 = resized.x + resized.width;
+    const r_y2 = resized.y + resized.height;
+
+    const final_x1 = Math.max(r_x1, o_x1);
+    const final_y1 = Math.max(r_y1, o_y1);
+    const final_x2 = Math.min(r_x2, o_x2);
+    const final_y2 = Math.min(r_y2, o_y2);
+    
+    return {
+        x: final_x1,
+        y: final_y1,
+        width: Math.max(0, final_x2 - final_x1),
+        height: Math.max(0, final_y2 - final_y1),
+    };
+}
+
+
+/**
+ * 移动图形。
+ * @param path - 要移动的图形。
+ * @param dx - X 轴上的移动距离。
+ * @param dy - Y 轴上的移动距离。
+ * @returns 返回一个移动后的新图形对象。
+ */
 export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T {
     switch(path.tool) {
         case 'brush':
@@ -89,10 +188,12 @@ export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T 
                     handleOut: { x: a.handleOut.x + dx, y: a.handleOut.y + dy },
                 }))
             };
+        case 'frame':
         case 'rectangle':
         case 'ellipse':
         case 'image':
         case 'polygon':
+        case 'text':
             return { ...path, x: path.x + dx, y: path.y + dy };
         case 'group': {
             const groupPath = path as GroupData;
@@ -102,6 +203,13 @@ export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T 
     }
 }
 
+/**
+ * 旋转图形。
+ * @param path - 要旋转的图形。
+ * @param center - 旋转中心点。
+ * @param angle - 旋转角度（弧度）。
+ * @returns 返回一个旋转后的新图形对象。
+ */
 export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: number): T {
     switch (path.tool) {
         case 'brush': {
@@ -124,11 +232,13 @@ export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: num
             }));
             return { ...path, anchors: newAnchors };
         }
+        case 'frame':
         case 'rectangle':
         case 'ellipse':
         case 'image':
-        case 'polygon': {
-            const shape = path as RectangleData | EllipseData | ImageData | PolygonData;
+        case 'polygon':
+        case 'text': {
+            const shape = path as RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData;
             const originalShapeCenter = { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 };
             const newShapeCenter = rotatePoint(originalShapeCenter, center, angle);
             const newX = newShapeCenter.x - shape.width / 2;
@@ -149,7 +259,14 @@ export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: num
     }
 }
 
-export function flipPath(path: AnyPath, center: Point, axis: 'horizontal' | 'vertical'): AnyPath {
+/**
+ * 翻转图形。
+ * @param path - 要翻转的图形。
+ * @param center - 翻转中心点。
+ * @param axis - 翻转轴（水平或垂直）。
+ * @returns 返回一个翻转后的新图形对象。
+ */
+export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' | 'vertical'): Promise<AnyPath> {
     const flipPoint = (p: Point): Point => {
         if (axis === 'horizontal') {
             return { x: 2 * center.x - p.x, y: p.y };
@@ -178,44 +295,103 @@ export function flipPath(path: AnyPath, center: Point, axis: 'horizontal' | 'ver
             const vectorPath = path as VectorPathData;
             const newAnchors = vectorPath.anchors.map(anchor => {
                 const newPoint = flipPoint(anchor.point);
-                const newHandleIn = flipPoint(anchor.handleOut);
-                const newHandleOut = flipPoint(anchor.handleIn);
+                const newHandleIn = flipPoint(anchor.handleIn);
+                const newHandleOut = flipPoint(anchor.handleOut);
                 return { point: newPoint, handleIn: newHandleIn, handleOut: newHandleOut };
             });
-            if (!vectorPath.isClosed) {
-                newAnchors.reverse();
-            }
             return { ...path, anchors: newAnchors };
         }
+        case 'image': {
+            const imgPath = path as ImageData;
+
+            const flippedSrc = await new Promise<string>((resolve, reject) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return reject(new Error("Could not get canvas context"));
+                
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    ctx.save();
+                    if (axis === 'horizontal') {
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                    } else { // vertical
+                        ctx.translate(0, canvas.height);
+                        ctx.scale(1, -1);
+                    }
+                    ctx.drawImage(img, 0, 0);
+                    ctx.restore();
+                    resolve(canvas.toDataURL());
+                };
+                img.onerror = (err) => reject(err);
+                img.crossOrigin = "anonymous";
+                img.src = imgPath.src;
+            });
+
+            const { x, y, width, height, rotation } = imgPath;
+            const shapeCenter = { x: x + width / 2, y: y + height / 2 };
+            const newShapeCenter = flipPoint(shapeCenter);
+            const newX = newShapeCenter.x - width / 2;
+            const newY = newShapeCenter.y - height / 2;
+            const newRotation = -(rotation ?? 0);
+            
+            return {
+                ...imgPath,
+                x: newX,
+                y: newY,
+                rotation: newRotation,
+                src: flippedSrc,
+            };
+        }
+        case 'text': {
+            const textPath = path as TextData;
+            const { x, y, width, height, rotation } = textPath;
+            const shapeCenter = { x: x + width / 2, y: y + height / 2 };
+            const newShapeCenter = flipPoint(shapeCenter);
+            const newX = newShapeCenter.x - width / 2;
+            const newY = newShapeCenter.y - height / 2;
+            const newRotation = -(rotation ?? 0);
+
+            return {
+                ...textPath,
+                x: newX,
+                y: newY,
+                rotation: newRotation,
+            };
+        }
+        case 'frame':
         case 'rectangle':
         case 'ellipse':
-        case 'image':
         case 'polygon': {
             let vectorPath: VectorPathData;
-            if (path.tool === 'rectangle') {
+            if (path.tool === 'rectangle' || path.tool === 'frame') {
                 vectorPath = rectangleToVectorPath(path as RectangleData);
             } else if (path.tool === 'ellipse') {
                 vectorPath = ellipseToVectorPath(path as EllipseData);
             } else if (path.tool === 'polygon') {
                 vectorPath = polygonToVectorPath(path as PolygonData);
-            } else { // image
-                 const rectData: RectangleData = { ...path, tool: 'rectangle' };
-                 vectorPath = rectangleToVectorPath(rectData);
+            } else {
+                 // FIX: This `else` block is unreachable because the `case` statement covers all possible tool types.
+                 // The original code `...path` caused a "Spread types may only be created from object types" error
+                 // because TypeScript correctly inferred `path` as `never` here.
+                 // Replacing it with a `throw` makes the logic explicit and safe, resolving the type error.
+                 throw new Error(`Unreachable code: unexpected tool '${(path as AnyPath).tool}' in flipPath`);
             }
             
             const flippedAnchors = vectorPath.anchors.map(anchor => {
                 const newPoint = flipPoint(anchor.point);
-                const newHandleIn = flipPoint(anchor.handleOut);
-                const newHandleOut = flipPoint(anchor.handleIn);
+                const newHandleIn = flipPoint(anchor.handleIn);
+                const newHandleOut = flipPoint(anchor.handleOut);
                 return { point: newPoint, handleIn: newHandleIn, handleOut: newHandleOut };
             });
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { x, y, width, height, borderRadius, sides, src, tool, ...baseProps } = path as any;
+            const { id, ...baseProps } = path as any;
             
             return {
                 ...baseProps,
-                id: `${path.id}-flipped`,
+                id: path.id,
                 tool: 'pen',
                 anchors: flippedAnchors,
                 isClosed: true
@@ -223,12 +399,21 @@ export function flipPath(path: AnyPath, center: Point, axis: 'horizontal' | 'ver
         }
         case 'group': {
             const groupPath = path as GroupData;
-            const newChildren = groupPath.children.map(child => flipPath(child, center, axis));
+            const newChildrenPromises = groupPath.children.map(child => flipPath(child, center, axis));
+            const newChildren = await Promise.all(newChildrenPromises);
             return { ...path, children: newChildren };
         }
     }
 }
 
+/**
+ * 缩放图形。
+ * @param path - 要缩放的图形。
+ * @param pivot - 缩放基准点。
+ * @param scaleX - X 轴缩放因子。
+ * @param scaleY - Y 轴缩放因子。
+ * @returns 返回一个缩放后的新图形对象。
+ */
 export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: number, scaleY: number): T {
   const scalePoint = (pt: Point) => ({ x: pivot.x + (pt.x - pivot.x) * scaleX, y: pivot.y + (pt.y - pivot.y) * scaleY });
 
@@ -240,10 +425,12 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
     case 'pen':
     case 'line':
       return { ...path, anchors: (path as VectorPathData).anchors.map(a => ({ point: scalePoint(a.point), handleIn: scalePoint(a.handleIn), handleOut: scalePoint(a.handleOut) })) };
+    case 'frame':
     case 'rectangle':
     case 'ellipse':
     case 'image':
     case 'polygon':
+    case 'text':
         const scaledX = pivot.x + (path.x - pivot.x) * scaleX;
         const scaledY = pivot.y + (path.y - pivot.y) * scaleY;
         const scaledWidth = path.width * scaleX;
@@ -253,371 +440,5 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
       return { ...path, x: newX, y: newY, width: Math.abs(scaledWidth), height: Math.abs(scaledHeight) };
     case 'group':
         return { ...path, children: (path as GroupData).children.map(child => scalePath(child, pivot, scaleX, scaleY)) };
-  }
-}
-
-export function arcToVectorPath(path: ArcData): VectorPathData {
-    const { id, points, ...baseProps } = path;
-    const [start, end, via] = points;
-
-    const project = new paper.Project(document.createElement('canvas'));
-    
-    // paper.Path.Arc constructor is (from, through, to)
-    const paperArc = new paper.Path.Arc(
-        new paper.Point(start.x, start.y),
-        new paper.Point(via.x, via.y),
-        new paper.Point(end.x, end.y)
-    );
-
-    const newAnchors: Anchor[] = paperArc.segments.map(segment => ({
-        point: { x: segment.point.x, y: segment.point.y },
-        handleIn: { x: segment.point.x + segment.handleIn.x, y: segment.point.y + segment.handleIn.y },
-        handleOut: { x: segment.point.x + segment.handleOut.x, y: segment.point.y + segment.handleOut.y },
-    }));
-
-    project.remove();
-
-    return {
-        ...baseProps,
-        id: `${Date.now()}-v`,
-        tool: 'pen',
-        anchors: newAnchors,
-        isClosed: false,
-    };
-}
-
-export function rectangleToVectorPath(path: RectangleData): VectorPathData {
-    const { id, x, y, width, height, rotation, ...baseProps } = path;
-
-    let corners: Point[] = [
-        { x, y }, // top-left
-        { x: x + width, y }, // top-right
-        { x: x + width, y: y + height }, // bottom-right
-        { x, y: y + height }, // bottom-left
-    ];
-
-    if (rotation) {
-        const center = { x: x + width / 2, y: y + height / 2 };
-        corners = corners.map(p => rotatePoint(p, center, rotation));
-    }
-
-    const anchors: Anchor[] = corners.map(p => ({ point: p, handleIn: p, handleOut: p }));
-
-    return {
-        ...baseProps,
-        id: `${Date.now()}-v`,
-        tool: 'pen',
-        anchors,
-        isClosed: true,
-    };
-}
-
-export function ellipseToVectorPath(path: EllipseData): VectorPathData {
-    const { id, x, y, width, height, rotation, ...baseProps } = path;
-    const rx = width / 2;
-    const ry = height / 2;
-    const cx = x + rx;
-    const cy = y + ry;
-
-    const kappa = 0.552284749831; 
-    const ox = rx * kappa;
-    const oy = ry * kappa;
-
-    let anchors: Anchor[] = [
-        { point: { x: cx, y: cy - ry }, handleIn: { x: cx - ox, y: cy - ry }, handleOut: { x: cx + ox, y: cy - ry } },
-        { point: { x: cx + rx, y: cy }, handleIn: { x: cx + rx, y: cy - oy }, handleOut: { x: cx + rx, y: cy + oy } },
-        { point: { x: cx, y: cy + ry }, handleIn: { x: cx + ox, y: cy + ry }, handleOut: { x: cx - ox, y: cy + ry } },
-        { point: { x: cx - rx, y: cy }, handleIn: { x: cx - rx, y: cy + oy }, handleOut: { x: cx - rx, y: cy - oy } },
-    ];
-    
-    if (rotation) {
-        const center = { x: cx, y: cy };
-        anchors = anchors.map(a => ({
-            point: rotatePoint(a.point, center, rotation),
-            handleIn: rotatePoint(a.handleIn, center, rotation),
-            handleOut: rotatePoint(a.handleOut, center, rotation),
-        }));
-    }
-
-    return {
-        ...baseProps,
-        id: `${Date.now()}-v`,
-        tool: 'pen',
-        anchors,
-        isClosed: true,
-    };
-}
-
-export function polygonToVectorPath(path: PolygonData): VectorPathData {
-    const { id, x, y, width, height, rotation, sides, ...baseProps } = path;
-    const vertices = getPolygonVertices(x, y, width, height, sides);
-
-    let finalVertices = vertices;
-    if (rotation) {
-        const center = { x: x + width / 2, y: y + height / 2 };
-        finalVertices = vertices.map(p => rotatePoint(p, center, rotation));
-    }
-    
-    const anchors: Anchor[] = finalVertices.map(p => ({ point: p, handleIn: p, handleOut: p }));
-
-    return {
-        ...baseProps,
-        id: `${Date.now()}-v`,
-        tool: 'pen',
-        anchors,
-        isClosed: true,
-    };
-}
-
-export function lineToVectorPath(path: VectorPathData): VectorPathData {
-    if (path.anchors.length < 2) {
-        return { ...path, tool: 'pen' };
-    }
-
-    const project = new paper.Project(document.createElement('canvas'));
-    
-    const paperPath = new paper.Path({
-        segments: path.anchors.map(a => new paper.Point(a.point.x, a.point.y)),
-        closed: path.isClosed,
-    });
-
-    paperPath.smooth({ type: 'continuous' });
-
-    const newAnchors: Anchor[] = paperPath.segments.map(segment => {
-        return {
-            point: { x: segment.point.x, y: segment.point.y },
-            handleIn: { x: segment.point.x + segment.handleIn.x, y: segment.point.y + segment.handleIn.y },
-            handleOut: { x: segment.point.x + segment.handleOut.x, y: segment.point.y + segment.handleOut.y },
-        };
-    });
-
-    project.remove();
-
-    return {
-        ...path,
-        tool: 'pen',
-        anchors: newAnchors,
-        id: `${Date.now()}-v`,
-    };
-}
-
-export function brushToVectorPath(path: BrushPathData): VectorPathData {
-    if (path.points.length < 2) {
-        const anchors: Anchor[] = path.points.map(p => ({ point: p, handleIn: p, handleOut: p }));
-        return { ...path, tool: 'pen', anchors, id: `${Date.now()}-v` };
-    }
-
-    const project = new paper.Project(document.createElement('canvas'));
-    const paperPath = new paper.Path({
-        segments: path.points.map(p => new paper.Point(p.x, p.y)),
-    });
-
-    // Simplify the path to get a manageable number of anchors.
-    // A higher tolerance means fewer anchors. Tying it to strokeWidth is a good heuristic.
-    const tolerance = path.strokeWidth * 1.5;
-    paperPath.simplify(tolerance);
-
-    const newAnchors: Anchor[] = paperPath.segments.map(segment => ({
-        point: { x: segment.point.x, y: segment.point.y },
-        handleIn: { x: segment.point.x + segment.handleIn.x, y: segment.point.y + segment.handleIn.y },
-        handleOut: { x: segment.point.x + segment.handleOut.x, y: segment.point.y + segment.handleOut.y },
-    }));
-
-    project.remove();
-
-    return {
-        ...path,
-        tool: 'pen',
-        anchors: newAnchors,
-        id: `${Date.now()}-v`,
-    };
-}
-
-export function simplifyPath(path: VectorPathData, tolerance: number): VectorPathData {
-    if (!path.anchors || path.anchors.length < 2 || tolerance <= 0) {
-        return path;
-    }
-
-    const project = new paper.Project(document.createElement('canvas'));
-    
-    const paperPath = new paper.Path({
-        segments: path.anchors.map(a => new paper.Segment(
-            new paper.Point(a.point.x, a.point.y),
-            new paper.Point(a.handleIn.x - a.point.x, a.handleIn.y - a.point.y),
-            new paper.Point(a.handleOut.x - a.point.x, a.handleOut.y - a.point.y)
-        )),
-        closed: path.isClosed,
-    });
-    
-    paperPath.simplify(tolerance);
-
-    const newAnchors: Anchor[] = paperPath.segments.map(segment => ({
-        point: { x: segment.point.x, y: segment.point.y },
-        handleIn: { x: segment.point.x + segment.handleIn.x, y: segment.point.y + segment.handleIn.y },
-        handleOut: { x: segment.point.x + segment.handleOut.x, y: segment.point.y + segment.handleOut.y },
-    }));
-
-    project.remove();
-    
-    if (newAnchors.length === 0) {
-      return path; 
-    }
-
-    return {
-        ...path,
-        anchors: newAnchors,
-    };
-}
-
-
-export function alignPaths(selectedPaths: AnyPath[], alignment: Alignment): AnyPath[] {
-  if (selectedPaths.length < 2) return selectedPaths;
-
-  const selectionBbox = getPathsBoundingBox(selectedPaths, true);
-  if (!selectionBbox) return selectedPaths;
-
-  return selectedPaths.map(path => {
-    const pathBbox = getPathBoundingBox(path, true);
-    let dx = 0;
-    let dy = 0;
-
-    switch (alignment) {
-      case 'left':
-        dx = selectionBbox.x - pathBbox.x;
-        break;
-      case 'right':
-        dx = (selectionBbox.x + selectionBbox.width) - (pathBbox.x + pathBbox.width);
-        break;
-      case 'h-center':
-        dx = (selectionBbox.x + selectionBbox.width / 2) - (pathBbox.x + pathBbox.width / 2);
-        break;
-      case 'top':
-        dy = selectionBbox.y - pathBbox.y;
-        break;
-      case 'bottom':
-        dy = (selectionBbox.y + selectionBbox.height) - (pathBbox.y + pathBbox.height);
-        break;
-      case 'v-center':
-        dy = (selectionBbox.y + selectionBbox.height / 2) - (pathBbox.y + pathBbox.height / 2);
-        break;
-    }
-
-    return movePath(path, dx, dy);
-  });
-}
-
-export function distributePaths(selectedPaths: AnyPath[], axis: 'horizontal' | 'vertical', options: { spacing?: number | null; mode: DistributeMode }): AnyPath[] {
-  if (selectedPaths.length < 2) return selectedPaths;
-
-  const pathsWithBboxes = selectedPaths.map(p => ({ path: p, bbox: getPathBoundingBox(p, true) }));
-
-  if (axis === 'horizontal') {
-    pathsWithBboxes.sort((a, b) => a.bbox.x - b.bbox.x);
-  } else {
-    pathsWithBboxes.sort((a, b) => a.bbox.y - b.bbox.y);
-  }
-
-  // Handle distribution by a fixed spacing value
-  if (options.spacing != null && options.spacing >= 0) {
-    const newPaths: AnyPath[] = [pathsWithBboxes[0].path];
-
-    if (options.mode === 'centers') {
-      if (axis === 'horizontal') {
-        let lastCenter_x = pathsWithBboxes[0].bbox.x + pathsWithBboxes[0].bbox.width / 2;
-        for (let i = 1; i < pathsWithBboxes.length; i++) {
-          const p = pathsWithBboxes[i];
-          const targetCenter_x = lastCenter_x + options.spacing;
-          const currentCenter_x = p.bbox.x + p.bbox.width / 2;
-          const dx = targetCenter_x - currentCenter_x;
-          newPaths.push(movePath(p.path, dx, 0));
-          lastCenter_x = targetCenter_x;
-        }
-      } else { // vertical
-        let lastCenter_y = pathsWithBboxes[0].bbox.y + pathsWithBboxes[0].bbox.height / 2;
-        for (let i = 1; i < pathsWithBboxes.length; i++) {
-          const p = pathsWithBboxes[i];
-          const targetCenter_y = lastCenter_y + options.spacing;
-          const currentCenter_y = p.bbox.y + p.bbox.height / 2;
-          const dy = targetCenter_y - currentCenter_y;
-          newPaths.push(movePath(p.path, 0, dy));
-          lastCenter_y = targetCenter_y;
-        }
-      }
-      return newPaths;
-    } else { // 'edges' or default
-      let currentEdge = (axis === 'horizontal')
-        ? pathsWithBboxes[0].bbox.x + pathsWithBboxes[0].bbox.width
-        : pathsWithBboxes[0].bbox.y + pathsWithBboxes[0].bbox.height;
-
-      for (let i = 1; i < pathsWithBboxes.length; i++) {
-        const p = pathsWithBboxes[i];
-        if (axis === 'horizontal') {
-          const dx = currentEdge + options.spacing - p.bbox.x;
-          newPaths.push(movePath(p.path, dx, 0));
-          currentEdge += options.spacing + p.bbox.width;
-        } else { // vertical
-          const dy = currentEdge + options.spacing - p.bbox.y;
-          newPaths.push(movePath(p.path, 0, dy));
-          currentEdge += options.spacing + p.bbox.height;
-        }
-      }
-      return newPaths;
-    }
-  }
-  
-  // Handle "space evenly" distribution, which requires at least 3 items
-  if (selectedPaths.length < 3) return selectedPaths; 
-
-  const first = pathsWithBboxes[0];
-  const last = pathsWithBboxes[pathsWithBboxes.length - 1];
-  const innerPaths = pathsWithBboxes.slice(1, -1);
-  
-  if (options.mode === 'centers') {
-    const getCenter = (bbox: BBox) => (axis === 'horizontal') ? bbox.x + bbox.width / 2 : bbox.y + bbox.height / 2;
-    
-    const firstCenter = getCenter(first.bbox);
-    const lastCenter = getCenter(last.bbox);
-    const totalSpan = lastCenter - firstCenter;
-    const gap = totalSpan / (pathsWithBboxes.length - 1);
-    
-    let currentCenter = firstCenter + gap;
-    const distributedInnerPaths = innerPaths.map(p => {
-        const pCenter = getCenter(p.bbox);
-        const delta = currentCenter - pCenter;
-        const newPath = (axis === 'horizontal') ? movePath(p.path, delta, 0) : movePath(p.path, 0, delta);
-        currentCenter += gap;
-        return newPath;
-    });
-
-    return [first.path, ...distributedInnerPaths, last.path];
-
-  } else { // mode === 'edges'
-    if (axis === 'horizontal') {
-      const totalInnerSize = innerPaths.reduce((sum, p) => sum + p.bbox.width, 0);
-      const totalSpan = last.bbox.x - (first.bbox.x + first.bbox.width);
-      const gap = (totalSpan - totalInnerSize) / (innerPaths.length + 1);
-
-      let currentX = first.bbox.x + first.bbox.width + gap;
-      const distributedInnerPaths = innerPaths.map(p => {
-        const dx = currentX - p.bbox.x;
-        const newPath = movePath(p.path, dx, 0);
-        currentX += p.bbox.width + gap;
-        return newPath;
-      });
-      return [first.path, ...distributedInnerPaths, last.path];
-    } else { // vertical
-      const totalInnerSize = innerPaths.reduce((sum, p) => sum + p.bbox.height, 0);
-      const totalSpan = last.bbox.y - (first.bbox.y + first.bbox.height);
-      const gap = (totalSpan - totalInnerSize) / (innerPaths.length + 1);
-
-      let currentY = first.bbox.y + first.bbox.height + gap;
-      const distributedInnerPaths = innerPaths.map(p => {
-        const dy = currentY - p.bbox.y;
-        const newPath = movePath(p.path, 0, dy);
-        currentY += p.bbox.height + gap;
-        return newPath;
-      });
-      return [first.path, ...distributedInnerPaths, last.path];
-    }
   }
 }

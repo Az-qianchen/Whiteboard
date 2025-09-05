@@ -7,7 +7,8 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode } from '../types';
+// FIX: Import ImageData type for the croppingState prop.
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../types';
 import { getPointerPosition } from '../lib/utils';
 
 // Import new sub-components
@@ -17,10 +18,13 @@ import { LivePreviewRenderer } from './whiteboard/LivePreviewRenderer';
 import { ControlsRenderer } from './whiteboard/ControlsRenderer';
 import { Marquee } from './whiteboard/Marquee';
 import { Lasso } from './whiteboard/Lasso';
+// FIX: Import CropOverlay component to render the crop mask.
+import { CropOverlay } from './whiteboard/CropOverlay';
 
 
 interface WhiteboardProps {
   paths: AnyPath[];
+  backgroundPaths: AnyPath[];
   tool: Tool;
   selectionMode: SelectionMode;
   currentLivePath: LivePath | null;
@@ -41,11 +45,24 @@ interface WhiteboardProps {
   cursor: string;
   isGridVisible: boolean;
   gridSize: number;
+  gridSubdivisions: number;
+  gridOpacity: number;
   dragState: DragState | null;
+  editingTextPathId: string | null;
+  // FIX: Add croppingState prop to fix type error in MainLayout.tsx.
+  croppingState: { pathId: string; originalPath: ImageData; } | null;
+  currentCropRect: BBox | null;
 }
 
+/**
+ * 白板的核心渲染和交互组件。
+ * @description 该组件集成了网格、路径渲染器、实时预览和编辑控件，并处理所有用户输入事件。
+ * @param {WhiteboardProps} props - 组件的 props，包含了所有需要渲染和交互的数据。
+ * @returns {React.ReactElement} 渲染后的白板 SVG 区域。
+ */
 export const Whiteboard: React.FC<WhiteboardProps> = ({
   paths,
+  backgroundPaths,
   tool,
   selectionMode,
   currentLivePath,
@@ -66,7 +83,13 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   cursor,
   isGridVisible,
   gridSize,
+  gridSubdivisions,
+  gridOpacity,
   dragState,
+  editingTextPathId,
+  // FIX: Destructure the new croppingState prop.
+  croppingState,
+  currentCropRect,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
@@ -78,6 +101,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     }
   }, []);
 
+  /**
+   * 处理指针在 SVG 画布上移动的事件。
+   * @description 更新当前指针位置以用于悬停效果，并调用上层的 onPointerMove 处理函数。
+   * @param {React.PointerEvent<SVGSVGElement>} e - 指针事件对象。
+   */
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (svgRef.current) {
         const point = getPointerPosition(e, svgRef.current, viewTransform);
@@ -86,16 +114,25 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     onPointerMove(e);
   };
 
+  /**
+   * 处理指针离开 SVG 画布的事件。
+   * @description 清除当前指针位置，并调用上层的 onPointerLeave 处理函数。
+   * @param {React.PointerEvent<SVGSVGElement>} e - 指针事件对象。
+   */
   const handlePointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     setCurrentPointerPos(null);
     onPointerLeave(e);
   };
 
+  // 记忆化计算选中的路径，以避免不必要的重渲染
   const selectedPaths = useMemo(() => {
     return paths.filter(p => selectedPathIds.includes(p.id));
   }, [paths, selectedPathIds]);
-
-  const visiblePaths = useMemo(() => paths.filter(p => p.isVisible !== false), [paths]);
+  
+  // 记忆化计算可见的路径，排除不可见和正在编辑的文本路径
+  const visiblePaths = useMemo(() => {
+      return paths.filter(p => p.isVisible !== false && p.id !== editingTextPathId);
+  }, [paths, editingTextPathId]);
 
   return (
     <div
@@ -112,10 +149,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         onPointerUp={onPointerUp}
         onPointerLeave={handlePointerLeave}
       >
-        <Grid isGridVisible={isGridVisible} gridSize={gridSize} viewTransform={viewTransform} />
+        <Grid isGridVisible={isGridVisible} gridSize={gridSize} viewTransform={viewTransform} gridSubdivisions={gridSubdivisions} gridOpacity={gridOpacity} />
         
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
           
+          <PathsRenderer paths={backgroundPaths} rc={rc} isBackground />
           <PathsRenderer paths={visiblePaths} rc={rc} />
 
           <LivePreviewRenderer
@@ -128,6 +166,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             viewTransform={viewTransform}
           />
           
+          {/* FIX: Render the crop overlay when in cropping mode. */}
+          {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
+
           <ControlsRenderer
             tool={tool}
             selectionMode={selectionMode}
@@ -137,6 +178,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             scale={viewTransform.scale}
             dragState={dragState}
             hoveredPoint={currentPointerPos}
+            croppingState={croppingState}
+            currentCropRect={currentCropRect}
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />

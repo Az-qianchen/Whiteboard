@@ -1,7 +1,12 @@
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData } from '../../types';
+/**
+ * 本文件定义了用于创建平滑（非手绘风格）SVG 路径节点的函数。
+ * 主要用于导出 SVG，以确保输出的 SVG 代码简洁且符合标准。
+ */
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData } from '../../types';
 import { anchorsToPathD, pointsToPathD } from '../../path-fitting';
 import { createSvgMarker } from '../markers/svg';
 import { getPolygonPathD, calculateArcPathD } from '../../drawing';
+import { createEffectsFilter } from '../core/effects';
 
 export function createSmoothPathNode(data: AnyPath): SVGElement | null {
     const svgNS = 'http://www.w3.org/2000/svg';
@@ -21,6 +26,11 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
             if (pathData.anchors && pathData.anchors.length > 0) {
                 d = anchorsToPathD(pathData.anchors, !!pathData.isClosed);
             }
+            break;
+        }
+        case 'frame': {
+            const { x, y, width, height } = data as FrameData;
+            d = `M${x},${y} h${width} v${height} h${-width}z`;
             break;
         }
         case 'rectangle': {
@@ -61,9 +71,17 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
 
     const pathEl = document.createElementNS(svgNS, 'path');
     pathEl.setAttribute('d', d);
-    pathEl.setAttribute('stroke', data.color);
-    pathEl.setAttribute('stroke-width', String(data.strokeWidth));
-    pathEl.setAttribute('fill', (data.fill && data.fill !== 'transparent') ? data.fill : 'none');
+
+    if (data.tool === 'frame') {
+      pathEl.setAttribute('stroke', 'hsl(210, 10%, 60%)');
+      pathEl.setAttribute('stroke-width', '2');
+      pathEl.setAttribute('stroke-dasharray', '8 4');
+      pathEl.setAttribute('fill', 'transparent');
+    } else {
+      pathEl.setAttribute('stroke', data.color);
+      pathEl.setAttribute('stroke-width', String(data.strokeWidth));
+      pathEl.setAttribute('fill', (data.fill && data.fill !== 'transparent') ? data.fill : 'none');
+    }
     
     if (data.strokeLineDash) {
         pathEl.setAttribute('stroke-dasharray', data.strokeLineDash.join(' '));
@@ -73,42 +91,29 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
         pathEl.setAttribute('stroke-linejoin', data.strokeLineJoin);
     }
 
-    const isVectorPath = data.tool === 'pen' || data.tool === 'line';
-    if (isVectorPath) {
-        const pathData = data as VectorPathData;
-        if (!pathData.isClosed) {
-            const toSvgCap = (cap?: EndpointStyle) => (cap === 'square_cap' ? 'square' : cap === 'round' ? 'round' : 'butt');
-            const startCap = data.strokeLineCapStart ?? 'butt';
-            const endCap = data.strokeLineCapEnd ?? 'butt';
-            const nativeCaps = ['butt', 'round', 'square_cap'];
-            const isStartNative = nativeCaps.includes(startCap);
-            const isEndNative = nativeCaps.includes(endCap);
-            
-            let linecapToSet: 'butt' | 'round' | 'square' = 'butt';
-            let useStartMarker = !isStartNative;
-            let useEndMarker = !isEndNative;
-            
-            if (isStartNative && isEndNative) {
-                if (startCap === endCap) {
-                    linecapToSet = toSvgCap(startCap);
-                } else {
-                    useStartMarker = true; // Mismatched native caps, use markers for both
-                    useEndMarker = true;
-                }
-            } else if (isStartNative) {
-                linecapToSet = toSvgCap(startCap);
-            } else if (isEndNative) {
-                linecapToSet = toSvgCap(endCap);
-            }
-            pathEl.setAttribute('stroke-linecap', linecapToSet);
+    const canHaveEndpoints = ['pen', 'line', 'brush', 'arc'].includes(data.tool);
+    const isClosedPath = (data.tool === 'pen' || data.tool === 'line') && (data as VectorPathData).isClosed;
 
-            if (useStartMarker) {
+    if (canHaveEndpoints && !isClosedPath) {
+        const startCap = data.strokeLineCapStart ?? 'butt';
+        const endCap = data.strokeLineCapEnd ?? 'butt';
+        const nativeCaps = ['butt', 'round', 'square_cap'];
+        const isStartNative = nativeCaps.includes(startCap);
+        const isEndNative = nativeCaps.includes(endCap);
+        
+        if (isStartNative && isEndNative && startCap === endCap) {
+            const svgCap = startCap === 'square_cap' ? 'square' : startCap;
+            pathEl.setAttribute('stroke-linecap', svgCap);
+        } else {
+            pathEl.setAttribute('stroke-linecap', 'butt');
+
+            if (startCap !== 'butt') {
                 const markerId = `marker-start-${data.id}`;
                 const marker = createSvgMarker(markerId, startCap, data.color, data.endpointSize ?? 1, data.endpointFill ?? 'hollow', true);
                 if (marker) { defs.appendChild(marker); pathEl.setAttribute('marker-start', `url(#${markerId})`); }
             }
 
-            if (useEndMarker) {
+            if (endCap !== 'butt') {
                 const markerId = `marker-end-${data.id}`;
                 const marker = createSvgMarker(markerId, endCap, data.color, data.endpointSize ?? 1, data.endpointFill ?? 'hollow', false);
                 if (marker) { defs.appendChild(marker); pathEl.setAttribute('marker-end', `url(#${markerId})`); }
@@ -117,7 +122,17 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
     }
 
     g.appendChild(pathEl);
-    const hasRotation = data.rotation && (data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'polygon');
+    
+    const hasEffects = (data.blur ?? 0) > 0 || data.shadowEnabled === true;
+    if (hasEffects) {
+        const filter = createEffectsFilter(data);
+        if (filter) {
+            defs.appendChild(filter);
+            pathEl.setAttribute('filter', `url(#${filter.id})`);
+        }
+    }
+
+    const hasRotation = data.rotation && (data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'polygon' || data.tool === 'frame');
     
     if (!defs.hasChildNodes() && !hasRotation) {
         if (data.opacity !== undefined && data.opacity < 1) {
@@ -126,7 +141,7 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
         return pathEl;
     } else {
         if (hasRotation) {
-            const { x, y, width, height, rotation } = data as RectangleData | EllipseData | PolygonData;
+            const { x, y, width, height, rotation } = data as RectangleData | EllipseData | PolygonData | FrameData;
             const cx = x + width / 2;
             const cy = y + height / 2;
             const angleDegrees = rotation * (180 / Math.PI);

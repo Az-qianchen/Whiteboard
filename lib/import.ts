@@ -40,12 +40,8 @@ const getSharedSvgProps = (item: any) => {
     const rotationInRadians = item.rotation ? item.rotation * (Math.PI / 180) : 0;
     const dashArray = (item.dashArray && item.dashArray.length >= 2) ? [item.dashArray[0], item.dashArray[1]] as [number, number] : undefined;
 
-    // Use hasFill() and hasStroke() for more robust color parsing.
-    // This correctly handles fill="none" and stroke="none" attributes.
-    // The `item` is a leaf node from paper.js and should be a PathItem derivative,
-    // which has these methods, but we check for them due to generic types.
-    const hasFill = typeof (item as any).hasFill === 'function' && (item as any).hasFill();
-    const hasStroke = typeof (item as any).hasStroke === 'function' && (item as any).hasStroke();
+    const hasFill = typeof item.hasFill === 'function' && item.hasFill();
+    const hasStroke = typeof item.hasStroke === 'function' && item.hasStroke();
 
     let capStyle: 'round' | 'butt' | 'square_cap' = 'round'; // Default to round
     if (item.strokeCap === 'square') {
@@ -64,9 +60,8 @@ const getSharedSvgProps = (item: any) => {
         strokeLineCapEnd: capStyle,
         fill: hasFill ? paperColorToCss(item.fillColor) : 'transparent',
         opacity: item.opacity ?? 1,
-        // Default "smooth" properties for imported SVGs, as they are not hand-drawn
         isRough: false,
-        fillStyle: 'solid', // Most SVGs use solid fills
+        fillStyle: 'solid',
         roughness: 0,
         bowing: 0,
         fillWeight: DEFAULT_FILL_WEIGHT,
@@ -89,52 +84,57 @@ export async function importSvg(svgString: string): Promise<AnyPath[]> {
     const paper = (await import('paper')).default as any;
     const project = new paper.Project(document.createElement('canvas'));
     
-    project.importSVG(svgString, {
-        expandShapes: false, // Keep shapes as shapes to inspect them
+    const importedItem = project.importSVG(svgString, {
+        expandShapes: false,
         insert: true,
     });
 
+    if (!importedItem) {
+        project.remove();
+        return [];
+    }
+
     const importedPaths: AnyPath[] = [];
 
-    const items = project.getItems({ recursive: true });
+    // Correctly get all descendant items from the active layer.
+    const items = project.activeLayer.getItems({ recursive: true });
 
     for (const item of items) {
-        // We only want leaf nodes that are visible and have some geometry
-        // FIX: Added a guard for item.children, as Path/Shape items do not have it.
-        if ((item.children && item.children.length > 0) || !item.visible || (!item.bounds.width && !item.bounds.height)) {
+        if (item.children?.length > 0 || !item.visible || (!item.bounds.width && !item.bounds.height)) {
             continue;
         }
 
         let newPath: AnyPath | null = null;
-        
-        // A check for complex transformations (like shear). If found, convert to a path.
         const isComplex = Math.abs(item.matrix.b) > 1e-6 || Math.abs(item.matrix.c) > 1e-6;
 
         if (item instanceof paper.Shape.Rectangle && !isComplex) {
-            const rect = item as any;
             newPath = {
-                ...getSharedSvgProps(rect),
+                ...getSharedSvgProps(item),
                 tool: 'rectangle',
-                x: rect.bounds.x,
-                y: rect.bounds.y,
-                width: rect.bounds.width,
-                height: rect.bounds.height,
+                x: item.bounds.x,
+                y: item.bounds.y,
+                width: item.bounds.width,
+                height: item.bounds.height,
             } as RectangleData;
         } else if (item instanceof paper.Shape.Ellipse && !isComplex) {
-            const ellipse = item as any;
             newPath = {
-                ...getSharedSvgProps(ellipse),
+                ...getSharedSvgProps(item),
                 tool: 'ellipse',
-                x: ellipse.bounds.x,
-                y: ellipse.bounds.y,
-                width: ellipse.bounds.width,
-                height: ellipse.bounds.height,
+                x: item.bounds.x,
+                y: item.bounds.y,
+                width: item.bounds.width,
+                height: item.bounds.height,
             } as EllipseData;
         } else {
-            // For all other cases (Paths, complex Shapes, etc.), convert to a generic vector path
-            // to ensure visual fidelity is maintained.
-            const path = (item as any).toPath ? ((item as any).toPath()) : null;
-            if (path && path.segments && path.segments.length > 0) {
+            let path = item;
+            let tempPath = null;
+            // If it's a Shape, convert it to a Path to get its segments
+            if (typeof (item as any).toPath === 'function') {
+                tempPath = (item as any).toPath();
+                path = tempPath;
+            }
+
+            if (path instanceof paper.Path && path.segments?.length > 0) {
                  const anchors: Anchor[] = path.segments.map((segment: any) => ({
                     point: paperPointToPoint(segment.point),
                     handleIn: paperPointToPoint(segment.point.add(segment.handleIn)),
@@ -142,14 +142,16 @@ export async function importSvg(svgString: string): Promise<AnyPath[]> {
                 }));
                 
                 newPath = {
-                    ...getSharedSvgProps(item), // Get props from original item for color/stroke
+                    ...getSharedSvgProps(item),
                     tool: 'pen',
                     anchors,
                     isClosed: path.closed,
                 } as VectorPathData;
-                
-                // After converting, we must remove the temporary path to avoid memory leaks
-                path.remove();
+            }
+            
+            // Clean up the temporary path if one was created
+            if (tempPath) {
+                tempPath.remove();
             }
         }
 

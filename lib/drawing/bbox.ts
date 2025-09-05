@@ -1,11 +1,36 @@
-import type { BBox, AnyPath, Point, VectorPathData, BrushPathData, ArcData, GroupData } from '../../types';
+import type { BBox, AnyPath, Point, VectorPathData, BrushPathData, ArcData, GroupData, TextData } from '../../types';
 import { rotatePoint } from './geom';
 import { samplePath } from './path';
 import { getPolygonVertices } from './polygon';
 import { sampleArc } from './arc';
+import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '../../constants';
 
 export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true): BBox {
-  const halfStroke = includeStroke ? (path.strokeWidth || 0) / 2 : 0;
+  let margin = 0;
+
+  if (includeStroke) {
+    const halfStroke = (path.strokeWidth || 0) / 2;
+    // isRough 默认为 true（如果未定义）
+    if (path.isRough !== false) {
+      const roughAmount = (path.roughness ?? DEFAULT_ROUGHNESS);
+      const bowingAmount = (path.bowing ?? DEFAULT_BOWING);
+      // RoughJS 的默认 fillWeight 是描边宽度的一半。我们在缓冲区计算中复制该行为。
+      const fillWeight = (path.fillWeight != null && path.fillWeight >= 0) ? path.fillWeight : (path.strokeWidth / 2);
+      const halfFillWeight = (path.fill && path.fill !== 'transparent') ? fillWeight / 2 : 0;
+      
+      // 描边的总视觉范围是其半宽加上粗糙度和弯曲度引起的偏差。
+      const strokeOutset = halfStroke + roughAmount + bowingAmount;
+      
+      // 填充的影线也具有粗糙度和宽度（fillWeight），这可能导致它们伸出。
+      const fillOutset = halfFillWeight + roughAmount;
+      
+      // 最终边距是这两个可能伸出范围中的最大值。
+      margin = Math.max(strokeOutset, fillOutset);
+    } else {
+      // 对于非粗糙形状，边距就是描边宽度。
+      margin = halfStroke;
+    }
+  }
 
   switch (path.tool) {
     case 'brush': {
@@ -25,10 +50,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       }
       
       return {
-        x: minX - halfStroke,
-        y: minY - halfStroke,
-        width: (maxX - minX) + path.strokeWidth,
-        height: (maxY - minY) + path.strokeWidth,
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
       };
     }
     case 'arc': {
@@ -45,10 +70,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       }
       
       return {
-          x: minX - halfStroke,
-          y: minY - halfStroke,
-          width: (maxX - minX) + path.strokeWidth,
-          height: (maxY - minY) + path.strokeWidth,
+          x: minX - margin,
+          y: minY - margin,
+          width: (maxX - minX) + margin * 2,
+          height: (maxY - minY) + margin * 2,
       };
     }
     case 'group': {
@@ -56,15 +81,17 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const bbox = getPathsBoundingBox(groupPath.children, includeStroke);
       return bbox || { x: 0, y: 0, width: 0, height: 0 };
     }
+    case 'frame':
     case 'rectangle':
-    case 'image': {
+    case 'image':
+    case 'text': {
       const { x, y, width, height, rotation } = path;
       if (!rotation) {
         return {
-          x: x - halfStroke,
-          y: y - halfStroke,
-          width: width + path.strokeWidth,
-          height: height + path.strokeWidth,
+          x: x - margin,
+          y: y - margin,
+          width: width + margin * 2,
+          height: height + margin * 2,
         };
       }
 
@@ -82,10 +109,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const maxY = Math.max(...corners.map(p => p.y));
 
       return {
-        x: minX - halfStroke,
-        y: minY - halfStroke,
-        width: (maxX - minX) + path.strokeWidth,
-        height: (maxY - minY) + path.strokeWidth,
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
       };
     }
     case 'polygon': {
@@ -104,10 +131,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const maxY = Math.max(...finalVertices.map(p => p.y));
 
       return {
-        x: minX - halfStroke,
-        y: minY - halfStroke,
-        width: (maxX - minX) + path.strokeWidth,
-        height: (maxY - minY) + path.strokeWidth,
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
       };
     }
      case 'ellipse': {
@@ -117,10 +144,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
 
         if (!rotation) {
              return {
-                x: x - halfStroke,
-                y: y - halfStroke,
-                width: width + path.strokeWidth,
-                height: height + path.strokeWidth,
+                x: x - margin,
+                y: y - margin,
+                width: width + margin * 2,
+                height: height + margin * 2,
             };
         }
 
@@ -135,10 +162,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
         const newHeight = 2 * Math.sqrt(Math.pow(rx * sinAngle, 2) + Math.pow(ry * cosAngle, 2));
 
         return {
-            x: cx - newWidth / 2 - halfStroke,
-            y: cy - newHeight / 2 - halfStroke,
-            width: newWidth + path.strokeWidth,
-            height: newHeight + path.strokeWidth,
+            x: cx - newWidth / 2 - margin,
+            y: cy - newHeight / 2 - margin,
+            width: newWidth + margin * 2,
+            height: newHeight + margin * 2,
         }
     }
     case 'pen':
@@ -153,10 +180,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       if (sampledPoints.length === 0) {
         const point = anchoredPath.anchors[0].point;
         return {
-          x: point.x - halfStroke,
-          y: point.y - halfStroke,
-          width: path.strokeWidth,
-          height: path.strokeWidth,
+          x: point.x - margin,
+          y: point.y - margin,
+          width: margin * 2,
+          height: margin * 2,
         };
       }
       
@@ -171,10 +198,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       }
       
       return {
-        x: minX - halfStroke,
-        y: minY - halfStroke,
-        width: (maxX - minX) + path.strokeWidth,
-        height: (maxY - minY) + path.strokeWidth,
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
       };
     }
   }
@@ -218,4 +245,14 @@ export function doBboxesIntersect(box1: BBox, box2: BBox): boolean {
   const yOverlap = box1.y < box2.y + box2.height && box1.y + box1.height > box2.y;
   
   return xOverlap && yOverlap;
+}
+
+export function isBboxInside(innerBbox: BBox, outerBbox: BBox): boolean {
+    if (!innerBbox || !outerBbox) return false;
+    return (
+        innerBbox.x >= outerBbox.x &&
+        innerBbox.y >= outerBbox.y &&
+        (innerBbox.x + innerBbox.width) <= (outerBbox.x + outerBbox.width) &&
+        (innerBbox.y + innerBbox.height) <= (outerBbox.y + outerBbox.height)
+    );
 }

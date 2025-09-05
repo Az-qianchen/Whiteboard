@@ -23,7 +23,7 @@ export const DashControl: React.FC<DashControlProps> = React.memo((props) => {
     const dashGap = useDashGapInput(props);
 
     return (
-        <div className={`flex flex-col items-center gap-1 w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title="虚线样式">
+        <div className={`flex flex-col items-center w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title="虚线样式">
             <Popover className="relative">
                 <Popover.Button
                     disabled={strokeWidth === 0}
@@ -78,7 +78,6 @@ export const DashControl: React.FC<DashControlProps> = React.memo((props) => {
                     </Popover.Panel>
                 </Transition>
             </Popover>
-            <span className="text-xs font-medium text-[var(--text-secondary)] sidebar-label">虚线</span>
         </div>
     );
 });

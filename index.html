@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SVG Whiteboard</title>
+    <link rel="stylesheet" href="https://esm.sh/open-color@1.9.1/open-color.css">
     <script src="https://cdn.tailwindcss.com"></script>
 <script type="importmap">
 {
@@ -19,58 +20,84 @@
     "browser-fs-access": "https://esm.sh/browser-fs-access@^0.38.0",
     "react-dom/": "https://esm.sh/react-dom@18.2.0/",
     "react/": "https://esm.sh/react@18.2.0/",
-    "svgo/": "https://esm.sh/svgo@^4.0.0/"
+    "svgo/": "https://esm.sh/svgo@^4.0.0/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.417.0?external=react",
+    "pica": "https://esm.sh/pica@^9.0.1",
+    "gsap": "https://esm.sh/gsap@3.12.5",
+    "imagetracerjs": "https://esm.sh/imagetracerjs@1.2.6"
   }
 }
 </script>
 <style>
+  @font-face {
+    font-family: 'Excalifont';
+    src: url('https://excalidraw.com/Excalifont.woff2') format('woff2');
+  }
   :root {
+    /* RGB values for transparent colors */
+    --oc-blue-6-rgb: 34, 139, 230;
+    --oc-red-7-rgb: 224, 49, 49;
+    --dark-bg-rgb: 26, 27, 30; /* ~ #1a1b1e */
+    --dark-bg: #1a1b1e;
+    --oc-gray-6-rgb: 134, 142, 150; /* Added for grid lines */
+    --oc-gray-7-rgb: 73, 80, 87;
+
     /* Base & Text */
-    --bg-color: #121215;
-    --text-primary: rgb(240, 240, 245);
-    --text-secondary: rgb(160, 160, 165);
+    --bg-color: var(--dark-bg);
+    --text-primary: var(--oc-gray-1);
+    --text-secondary: var(--oc-gray-4);
 
     /* Accent Colors */
-    --accent-primary: #3B82F6; /* blue-500 */
-    --accent-secondary: rgb(63, 63, 70); /* gray-700 - Used for active states on non-accented items */
-    --accent-bg: rgba(59, 130, 246, 0.15); /* Transparent accent for backgrounds */
+    --accent-primary: var(--oc-blue-6);
+    --accent-secondary: var(--oc-gray-7);
+    --accent-bg: rgba(var(--oc-blue-6-rgb), 0.15);
     --accent-solid-bg: var(--accent-primary);
-    --text-on-accent-solid: #FFFFFF;
+    --text-on-accent-solid: var(--oc-gray-0);
     
     /* Danger / Destructive Actions */
-    --danger-text: #F43F5E; /* rose-500 */
-    --danger-bg: rgba(244, 63, 94, 0.15);
+    --danger-text: var(--oc-red-7);
+    --danger-bg: rgba(var(--oc-red-7-rgb), 0.15);
 
     /* UI Panels & Elements */
-    --ui-panel-bg: rgba(28, 28, 32, 0.75);
-    --ui-popover-bg: rgba(28, 28, 32, 0.90);
-    --ui-panel-border: rgba(255, 255, 255, 0.1);
-    --ui-separator: rgba(255, 255, 255, 0.1);
-    --ui-subtle-ring: rgba(255, 255, 255, 0.15);
+    --ui-panel-bg: rgba(var(--dark-bg-rgb), 0.85);
+    --ui-popover-bg: rgba(var(--dark-bg-rgb), 0.95);
+    --ui-panel-border: var(--oc-gray-8);
+    --ui-separator: var(--oc-gray-8);
+    --ui-subtle-ring: var(--oc-gray-7);
+    --ui-group-layer-bg-1: rgba(var(--oc-blue-6-rgb), 0.1);
+    --ui-group-layer-bg-2: rgba(73, 166, 38, 0.1); /* oc-green-7 */
+    --ui-group-layer-bg-3: rgba(230, 119, 0, 0.1); /* oc-orange-7 */
+    --ui-group-layer-bg-4: rgba(110, 66, 219, 0.1); /* oc-violet-7 */
+    --ui-group-layer-bg-5: rgba(199, 36, 91, 0.1); /* oc-pink-7 */
     
     /* Interactive States */
-    --ui-hover-bg: rgba(255, 255, 255, 0.1);
-    --ui-element-bg: rgba(0, 0, 0, 0.2);
-    --ui-element-bg-hover: rgba(255, 255, 255, 0.08);
-    --ui-element-bg-active: rgba(255, 255, 255, 0.12);
+    --ui-hover-bg: var(--oc-gray-8);
+    --ui-element-bg: var(--oc-gray-9);
+    --ui-element-bg-hover: var(--oc-gray-8);
+    --ui-element-bg-active: var(--oc-gray-7);
     --ui-element-bg-inactive: rgba(0, 0, 0, 0.3);
 
     /* Canvas Specific */
-    --grid-line: rgba(255, 255, 255, 0.07);
-    --accent-highlight-fill: rgba(59, 130, 246, 0.1);
-    --accent-highlight-stroke: rgba(59, 130, 246, 0.7);
-    --accent-primary-muted: #2563EB; /* A bit darker blue */
-    --accent-primary-highlight: rgba(59, 130, 246, 0.2);
+    --grid-line: rgba(var(--oc-gray-7-rgb), 0.5);
+    --subgrid-line: rgba(var(--oc-gray-6-rgb), 0.7);
+    --accent-highlight-fill: rgba(var(--oc-blue-6-rgb), 0.1);
+    --accent-highlight-stroke: rgba(var(--oc-blue-6-rgb), 0.7);
+    --accent-primary-muted: var(--oc-blue-8);
+    --accent-primary-highlight: rgba(var(--oc-blue-6-rgb), 0.2);
     
     /* Custom Scrollbar for Style Library */
     --scrollbar-bg: transparent;
-    --scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
-    --scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.3);
+    --scrollbar-thumb-bg: var(--oc-gray-7);
+    --scrollbar-thumb-hover-bg: var(--oc-gray-6);
   }
   body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
+  }
+  body.light-bg-canvas {
+    --grid-line: rgba(0, 0, 0, 0.15);
+    --subgrid-line: rgba(0, 0, 0, 0.3);
   }
   /* Hide number input spinners */
   .hide-spinners::-webkit-outer-spin-button,

@@ -36,6 +36,7 @@ export const usePointerInteraction = ({
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     // Middle-mouse-button panning is always available
     if (e.button === 1 || (e.altKey && tool !== 'selection')) {
+      e.currentTarget.setPointerCapture(e.pointerId);
       setIsPanning(true);
       return;
     }
@@ -63,6 +64,9 @@ export const usePointerInteraction = ({
 
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     if (isPanning) {
+      if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
       setIsPanning(false);
       return;
     }
@@ -75,7 +79,12 @@ export const usePointerInteraction = ({
   };
   
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (isPanning) setIsPanning(false);
+    if (isPanning) {
+        if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        setIsPanning(false);
+    }
 
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);

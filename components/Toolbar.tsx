@@ -4,7 +4,7 @@
  */
 
 import React, { Fragment } from 'react';
-import { Popover, Transition, RadioGroup, Switch } from '@headlessui/react';
+import { Popover, Transition, Switch } from '@headlessui/react';
 import { ICONS } from '../constants';
 import type { Tool } from '../types';
 
@@ -15,91 +15,142 @@ interface ToolbarProps {
   setIsGridVisible: (visible: boolean) => void;
   gridSize: number;
   setGridSize: (size: number) => void;
+  gridSubdivisions: number;
+  setGridSubdivisions: (subdivisions: number) => void;
+  gridOpacity: number;
+  setGridOpacity: (opacity: number) => void;
 }
 
-const ALL_TOOL_BUTTONS = [
-  { name: 'selection', title: '选择 (V)', icon: ICONS.EDIT },
-  { name: 'brush', title: '画笔 (B)', icon: ICONS.BRUSH },
+const TOOLS: { name: Tool; title: string; icon: JSX.Element }[] = [
+  { name: 'selection', title: '选择 (V)', icon: ICONS.SELECTION },
   { name: 'pen', title: '钢笔 (P)', icon: ICONS.PEN },
+  { name: 'brush', title: '画笔 (B)', icon: ICONS.BRUSH },
   { name: 'polygon', title: '多边形', icon: ICONS.POLYGON },
   { name: 'rectangle', title: '矩形 (R)', icon: ICONS.RECTANGLE },
   { name: 'ellipse', title: '椭圆 (O)', icon: ICONS.ELLIPSE },
-  { name: 'arc', title: '圆弧 (A)', icon: ICONS.ARC },
   { name: 'line', title: '线条 (L)', icon: ICONS.LINE },
+  { name: 'arc', title: '圆弧 (A)', icon: ICONS.ARC },
+  { name: 'text', title: '文字 (T)', icon: ICONS.TEXT },
+  { name: 'frame', title: '画框 (F)', icon: ICONS.FRAME },
 ];
 
+/**
+ * 应用顶部的工具栏组件。
+ * @param {ToolbarProps} props - 组件的 props，包括当前工具、设置工具的函数以及网格相关的状态和设置函数。
+ * @returns {React.ReactElement} 渲染后的工具栏。
+ */
 export const Toolbar: React.FC<ToolbarProps> = ({
-  tool, setTool,
-  isGridVisible, setIsGridVisible,
-  gridSize, setGridSize,
+  tool,
+  setTool,
+  isGridVisible,
+  setIsGridVisible,
+  gridSize,
+  setGridSize,
+  gridSubdivisions,
+  setGridSubdivisions,
+  gridOpacity,
+  setGridOpacity,
 }) => {
-
   return (
-    <RadioGroup
-      value={tool}
-      onChange={setTool}
-      className="w-full max-w-5xl bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl px-2 py-2 flex items-center justify-center gap-x-1 text-[var(--text-primary)]"
-    >
-      
-      {ALL_TOOL_BUTTONS.map((toolItem) => (
-        <RadioGroup.Option
-          key={toolItem.name}
-          value={toolItem.name as Tool}
-          as="button"
-          title={toolItem.title}
-          className={({ checked }) => `p-2 rounded-lg flex items-center justify-center w-9 h-9 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
-            checked
+    <div className="flex flex-wrap items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
+      {TOOLS.map((t) => (
+        <button
+          key={t.name}
+          type="button"
+          title={t.title}
+          onClick={() => setTool(t.name)}
+          className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
+            tool === t.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
           }`}
         >
-          {toolItem.icon}
-        </RadioGroup.Option>
+          {t.icon}
+        </button>
       ))}
-      
-      <Separator />
+
+      <div className="h-6 w-px bg-[var(--ui-separator)] mx-1" />
 
       <Popover className="relative">
-        <Popover.Button className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-[var(--ui-subtle-ring)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${isGridVisible ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`} title="网格与吸附 (G)">
+        <Popover.Button
+          title="网格设置"
+          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+        >
           {ICONS.GRID}
         </Popover.Button>
-        <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
-          <Popover.Panel className="absolute top-full mt-2 right-0 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label htmlFor="grid-switch" className="text-sm font-medium text-[var(--text-primary)]">显示/吸附网格</label>
+        <Transition
+          as={Fragment}
+          enter="transition ease-out duration-100"
+          enterFrom="transform opacity-0 scale-95"
+          enterTo="transform opacity-100 scale-100"
+          leave="transition ease-in duration-75"
+          leaveFrom="transform opacity-100 scale-100"
+          leaveTo="transform opacity-0 scale-95"
+        >
+          <Popover.Panel className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-3">
+            <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-2 items-center">
+              <label htmlFor="grid-toggle" className="text-sm font-medium justify-self-start">显示网格</label>
+              <div className="justify-self-end">
                 <Switch
-                  id="grid-switch"
+                  id="grid-toggle"
                   checked={isGridVisible}
                   onChange={setIsGridVisible}
-                  className={`${isGridVisible ? 'bg-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg-inactive)]'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-popover-bg)]`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)] border ${isGridVisible ? 'bg-[var(--accent-bg)] border-[var(--accent-primary)]' : 'bg-black/30 border-transparent'}`}
                 >
                   <span className={`${isGridVisible ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                 </Switch>
               </div>
-              <div className={`grid grid-cols-2 items-center gap-2 transition-opacity ${!isGridVisible ? 'opacity-50' : ''}`}>
-                <label htmlFor="grid-size-input" className="text-sm font-medium text-[var(--text-primary)]">网格大小</label>
-                <div className="flex items-center bg-[var(--ui-element-bg)] rounded-md h-8 px-2">
-                  <input
-                    id="grid-size-input"
-                    type="number"
-                    min="5" max="100" step="1"
-                    value={gridSize}
-                    onChange={(e) => setGridSize(Math.max(5, Number(e.target.value)))}
-                    className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
-                    disabled={!isGridVisible}
-                  />
-                  <span className="text-sm text-[var(--text-secondary)]">px</span>
-                </div>
+
+              <label htmlFor="grid-size" className="text-sm font-medium justify-self-start">网格大小</label>
+              <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-24 justify-self-end">
+                <input
+                  id="grid-size"
+                  type="number"
+                  min="5"
+                  max="200"
+                  step="5"
+                  value={gridSize}
+                  onChange={(e) => setGridSize(Math.max(5, Number(e.target.value)))}
+                  className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  disabled={!isGridVisible}
+                />
+                <span className="text-sm text-[var(--text-secondary)]">px</span>
+              </div>
+
+              <label htmlFor="grid-subdivisions" className="text-sm font-medium justify-self-start">细分</label>
+              <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-24 justify-self-end">
+                <input
+                  id="grid-subdivisions"
+                  type="number"
+                  min="2"
+                  max="10"
+                  step="1"
+                  value={gridSubdivisions}
+                  onChange={(e) => setGridSubdivisions(Math.max(2, Number(e.target.value)))}
+                  className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  disabled={!isGridVisible}
+                />
+              </div>
+
+              <label htmlFor="grid-opacity" className="text-sm font-medium justify-self-start">透明度</label>
+              <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-24 justify-self-end">
+                <input
+                  id="grid-opacity"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(gridOpacity * 100)}
+                  onChange={(e) => setGridOpacity(Math.max(0, Math.min(100, Number(e.target.value))) / 100)}
+                  className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  disabled={!isGridVisible}
+                />
+                <span className="text-sm text-[var(--text-secondary)]">%</span>
               </div>
             </div>
           </Popover.Panel>
         </Transition>
       </Popover>
-    </RadioGroup>
+    </div>
   );
 };
-
-// --- 子组件 ---
-
-const Separator = () => <div className="h-8 w-px bg-[var(--ui-separator)] hidden sm:block mx-1"></div>;

@@ -4,3 +4,7 @@ export * from './bbox';
 export * from './transform';
 export * from './polygon';
 export * from './arc';
+export * from './text';
+export * from './boolean';
+export * from './convert';
+export * from './arrange';

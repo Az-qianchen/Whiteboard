@@ -47,7 +47,7 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
     };
 
     return (
-        <div className={`flex flex-col items-center gap-1 w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title="端点样式">
+        <div className={`flex flex-col items-center w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title="端点样式">
             <Popover className="relative">
                 <Popover.Button
                     disabled={strokeWidth === 0}
@@ -57,7 +57,7 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
                     {ICONS.ENDPOINT_SETTINGS}
                 </Popover.Button>
                 <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
-                    <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-72 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
+                    <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
                         <div className="flex flex-col gap-4">
                             <EndpointGrid
                                 label="起点标记"
@@ -78,7 +78,7 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
                                     setEnabled={(enabled) => setEndpointFill(enabled ? 'solid' : 'hollow')}
                                 />
                             </div>
-                            <div className="h-px my-1 bg-[var(--separator)]" />
+                            <div className="h-px my-1 bg-[var(--ui-separator)]" />
                             <Slider
                                 label="端点尺寸"
                                 value={endpointSize ?? 1}
@@ -91,7 +91,6 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
                     </Popover.Panel>
                 </Transition>
             </Popover>
-            <span className="text-xs font-medium text-[var(--text-secondary)] sidebar-label">端点</span>
         </div>
     );
 });

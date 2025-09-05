@@ -10,6 +10,11 @@ export interface HSLA {
   a: number;
 }
 
+/**
+ * 解析十六进制颜色字符串。
+ * @param {string} hex - 十六进制颜色字符串（例如 "#rgb" 或 "#rrggbb"）。
+ * @returns {[number, number, number]} - 包含 R, G, B 值的数组。
+ */
 function parseHex(hex: string): [number, number, number] {
   hex = hex.startsWith('#') ? hex.slice(1) : hex;
   if (hex.length === 3) {
@@ -21,18 +26,35 @@ function parseHex(hex: string): [number, number, number] {
   return [r, g, b];
 }
 
+/**
+ * 解析 RGB 或 RGBA 颜色字符串。
+ * @param {string} rgb - RGB(A) 颜色字符串。
+ * @returns {[number, number, number, number]} - 包含 R, G, B, A 值的数组。
+ */
 function parseRgb(rgb: string): [number, number, number, number] {
   const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
   if (!match) return [0, 0, 0, 1];
   return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), match[4] !== undefined ? parseFloat(match[4]) : 1];
 }
 
+/**
+ * 解析 HSL 或 HSLA 颜色字符串。
+ * @param {string} hsl - HSL(A) 颜色字符串。
+ * @returns {[number, number, number, number]} - 包含 H, S, L, A 值的数组。
+ */
 function parseHsl(hsl: string): [number, number, number, number] {
     const match = hsl.match(/hsla?\((\d+),\s*([\d.]+)%?,\s*([\d.]+)%?(?:,\s*([\d.]+))?\)/);
     if (!match) return [0, 0, 0, 1];
     return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), match[4] !== undefined ? parseFloat(match[4]) : 1];
 }
 
+/**
+ * 将 RGB 颜色值转换为 HSL。
+ * @param {number} r - 红色分量 (0-255)。
+ * @param {number} g - 绿色分量 (0-255)。
+ * @param {number} b - 蓝色分量 (0-255)。
+ * @returns {[number, number, number]} - 包含 H, S, L 值的数组。
+ */
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -52,6 +74,13 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
   return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }
 
+/**
+ * 将 HSL 颜色值转换为 RGB。
+ * @param {number} h - 色相 (0-360)。
+ * @param {number} s - 饱和度 (0-100)。
+ * @param {number} l - 亮度 (0-100)。
+ * @returns {[number, number, number]} - 包含 R, G, B 值的数组。
+ */
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   s /= 100;
   l /= 100;
@@ -79,6 +108,11 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
+/**
+ * 将任何有效的 CSS 颜色字符串解析为 HSLA 对象。
+ * @param {string} color - CSS 颜色字符串。
+ * @returns {HSLA} - 包含 H, S, L, A 值的对象。
+ */
 export function parseColor(color: string): HSLA {
   if (color.startsWith('#')) {
     const [r, g, b] = parseHex(color);
@@ -97,10 +131,20 @@ export function parseColor(color: string): HSLA {
   return { h: 0, s: 0, l: 0, a: 1 }; // Fallback
 }
 
+/**
+ * 将 HSLA 对象转换为 HSLA 字符串。
+ * @param {HSLA} hsla - HSLA 对象。
+ * @returns {string} - CSS HSLA 颜色字符串。
+ */
 export function hslaToHslaString(hsla: HSLA): string {
     return `hsla(${Math.round(hsla.h)}, ${Math.round(hsla.s)}%, ${Math.round(hsla.l)}%, ${hsla.a})`;
 }
 
+/**
+ * 将 HSLA 对象转换为十六进制颜色字符串（忽略透明度）。
+ * @param {HSLA} hsla - HSLA 对象。
+ * @returns {string} - CSS 十六进制颜色字符串。
+ */
 export function hslaToHex(hsla: HSLA): string {
     const [r, g, b] = hslToRgb(hsla.h, hsla.s, hsla.l);
     const toHex = (c: number) => c.toString(16).padStart(2, '0');
