@@ -24,6 +24,69 @@ export interface BBox {
 
 export type EndpointStyle = 'none' | 'arrow' | 'triangle' | 'dot' | 'square' | 'circle' | 'diamond' | 'bar' | 'butt' | 'round' | 'square_cap' | 'reverse_arrow';
 
+export interface StyleClipboardData {
+  color?: string;
+  fill?: string;
+  fillStyle?: string;
+  strokeWidth?: number;
+  strokeLineDash?: [number, number];
+  strokeLineCapStart?: EndpointStyle;
+  strokeLineCapEnd?: EndpointStyle;
+  strokeLineJoin?: 'miter' | 'round' | 'bevel';
+  endpointSize?: number;
+  endpointFill?: 'solid' | 'hollow';
+  isRough?: boolean;
+  opacity?: number;
+  roughness?: number;
+  bowing?: number;
+  fillWeight?: number;
+  hachureAngle?: number;
+  hachureGap?: number;
+  curveTightness?: number;
+  curveStepCount?: number;
+  preserveVertices?: boolean;
+  disableMultiStroke?: boolean;
+  disableMultiStrokeFill?: boolean;
+  borderRadius?: number;
+  sides?: number;
+  fontFamily?: string;
+  fontSize?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  blur?: number;
+  shadowEnabled?: boolean;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  shadowBlur?: number;
+  shadowColor?: string;
+}
+
+export type MaterialData = {
+  shapes: AnyPath[];
+}
+
+export type LibraryData = {
+  type: 'whiteboard/library';
+  version: 1;
+  styles: StyleClipboardData[];
+  materials: MaterialData[];
+};
+
+
+export type Alignment = 'left' | 'right' | 'h-center' | 'top' | 'bottom' | 'v-center';
+export type DistributeMode = 'edges' | 'centers';
+
+export interface PngExportOptions {
+  scale: number;
+  highQuality: boolean;
+  transparentBg: boolean;
+  padding?: number;
+}
+export interface AnimationExportOptions {
+  format: 'sequence' | 'spritesheet';
+  columns: number;
+  clipToFrameId?: string | 'full';
+}
+
 interface ShapeBase {
   id: string;
   name?: string; // 用于图层，特别是组
@@ -149,11 +212,17 @@ export interface GroupData extends ShapeBase {
 // 任何已存储并已转换为锚点的路径的通用类型。
 export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | TextData | FrameData;
 
+export interface Frame {
+  paths: AnyPath[];
+}
+
 export interface WhiteboardData {
   type: 'whiteboard/shapes';
-  version: number;
-  paths: AnyPath[];
+  version: number; // 2 for old, 3 for new with frames
+  paths?: AnyPath[]; // For backward compatibility (version 2)
+  frames?: Frame[]; // For new version 3
   backgroundColor?: string;
+  fps?: number;
 }
 
 // 用于实时手绘的临时路径类型。
@@ -235,84 +304,17 @@ type BorderRadiusDragState = {
 type ArcDragState = {
   type: 'arc';
   pathId: string;
-  pointIndex: 0 | 1 | 2; // 0: start, 1: end, 2: via
+  pointIndex: 0 | 1 | 2;
 };
 
-// A drag state for cropping an image
 type CropDragState = {
-  type: 'crop';
-  pathId: string;
-  handle: ResizeHandlePosition;
-  initialCropRect: BBox; // The state of the CROP RECT at the start of the drag
-  originalImage: ImageData; // The state of the image at the start of CROP MODE
-  initialPointerPos: Point;
-};
+    type: 'crop';
+    pathId: string;
+    handle: ResizeHandlePosition;
+    initialCropRect: BBox;
+    originalImage: ImageData;
+    initialPointerPos: Point;
+}
 
-
+// Union of all possible drag states
 export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
-
-export interface StyleClipboardData {
-  color?: string;
-  fill?: string;
-  fillStyle?: string;
-  strokeWidth?: number;
-  strokeLineDash?: [number, number];
-  strokeLineCapStart?: EndpointStyle;
-  strokeLineCapEnd?: EndpointStyle;
-  strokeLineJoin?: 'miter' | 'round' | 'bevel';
-  endpointSize?: number;
-  endpointFill?: 'solid' | 'hollow';
-  isRough?: boolean;
-  opacity?: number;
-  roughness?: number;
-  bowing?: number;
-  fillWeight?: number;
-  hachureAngle?: number;
-  hachureGap?: number;
-  curveTightness?: number;
-  curveStepCount?: number;
-  preserveVertices?: boolean;
-  disableMultiStroke?: boolean;
-  disableMultiStrokeFill?: boolean;
-  borderRadius?: number;
-  sides?: number;
-  // Text properties
-  fontFamily?: string;
-  fontSize?: number;
-  textAlign?: 'left' | 'center' | 'right';
-  // Effects
-  blur?: number;
-  shadowEnabled?: boolean;
-  shadowOffsetX?: number;
-  shadowOffsetY?: number;
-  shadowBlur?: number;
-  shadowColor?: string;
-}
-
-export interface MaterialData {
-  shapes: AnyPath[];
-}
-
-// This is a legacy type for backward compatibility
-export interface StyleLibraryData {
-  type: 'whiteboard/style-library';
-  version: number;
-  styles: StyleClipboardData[];
-}
-
-export interface LibraryData {
-  type: 'whiteboard/library';
-  version: number;
-  styles: StyleClipboardData[];
-  materials: MaterialData[];
-}
-
-export type Alignment = 'left' | 'h-center' | 'right' | 'top' | 'v-center' | 'bottom';
-
-export type DistributeMode = 'edges' | 'centers';
-
-export interface PngExportOptions {
-  scale: number;
-  highQuality: boolean;
-  transparentBg: boolean;
-}

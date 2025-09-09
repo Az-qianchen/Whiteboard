@@ -26,7 +26,6 @@ export function resizePath(
     const { rotation } = originalPath;
 
     let localCurrentPos = currentPos;
-    let localInitialPos = initialPos;
 
     if (rotation) {
         const center = rotationCenter || { 
@@ -34,69 +33,93 @@ export function resizePath(
             y: originalPath.y + originalPath.height / 2 
         };
         localCurrentPos = rotatePoint(currentPos, center, -rotation);
-        localInitialPos = rotatePoint(initialPos, center, -rotation);
     }
     
-    const dx = localCurrentPos.x - localInitialPos.x;
-    const dy = localCurrentPos.y - localInitialPos.y;
+    const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = originalPath;
 
-    let { x, y, width, height } = originalPath;
-    const originalAspectRatio = (originalPath.width === 0 || originalPath.height === 0) ? 1 : originalPath.width / originalPath.height;
-
-    const handleLeft = handle.includes('left');
-    const handleRight = handle.includes('right');
-    const handleTop = handle.includes('top');
-    const handleBottom = handle.includes('bottom');
+    // 定义锚点，即与被拖动控制点相对的点。
+    const anchor = {
+        x: handle.includes('left') ? oldX + oldWidth : oldX,
+        y: handle.includes('top') ? oldY + oldHeight : oldY,
+    };
     
-    if (handleRight) width += dx;
-    if (handleBottom) height += dy;
-    if (handleLeft) {
-      width -= dx;
-      x += dx;
+    // 对于边控制点，锚点是一条线，但其中一个坐标是固定的。
+    // 另一个坐标是原始框在该轴上的中心。
+    if (!handle.includes('left') && !handle.includes('right')) { // top or bottom
+        anchor.x = oldX + oldWidth / 2;
     }
-    if (handleTop) {
-      height -= dy;
-      y += dy;
+    if (!handle.includes('top') && !handle.includes('bottom')) { // left or right
+        anchor.y = oldY + oldHeight / 2;
     }
 
-    if (keepAspectRatio) {
-        const isCorner = !handle.includes('left') && !handle.includes('right') ? false : !handle.includes('top') && !handle.includes('bottom') ? false : true;
+    // 计算从锚点到鼠标的位移向量
+    let dxFromAnchor = localCurrentPos.x - anchor.x;
+    let dyFromAnchor = localCurrentPos.y - anchor.y;
 
-        if (handle === 'top' || handle === 'bottom') {
-            const newWidth = Math.abs(height) * originalAspectRatio;
-            x += (width - newWidth) / 2;
-            width = newWidth;
-        } else if (handle === 'left' || handle === 'right') {
-            const newHeight = Math.abs(width) / originalAspectRatio;
-            y += (height - newHeight) / 2;
-            height = newHeight;
-        } else if (isCorner) { // Corners
-            // Determine master axis by larger visual change, scaled by aspect ratio to be fair
-            if (Math.abs(dx) * originalAspectRatio > Math.abs(dy)) { // Width change is dominant
-                const oldHeight = Math.abs(height);
-                const newHeight = Math.abs(width) / originalAspectRatio;
-                height = (height > 0) ? newHeight : -newHeight;
-                if(handleTop) y += oldHeight - newHeight;
-            } else { // Height change is dominant
-                const oldWidth = Math.abs(width);
-                const newWidth = Math.abs(height) * originalAspectRatio;
-                width = (width > 0) ? newWidth : -newWidth;
-                if(handleLeft) x += oldWidth - newWidth;
+    if (keepAspectRatio && oldWidth > 0 && oldHeight > 0) {
+        const isCorner = (handle.includes('left') || handle.includes('right')) && (handle.includes('top') || handle.includes('bottom'));
+        const targetAspectRatio = oldWidth / oldHeight;
+
+        if (isCorner) {
+            // 为了使调整大小感觉直观，我们计算两个可能的矩形：
+            // 一个受鼠标 X 位置约束，一个受 Y 位置约束。
+            // 然后，我们选择那个被拖动的角点更接近实际鼠标位置的矩形。
+            // 这可以防止在鼠标移动的主导轴改变时发生突然跳动。
+
+            const distSq = (p1: Point, p2: Point) => (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
+
+            // 选项1：调整大小由鼠标的 X 轴移动驱动。
+            const newWidth_from_x = Math.abs(dxFromAnchor);
+            const newHeight_from_x = newWidth_from_x / targetAspectRatio;
+            const finalPoint_from_x = {
+                x: anchor.x + newWidth_from_x * Math.sign(dxFromAnchor),
+                y: anchor.y + newHeight_from_x * Math.sign(dyFromAnchor || (handle.includes('bottom') ? 1 : -1))
+            };
+
+            // 选项2：调整大小由鼠标的 Y 轴移动驱动。
+            const newHeight_from_y = Math.abs(dyFromAnchor);
+            const newWidth_from_y = newHeight_from_y * targetAspectRatio;
+             const finalPoint_from_y = {
+                x: anchor.x + newWidth_from_y * Math.sign(dxFromAnchor || (handle.includes('right') ? 1 : -1)),
+                y: anchor.y + newHeight_from_y * Math.sign(dyFromAnchor)
+            };
+
+            // 比较哪个选项的角点更接近鼠标光标。
+            if (distSq(localCurrentPos, finalPoint_from_x) < distSq(localCurrentPos, finalPoint_from_y)) {
+                // X 驱动的调整大小更合适。调整 dy。
+                dyFromAnchor = newHeight_from_x * Math.sign(dyFromAnchor || (handle.includes('bottom') ? 1 : -1));
+            } else {
+                // Y 驱动的调整大小更合适。调整 dx。
+                dxFromAnchor = newWidth_from_y * Math.sign(dxFromAnchor || (handle.includes('right') ? 1 : -1));
             }
+        } else if (handle.includes('left') || handle.includes('right')) { // horizontal handles
+            dyFromAnchor = (Math.abs(dxFromAnchor) / targetAspectRatio) * Math.sign(dyFromAnchor || 1);
+        } else { // vertical handles
+            dxFromAnchor = (Math.abs(dyFromAnchor) * targetAspectRatio) * Math.sign(dxFromAnchor || 1);
         }
     }
     
-    if (width < 0) {
-      x += width;
-      width = -width;
-    }
-    if (height < 0) {
-      y += height;
-      height = -height;
-    }
+    const finalPoint = {
+        x: anchor.x + dxFromAnchor,
+        y: anchor.y + dyFromAnchor,
+    };
 
-    return { ...originalPath, x, y, width, height };
+    let newX = Math.min(anchor.x, finalPoint.x);
+    let newY = Math.min(anchor.y, finalPoint.y);
+    let newWidth = Math.abs(dxFromAnchor);
+    let newHeight = Math.abs(dyFromAnchor);
+
+    // 纠正边控制点的位置，它们应该在非拖动轴上从中心调整大小
+    if (!handle.includes('left') && !handle.includes('right')) { // top or bottom
+        newX = anchor.x - newWidth / 2;
+    }
+    if (!handle.includes('top') && !handle.includes('bottom')) { // left or right
+        newY = anchor.y - newHeight / 2;
+    }
+    
+    return { ...originalPath, x: newX, y: newY, width: newWidth, height: newHeight };
 }
+
 
 /**
  * 变换裁剪矩形。

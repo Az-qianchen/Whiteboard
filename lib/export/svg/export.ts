@@ -2,10 +2,27 @@
  * 本文件负责处理 SVG 导出逻辑。
  * 它使用 `roughjs` 库将内部路径数据转换为 SVG 字符串，并可选择使用 SVGO 进行优化。
  */
-import type { AnyPath, BBox, FrameData } from '../../types';
+import type { AnyPath, BBox, FrameData, GroupData } from '../../types';
 import rough from 'roughjs/bin/rough';
 import { getPathsBoundingBox } from '../../drawing';
 import { renderPathNode } from '../core/render';
+
+/**
+ * 递归地查找并返回路径树中所有的画框对象。
+ * @param paths - 要搜索的路径数组。
+ * @returns 一个包含所有找到的画框对象的数组。
+ */
+const getAllFrames = (paths: AnyPath[]): AnyPath[] => {
+  let allFrames: AnyPath[] = [];
+  for (const path of paths) {
+    if (path.tool === 'frame') {
+      allFrames.push(path);
+    } else if (path.tool === 'group') {
+      allFrames = [...allFrames, ...getAllFrames((path as GroupData).children)];
+    }
+  }
+  return allFrames;
+};
 
 /**
  * Creates an SVG string from an array of path data, with an option to optimize it using SVGO.
@@ -70,11 +87,54 @@ export async function pathsToSvgString(paths: AnyPath[], options?: {
 
   const rc = rough.svg(svg);
 
+  const frames = getAllFrames(paths);
+
   paths.forEach(pathData => {
     const node = renderPathNode(rc, pathData);
     if (node) {
       mainGroup.appendChild(node);
     }
+  });
+
+  // 添加画框编号
+  frames.forEach((frame, index) => {
+    const frameData = frame as FrameData;
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'frame-label-group');
+
+    const labelPadding = 8;
+    const labelHeight = 24;
+    const number = index + 1;
+    const textContent = String(number);
+    const textPadding = 8;
+    const textWidth = (textContent.length * 8) + (2 * textPadding);
+    const labelWidth = textWidth;
+
+    const labelText = document.createElementNS(svgNS, 'text');
+    labelText.setAttribute('x', String(frameData.x + labelPadding + labelWidth / 2));
+    labelText.setAttribute('y', String(frameData.y + labelPadding + labelHeight / 2));
+    labelText.setAttribute('fill', frameData.color);
+    labelText.setAttribute('stroke', '#FFFFFF'); // White stroke for visibility on various backgrounds
+    labelText.setAttribute('stroke-width', '3');
+    labelText.setAttribute('stroke-linejoin', 'round');
+    labelText.setAttribute('paint-order', 'stroke');
+    labelText.setAttribute('font-size', '14');
+    labelText.setAttribute('font-weight', 'bold');
+    labelText.setAttribute('font-family', 'sans-serif');
+    labelText.setAttribute('text-anchor', 'middle');
+    labelText.setAttribute('dominant-baseline', 'central');
+    labelText.textContent = textContent;
+    
+    g.appendChild(labelText);
+    
+    if (frameData.rotation) {
+        const cx = frameData.x + frameData.width / 2;
+        const cy = frameData.y + frameData.height / 2;
+        const angleDegrees = frameData.rotation * (180 / Math.PI);
+        g.setAttribute('transform', `rotate(${angleDegrees} ${cx} ${cy})`);
+    }
+    
+    mainGroup.appendChild(g);
   });
 
   svg.appendChild(mainGroup);
@@ -85,40 +145,8 @@ export async function pathsToSvgString(paths: AnyPath[], options?: {
     return rawSvgString;
   }
 
-  try {
-    const { optimize } = await import('svgo/dist/svgo.browser.js');
-
-    // Manually list plugins to avoid the warning with `preset-default` overrides.
-    // This is the default list from SVGO v3, with modifications.
-    const defaultPlugins = [
-      'cleanupAttrs', 'cleanupEnableBackground', 'cleanupIds', 'cleanupListOfValues', 
-      'cleanupNumericValues', 'collapseGroups', 'convertColors', 'convertPathData', 
-      'convertShapeToPath', 'convertStyleToAttrs', 'convertTransform', 'inlineStyles', 
-      'mergePaths', 'minifyStyles', 'moveElemsAttrsToGroup', 'moveGroupAttrsToElems', 
-      'removeComments', 'removeDesc', 'removeDimensions', 'removeDoctype', 
-      'removeEditorsNSData', 'removeEmptyAttrs', 'removeEmptyContainers', 'removeEmptyText', 
-      'removeHiddenElems', 'removeMetadata', 'removeNonInheritableGroupAttrs', 
-      'removeRasterImages', 'removeScriptElement', 'removeStyleElement', 'removeTitle', 
-      'removeUnknownsAndDefaults', 'removeUnusedNS', 'removeUselessDefs', 
-      'removeUselessStrokeAndFill', 'removeViewBox', 'removeXMLProcInst', 'sortAttrs',
-    ];
-
-    // Always keep the viewBox.
-    let activePlugins = defaultPlugins.filter(p => p !== 'removeViewBox');
-
-    // If we're exporting for PNG, we need the dimensions. Otherwise, we can remove them.
-    if (keepDimensions) {
-      activePlugins = activePlugins.filter(p => p !== 'removeDimensions');
-    }
-
-    const { data } = optimize(rawSvgString, {
-      multipass: true,
-      plugins: activePlugins,
-    });
-    return data;
-  } catch (error) {
-    console.error("SVGO optimization failed:", error);
-    // Fallback to the unoptimized version if SVGO fails.
-    return rawSvgString;
-  }
+  // SVGO browser bundle is not available by default in this project setup.
+  // To keep builds working, skip optimization and return the raw SVG string.
+  // If needed later, reintroduce SVGO via a browser-compatible build and dynamic import.
+  return rawSvgString;
 }

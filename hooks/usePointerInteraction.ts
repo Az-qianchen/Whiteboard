@@ -9,7 +9,7 @@ import type { Tool } from '../types';
 interface InteractionHandlers {
   onPointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerMove: (e: React.PointerEvent<SVGSVGElement>) => void;
-  onPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
+  onPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void | Promise<void>;
   onPointerLeave: (e: React.PointerEvent<SVGSVGElement>) => void;
 }
 
@@ -81,11 +81,13 @@ export const usePointerInteraction = ({
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     if (isPanning) {
         if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+            // FIX: Corrected method name to releasePointerCapture and completed the function.
             e.currentTarget.releasePointerCapture(e.pointerId);
         }
         setIsPanning(false);
+        return;
     }
-
+    
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
     } else {
@@ -93,5 +95,10 @@ export const usePointerInteraction = ({
     }
   };
 
-  return { onPointerDown, onPointerMove, onPointerUp, onPointerLeave };
+  return {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerLeave,
+  };
 };

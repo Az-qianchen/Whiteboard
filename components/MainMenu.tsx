@@ -4,9 +4,10 @@ import { Paintbrush } from 'lucide-react';
 import { ICONS } from '../constants';
 import { FloatingColorPicker } from './FloatingColorPicker';
 import { StatusBar } from './StatusBar';
-import type { PngExportOptions } from '../types';
+import type { PngExportOptions, AnimationExportOptions } from '../types';
 import { LayersPanel } from './layers-panel/LayersPanel';
 import { FloatingPngExporter } from './FloatingPngExporter';
+import { FloatingAnimationExporter } from './FloatingAnimationExporter';
 
 // --- 主菜单组件 ---
 
@@ -19,10 +20,13 @@ interface MainMenuProps {
   canClear: boolean;
   onExportSvg: () => Promise<void>;
   onExportPng: () => Promise<void>;
+  onExportAnimation: (options: AnimationExportOptions) => Promise<void>;
   canExport: boolean;
+  frameCount: number;
   backgroundColor: string;
   setBackgroundColor: (color: string) => void;
   activeFileName: string | null;
+  onResetPreferences: () => void;
   // StatusBar Props
   zoomLevel: number;
   onUndo: () => void;
@@ -43,9 +47,10 @@ interface MainMenuProps {
 export const MainMenu: React.FC<MainMenuProps> = (props) => { 
   const {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear,
-    onExportSvg, onExportPng, canExport,
+    onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
     backgroundColor, setBackgroundColor,
     activeFileName,
+    onResetPreferences,
     zoomLevel, onUndo, canUndo, onRedo, canRedo,
     selectionInfo, elementCount, canvasWidth, canvasHeight,
     isStatusBarCollapsed, setIsStatusBarCollapsed,
@@ -62,7 +67,9 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     { label: '---' },
     { label: '导出为 SVG...', handler: onExportSvg, icon: ICONS.COPY_SVG, disabled: !canExport },
     { label: '导出为 PNG...', isPngExporter: true }, // Special item for PNG exporter
+    { label: '导出动画...', isAnimationExporter: true },
     { label: '---' },
+    { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
     { label: '清空画布', handler: onClear, icon: ICONS.CLEAR, isDanger: true, disabled: !canClear },
   ];
 
@@ -164,6 +171,29 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                       </button>
                     )}
                   </FloatingPngExporter>
+                );
+              }
+
+              if ((action as any).isAnimationExporter) {
+                return (
+                  <FloatingAnimationExporter
+                    key="animation-exporter"
+                    placement="right"
+                    onExportAnimation={onExportAnimation}
+                    canExport={frameCount > 1}
+                  >
+                    {({ ref, onClick }) => (
+                      <button
+                        ref={ref}
+                        onClick={onClick}
+                        disabled={frameCount <= 1}
+                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
+                      >
+                        <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.PLAY}</div>
+                        <span className="flex-grow">{action.label}</span>
+                      </button>
+                    )}
+                  </FloatingAnimationExporter>
                 );
               }
 

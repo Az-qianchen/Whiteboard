@@ -63,7 +63,7 @@ export const useObjectActions = ({
 
     const newSelectedIds: string[] = [];
 
-    const updatedPaths = paths.map(path => {
+    const updatedPaths = paths.map((path) => {
         if (selectedPathIds.includes(path.id)) {
             let pathAfterConversion: AnyPath | null = null;
             if (path.tool === 'rectangle') {
@@ -88,7 +88,7 @@ export const useObjectActions = ({
         return path;
     });
 
-    pathState.setPaths(updatedPaths);
+    pathState.setPaths(updatedPaths.filter((p): p is AnyPath => !!p));
     pathState.setSelectedPathIds(newSelectedIds);
     toolbarState.setTool('selection');
   }, [paths, selectedPathIds, pathState, toolbarState]);
@@ -261,7 +261,7 @@ export const useObjectActions = ({
         }, 'default');
     });
 
-    const tracedPaths = await importSvg(svgString);
+    const tracedPaths = importSvg(svgString);
     if (tracedPaths.length === 0) {
         alert("图片矢量化未能生成任何路径。");
         return;

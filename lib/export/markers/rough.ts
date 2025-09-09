@@ -51,6 +51,11 @@ export function createCapNode(
         }
         return node;
     };
+    
+    // 60度角几何通用计算
+    const sideLength = strokeWidth * 2.0 * sizeMultiplier;
+    const altitude = sideLength * (Math.sqrt(3) / 2);
+    const halfBase = sideLength / 2;
 
 
     switch (type) {
@@ -75,23 +80,17 @@ export function createCapNode(
             const node = rc.line(finalPoints[0][0], finalPoints[0][1], finalPoints[1][0], finalPoints[1][1], lineMarkerOptions);
             return applyRoundCaps(node);
         }
-        case 'arrow': {
-            const length = strokeWidth * 1.5 * sizeMultiplier;
-            const base = strokeWidth * 1.5 * sizeMultiplier;
-            // The tip of the arrow should be at the origin (0,0) to connect with the line endpoint.
-            // The wings should point backwards from the tip. This creates a ">" shape pointing right in local coords.
-            const points: Point[] = [ { x: -length, y: -base / 2 }, { x: 0, y: 0 }, { x: -length, y: base / 2 } ];
+        case 'arrow': { // > 形，开放，尖端在 (0,0)
+            const points: Point[] = [ { x: -altitude, y: -halfBase }, { x: 0, y: 0 }, { x: -altitude, y: halfBase } ];
             const node = rc.linearPath(toPoints(points, point), lineMarkerOptions);
             return applyRoundCaps(node);
         }
-        case 'reverse_arrow': { // This is now a fork.
-            const length = strokeWidth * 2 * sizeMultiplier;
-            const angle_offset = Math.PI / 7; // ~25.7 degrees
+        case 'reverse_arrow': { // Y 形分叉
+            const tineLength = sideLength * 0.9; // Make tines slightly shorter for better look
+            const angle_offset = Math.PI / 6; // 30 degrees for a 60 degree total angle
             
-            // local coords, fork point is at (0,0) which is the line endpoint
-            // branches go outwards (positive x)
-            const p1 = { x: length, y: -length * Math.tan(angle_offset) };
-            const p2 = { x: length, y: length * Math.tan(angle_offset) };
+            const p1 = { x: tineLength * Math.cos(angle_offset), y: -tineLength * Math.sin(angle_offset) };
+            const p2 = { x: tineLength * Math.cos(angle_offset), y:  tineLength * Math.sin(angle_offset) };
 
             const points1 = toPoints([{x: 0, y:0}, p1], point);
             const points2 = toPoints([{x: 0, y:0}, p2], point);
@@ -106,18 +105,13 @@ export function createCapNode(
         }
         
         // These are fillable line markers
-        case 'dot': { // Inverted triangle
-            const height = strokeWidth * 1.5 * sizeMultiplier;
-            const halfBase = height * 0.866; // Equilateral
-            // Inward pointing triangle "<"
-            const points: Point[] = [ { x: height, y: -halfBase }, { x: 0, y: 0 }, { x: height, y: halfBase } ];
+        case 'dot': { // < 形 (倒三角)，闭合，尖端在 (0,0)
+            const points: Point[] = [ { x: altitude, y: -halfBase }, { x: 0, y: 0 }, { x: altitude, y: halfBase } ];
             const node = rc.polygon(toPoints(points, point), useSolidFill ? solidFillMarkerOptions : hollowFillMarkerOptions);
             return applyRoundCaps(node);
         }
-        case 'triangle': {
-            const height = strokeWidth * 1.5 * sizeMultiplier;
-            const halfBase = height * 0.866; // Equilateral
-            const points: Point[] = [ { x: 0, y: -halfBase }, { x: height, y: 0 }, { x: 0, y: halfBase } ];
+        case 'triangle': { // > 形，闭合，底部在 (0,0)
+            const points: Point[] = [ { x: 0, y: -halfBase }, { x: altitude, y: 0 }, { x: 0, y: halfBase } ];
             const node = rc.polygon(toPoints(points, point), useSolidFill ? solidFillMarkerOptions : hollowFillMarkerOptions);
             return applyRoundCaps(node);
         }

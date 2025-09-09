@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, TextData } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
 import { measureText } from '../lib/drawing';
+import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -51,6 +52,7 @@ export const useToolbarState = (
   const { drawingDisableMultiStroke, setDrawingDisableMultiStroke } = P.useDrawingDisableMultiStroke();
   const { drawingDisableMultiStrokeFill, setDrawingDisableMultiStrokeFill } = P.useDrawingDisableMultiStrokeFill();
   const { drawingText, setDrawingText } = P.useDrawingText();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
   const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
   const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
   const { drawingBlur, setDrawingBlur } = P.useDrawingBlur();
@@ -183,6 +185,20 @@ export const useToolbarState = (
     }
   };
 
+  const setFontFamily = (newFamily: string) => {
+    if (firstSelectedPath?.tool === 'text') {
+        updateSelectedPaths((p) => {
+            if (p.tool === 'text') {
+                const { width, height } = measureText(p.text, p.fontSize, newFamily);
+                return { fontFamily: newFamily, width, height };
+            }
+            return {};
+        });
+    } else {
+        setDrawingFontFamily(newFamily);
+    }
+  };
+
   const setFontSize = (newSize: number) => {
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
@@ -253,6 +269,7 @@ export const useToolbarState = (
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
   
   const text = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).text ?? drawingText) : drawingText;
+  const fontFamily = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).fontFamily ?? drawingFontFamily) : drawingFontFamily;
   const fontSize = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).fontSize ?? drawingFontSize) : drawingFontSize;
   const textAlign = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).textAlign ?? drawingTextAlign) : drawingTextAlign;
 
@@ -269,6 +286,52 @@ export const useToolbarState = (
   const sides = (firstSelectedPath?.tool === 'polygon' || tool === 'polygon')
     ? ((firstSelectedPath as PolygonData)?.sides ?? drawingSides)
     : null;
+
+  const resetState = useCallback(() => {
+    setDrawingColor(COLORS[0]);
+    setDrawingFill('transparent');
+    setDrawingFillStyle('hachure');
+    setDrawingStrokeWidth(8);
+    setDrawingOpacity(1);
+    setDrawingSides(6);
+    setDrawingBorderRadius(0);
+    setDrawingStrokeLineDash(undefined);
+    setDrawingStrokeLineCapStart('round');
+    setDrawingStrokeLineCapEnd('round');
+    setDrawingEndpointSize(1);
+    setDrawingEndpointFill('hollow');
+    setDrawingIsRough(true);
+    setDrawingRoughness(DEFAULT_ROUGHNESS);
+    setDrawingBowing(DEFAULT_BOWING);
+    setDrawingFillWeight(DEFAULT_FILL_WEIGHT);
+    setDrawingHachureAngle(DEFAULT_HACHURE_ANGLE);
+    setDrawingHachureGap(DEFAULT_HACHURE_GAP);
+    setDrawingCurveTightness(DEFAULT_CURVE_TIGHTNESS);
+    setDrawingCurveStepCount(DEFAULT_CURVE_STEP_COUNT);
+    setDrawingPreserveVertices(DEFAULT_PRESERVE_VERTICES);
+    setDrawingDisableMultiStroke(DEFAULT_DISABLE_MULTI_STROKE);
+    setDrawingDisableMultiStrokeFill(DEFAULT_DISABLE_MULTI_STROKE_FILL);
+    setDrawingText('文本');
+    setDrawingFontFamily('Excalifont');
+    setDrawingFontSize(24);
+    setDrawingTextAlign('left');
+    setDrawingBlur(0);
+    setDrawingShadowEnabled(false);
+    setDrawingShadowOffsetX(2);
+    setDrawingShadowOffsetY(2);
+    setDrawingShadowBlur(4);
+    setDrawingShadowColor('rgba(0,0,0,0.5)');
+    setTool('brush');
+  }, [
+    setDrawingColor, setDrawingFill, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
+    setDrawingSides, setDrawingBorderRadius, setDrawingStrokeLineDash, setDrawingStrokeLineCapStart,
+    setDrawingStrokeLineCapEnd, setDrawingEndpointSize, setDrawingEndpointFill, setDrawingIsRough,
+    setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
+    setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
+    setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingText, setDrawingFontFamily,
+    setDrawingFontSize, setDrawingTextAlign, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
+    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
+  ]);
 
   return {
     tool, setTool,
@@ -304,9 +367,11 @@ export const useToolbarState = (
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
     text, setText,
+    fontFamily, setFontFamily,
     fontSize, setFontSize,
     textAlign, setTextAlign,
     ...pathActions,
     firstSelectedPath,
+    resetState,
   };
 };

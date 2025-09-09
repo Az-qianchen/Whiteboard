@@ -14,7 +14,7 @@ import { getPolygonVertices } from './polygon';
 export function arcToVectorPath(path: ArcData): VectorPathData {
     const { id, points, ...baseProps } = path;
     const [start, end, via] = points;
-
+    
     const project = new paper.Project(document.createElement('canvas'));
     
     // paper.Path.Arc constructor is (from, through, to)

@@ -1,7 +1,6 @@
 /**
  * 本文件包含了使用 paper.js 进行布尔运算的逻辑。
  */
-
 import paper from 'paper';
 import type { AnyPath, VectorPathData, Anchor } from '../../types';
 import {
@@ -53,11 +52,9 @@ function ensureVectorPath(path: AnyPath): VectorPathData | null {
 /**
  * 将 VectorPathData 转换为 paper.Path 对象。
  * @param path - 要转换的 VectorPathData。
- * @param project - paper.js 项目实例。
  * @returns 转换后的 paper.Path 对象。
  */
-function vectorToPaperPath(path: VectorPathData, project: paper.Project): paper.Path {
-  // FIX: Path, Segment, and Point are constructors on the `paper` object, not a project instance.
+function vectorToPaperPath(path: VectorPathData): paper.Path {
   const paperPath = new paper.Path({
     segments: path.anchors.map(a => new paper.Segment(
       new paper.Point(a.point.x, a.point.y),
@@ -110,7 +107,7 @@ export function performBooleanOperation(
     return null;
   }
 
-  const paperPaths = vectorPaths.map(p => vectorToPaperPath(p, project));
+  const paperPaths = vectorPaths.map(p => vectorToPaperPath(p));
   
   let resultPathItem: paper.PathItem | null = paperPaths[0];
 

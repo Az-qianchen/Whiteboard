@@ -25,6 +25,7 @@ export const getToolIcon = (tool: AnyPath['tool'], path?: AnyPath) => {
     case 'image': return ICONS.IMAGE;
     case 'group': return ICONS.GROUP;
     case 'text': return ICONS.TEXT;
+    case 'frame': return ICONS.FRAME;
     default: return null;
   }
 };

@@ -1,8 +1,8 @@
 import { useRef, useEffect, useCallback } from 'react';
 
 /**
- * A hook to manage mouse wheel interactions on an input,
- * coalescing rapid changes into a single undo/redo history state.
+ * 一个用于管理输入框上鼠标滚轮交互的 Hook，
+ * 它会将快速的变化合并为单个撤销/重做历史记录状态。
  */
 export const useWheelCoalescer = (
   beginCoalescing: () => void,
@@ -11,7 +11,7 @@ export const useWheelCoalescer = (
   const wheelTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Cleanup timeout on unmount
+    // 组件卸载时清除定时器
     return () => {
       if (wheelTimeoutRef.current) {
         clearTimeout(wheelTimeoutRef.current);
@@ -28,7 +28,7 @@ export const useWheelCoalescer = (
       clearTimeout(wheelTimeoutRef.current);
     }
 
-    const increment = e.deltaY < 0 ? 1 : -1;
+    const increment = (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 10 : 1);
     updateValue(increment);
 
     wheelTimeoutRef.current = window.setTimeout(() => {

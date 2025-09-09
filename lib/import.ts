@@ -3,7 +3,7 @@
  * 它使用 paper.js 库将 SVG 字符串解析为应用内部所使用的数据格式（AnyPath），
  * 从而允许用户将外部 SVG 文件导入到白板中。
  */
-
+import paper from 'paper';
 import type { AnyPath, VectorPathData, Anchor, Point, RectangleData, EllipseData } from '../types';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '../constants';
 
@@ -80,8 +80,7 @@ const getSharedSvgProps = (item: any) => {
  * @param svgString The raw SVG content as a string.
  * @returns An array of AnyPath objects compatible with the whiteboard.
  */
-export async function importSvg(svgString: string): Promise<AnyPath[]> {
-    const paper = (await import('paper')).default as any;
+export function importSvg(svgString: string): AnyPath[] {
     const project = new paper.Project(document.createElement('canvas'));
     
     const importedItem = project.importSVG(svgString, {

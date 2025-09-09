@@ -73,10 +73,10 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
     pathEl.setAttribute('d', d);
 
     if (data.tool === 'frame') {
-      pathEl.setAttribute('stroke', 'hsl(210, 10%, 60%)');
+      pathEl.setAttribute('stroke', data.color);
       pathEl.setAttribute('stroke-width', '2');
       pathEl.setAttribute('stroke-dasharray', '8 4');
-      pathEl.setAttribute('fill', 'transparent');
+      pathEl.setAttribute('fill', 'none');
     } else {
       pathEl.setAttribute('stroke', data.color);
       pathEl.setAttribute('stroke-width', String(data.strokeWidth));
@@ -87,9 +87,8 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
         pathEl.setAttribute('stroke-dasharray', data.strokeLineDash.join(' '));
     }
     
-    if (data.strokeLineJoin) {
-        pathEl.setAttribute('stroke-linejoin', data.strokeLineJoin);
-    }
+    const joinStyle = data.strokeLineJoin ?? 'round';
+    pathEl.setAttribute('stroke-linejoin', joinStyle);
 
     const canHaveEndpoints = ['pen', 'line', 'brush', 'arc'].includes(data.tool);
     const isClosedPath = (data.tool === 'pen' || data.tool === 'line') && (data as VectorPathData).isClosed;
@@ -105,7 +104,7 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
             const svgCap = startCap === 'square_cap' ? 'square' : startCap;
             pathEl.setAttribute('stroke-linecap', svgCap);
         } else {
-            pathEl.setAttribute('stroke-linecap', 'butt');
+            pathEl.setAttribute('stroke-linecap', 'round');
 
             if (startCap !== 'butt') {
                 const markerId = `marker-start-${data.id}`;

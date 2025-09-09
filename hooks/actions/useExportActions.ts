@@ -5,8 +5,9 @@ import { useCallback } from 'react';
 import { pathsToSvgString, pathsToPngBlob } from '../../lib/export';
 import { fileSave } from 'browser-fs-access';
 import type { AppActionsProps } from '../useAppActions';
-import type { FrameData } from '../../types';
-import { getPathBoundingBox, doBboxesIntersect } from '../../lib/drawing';
+import type { FrameData, AnimationExportOptions } from '../../types';
+import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '../../lib/drawing';
+import JSZip from 'jszip';
 
 /**
  * 封装导出相关操作的 Hook。
@@ -15,6 +16,7 @@ import { getPathBoundingBox, doBboxesIntersect } from '../../lib/drawing';
  */
 export const useExportActions = ({
   paths,
+  frames,
   selectedPathIds,
   backgroundColor,
   pngExportOptions,
@@ -116,6 +118,7 @@ export const useExportActions = ({
     await fileSave(blob, {
         fileName: fileName,
         extensions: ['.svg'],
+        id: 'whiteboardExportSvg',
     });
   }, [paths, activeFileName]);
 
@@ -137,8 +140,100 @@ export const useExportActions = ({
     await fileSave(blob, {
         fileName: fileName.replace(/(\.png)$/, `${scaleSuffix}$1`),
         extensions: ['.png'],
+        id: 'whiteboardExportPng',
     });
   }, [paths, backgroundColor, pngExportOptions, activeFileName]);
+  
+  /**
+   * 导出动画。
+   * @param options - 动画导出选项。
+   */
+  const handleExportAnimation = useCallback(async (options: AnimationExportOptions) => {
+    if (frames.length <= 1) return;
+  
+    let clipFrame: FrameData | undefined;
+    if (options.clipToFrameId && options.clipToFrameId !== 'full') {
+      const allFrameShapes = frames.flatMap(f => f.paths.filter(p => p.tool === 'frame')) as FrameData[];
+      clipFrame = allFrameShapes.find(f => f.id === options.clipToFrameId);
+      if (!clipFrame) {
+        alert(`找不到选定的裁剪画框。将导出完整画布。`);
+      }
+    }
+  
+    const globalBbox = clipFrame ? undefined : getPathsBoundingBox(frames.flatMap(f => f.paths.filter(p => p.tool !== 'frame')), true);
+  
+    if (!clipFrame && !globalBbox) {
+      alert("无法导出空动画。");
+      return;
+    }
+    
+    const padding = 20;
+  
+    if (options.format === 'sequence') {
+      const zip = new JSZip();
+      for (let i = 0; i < frames.length; i++) {
+        const frame = frames[i];
+        const blob = await pathsToPngBlob(frame.paths, { 
+          ...pngExportOptions, 
+          backgroundColor: 'transparent', 
+          transparentBg: true, 
+          overrideBbox: globalBbox, 
+          clipFrame: clipFrame, 
+          padding 
+        });
+        if (blob) {
+          zip.file(`frame_${String(i + 1).padStart(4, '0')}.png`, blob);
+        }
+      }
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.zip') : 'animation.zip';
+      await fileSave(zipBlob, { fileName, extensions: ['.zip'], id: 'whiteboardExportAnimation' });
+    } else { // spritesheet
+      const frameBbox = clipFrame ? getPathBoundingBox(clipFrame, false) : globalBbox;
+      if (!frameBbox) return;
+  
+      const frameWidth = (frameBbox.width + (clipFrame ? 0 : padding * 2)) * pngExportOptions.scale;
+      const frameHeight = (frameBbox.height + (clipFrame ? 0 : padding * 2)) * pngExportOptions.scale;
+      const cols = Math.max(1, options.columns);
+      const rows = Math.ceil(frames.length / cols);
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(cols * frameWidth);
+      canvas.height = Math.round(rows * frameHeight);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return alert("无法创建画布进行导出。");
+  
+      const imagePromises = frames.map(frame => 
+        pathsToPngBlob(frame.paths, { 
+          ...pngExportOptions, 
+          backgroundColor: 'transparent', 
+          transparentBg: true, 
+          overrideBbox: globalBbox, 
+          clipFrame: clipFrame, 
+          padding 
+        })
+          .then(blob => blob ? createImageBitmap(blob) : null)
+      );
+  
+      const images = await Promise.all(imagePromises);
+  
+      images.forEach((img, i) => {
+        if (img) {
+          const x = (i % cols) * frameWidth;
+          const y = Math.floor(i / cols) * frameHeight;
+          ctx.drawImage(img, x, y);
+          img.close();
+        }
+      });
+      
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '_spritesheet.png') : 'spritesheet.png';
+          await fileSave(blob, { fileName, extensions: ['.png'], id: 'whiteboardExportAnimation' });
+        }
+      }, 'image/png');
+    }
+  }, [frames, pngExportOptions, activeFileName]);
 
-  return { handleCopyAsSvg, handleCopyAsPng, handleExportAsSvg, handleExportAsPng };
+  return { handleCopyAsSvg, handleCopyAsPng, handleExportAsSvg, handleExportAsPng, handleExportAnimation };
 };

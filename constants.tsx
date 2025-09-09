@@ -12,7 +12,7 @@ import {
   FileCode2, FileImage, FileDown, Menu, Save, Folder, Layers, MoreVertical,
   MoreHorizontal, Plus, Image as ImageIcon, Boxes, ChevronLeft, Lock, LockOpen,
   Eye, EyeOff, Paintbrush, ArrowUpSquare, ArrowDownSquare,
-  Pipette, SwatchBook, X, Spline, Waypoints, Triangle, GitCommitHorizontal,
+  Pipette, SwatchBook, X, Spline, Waypoints, Triangle, GitCommitHorizontal, Layers2,
   CircleDot, ChevronDown,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
@@ -20,9 +20,12 @@ import {
   Pencil, Type,
   MousePointer2, Paintbrush2, AlignHorizontalSpaceAround,
   AlignLeft, AlignJustify, AlignRight,
-  Sparkles, GripVertical, Crop,
-  Diff,
-  Play, Pause, Rewind, ChevronUp, Wand2,
+  Sparkles, GripVertical,
+  Blend,Slash,MoveRight,
+  Play, Pause, Rewind, ChevronUp, Wand2,SquaresExclude,SquaresIntersect,SquaresSubtract,SquaresUnite,
+  // FIX: `RectangleDashed` is not a valid icon in `lucide-react`. Replaced with `SquareDashed`.
+  SquareDashed,
+  RotateCcw,
 } from 'lucide-react';
 
 
@@ -130,10 +133,10 @@ export const ICONS = {
   RECTANGLE: <Square className="h-5 w-5" />,
   POLYGON: <Triangle className="h-5 w-5" />,
   ELLIPSE: <Circle className="h-5 w-5" />,
-  LINE: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M6 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M18 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M7.5 16.5l9 -9"></path></svg>,
-  ARC: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M17 3m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"></path><path d="M3 17m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"></path><path d="M17 5c-6.627 0 -12 5.373 -12 12"></path></svg>,
+  LINE: <Slash className="h-5 w-5" />,
+  ARC: <Spline className="h-5 w-5" />,
   TEXT: <Type className="h-5 w-5" />,
-  FRAME: <Crop className="h-5 w-5" />,
+  FRAME: <SquareDashed className="h-5 w-5" />,
   LASSO: <Lasso className="h-5 w-5" />,
   PROPERTIES: <SlidersHorizontal className="h-5 w-5" />,
   GRID: <Grid3X3 className="h-5 w-5" />,
@@ -174,12 +177,7 @@ export const ICONS = {
   STYLE_LIBRARY: <SwatchBook className="h-5 w-5" />,
   ENDPOINT_FILL_HOLLOW: <CircleDot />,
   ENDPOINT_FILL_SOLID: <Circle className="fill-current" />,
-  ENDPOINT_SETTINGS: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M4 12h12"/>
-      <path d="m12 8 4 4-4 4"/>
-    </svg>
-  ),
+  ENDPOINT_SETTINGS: <MoveRight className="h-5 w-5" />,
   DASH_SETTINGS: <MoreHorizontal className="h-5 w-5" />,
   MORE_VERTICAL: <MoreVertical className="h-4 w-4" />,
   PLUS: <Plus className="h-5 w-5" />,
@@ -190,13 +188,15 @@ export const ICONS = {
   EFFECTS: <Sparkles className="h-5 w-5" />,
   X: <X className="h-4 w-4" />,
   GRIP: <GripVertical className="h-4 w-4" />,
-  MASK: <Diff className="h-5 w-5" />,
+  MASK: <Blend className="h-5 w-5" />,
   PLAY: <Play className="h-5 w-5" />,
   PAUSE: <Pause className="h-5 w-5" />,
   REWIND: <Rewind className="h-5 w-5" />,
   TRACE_IMAGE: <Wand2 className="h-5 w-5" />,
-  BOOLEAN_UNION: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-squares-unite-icon lucide-squares-unite"><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3a1 1 0 0 0 1 1h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-3a1 1 0 0 0-1-1z"/></svg>,
-  BOOLEAN_SUBTRACT: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-squares-subtract-icon lucide-squares-subtract"><path d="M10 22a2 2 0 0 1-2-2"/><path d="M16 22h-2"/><path d="M16 4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5a2 2 0 0 1 2-2h5a1 1 0 0 0 1-1z"/><path d="M20 8a2 2 0 0 1 2 2"/><path d="M22 14v2"/><path d="M22 20a2 2 0 0 1-2 2"/></svg>,
-  BOOLEAN_INTERSECT: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-squares-intersect-icon lucide-squares-intersect"><path d="M10 22a2 2 0 0 1-2-2"/><path d="M14 2a2 2 0 0 1 2 2"/><path d="M16 22h-2"/><path d="M2 10V8"/><path d="M2 4a2 2 0 0 1 2-2"/><path d="M20 8a2 2 0 0 1 2 2"/><path d="M22 14v2"/><path d="M22 20a2 2 0 0 1-2 2"/><path d="M4 16a2 2 0 0 1-2-2"/><path d="M8 10a2 2 0 0 1 2-2h5a1 1 0 0 1 1 1v5a2 2 0 0 1-2 2H9a1 1 0 0 1-1-1z"/><path d="M8 2h2"/></svg>,
-  BOOLEAN_EXCLUDE: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-squares-exclude-icon lucide-squares-exclude"><path d="M16 12v2a2 2 0 0 1-2 2H9a1 1 0 0 0-1 1v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h0"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3a1 1 0 0 1-1 1h-5a2 2 0 0 0-2 2v2"/></svg>,
+  BOOLEAN_UNION: <SquaresUnite className="h-5 w-5" />,
+  BOOLEAN_SUBTRACT: <SquaresSubtract className="h-5 w-5" />,
+  BOOLEAN_INTERSECT: <SquaresIntersect className="h-5 w-5" />,
+  BOOLEAN_EXCLUDE: <SquaresExclude className="h-5 w-5" />,
+  ONION_SKIN: <Layers2 className="h-5 w-5" />,
+  RESET_PREFERENCES: <RotateCcw className="h-5 w-5" />,
 };

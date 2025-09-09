@@ -3,11 +3,11 @@
  * 它通过组合多个职责更单一的子 Hooks，为应用提供一个统一的操作接口。
  */
 
-import { useClipboardActions } from './actions/useClipboardActions';
-import { useExportActions } from './actions/useExportActions';
-import { useFileActions } from './actions/useFileActions';
-import { useLibraryActions } from './actions/useLibraryActions';
-import { useObjectActions } from './actions/useObjectActions';
+import { useClipboardActions } from './useClipboardActions';
+import { useExportActions } from './useExportActions';
+import { useFileActions } from './useFileActions';
+import { useLibraryActions } from './useLibraryActions';
+import { useObjectActions } from './useObjectActions';
 import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, AnimationExportOptions } from '../types';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 

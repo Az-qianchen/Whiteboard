@@ -8,7 +8,7 @@ import { Dialog, Transition } from '@headlessui/react';
 interface ConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
   confirmButtonText?: string;

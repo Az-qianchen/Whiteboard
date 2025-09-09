@@ -5,29 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SVG Whiteboard</title>
     <link rel="stylesheet" href="https://esm.sh/open-color@1.9.1/open-color.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "roughjs/": "https://esm.sh/roughjs@^4.6.6/",
-    "svgo/dist/svgo.browser.js": "https://esm.sh/svgo@3.3.2/dist/svgo.browser.js",
-    "@headlessui/react": "https://esm.sh/@headlessui/react@^2.2.7?external=react,react-dom",
-    "hotkeys-js": "https://esm.sh/hotkeys-js@^3.13.15",
-    "paper": "https://esm.sh/paper@^0.12.18",
-    "browser-fs-access": "https://esm.sh/browser-fs-access@^0.38.0",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "svgo/": "https://esm.sh/svgo@^4.0.0/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.417.0?external=react",
-    "pica": "https://esm.sh/pica@^9.0.1",
-    "gsap": "https://esm.sh/gsap@3.12.5",
-    "imagetracerjs": "https://esm.sh/imagetracerjs@1.2.6"
-  }
-}
-</script>
+    <!-- Removed Google Fonts preconnect and stylesheet: using system fonts + Excalifont. -->
+    <!-- Removed external font CSS that returned 403 to keep console clean. -->
+    <!-- Tailwind is now built locally via PostCSS; CDN removed to avoid console warnings. -->
 <style>
   @font-face {
     font-family: 'Excalifont';
@@ -93,7 +73,19 @@
   body {
     background-color: var(--bg-color);
     color: var(--text-primary);
-    overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
+    /* 全局禁用文本选择，以改善画布交互体验 */
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE10+/Edge */
+    user-select: none;         /* Standard */
+  }
+  /* 为输入框和文本区域重新启用文本选择 */
+  input,
+  textarea {
+    -webkit-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
   }
   body.light-bg-canvas {
     --grid-line: rgba(0, 0, 0, 0.15);
@@ -110,21 +102,30 @@
   }
   /* Custom scrollbar for webkit browsers */
   .style-library-grid::-webkit-scrollbar,
-  .layers-panel-list::-webkit-scrollbar {
+  .layers-panel-list::-webkit-scrollbar,
+  .timeline-frames-container::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
   }
   .style-library-grid::-webkit-scrollbar-track,
-  .layers-panel-list::-webkit-scrollbar-track {
+  .layers-panel-list::-webkit-scrollbar-track,
+  .timeline-frames-container::-webkit-scrollbar-track {
     background: var(--scrollbar-bg);
   }
   .style-library-grid::-webkit-scrollbar-thumb,
-  .layers-panel-list::-webkit-scrollbar-thumb {
+  .layers-panel-list::-webkit-scrollbar-thumb,
+  .timeline-frames-container::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb-bg);
     border-radius: 10px;
-    border: 2px solid var(--ui-popover-bg); /* Use popover bg for the border */
+    border: 2px solid var(--ui-panel-bg); /* Default border to panel bg */
+  }
+  /* Override for popover-based scrollbars */
+  .style-library-grid::-webkit-scrollbar-thumb {
+    border-color: var(--ui-popover-bg);
   }
   .style-library-grid::-webkit-scrollbar-thumb:hover,
-  .layers-panel-list::-webkit-scrollbar-thumb:hover {
+  .layers-panel-list::-webkit-scrollbar-thumb:hover,
+  .timeline-frames-container::-webkit-scrollbar-thumb:hover {
     background-color: var(--scrollbar-thumb-hover-bg);
   }
   /* Tweak slider styles for better theme integration */
@@ -166,6 +167,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

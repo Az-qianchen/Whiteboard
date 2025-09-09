@@ -17,7 +17,8 @@ const useGlobalEventHandlers = () => {
     selectedPathIds, setSelectedPathIds,
     currentPenPath, handleCancelPenPath, handleFinishPenPath,
     currentLinePath, handleCancelLinePath, handleFinishLinePath,
-    handleUndo, handleRedo, handleDeleteSelected, setPaths,
+    // FIX: Replaced `handleUndo` and `handleRedo` with aliased `undo: handleUndo` and `redo: handleRedo` to match properties from the context.
+    undo: handleUndo, redo: handleRedo, handleDeleteSelected, setPaths,
     beginCoalescing, endCoalescing,
     tool, selectionMode, handleSetTool: setTool, setSelectionMode,
     drawingInteraction,
@@ -27,6 +28,8 @@ const useGlobalEventHandlers = () => {
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
     groupIsolationPath, handleExitGroup,
+    croppingState,
+    cancelCrop,
   } = useAppContext();
 
   // FIX: Destructure drawingShape and cancelDrawingShape from the drawingInteraction object.
@@ -52,7 +55,9 @@ const useGlobalEventHandlers = () => {
         case 't': setTool('text'); break;
         case 'f': setTool('frame'); break;
         case 'escape':
-          if (groupIsolationPath.length > 0) {
+          if (croppingState) {
+            cancelCrop();
+          } else if (groupIsolationPath.length > 0) {
             handleExitGroup();
           } else if (selectedPathIds.length > 0) {
             setSelectedPathIds([]);
@@ -193,6 +198,8 @@ const useGlobalEventHandlers = () => {
     setIsGridVisible,
     groupIsolationPath,
     handleExitGroup,
+    croppingState,
+    cancelCrop,
   ]);
 
   // Nudge selected items with arrow keys using a native event listener for reliability

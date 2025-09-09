@@ -62,6 +62,10 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   };
 
   const { scale, translateX, translateY } = viewTransform;
+  
+  const family = path.fontFamily || 'Excalifont';
+  // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
+  const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
 
   // 将 SVG 坐标转换为屏幕坐标并应用样式
   const style: React.CSSProperties = {
@@ -70,7 +74,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     left: `${(path.x * scale) + translateX}px`,
     // 为宽度增加一点填充，以容纳光标
     minWidth: `${path.width * scale + 10}px`, 
-    fontFamily: path.fontFamily,
+    fontFamily: familyWithQuotes,
     fontSize: `${path.fontSize * scale}px`,
     lineHeight: 1.25,
     color: path.color,

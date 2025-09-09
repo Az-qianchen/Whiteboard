@@ -2,7 +2,6 @@
  * 本文件负责将路径数据导出为 PNG 格式。
  * 它首先将路径渲染为 SVG 字符串，然后使用 Canvas API 将 SVG 转换为 PNG Blob。
  */
-import pica from 'pica';
 import type { AnyPath, PngExportOptions, BBox, FrameData } from '../../types';
 import { getPathsBoundingBox } from '../../drawing';
 import { pathsToSvgString } from '../svg/export';
@@ -100,6 +99,7 @@ export function pathsToPngBlob(paths: AnyPath[], options: PngExportCoreOptions):
                 finalCanvas.width = finalWidth;
                 finalCanvas.height = finalHeight;
                 try {
+                    const pica = (await import('pica')).default;
                     const p = pica();
                     const resizedCanvas = await p.resize(sourceCanvas, finalCanvas);
                     resizedCanvas.toBlob(resolve, 'image/png');

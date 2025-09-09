@@ -215,7 +215,7 @@ export const CanvasOverlays: React.FC = () => {
                 onConfirm={confirmationDialog?.onConfirm ?? (() => {})}
                 title={confirmationDialog?.title ?? ''}
                 message={confirmationDialog?.message ?? ''}
-                confirmButtonText="清空"
+                confirmButtonText={confirmationDialog?.confirmButtonText || "确认"}
                 cancelButtonText="取消"
             />
         </>

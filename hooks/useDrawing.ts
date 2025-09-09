@@ -5,9 +5,9 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, TextData, FrameData } from '../types';
-import { snapAngle, dist, measureText } from '../../lib/drawing';
-import { pointsToPathD } from '../../lib/path-fitting';
-import { calculateArcPathD, getCircleFromThreePoints } from '../../lib/drawing/arc';
+import { snapAngle, dist, measureText } from '../lib/drawing';
+import { pointsToPathD } from '../lib/path-fitting';
+import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
 
 // Props definition
 interface DrawingInteractionProps {
@@ -54,7 +54,7 @@ export const useDrawing = ({
     isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
     curveTightness, curveStepCount, preserveVertices,
     disableMultiStroke, disableMultiStrokeFill,
-    fontSize, textAlign, text,
+    fontSize, textAlign, text, fontFamily,
   } = toolbarState;
 
   // Effect to clear the preview line when the pen/line path is finalized or cancelled.
@@ -126,7 +126,7 @@ export const useDrawing = ({
           width: 0,
           height: 0,
           // Frames have a fixed style, not from the toolbar
-          color: 'grey', 
+          color: '#868e96', 
           fill: 'transparent',
           fillStyle: 'solid',
           strokeWidth: 2,
@@ -156,7 +156,6 @@ export const useDrawing = ({
       }
       case 'text': {
         const defaultText = text || '文本';
-        const fontFamily = 'Excalifont';
         const { width, height } = measureText(defaultText, fontSize, fontFamily);
 
         const newText: TextData = {

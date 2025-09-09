@@ -19,8 +19,12 @@ function renderText(data: TextData): SVGElement {
     const g = document.createElementNS(svgNS, 'g');
     const textEl = document.createElementNS(svgNS, 'text');
 
+    const fontFamily = data.fontFamily || 'Excalifont';
+    // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
+    const familyWithQuotes = fontFamily.includes(' ') ? `'${fontFamily}'` : fontFamily;
+
     textEl.setAttribute('font-size', `${data.fontSize}px`);
-    textEl.setAttribute('font-family', data.fontFamily);
+    textEl.style.fontFamily = familyWithQuotes;
     textEl.setAttribute('fill', data.color);
     textEl.style.whiteSpace = 'pre'; // 尊重空格
 
@@ -64,7 +68,6 @@ function renderText(data: TextData): SVGElement {
  * @returns 表示已渲染路径的 SVGElement（例如 <path>、<g>），或为 null。
  */
 export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
-    const svgNS = 'http://www.w3.org/2000/svg';
     let node: SVGElement | null = null;
     const capNodes: SVGElement[] = [];
 
@@ -80,12 +83,12 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
             node = renderImage(data as ImageData);
         } else if (data.tool === 'group') {
             const groupData = data as GroupData;
-            const group = document.createElementNS(svgNS, 'g');
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
             if (groupData.mask === 'clip' && groupData.children.length > 1) {
                 const clipId = `clip-${groupData.id}`;
-                const defs = document.createElementNS(svgNS, 'defs');
-                const clipPath = document.createElementNS(svgNS, 'clipPath');
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
                 clipPath.setAttribute('id', clipId);
 
                 const maskShape = groupData.children[groupData.children.length - 1];
@@ -112,7 +115,7 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 defs.appendChild(clipPath);
                 group.appendChild(defs);
 
-                const contentGroup = document.createElementNS(svgNS, 'g');
+                const contentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 contentGroup.setAttribute('clip-path', `url(#${clipId})`);
 
                 groupData.children.slice(0, -1).forEach(child => {

@@ -52,7 +52,8 @@ export const usePathActions = ({
 
     const simplifyRecursively = (path: AnyPath): AnyPath => {
       if (path.tool === 'group') {
-        return { ...path, children: (path as GroupData).children.map(simplifyRecursively) };
+        const newChildren = (path as GroupData).children.map(child => simplifyRecursively(child));
+        return { ...path, children: newChildren };
       }
       if ((path.tool === 'pen' || path.tool === 'line') && 'anchors' in path) {
         return simplifyPath(path as VectorPathData, tolerance);
@@ -60,7 +61,7 @@ export const usePathActions = ({
       return path;
     };
 
-    const simplifiedPaths = originalPathsForSimplify.map(simplifyRecursively);
+    const simplifiedPaths = originalPathsForSimplify.map(p => simplifyRecursively(p));
     const simplifiedMap = new Map(simplifiedPaths.map(p => [p.id, p]));
     setPaths(prev => prev.map(p => simplifiedMap.get(p.id) || p));
   };

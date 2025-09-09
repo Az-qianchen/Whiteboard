@@ -21,15 +21,19 @@ export const MainMenuPanel: React.FC = () => {
         canClear,
         handleExportAsSvg,
         handleExportAsPng,
+        handleExportAnimation,
+        handleResetPreferences,
+        frames,
         paths,
         selectedPathIds,
         backgroundColor,
         setBackgroundColor,
         activeFileName,
         viewTransform,
-        handleUndo,
+        // FIX: Destructure `undo` and `redo` from context and alias them to `handleUndo` and `handleRedo`.
+        undo: handleUndo,
         canUndo,
-        handleRedo,
+        redo: handleRedo,
         canRedo,
         isStatusBarCollapsed,
         setIsStatusBarCollapsed,
@@ -132,33 +136,41 @@ export const MainMenuPanel: React.FC = () => {
                 transition: isResizing ? 'none' : 'width 300ms ease-in-out'
             }}
         >
-            <MainMenu
-                onSave={handleSaveFile}
-                onSaveAs={handleSaveAs}
-                onOpen={handleOpen}
-                onImport={handleImportClick}
-                onClear={handleClear}
-                canClear={canClear}
-                onExportSvg={handleExportAsSvg}
-                onExportPng={handleExportAsPng}
-                canExport={paths.length > 0}
-                backgroundColor={backgroundColor}
-                setBackgroundColor={setBackgroundColor}
-                activeFileName={activeFileName}
-                zoomLevel={viewTransform.scale}
-                onUndo={handleUndo}
-                canUndo={canUndo}
-                onRedo={handleRedo}
-                canRedo={canRedo}
-                selectionInfo={selectionInfo}
-                elementCount={elementCount}
-                canvasWidth={canvasWidth}
-                canvasHeight={canvasHeight}
-                isStatusBarCollapsed={isStatusBarCollapsed}
-                setIsStatusBarCollapsed={setIsStatusBarCollapsed}
-                pngExportOptions={pngExportOptions}
-                setPngExportOptions={setPngExportOptions}
-            />
+            <div
+                className="h-full"
+                style={{ width: `${mainMenuWidth}px` }}
+            >
+                <MainMenu
+                    onSave={handleSaveFile}
+                    onSaveAs={handleSaveAs}
+                    onOpen={handleOpen}
+                    onImport={handleImportClick}
+                    onClear={handleClear}
+                    canClear={canClear}
+                    onExportSvg={handleExportAsSvg}
+                    onExportPng={handleExportAsPng}
+                    onExportAnimation={handleExportAnimation}
+                    canExport={paths.length > 0}
+                    frameCount={frames.length}
+                    backgroundColor={backgroundColor}
+                    setBackgroundColor={setBackgroundColor}
+                    activeFileName={activeFileName}
+                    onResetPreferences={handleResetPreferences}
+                    zoomLevel={viewTransform.scale}
+                    onUndo={handleUndo}
+                    canUndo={canUndo}
+                    onRedo={handleRedo}
+                    canRedo={canRedo}
+                    selectionInfo={selectionInfo}
+                    elementCount={elementCount}
+                    canvasWidth={canvasWidth}
+                    canvasHeight={canvasHeight}
+                    isStatusBarCollapsed={isStatusBarCollapsed}
+                    setIsStatusBarCollapsed={setIsStatusBarCollapsed}
+                    pngExportOptions={pngExportOptions}
+                    setPngExportOptions={setPngExportOptions}
+                />
+            </div>
             {!isMainMenuCollapsed && (
                 <div
                     className="absolute top-0 -right-1 h-full w-2 cursor-col-resize z-40 group"

@@ -125,7 +125,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                 title={(path as GroupData).isCollapsed ? '展开' : '折叠'}
                 disabled={isEditing}
               >
-                <div className={`transition-transform duration-200 ${(path as GroupData).isCollapsed ? '-rotate-90' : ''}`}>
+                <div className={`transition-transform duration-300 ease-in-out ${(path as GroupData).isCollapsed ? '-rotate-90' : ''}`}>
                   {ICONS.CHEVRON_DOWN}
                 </div>
               </button>

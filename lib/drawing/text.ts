@@ -13,7 +13,8 @@ const ctx = canvas.getContext('2d')!;
  * @returns 包含宽度和高度的对象。
  */
 export function measureText(text: string, fontSize: number, fontFamily: string): { width: number, height: number } {
-    ctx.font = `${fontSize}px ${fontFamily}`;
+    const family = fontFamily.includes(' ') ? `'${fontFamily}'` : fontFamily;
+    ctx.font = `${fontSize}px ${family}`;
     const lines = text.split('\n');
     let maxWidth = 0;
     

@@ -5,8 +5,8 @@
  */
 
 import React, { useMemo } from 'react';
-import type { Tool, AnyPath, VectorPathData, TextData } from '../../types';
-import { ICONS } from '../../constants';
+import type { Tool, AnyPath, VectorPathData, TextData } from '../types';
+import { ICONS } from '../constants';
 
 import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, TextProperties, EffectsPopover } from './side-toolbar';
 
@@ -66,6 +66,8 @@ interface SideToolbarProps {
   // Text Properties
   text: string;
   setText: (text: string) => void;
+  fontFamily: string;
+  setFontFamily: (family: string) => void;
   fontSize: number;
   setFontSize: (size: number) => void;
   textAlign: 'left' | 'center' | 'right';
@@ -105,6 +107,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     onToggleStyleLibrary,
     isStyleLibraryOpen,
     text, setText,
+    fontFamily, setFontFamily,
     fontSize, setFontSize,
     textAlign, setTextAlign,
   } = props;
@@ -143,6 +146,8 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
         <TextProperties
           text={text}
           setText={setText}
+          fontFamily={fontFamily}
+          setFontFamily={setFontFamily}
           fontSize={fontSize}
           setFontSize={setFontSize}
           textAlign={textAlign}

@@ -62,10 +62,8 @@ export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData
         const { x, y, width, height } = data as FrameData;
         const frameOptions = {
             ...options,
-            stroke: 'hsl(210, 10%, 60%)',
             strokeWidth: 2,
             strokeLineDash: [8, 4],
-            fill: 'transparent',
             roughness: 0,
             bowing: 0
         };

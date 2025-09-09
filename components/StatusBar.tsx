@@ -68,7 +68,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             title={isStatusBarCollapsed ? "展开信息" : "折叠信息"}
             className="p-1 rounded-md flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
         >
-            <div className={`transition-transform duration-200 ${isStatusBarCollapsed ? '-rotate-90' : ''}`}>
+            <div className={`transition-transform duration-300 ease-in-out ${isStatusBarCollapsed ? 'rotate-180' : ''}`}>
                 {ICONS.CHEVRON_DOWN}
             </div>
         </button>
@@ -77,12 +77,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <Transition
         show={!isStatusBarCollapsed}
         as={Fragment}
-        enter="transition-all ease-out duration-200"
-        enterFrom="transform opacity-0 scale-95 max-h-0"
-        enterTo="transform opacity-100 scale-100 max-h-96"
-        leave="transition-all ease-in duration-150"
-        leaveFrom="transform opacity-100 scale-100 max-h-96"
-        leaveTo="transform opacity-0 scale-95 max-h-0"
+        enter="transition-[max-height,opacity] duration-300 ease-in-out"
+        enterFrom="opacity-0 max-h-0"
+        enterTo="opacity-100 max-h-96"
+        leave="transition-[max-height,opacity] duration-300 ease-in-out"
+        leaveFrom="opacity-100 max-h-96"
+        leaveTo="opacity-0 max-h-0"
       >
         <div className="pt-2 space-y-2 overflow-hidden">
             <div className="h-px bg-[var(--ui-separator)]" />

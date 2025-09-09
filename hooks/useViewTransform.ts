@@ -23,15 +23,15 @@ export const useViewTransform = () => {
     e.preventDefault();
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e;
 
-    // 区分平移和缩放手势的启发式方法：
-    // - ctrlKey 被激活：绝对是缩放（触控板上的捏合手势）。
-    // - deltaX 为 0：很可能是鼠标滚轮，所以是缩放。
-    // - deltaX 不为 0：很可能是触控板平移。
-    if (ctrlKey || deltaX === 0) {
-      // 缩放逻辑 (鼠标滚轮、按住 Ctrl 并滚动，或在触控板上捏合)
+    // ctrlKey 表示触控板上的捏合手势。
+    // 对于普通鼠标滚轮，我们希望默认行为是缩放。
+    // 此逻辑将捏合手势和垂直滚动（最常见的鼠标滚轮事件）都视为缩放。
+    // 水平滚动（主要由触控板产生）则被视为平移。
+    if (ctrlKey || Math.abs(deltaX) < Math.abs(deltaY)) {
+      // 缩放逻辑
       const { scale, translateX, translateY } = viewTransform;
 
-      // 使用加法缩放以获得线性手感
+      // 使用加法缩放以获得线性手感。
       const zoomStep = 0.001;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
 
@@ -42,7 +42,7 @@ export const useViewTransform = () => {
       const svg = e.currentTarget.querySelector('svg');
       if (!svg) return;
       
-      // 计算鼠标指针在SVG坐标系中的位置
+      // 计算鼠标指针在 SVG 坐标系中的位置
       const point = svg.createSVGPoint();
       point.x = clientX;
       point.y = clientY;
@@ -61,7 +61,7 @@ export const useViewTransform = () => {
         translateY: newTranslateY
       });
     } else {
-      // 平移逻辑 (在触控板上用双指滑动)
+      // 平移逻辑（主要用于触控板上的双指滑动）
       setViewTransform(prev => ({
           ...prev,
           translateX: prev.translateX - deltaX,

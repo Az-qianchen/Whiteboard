@@ -33,9 +33,9 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
     const [isFocused, setIsFocused] = useState(false);
 
     useEffect(() => {
-        // Only update from the value prop if the input is not focused.
-        // This prevents the user's input from being overwritten during typing
-        // when the parent component re-renders for other reasons.
+        // 仅当输入框未聚焦时才从 value prop 更新。
+        // 这可以防止在父组件因其他原因重新渲染时，
+        // 用户的输入被覆盖。
         if (!isFocused) {
             setLocalValue(Math.round(valueTransformer.toDisplay(value)).toString());
         }
@@ -44,7 +44,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
     const handleCommit = () => {
         let numericValue = parseInt(localValue, 10);
         if (isNaN(numericValue)) {
-            // If the input is empty or invalid, revert to the last valid value on blur.
+            // 如果输入为空或无效，则在失焦时恢复到上一个有效值。
             setLocalValue(Math.round(valueTransformer.toDisplay(value)).toString());
             return;
         }
@@ -55,7 +55,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
         numericValue = Math.max(displayMin, Math.min(displayMax, numericValue));
         
         setValue(valueTransformer.fromDisplay(numericValue));
-        // The useEffect will now sync the localValue after the prop updates and focus is lost.
+        // useEffect 现在将在 prop 更新且焦点丢失后同步 localValue。
     };
 
     const handleWheelUpdate = (increment: number) => {
@@ -63,7 +63,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
         const displayMin = valueTransformer.toDisplay(min);
         const displayMax = valueTransformer.toDisplay(max);
         
-        const newValue = Math.max(displayMin, Math.min(displayMax, Math.round(currentValue) + (increment * step)));
+        const newValue = Math.max(displayMin, Math.min(displayMax, currentValue + (increment * step)));
         setValue(valueTransformer.fromDisplay(newValue));
     };
 

@@ -3,13 +3,13 @@
  * 它负责渲染所有顶层 UI 组件，如工具栏、主菜单和白板，
  * 并从 AppContext 获取所需的状态和操作。
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import useGlobalEventHandlers from '../hooks/useGlobalEventHandlers';
 import { Whiteboard } from './Whiteboard';
 import { LayersProvider } from '../lib/layers-context';
 import { ICONS } from '../constants';
-import type { MaterialData } from '../types';
+import type { MaterialData, AnyPath } from '../types';
 
 // Import new layout components
 import { MainMenuPanel } from './layout/MainMenuPanel';
@@ -27,8 +27,14 @@ export const MainLayout: React.FC = () => {
         isMainMenuCollapsed,
         setIsMainMenuCollapsed,
         backgroundColor,
+        frames,
+        currentFrameIndex,
+        isOnionSkinEnabled,
+        onionSkinPrevFrames,
+        onionSkinNextFrames,
+        onionSkinOpacity,
         // Whiteboard props
-        paths,
+        activePaths,
         backgroundPaths,
         tool,
         selectionMode,
@@ -58,6 +64,45 @@ export const MainLayout: React.FC = () => {
         handleFinishPenPath,
         handleFinishLinePath,
     } = store;
+
+    const onionSkinPaths = useMemo(() => {
+        if (!isOnionSkinEnabled || frames.length <= 1) {
+            return [];
+        }
+
+        const skinPaths: AnyPath[] = [];
+        const maxOpacity = onionSkinOpacity;
+
+        // Previous frames
+        for (let i = 1; i <= onionSkinPrevFrames; i++) {
+            const frameIndex = currentFrameIndex - i;
+            if (frameIndex < 0) break;
+            const opacity = maxOpacity * ((onionSkinPrevFrames - i + 1) / (onionSkinPrevFrames + 1));
+            const framePaths = frames[frameIndex].paths.map(p => ({
+                ...p,
+                id: `onion-prev-${i}-${p.id}`,
+                opacity: (p.opacity ?? 1) * opacity,
+                isLocked: true,
+            }));
+            skinPaths.push(...framePaths);
+        }
+
+        // Next frames
+        for (let i = 1; i <= onionSkinNextFrames; i++) {
+            const frameIndex = currentFrameIndex + i;
+            if (frameIndex >= frames.length) break;
+            const opacity = maxOpacity * ((onionSkinNextFrames - i + 1) / (onionSkinNextFrames + 1));
+            const framePaths = frames[frameIndex].paths.map(p => ({
+                ...p,
+                id: `onion-next-${i}-${p.id}`,
+                opacity: (p.opacity ?? 1) * opacity,
+                isLocked: true,
+            }));
+            skinPaths.push(...framePaths);
+        }
+
+        return skinPaths;
+    }, [isOnionSkinEnabled, frames, currentFrameIndex, onionSkinPrevFrames, onionSkinNextFrames, onionSkinOpacity]);
 
     /**
      * 创建一个处理画布右键菜单的函数。
@@ -151,7 +196,8 @@ export const MainLayout: React.FC = () => {
                         onDragOver={(e) => e.preventDefault()}
                     >
                         <Whiteboard
-                            paths={paths}
+                            paths={activePaths}
+                            onionSkinPaths={onionSkinPaths}
                             backgroundPaths={backgroundPaths}
                             tool={tool}
                             selectionMode={selectionMode}

@@ -156,6 +156,12 @@ export const useDrawingText = () => {
   return { drawingText, setDrawingText };
 };
 
+export const useDrawingFontFamily = () => {
+  const [drawingFontFamily, setDrawingFontFamily] = useState<string>(() => getLocalStorageItem('whiteboard_drawingFontFamily', 'Excalifont'));
+  useEffect(() => { localStorage.setItem('whiteboard_drawingFontFamily', JSON.stringify(drawingFontFamily)); }, [drawingFontFamily]);
+  return { drawingFontFamily, setDrawingFontFamily };
+};
+
 export const useDrawingFontSize = () => {
   const [drawingFontSize, setDrawingFontSize] = useState<number>(() => getLocalStorageItem('whiteboard_drawingFontSize', 24));
   useEffect(() => { localStorage.setItem('whiteboard_drawingFontSize', JSON.stringify(drawingFontSize)); }, [drawingFontSize]);

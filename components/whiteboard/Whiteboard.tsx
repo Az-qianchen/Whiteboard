@@ -7,6 +7,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
+// FIX: Import ImageData type for the croppingState prop.
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../../types';
 import { getPointerPosition } from '../../lib/utils';
 
@@ -17,11 +18,13 @@ import { LivePreviewRenderer } from './LivePreviewRenderer';
 import { ControlsRenderer } from './ControlsRenderer';
 import { Marquee } from './Marquee';
 import { Lasso } from './Lasso';
+// FIX: Import CropOverlay component to render the crop mask.
 import { CropOverlay } from './CropOverlay';
 
 
 interface WhiteboardProps {
   paths: AnyPath[];
+  onionSkinPaths: AnyPath[];
   backgroundPaths: AnyPath[];
   tool: Tool;
   selectionMode: SelectionMode;
@@ -47,6 +50,7 @@ interface WhiteboardProps {
   gridOpacity: number;
   dragState: DragState | null;
   editingTextPathId: string | null;
+  // FIX: Add croppingState prop to fix type error in MainLayout.tsx.
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
 }
@@ -59,6 +63,7 @@ interface WhiteboardProps {
  */
 export const Whiteboard: React.FC<WhiteboardProps> = ({
   paths,
+  onionSkinPaths,
   backgroundPaths,
   tool,
   selectionMode,
@@ -84,6 +89,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   gridOpacity,
   dragState,
   editingTextPathId,
+  // FIX: Destructure the new croppingState prop.
   croppingState,
   currentCropRect,
 }) => {
@@ -127,12 +133,26 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   
   // 记忆化计算可见的路径，排除不可见和正在编辑的文本路径
   const visiblePaths = useMemo(() => {
-      return paths.filter(p => p.isVisible !== false && p.id !== editingTextPathId);
-  }, [paths, editingTextPathId]);
+      // 检查当前正在编辑的文本路径是否也正在被移动。
+      const isMovingEditedPath =
+        dragState?.type === 'move' &&
+        editingTextPathId &&
+        'pathIds' in dragState &&
+        (dragState as any).pathIds.includes(editingTextPathId);
+
+      // 过滤规则：
+      // 1. 路径必须是可见的。
+      // 2. 如果一个路径不是正在编辑的文本，则它是可见的。
+      // 3. 如果一个路径是正在编辑的文本，并且正在被移动，我们也会让它“可见”。
+      //    这是为了防止在移动时选择高亮（这是SVG的一部分）消失，这种消失会被感知为“闪烁”。
+      //    HTML <textarea> 编辑器会渲染在它的上面。虽然这可能会导致文本看起来更粗，
+      //    但在拖动操作期间，这是一个可接受的折衷方案，以换取更流畅的视觉反馈。
+      return paths.filter(p => p.isVisible !== false && (p.id !== editingTextPathId || isMovingEditedPath));
+  }, [paths, editingTextPathId, dragState]);
 
   return (
     <div
-      className="w-full h-full bg-transparent overflow-hidden touch-none"
+      className="w-full h-full bg-transparent overflow-hidden touch-none overscroll-contain"
       onWheel={onWheel}
       style={{ cursor }}
       onContextMenu={onContextMenu}
@@ -150,6 +170,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
           
           <PathsRenderer paths={backgroundPaths} rc={rc} isBackground />
+          <PathsRenderer paths={onionSkinPaths} rc={rc} />
           <PathsRenderer paths={visiblePaths} rc={rc} />
 
           <LivePreviewRenderer
@@ -162,6 +183,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             viewTransform={viewTransform}
           />
           
+          {/* FIX: Render the crop overlay when in cropping mode. */}
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
 
           <ControlsRenderer
