@@ -14,6 +14,13 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, 'src'),
         }
+      },
+      test: {
+        environment: 'jsdom',
+        setupFiles: ['src/setupTests.ts'],
+        css: true,
+        globals: true,
+        include: ['tests/**/*.{test,spec}.ts?(x)'],
       }
     };
 });

@@ -1,49 +1,51 @@
-# SVG Whiteboard
+## SVG Whiteboard（中文）
 
-A decent whiteboard tool, similar to Excalidraw, for drawing hand-drawn style vector graphics. It gets the job done.
+一个类似 Excalidraw 的白板工具，可用于绘制手绘风格的矢量图形
+但更偏向于绘图，能快速的绘制序列帧动画，并导出精灵表
 
-## Features
+## 功能特性
 
-- **Brush Tool**: Quickly draw freehand-style lines with adjustable roughness.
-- **Pen Tool**: Create and edit precise, smooth Bézier curves.
-- **Shape Tools**: Draw rectangles, ellipses, and lines.
-- **Edit Tool**: Fine-tune any path by moving anchor points and control handles.
-- **Rich Toolbar**: Includes color pickers, stroke width, undo/redo, and clear canvas functions.
-- **Pan & Zoom**: Smooth canvas navigation.
-- **Grid & Snapping**: Toggleable grid and snapping for precise alignment.
+- **画笔（Brush）**：快速绘制手绘风格线条，粗糙度可调。
+- **钢笔（Pen）**：创建与编辑平滑、精确的贝塞尔曲线。
+- **形状工具**：矩形、椭圆、直线。
+- **编辑工具**：移动锚点与控制柄，精细调整任意路径。
+- **丰富工具栏**：取色器、描边宽度、撤销/重做、清空画布等。
+- **平移与缩放**：流畅的画布导航。
+- **网格与吸附**：可切换的网格与吸附，便于精准对齐。
 
-## Shortcuts
+## 快捷键
 
-### Tools
+### 工具切换
 
-- `V`: Edit Tool
-- `M`: Move Tool
-- `B`: Brush Tool
-- `P`: Pen Tool
-- `R`: Rectangle Tool
-- `O`: Ellipse Tool
-- `L`: Line Tool
+- `V`：编辑工具（Edit）
+- `M`：移动工具（Move）
+- `B`：画笔工具（Brush）
+- `P`：钢笔工具（Pen）
+- `R`：矩形工具（Rectangle）
+- `O`：椭圆工具（Ellipse）
+- `L`：直线工具（Line）
 
-### Editing
+### 编辑操作
 
-- `Ctrl/Cmd + Z`: Undo
-- `Ctrl/Cmd + Shift + Z`: Redo
-- `Ctrl/Cmd + C`: Copy Selection
-- `Ctrl/Cmd + V`: Paste (supports shapes, images, and full canvas data)
-- `Backspace` / `Delete`: Delete Selection
-- `Escape`: Clear Selection / Cancel Current Drawing
-- `Enter`: (With Pen/Line tool) Finish Path
+- `Ctrl/Cmd + Z`：撤销
+- `Ctrl/Cmd + Shift + Z`：重做
+- `Ctrl/Cmd + C`：复制选区
+- `Ctrl/Cmd + V`：粘贴（支持形状、图片以及整幅画布数据）
+- `Backspace` / `Delete`：删除选区
+- `Escape`：清除选区 / 取消当前绘制
+- `Enter`：（钢笔/直线工具）结束路径
 
-### Drawing Helpers
+### 绘制辅助
 
-- `Shift` + Drag Shape: Draw a perfect square/circle.
-- `Shift` + Drag Line: Snap line to 45° increments.
-- `Shift` + Drag Handle: Move a Bézier handle independently (asymmetrically).
-- `Ctrl` + Click on Path: (In Edit mode) Add a new point to a path.
-- `Alt` + Click on Anchor: (In Edit mode) Delete a point from a path.
+- `Shift` + 拖拽形状：约束为正方形/正圆。
+- `Shift` + 拖拽直线：将直线吸附到 45° 的倍数。
+- `Shift` + 拖拽手柄：独立移动贝塞尔手柄（非对称）。
+- `Ctrl` + 在路径上单击：（编辑模式）为路径新增锚点。
+- `Alt` + 单击锚点：（编辑模式）删除该锚点。
 
-### Canvas
+### 画布
 
-- **Pan**: Hold middle mouse button and drag, or `Alt` + drag.
-- **Zoom**: Use the mouse wheel.
-- `G`: Toggle Grid & Snapping
+- 平移：按住鼠标中键拖拽，或 `Alt` + 拖拽。
+- 缩放：鼠标滚轮。
+- `G`：切换网格与吸附。
+
