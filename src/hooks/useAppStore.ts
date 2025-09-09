@@ -165,6 +165,10 @@ export const useAppStore = () => {
   const hideConfirmation = useCallback(() => { setConfirmationDialog(null); }, []);
 
   const canClear = useMemo(() => paths.length > 0, [paths]);
+  const canClearAllData = useMemo(
+    () => frames.some(f => (f.paths ?? []).some(p => p.tool !== 'frame')),
+    [frames]
+  );
   const handleClear = useCallback(() => {
     if (canClear) {
       showConfirmation(
@@ -178,6 +182,21 @@ export const useAppStore = () => {
       );
     }
   }, [canClear, pathState, showConfirmation, setSelectedPathIds]);
+
+  const handleClearAllData = useCallback(() => {
+    if (!canClearAllData) return;
+    showConfirmation(
+      '清空数据',
+      '确定要清空所有动画帧中的数据吗？此操作无法撤销。',
+      () => {
+        const newFrames = frames.map(f => ({ paths: (f.paths ?? []).filter(p => p.tool === 'frame') } as Frame));
+        // Keep current frame index stable
+        pathState.handleLoadFile(newFrames, pathState.currentFrameIndex);
+        setSelectedPathIds([]);
+      },
+      '清空'
+    );
+  }, [canClearAllData, frames, pathState, showConfirmation, setSelectedPathIds]);
   
   const groupIsolation = useGroupIsolation(pathState);
   const { activePaths, activePathState } = groupIsolation;
@@ -373,8 +392,10 @@ export const useAppStore = () => {
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect,
     confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
+    handleClearAllData,
     handleResetPreferences,
     canClear,
+    canClearAllData,
     setIsOnionSkinEnabled,
     setOnionSkinPrevFrames,
     setOnionSkinNextFrames,

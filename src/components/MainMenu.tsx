@@ -18,6 +18,8 @@ interface MainMenuProps {
   onImport: () => void;
   onClear: () => void;
   canClear: boolean;
+  onClearAllData: () => void;
+  canClearAllData: boolean;
   onExportSvg: () => Promise<void>;
   onExportPng: () => Promise<void>;
   onExportAnimation: (options: AnimationExportOptions) => Promise<void>;
@@ -46,7 +48,7 @@ interface MainMenuProps {
 
 export const MainMenu: React.FC<MainMenuProps> = (props) => { 
   const {
-    onSave, onSaveAs, onOpen, onImport, onClear, canClear,
+    onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
     backgroundColor, setBackgroundColor,
     activeFileName,
@@ -57,7 +59,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     pngExportOptions, setPngExportOptions,
   } = props;
 
-  const menuActions = [
+  const legacyMenuActions = [
     { label: '打开...', handler: onOpen, icon: ICONS.OPEN, disabled: false },
     { label: '保存', handler: onSave, icon: ICONS.SAVE, disabled: false },
     { label: '另存为...', handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
@@ -71,6 +73,23 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     { label: '---' },
     { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
     { label: '清空画布', handler: onClear, icon: ICONS.CLEAR, isDanger: true, disabled: !canClear },
+  ];
+
+  // New menu items: moved canvas clear to Layers panel; add Clear Data
+  const menuActions = [
+    { label: '打开…', handler: onOpen, icon: ICONS.OPEN, disabled: false },
+    { label: '保存', handler: onSave, icon: ICONS.SAVE, disabled: false },
+    { label: '另存为…', handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
+    { label: '导入…', handler: onImport, icon: ICONS.IMPORT, disabled: false },
+    { label: '---' },
+    { label: '背景颜色…', isColorPicker: true },
+    { label: '---' },
+    { label: '导出为 SVG…', handler: onExportSvg, icon: ICONS.COPY_SVG, disabled: !canExport },
+    { label: '导出为 PNG…', isPngExporter: true },
+    { label: '导出动画…', isAnimationExporter: true },
+    { label: '---' },
+    { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
+    { label: '清空数据', handler: onClearAllData, icon: ICONS.CLEAR, isDanger: true, disabled: !canClearAllData },
   ];
 
   const checkerboardStyle = {

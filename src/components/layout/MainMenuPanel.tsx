@@ -19,6 +19,8 @@ export const MainMenuPanel: React.FC = () => {
         handleImportClick,
         handleClear,
         canClear,
+        handleClearAllData,
+        canClearAllData,
         handleExportAsSvg,
         handleExportAsPng,
         handleExportAnimation,
@@ -147,6 +149,8 @@ export const MainMenuPanel: React.FC = () => {
                     onImport={handleImportClick}
                     onClear={handleClear}
                     canClear={canClear}
+                    onClearAllData={handleClearAllData}
+                    canClearAllData={canClearAllData}
                     onExportSvg={handleExportAsSvg}
                     onExportPng={handleExportAsPng}
                     onExportAnimation={handleExportAnimation}
