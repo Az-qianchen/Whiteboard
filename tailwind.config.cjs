@@ -2,14 +2,7 @@
 module.exports = {
   content: [
     './index.html',
-    './index.tsx',
-    './App.tsx',
-    './components/**/*.{ts,tsx}',
-    './context/**/*.{ts,tsx}',
-    './hooks/**/*.{ts,tsx}',
-    './lib/**/*.{ts,tsx}',
-    './types.ts',
-    './constants.tsx',
+    './src/**/*.{ts,tsx}',
   ],
   safelist: [
     // Arbitrary value utilities with CSS variables used across the app
