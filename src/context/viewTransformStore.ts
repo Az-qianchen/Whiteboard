@@ -11,6 +11,7 @@ export interface ViewTransformState {
 
   setIsPanning: (v: boolean) => void;
   setViewTransform: (updater: (prev: ViewTransform) => ViewTransform) => void;
+  setLastPointerPosition: (p: Point | null) => void;
 
   handleWheel: (e: React.WheelEvent<HTMLDivElement>) => void;
   handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -24,6 +25,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
 
   setIsPanning: (v) => set({ isPanning: v }),
   setViewTransform: (updater) => set((s) => ({ viewTransform: updater(s.viewTransform) })),
+  setLastPointerPosition: (p) => set({ lastPointerPosition: p }),
 
   handleWheel: (e) => {
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
@@ -76,7 +78,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   getPointerPosition: (e, svg) => {
     const { viewTransform } = get();
     const point = getPointerPositionUtil(e, svg, viewTransform);
-    set({ lastPointerPosition: point });
     return point;
   },
 }));

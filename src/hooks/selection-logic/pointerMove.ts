@@ -11,6 +11,12 @@ import { recursivelyUpdatePaths } from './utils';
 // FIX: Define HIT_RADIUS as it was missing in this file.
 const HIT_RADIUS = 10;
 
+// Coalesce frequent move-updates into a single render per frame to improve
+// responsiveness when dragging, especially for large groups or rough shapes.
+let moveRafId: number | null = null;
+let pendingTransformedShapes: AnyPath[] | null = null;
+let pendingPathsSnapshot: AnyPath[] | null = null;
+
 interface HandlePointerMoveProps {
   e: React.PointerEvent<SVGSVGElement>;
   movePoint: Point;
@@ -57,7 +63,22 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 const snappedBboxTopLeft = snapToGrid({ x: initialSelectionBbox.x + raw_dx, y: initialSelectionBbox.y + raw_dy });
                 const final_dx = snappedBboxTopLeft.x - initialSelectionBbox.x; const final_dy = snappedBboxTopLeft.y - initialSelectionBbox.y;
                 transformedShapes = originalPaths.map((p: AnyPath) => movePath(p, final_dx, final_dy));
-                break;
+
+                // Schedule a single paths update for this animation frame using the
+                // latest computed shapes, reducing redundant renders and rough re-draws.
+                pendingTransformedShapes = transformedShapes;
+                pendingPathsSnapshot = paths;
+                if (moveRafId == null) {
+                    moveRafId = window.requestAnimationFrame(() => {
+                        moveRafId = null;
+                        if (!pendingTransformedShapes || !pendingPathsSnapshot) return;
+                        const transformedMap = new Map(pendingTransformedShapes.map(p => [p.id, p]));
+                        setPaths(recursivelyUpdatePaths(pendingPathsSnapshot, (p: AnyPath) => transformedMap.get(p.id) || null));
+                        pendingTransformedShapes = null;
+                        pendingPathsSnapshot = null;
+                    });
+                }
+                return; // Early return: we'll update via rAF
             }
             case 'anchor': case 'handleIn': case 'handleOut': {
                 const snappedMovePoint = snapToGrid(movePoint);

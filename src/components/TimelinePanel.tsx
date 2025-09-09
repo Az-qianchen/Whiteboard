@@ -15,17 +15,37 @@ import type { Frame } from '../types';
 const FrameThumbnail: React.FC<{ frame: Frame }> = React.memo(({ frame }) => {
     const [svgString, setSvgString] = useState<string | null>(null);
 
+    // Build a lightweight signature that changes only when visual content likely changed
+    const signature = useMemo(() => {
+        try {
+            return JSON.stringify(
+                frame.paths.map((p: any) => ({
+                    id: p.id,
+                    tool: p.tool,
+                    x: p.x, y: p.y, width: p.width, height: p.height, rotation: p.rotation,
+                    opacity: p.opacity,
+                    points: Array.isArray(p.points) ? p.points.length : undefined,
+                    anchors: Array.isArray(p.anchors) ? p.anchors.length : undefined,
+                }))
+            );
+        } catch {
+            return String(frame.paths.length);
+        }
+    }, [frame.paths]);
+
     useEffect(() => {
         let isCancelled = false;
         const generateSvg = async () => {
             const str = await pathsToSvgString(frame.paths, { padding: 5 });
-            if (!isCancelled) {
+            if (!isCancelled && str !== svgString) {
                 setSvgString(str);
             }
         };
         generateSvg();
         return () => { isCancelled = true; };
-    }, [frame]);
+        // Depend on signature, not the entire frame object to avoid remount loops
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [signature]);
 
     const dataUrl = useMemo(() => {
         if (!svgString) return '';

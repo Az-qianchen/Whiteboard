@@ -1,5 +1,8 @@
 import type { Point } from '../../types';
 
+const isFinitePoint = (p: Point | undefined | null): p is Point =>
+  !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
+
 const MAX_RADIUS = 1_000_000; // A very large radius limit to prevent errors
 
 /**
@@ -7,6 +10,7 @@ const MAX_RADIUS = 1_000_000; // A very large radius limit to prevent errors
  * Returns null if the points are collinear or the radius is excessively large.
  */
 export function getCircleFromThreePoints(p1: Point, p2: Point, p3: Point): { center: Point, radius: number } | null {
+    if (!isFinitePoint(p1) || !isFinitePoint(p2) || !isFinitePoint(p3)) return null;
     const d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
 
     // Points are collinear
@@ -24,8 +28,8 @@ export function getCircleFromThreePoints(p1: Point, p2: Point, p3: Point): { cen
     const center = { x: ux, y: uy };
     const radius = Math.sqrt(Math.pow(p1.x - ux, 2) + Math.pow(p1.y - uy, 2));
     
-    // Points are nearly collinear, resulting in a huge radius
-    if (radius > MAX_RADIUS) {
+    // Invalid or degenerate circle (too large/small or NaN)
+    if (!Number.isFinite(radius) || radius <= 0 || radius > MAX_RADIUS || !Number.isFinite(center.x) || !Number.isFinite(center.y)) {
         return null;
     }
 
@@ -37,6 +41,9 @@ export function getCircleFromThreePoints(p1: Point, p2: Point, p3: Point): { cen
  * Calculates the SVG path `d` attribute for a circular arc defined by three points.
  */
 export function calculateArcPathD(p1: Point, p2: Point, p3: Point): string | null {
+    if (!isFinitePoint(p1) || !isFinitePoint(p2) || !isFinitePoint(p3)) {
+        return isFinitePoint(p1) && isFinitePoint(p2) ? `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}` : null;
+    }
     const circle = getCircleFromThreePoints(p1, p2, p3);
 
     if (!circle) {
@@ -82,9 +89,10 @@ export function calculateArcPathD(p1: Point, p2: Point, p3: Point): string | nul
  * Samples points along a circular arc for rough rendering.
  */
 export function sampleArc(p1: Point, p2: Point, p3: Point, steps: number = 20): Point[] {
+    if (!isFinitePoint(p1) || !isFinitePoint(p2)) return [];
     const circle = getCircleFromThreePoints(p1, p2, p3);
     if (!circle) {
-        // Fallback for collinear points
+        // Fallback for invalid/collinear points
         return [p1, p2];
     }
 

@@ -10,6 +10,7 @@ import type { RoughSVG } from 'roughjs/bin/svg';
 // FIX: Import ImageData type for the croppingState prop.
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../../types';
 import { getPointerPosition } from '../../lib/utils';
+import { useViewTransformStore } from '@/context/viewTransformStore';
 
 // Import new sub-components
 import { Grid } from './Grid';
@@ -96,6 +97,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
   const [currentPointerPos, setCurrentPointerPos] = useState<Point | null>(null);
+  const setLastPointerPosition = useViewTransformStore(s => s.setLastPointerPosition);
 
   useEffect(() => {
     if (svgRef.current) {
@@ -112,6 +114,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     if (svgRef.current) {
         const point = getPointerPosition(e, svgRef.current, viewTransform);
         setCurrentPointerPos(point);
+        setLastPointerPosition(point);
     }
     onPointerMove(e);
   };
@@ -123,6 +126,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
    */
   const handlePointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     setCurrentPointerPos(null);
+    setLastPointerPosition(null);
     onPointerLeave(e);
   };
 

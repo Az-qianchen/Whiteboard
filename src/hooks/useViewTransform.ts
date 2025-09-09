@@ -10,6 +10,7 @@ export const useViewTransform = () => {
   const handlePanMove = useViewTransformStore(s => s.handlePanMove);
   const getPointerPosition = useViewTransformStore(s => s.getPointerPosition);
   const lastPointerPosition = useViewTransformStore(s => s.lastPointerPosition);
+  const setLastPointerPosition = useViewTransformStore(s => s.setLastPointerPosition);
 
   return {
     viewTransform,
@@ -19,6 +20,6 @@ export const useViewTransform = () => {
     handlePanMove,
     getPointerPosition,
     lastPointerPosition,
+    setLastPointerPosition,
   };
 };
-

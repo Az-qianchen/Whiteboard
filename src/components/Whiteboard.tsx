@@ -10,6 +10,7 @@ import type { RoughSVG } from 'roughjs/bin/svg';
 // FIX: Import ImageData type for the croppingState prop.
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../types';
 import { getPointerPosition } from '../lib/utils';
+import { useViewTransformStore } from '@/context/viewTransformStore';
 
 // Import new sub-components
 import { Grid } from './whiteboard/Grid';
@@ -98,6 +99,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
   const [currentPointerPos, setCurrentPointerPos] = useState<Point | null>(null);
+  const lastPointerPosRef = useRef<Point | null>(null);
+  const rafPendingRef = useRef(false);
+  const setLastPointerPosition = useViewTransformStore(s => s.setLastPointerPosition);
 
   useEffect(() => {
     if (svgRef.current) {
@@ -112,8 +116,23 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
    */
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (svgRef.current) {
-        const point = getPointerPosition(e, svgRef.current, viewTransform);
-        setCurrentPointerPos(point);
+      const point = getPointerPosition(e, svgRef.current, viewTransform);
+      lastPointerPosRef.current = point;
+      if (!rafPendingRef.current) {
+        rafPendingRef.current = true;
+        requestAnimationFrame(() => {
+          rafPendingRef.current = false;
+          // Only update state if value actually changed
+          const p = lastPointerPosRef.current;
+          if (!p && currentPointerPos) {
+            setCurrentPointerPos(null);
+            setLastPointerPosition(null);
+          } else if (p && (!currentPointerPos || p.x !== currentPointerPos.x || p.y !== currentPointerPos.y)) {
+            setCurrentPointerPos(p);
+            setLastPointerPosition(p);
+          }
+        });
+      }
     }
     onPointerMove(e);
   };
@@ -125,6 +144,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
    */
   const handlePointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     setCurrentPointerPos(null);
+    setLastPointerPosition(null);
     onPointerLeave(e);
   };
 

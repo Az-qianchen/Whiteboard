@@ -6,18 +6,21 @@
 
 import type { Point, Anchor } from '../types';
 
+const isFinitePoint = (p: Point | undefined | null): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
+
 /**
  * Converts an array of points to a simple, non-smoothed SVG path string (polyline).
  * This is used for the live preview of the brush tool to avoid "wobble".
  */
 export function pointsToSimplePathD(points: Point[]): string {
-  if (points.length < 2) {
-    return points.length === 1 ? `M ${points[0].x} ${points[0].y} L ${points[0].x} ${points[0].y}` : '';
+  const pts = points.filter(isFinitePoint);
+  if (pts.length < 2) {
+    return pts.length === 1 ? `M ${pts[0].x} ${pts[0].y} L ${pts[0].x} ${pts[0].y}` : '';
   }
 
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    d += ` L ${points[i].x} ${points[i].y}`;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += ` L ${pts[i].x} ${pts[i].y}`;
   }
   return d;
 }
@@ -28,23 +31,24 @@ export function pointsToSimplePathD(points: Point[]): string {
  * This is used for live preview of smoothed paths like the line tool.
  */
 export function pointsToPathD(points: Point[], curveTightness: number = 0): string {
-  const len = points.length;
+  const pts = points.filter(isFinitePoint);
+  const len = pts.length;
   
   if (len < 2) {
-    return len === 1 ? `M ${points[0].x} ${points[0].y} L ${points[0].x} ${points[0].y}` : '';
+    return len === 1 ? `M ${pts[0].x} ${pts[0].y} L ${pts[0].x} ${pts[0].y}` : '';
   }
   if (len === 2) {
-    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+    return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
   }
 
   const tension = 1 - curveTightness;
-  let d = `M${points[0].x},${points[0].y} `;
+  let d = `M${pts[0].x},${pts[0].y} `;
 
   for (let i = 0; i < len - 1; i++) {
-    const p0 = (i === 0) ? points[0] : points[i - 1];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = (i === len - 2) ? points[len - 1] : points[i + 2];
+    const p0 = (i === 0) ? pts[0] : pts[i - 1];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = (i === len - 2) ? pts[len - 1] : pts[i + 2];
     
     const cp1x = p1.x + (p2.x - p0.x) / 6 * tension;
     const cp1y = p1.y + (p2.y - p0.y) / 6 * tension;
