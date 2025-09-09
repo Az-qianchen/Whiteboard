@@ -4,6 +4,7 @@
  * 并为整个应用提供一个统一的状态和操作接口。
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useUiStore } from '@/context/uiStore';
 import { usePaths } from './usePaths';
 import { useToolbarState } from './useToolbarState';
 import { useViewTransform } from './useViewTransform';
@@ -108,7 +109,12 @@ const getInitialAppState = (): AppState => ({
  * @returns 返回一个包含所有状态和操作函数的对象。
  */
 export const useAppStore = () => {
-  const [uiState, setUiState] = useState<UiState>(getInitialUiState);
+  // UI slice migrated to Zustand; keep API stable by bridging setUiState
+  const uiState = useUiStore();
+  const setUiState = useCallback((updater: (s: UiState) => UiState) => {
+    // Replace entire UI slice with updater result to mirror previous React setState pattern
+    useUiStore.setState(updater as (prev: UiState) => UiState, true);
+  }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
 
   const pathState = usePaths();

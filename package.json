@@ -20,7 +20,8 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "roughjs": "^4.6.6",
-    "svgo": "^4.0.0"
+    "svgo": "^4.0.0",
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

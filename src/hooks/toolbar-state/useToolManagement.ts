@@ -1,9 +1,10 @@
 /**
  * 本文件定义了一个自定义 Hook，用于管理当前激活的工具和选择模式的状态。
  */
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { Tool, SelectionMode } from '../../types';
 import { getLocalStorageItem } from '../../lib/utils';
+import { useToolStore } from '@/context/toolStore';
 
 /**
  * 管理工具和选择模式状态的 Hook。
@@ -13,8 +14,10 @@ import { getLocalStorageItem } from '../../lib/utils';
 export const useToolManagement = (
   setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>
 ) => {
-  const [tool, setToolInternal] = useState<Tool>(() => getLocalStorageItem('whiteboard_tool', 'brush'));
-  const [selectionMode, setSelectionMode] = useState<SelectionMode>('move');
+  const tool = useToolStore(s => s.tool);
+  const setToolInternal = useToolStore(s => s.setTool);
+  const selectionMode = useToolStore(s => s.selectionMode);
+  const setSelectionMode = useToolStore(s => s.setSelectionMode);
 
   useEffect(() => { localStorage.setItem('whiteboard_tool', JSON.stringify(tool)); }, [tool]);
 
