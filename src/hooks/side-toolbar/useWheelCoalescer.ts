@@ -20,7 +20,6 @@ export const useWheelCoalescer = (
   }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent, updateValue: (increment: number) => void) => {
-    e.preventDefault();
 
     if (!wheelTimeoutRef.current) {
       beginCoalescing();

@@ -26,7 +26,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   setViewTransform: (updater) => set((s) => ({ viewTransform: updater(s.viewTransform) })),
 
   handleWheel: (e) => {
-    e.preventDefault();
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
     const { viewTransform } = get();
 
@@ -81,4 +80,3 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     return point;
   },
 }));
-
