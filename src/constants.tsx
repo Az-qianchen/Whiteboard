@@ -40,14 +40,14 @@ export const COLORS = [
 ];
 
 // RoughJS 的默认参数
-export const DEFAULT_ROUGHNESS = 1.2;
+export const DEFAULT_ROUGHNESS = 0.5;
 export const DEFAULT_BOWING = 1;
 // Sensible defaults that are not the special "-1" value.
-export const DEFAULT_FILL_WEIGHT = 0.5;
-export const DEFAULT_HACHURE_GAP = 4;
-export const DEFAULT_HACHURE_ANGLE = -41; // 度
+export const DEFAULT_FILL_WEIGHT = 2.55;
+export const DEFAULT_HACHURE_GAP = 10.25;
+export const DEFAULT_HACHURE_ANGLE = 0; // 度
 export const DEFAULT_CURVE_TIGHTNESS = 0;
-export const DEFAULT_CURVE_STEP_COUNT = 9;
+export const DEFAULT_CURVE_STEP_COUNT = 1;
 export const DEFAULT_PRESERVE_VERTICES = false;
 export const DEFAULT_DISABLE_MULTI_STROKE = false;
 export const DEFAULT_DISABLE_MULTI_STROKE_FILL = false;
