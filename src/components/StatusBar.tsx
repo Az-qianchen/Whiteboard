@@ -3,8 +3,7 @@
  * 它显示当前的缩放级别，并提供撤销和重做操作的快捷按钮。
  */
 
-import React, { Fragment } from 'react';
-import { Transition } from '@headlessui/react';
+import React from 'react';
 import { ICONS } from '../constants';
 
 interface StatusBarProps {
@@ -74,55 +73,49 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </button>
       </div>
 
-      <Transition
-        show={!isStatusBarCollapsed}
-        as={Fragment}
-        enter="transition-[max-height,opacity] duration-300 ease-in-out"
-        enterFrom="opacity-0 max-h-0"
-        enterTo="opacity-100 max-h-96"
-        leave="transition-[max-height,opacity] duration-300 ease-in-out"
-        leaveFrom="opacity-100 max-h-96"
-        leaveTo="opacity-0 max-h-0"
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+          isStatusBarCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'
+        }`}
       >
-        <div className="pt-2 space-y-2 overflow-hidden">
-            <div className="h-px bg-[var(--ui-separator)]" />
-            
-            <div className="text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-              <span>画布</span>
+        <div
+          className={`pt-2 overflow-hidden divide-y divide-[var(--ui-separator)] transition-opacity duration-300 ${
+            isStatusBarCollapsed ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <div className="pb-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
+            <span>画布</span>
+            <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
+              <div className="flex justify-between">
+                <span>元素: {elementCount}</span>
+                <span>缩放: {Math.round(zoomLevel * 100)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>W: {canvasWidth}</span>
+                <span>H: {canvasHeight}</span>
+              </div>
+            </div>
+          </div>
+
+          {selectionInfo && (
+            <div className="pt-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
+              <span>选区</span>
               <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
                 <div className="flex justify-between">
-                  <span>元素: {elementCount}</span>
-                  <span>缩放: {Math.round(zoomLevel * 100)}%</span>
+                  <span>元素: {selectionInfo.count ?? 1}</span>
+                  {selectionInfo.rotation !== undefined && (
+                    <span>R: {selectionInfo.rotation}°</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
-                  <span>W: {canvasWidth}</span>
-                  <span>H: {canvasHeight}</span>
+                  <span>W: {selectionInfo.width}</span>
+                  <span>H: {selectionInfo.height}</span>
                 </div>
               </div>
             </div>
-            
-            {selectionInfo && (
-              <>
-                <div className="h-px bg-[var(--ui-separator)]" />
-                <div className="text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-                  <span>选区</span>
-                  <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
-                    <div className="flex justify-between">
-                      <span>元素: {selectionInfo.count ?? 1}</span>
-                      {selectionInfo.rotation !== undefined && (
-                        <span>R: {selectionInfo.rotation}°</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span>W: {selectionInfo.width}</span>
-                      <span>H: {selectionInfo.height}</span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+          )}
         </div>
-      </Transition>
+      </div>
     </div>
   );
 };
