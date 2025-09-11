@@ -3,7 +3,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export function withPWA() {
   return VitePWA({
     registerType: 'autoUpdate',
-    injectRegister: 'auto',
+    injectRegister: null,
     devOptions: {
       enabled: true
     },
