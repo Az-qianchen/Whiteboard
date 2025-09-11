@@ -108,7 +108,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
       <div
         onClick={isEditing ? undefined : handleLayerClick}
         style={style}
-        className={`group flex items-center gap-2 p-2 rounded-md transition-colors cursor-grab select-none ${bgClass} ${isLocked ? 'opacity-60' : ''} ${isDropTarget && dropTarget.position === 'inside' ? 'ring-2 ring-inset ring-[var(--accent-primary)]' : ''}`}
+        className={`group flex items-center gap-2 px-2 py-1 rounded-md transition-colors cursor-grab select-none ${bgClass} ${isLocked ? 'opacity-60' : ''} ${isDropTarget && dropTarget.position === 'inside' ? 'ring-2 ring-inset ring-[var(--accent-primary)]' : ''}`}
         draggable={!isLocked && !isEditing}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
@@ -154,21 +154,21 @@ export const LayerItem: React.FC<LayerItemProps> = ({
         <div className={`flex items-center gap-2 flex-shrink-0 ${isEditing ? 'invisible' : ''}`}>
           <button
             onClick={(e) => { e.stopPropagation(); togglePathsProperty([path.id], 'isLocked'); }}
-            className="p-2 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
+            className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
             title={isLocked ? '解锁' : '锁定'}
           >
             {isLocked ? ICONS.LOCK_CLOSED : ICONS.LOCK_OPEN}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); togglePathsProperty([path.id], 'isVisible'); }}
-            className="p-2 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
+            className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
             title={isVisible ? '隐藏' : '显示'}
           >
             {isVisible ? ICONS.EYE_OPEN : ICONS.EYE_OFF}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleDeletePaths([path.id]); }}
-            className="p-2 rounded-md text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
+            className="p-1 rounded-md text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
             title="删除"
           >
             {ICONS.TRASH}
