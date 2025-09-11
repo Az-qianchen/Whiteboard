@@ -173,7 +173,7 @@ export const LayersPanel: React.FC = () => {
              onClick={() => handleDeletePaths(selectedPathIds)} 
              className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
            >
-             <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.TRASH}</div>
+             <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.TRASH}</div>
              删除选中
            </button>
         </div>
@@ -189,7 +189,7 @@ export const LayersPanel: React.FC = () => {
             )}
             className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
           >
-            <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.CLEAR}</div>
+            <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.CLEAR}</div>
             清空画布
           </button>
         </div>

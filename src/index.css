@@ -3,8 +3,79 @@
 @tailwind utilities;
 
 /* Base styles for the app; kept minimal to satisfy imports */
+@font-face {
+  font-family: 'Excalifont';
+  src: url('https://excalidraw.com/Excalifont.woff2') format('woff2');
+}
+
 :root {
   color-scheme: dark;
+  /* Open Color palette subset */
+  --oc-gray-0: #f8f9fa;
+  --oc-gray-1: #f1f3f5;
+  --oc-gray-4: #ced4da;
+  --oc-gray-6: #868e96;
+  --oc-gray-7: #495057;
+  --oc-gray-8: #343a40;
+  --oc-gray-9: #212529;
+  --oc-blue-6: #228be6;
+  --oc-blue-8: #1864ab;
+  --oc-red-7: #e03131;
+  /* RGB values for transparent colors */
+  --oc-blue-6-rgb: 34, 139, 230;
+  --oc-red-7-rgb: 224, 49, 49;
+  --dark-bg-rgb: 26, 27, 30; /* ~ #1a1b1e */
+  --dark-bg: #1a1b1e;
+  --oc-gray-6-rgb: 134, 142, 150; /* Added for grid lines */
+  --oc-gray-7-rgb: 73, 80, 87;
+
+  /* Base & Text */
+  --bg-color: var(--dark-bg);
+  --text-primary: var(--oc-gray-1);
+  --text-secondary: var(--oc-gray-4);
+
+  /* Accent Colors */
+  --accent-primary: var(--oc-blue-6);
+  --accent-secondary: var(--oc-gray-7);
+  --accent-bg: rgba(var(--oc-blue-6-rgb), 0.15);
+  --accent-solid-bg: var(--accent-primary);
+  --text-on-accent-solid: var(--oc-gray-0);
+
+  /* Danger / Destructive Actions */
+  --danger-text: var(--oc-red-7);
+  --danger-bg: rgba(var(--oc-red-7-rgb), 0.15);
+
+  /* UI Panels & Elements */
+  --ui-panel-bg: rgba(var(--dark-bg-rgb), 0.85);
+  --ui-popover-bg: rgba(var(--dark-bg-rgb), 0.95);
+  --ui-panel-border: var(--oc-gray-8);
+  --ui-separator: var(--oc-gray-8);
+  --ui-subtle-ring: var(--oc-gray-7);
+  --ui-group-layer-bg-1: rgba(var(--oc-blue-6-rgb), 0.1);
+  --ui-group-layer-bg-2: rgba(73, 166, 38, 0.1); /* oc-green-7 */
+  --ui-group-layer-bg-3: rgba(230, 119, 0, 0.1); /* oc-orange-7 */
+  --ui-group-layer-bg-4: rgba(110, 66, 219, 0.1); /* oc-violet-7 */
+  --ui-group-layer-bg-5: rgba(199, 36, 91, 0.1); /* oc-pink-7 */
+
+  /* Interactive States */
+  --ui-hover-bg: var(--oc-gray-8);
+  --ui-element-bg: var(--oc-gray-9);
+  --ui-element-bg-hover: var(--oc-gray-8);
+  --ui-element-bg-active: var(--oc-gray-7);
+  --ui-element-bg-inactive: rgba(0, 0, 0, 0.3);
+
+  /* Canvas Specific */
+  --grid-line: rgba(var(--oc-gray-7-rgb), 0.5);
+  --subgrid-line: rgba(var(--oc-gray-6-rgb), 0.7);
+  --accent-highlight-fill: rgba(var(--oc-blue-6-rgb), 0.1);
+  --accent-highlight-stroke: rgba(var(--oc-blue-6-rgb), 0.7);
+  --accent-primary-muted: var(--oc-blue-8);
+  --accent-primary-highlight: rgba(var(--oc-blue-6-rgb), 0.2);
+
+  /* Custom Scrollbar for Style Library */
+  --scrollbar-bg: transparent;
+  --scrollbar-thumb-bg: var(--oc-gray-7);
+  --scrollbar-thumb-hover-bg: var(--oc-gray-6);
 }
 
 html, body, #root {
@@ -14,10 +85,106 @@ html, body, #root {
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    "Noto Sans", "Liberation Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    'Noto Sans', 'Liberation Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  /* Selection */
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+/Edge */
+  user-select: none; /* Standard */
 }
 
 /* Root element should behave as a standard block container */
 #root {
   display: block;
+}
+
+/* 为输入框和文本区域重新启用文本选择 */
+input,
+textarea {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+}
+
+body.light-bg-canvas {
+  --grid-line: rgba(0, 0, 0, 0.15);
+  --subgrid-line: rgba(0, 0, 0, 0.3);
+}
+
+/* Hide number input spinners */
+.hide-spinners::-webkit-outer-spin-button,
+.hide-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.hide-spinners {
+  -moz-appearance: textfield;
+}
+
+/* Custom scrollbar for webkit browsers */
+.style-library-grid::-webkit-scrollbar,
+.layers-panel-list::-webkit-scrollbar,
+.timeline-frames-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.style-library-grid::-webkit-scrollbar-track,
+.layers-panel-list::-webkit-scrollbar-track,
+.timeline-frames-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-bg);
+}
+.style-library-grid::-webkit-scrollbar-thumb,
+.layers-panel-list::-webkit-scrollbar-thumb,
+.timeline-frames-container::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-bg);
+  border-radius: 10px;
+  border: 2px solid var(--ui-panel-bg); /* Default border to panel bg */
+}
+/* Override for popover-based scrollbars */
+.style-library-grid::-webkit-scrollbar-thumb {
+  border-color: var(--ui-popover-bg);
+}
+.style-library-grid::-webkit-scrollbar-thumb:hover,
+.layers-panel-list::-webkit-scrollbar-thumb:hover,
+.timeline-frames-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover-bg);
+}
+
+/* Tweak slider styles for better theme integration */
+input[type='range'].themed-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+}
+input[type='range'].themed-slider::-webkit-slider-runnable-track {
+  background: var(--ui-element-bg);
+  height: 0.25rem;
+  border-radius: 0.25rem;
+}
+input[type='range'].themed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -0.375rem;
+  background-color: var(--text-primary);
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--accent-primary);
+}
+input[type='range'].themed-slider::-moz-range-track {
+  background: var(--ui-element-bg);
+  height: 0.25rem;
+  border-radius: 0.25rem;
+}
+input[type='range'].themed-slider::-moz-range-thumb {
+  background-color: var(--text-primary);
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--accent-primary);
 }
