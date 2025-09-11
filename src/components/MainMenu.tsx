@@ -124,7 +124,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                       : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
                   }`}
                 >
-                  <div className="w-4 h-4">{tab.icon}</div>
+                  <div className="w-4 h-4 flex items-center justify-center">{tab.icon}</div>
                   {tab.name}
                 </button>
               )}
@@ -153,7 +153,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                         onClick={onClick}
                         className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
-                        <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.BACKGROUND_COLOR}</div>
+                        <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.BACKGROUND_COLOR}</div>
                         <span className="flex-grow">画布背景...</span>
                         <div 
                           className="w-5 h-5 rounded-sm ring-1 ring-inset ring-white/20"
@@ -185,7 +185,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                         disabled={!canExport}
                         className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
-                        <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.COPY_PNG}</div>
+                        <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.COPY_PNG}</div>
                         <span className="flex-grow">{action.label}</span>
                       </button>
                     )}
@@ -208,7 +208,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                         disabled={frameCount <= 1}
                         className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
-                        <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.PLAY}</div>
+                        <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.PLAY}</div>
                         <span className="flex-grow">{action.label}</span>
                       </button>
                     )}
@@ -227,7 +227,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                       : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)]'
                   } focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]`}
                 >
-                  <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{(action as any).icon}</div>
+                  <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{(action as any).icon}</div>
                   <span className="flex-grow">{action.label}</span>
                 </button>
               );
