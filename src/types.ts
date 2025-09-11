@@ -183,6 +183,8 @@ export interface ImageData extends ShapeBase {
   width: number;
   height: number;
   borderRadius?: number;
+  flipX?: boolean;
+  flipY?: boolean;
 }
 
 export interface TextData extends ShapeBase {

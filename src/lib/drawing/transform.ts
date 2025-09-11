@@ -326,46 +326,20 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
         }
         case 'image': {
             const imgPath = path as ImageData;
-
-            const flippedSrc = await new Promise<string>((resolve, reject) => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return reject(new Error("Could not get canvas context"));
-                
-                const img = new Image();
-                img.onload = () => {
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    ctx.save();
-                    if (axis === 'horizontal') {
-                        ctx.translate(canvas.width, 0);
-                        ctx.scale(-1, 1);
-                    } else { // vertical
-                        ctx.translate(0, canvas.height);
-                        ctx.scale(1, -1);
-                    }
-                    ctx.drawImage(img, 0, 0);
-                    ctx.restore();
-                    resolve(canvas.toDataURL());
-                };
-                img.onerror = (err) => reject(err);
-                img.crossOrigin = "anonymous";
-                img.src = imgPath.src;
-            });
-
-            const { x, y, width, height, rotation } = imgPath;
+            const { x, y, width, height, rotation, flipX = false, flipY = false } = imgPath;
             const shapeCenter = { x: x + width / 2, y: y + height / 2 };
             const newShapeCenter = flipPoint(shapeCenter);
             const newX = newShapeCenter.x - width / 2;
             const newY = newShapeCenter.y - height / 2;
             const newRotation = -(rotation ?? 0);
-            
+
             return {
                 ...imgPath,
                 x: newX,
                 y: newY,
                 rotation: newRotation,
-                src: flippedSrc,
+                flipX: axis === 'horizontal' ? !flipX : flipX,
+                flipY: axis === 'vertical' ? !flipY : flipY,
             };
         }
         case 'text': {

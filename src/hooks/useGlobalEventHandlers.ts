@@ -309,6 +309,8 @@ const useGlobalEventHandlers = () => {
                                 y: pasteAt.y - height / 2,
                                 width,
                                 height,
+                                flipX: false,
+                                flipY: false,
                                 color: 'transparent',
                                 fill: 'transparent',
                                 fillStyle: 'solid',

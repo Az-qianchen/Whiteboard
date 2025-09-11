@@ -236,13 +236,26 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     if (data.opacity !== undefined && data.opacity < 1) {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
-    
-    if (data.rotation && (data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'text' || data.tool === 'frame')) {
-        const { x, y, width, height, rotation } = data;
+
+    const hasRotation = !!data.rotation && (data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'text' || data.tool === 'frame');
+    const hasFlip = data.tool === 'image' && (((data as ImageData).flipX) || ((data as ImageData).flipY));
+    if (hasRotation || hasFlip) {
+        const { x, y, width, height } = data as any;
         const cx = x + width / 2;
         const cy = y + height / 2;
-        const angleDegrees = rotation * (180 / Math.PI);
-        finalElement.setAttribute('transform', `rotate(${angleDegrees} ${cx} ${cy})`);
+        const transforms: string[] = [`translate(${cx} ${cy})`];
+        if (hasFlip) {
+            const img = data as ImageData;
+            const sx = img.flipX ? -1 : 1;
+            const sy = img.flipY ? -1 : 1;
+            transforms.push(`scale(${sx} ${sy})`);
+        }
+        if (hasRotation) {
+            const angleDegrees = (data.rotation ?? 0) * (180 / Math.PI);
+            transforms.push(`rotate(${angleDegrees})`);
+        }
+        transforms.push(`translate(${-cx} ${-cy})`);
+        finalElement.setAttribute('transform', transforms.join(' '));
     }
 
     return finalElement;
