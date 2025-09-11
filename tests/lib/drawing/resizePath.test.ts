@@ -7,6 +7,7 @@ vi.mock('@/lib/drawing/convert', () => ({
 }));
 
 import { resizePath } from '@/lib/drawing/transform';
+import { rotatePoint } from '@/lib/drawing/geom';
 import type { ImageData } from '@/types';
 
 describe('resizePath with rotation', () => {
@@ -78,6 +79,43 @@ describe('edge handles use diagonal anchors', () => {
     expect(resized.x + resized.width).toBeCloseTo(100);
     expect(resized.y).toBeCloseTo(-20);
     expect(resized.height).toBeCloseTo(100);
+  });
+});
+
+describe('resizePath flips across anchor', () => {
+  it('mirrors the image when dragging a handle past the opposite corner', () => {
+    const image: ImageData = {
+      id: 'f',
+      tool: 'image',
+      src: '',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 80,
+      rotation: Math.PI / 2,
+      color: '',
+      fill: '',
+      fillStyle: '',
+      strokeWidth: 0,
+      roughness: 0,
+      bowing: 0,
+      fillWeight: 0,
+      hachureAngle: 0,
+      hachureGap: 0,
+      curveTightness: 0,
+      curveStepCount: 9,
+    };
+
+    const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
+    const initialPos = rotatePoint({ x: 0, y: image.height / 2 }, center, image.rotation!);
+    const currentPos = rotatePoint({ x: image.width + 20, y: image.height / 2 }, center, image.rotation!);
+
+    const resized = resizePath(image, 'left', currentPos, initialPos, false);
+
+    expect(resized.scaleX).toBe(-1);
+    expect(resized.x + resized.width).toBeCloseTo(100);
+    expect(resized.width).toBeCloseTo(20);
+    expect(resized.height).toBeCloseTo(80);
   });
 });
 

@@ -103,6 +103,8 @@ interface ShapeBase {
   isRough?: boolean; // 是否使用手绘风格渲染
   opacity?: number;
   rotation?: number; // in radians
+  scaleX?: number;
+  scaleY?: number;
   isVisible?: boolean; // 是否可见 (图层面板)
   isLocked?: boolean;  // 是否锁定 (图层面板)
   // RoughJS 属性

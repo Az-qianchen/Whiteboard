@@ -53,83 +53,44 @@ export function resizePath(
         anchor.y = localInitialPos.y < center.y ? oldY + oldHeight : oldY;
     }
 
-    // 计算从锚点到鼠标的位移向量
+    // 计算从锚点到当前指针的位移
     let dxFromAnchor = localCurrentPos.x - anchor.x;
     let dyFromAnchor = localCurrentPos.y - anchor.y;
 
-    if (keepAspectRatio && oldWidth > 0 && oldHeight > 0) {
-        const isCorner = (handle.includes('left') || handle.includes('right')) && (handle.includes('top') || handle.includes('bottom'));
-        const targetAspectRatio = oldWidth / oldHeight;
-
-        if (isCorner) {
-            // 为了使调整大小感觉直观，我们计算两个可能的矩形：
-            // 一个受鼠标 X 位置约束，一个受 Y 位置约束。
-            // 然后，我们选择那个被拖动的角点更接近实际鼠标位置的矩形。
-            // 这可以防止在鼠标移动的主导轴改变时发生突然跳动。
-
-            const distSq = (p1: Point, p2: Point) => (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
-
-            // 选项1：调整大小由鼠标的 X 轴移动驱动。
-            const newWidth_from_x = Math.abs(dxFromAnchor);
-            const newHeight_from_x = newWidth_from_x / targetAspectRatio;
-            const finalPoint_from_x = {
-                x: anchor.x + newWidth_from_x * Math.sign(dxFromAnchor),
-                y: anchor.y + newHeight_from_x * Math.sign(dyFromAnchor || (handle.includes('bottom') ? 1 : -1))
-            };
-
-            // 选项2：调整大小由鼠标的 Y 轴移动驱动。
-            const newHeight_from_y = Math.abs(dyFromAnchor);
-            const newWidth_from_y = newHeight_from_y * targetAspectRatio;
-             const finalPoint_from_y = {
-                x: anchor.x + newWidth_from_y * Math.sign(dxFromAnchor || (handle.includes('right') ? 1 : -1)),
-                y: anchor.y + newHeight_from_y * Math.sign(dyFromAnchor)
-            };
-
-            // 比较哪个选项的角点更接近鼠标光标。
-            if (distSq(localCurrentPos, finalPoint_from_x) < distSq(localCurrentPos, finalPoint_from_y)) {
-                // X 驱动的调整大小更合适。调整 dy。
-                dyFromAnchor = newHeight_from_x * Math.sign(dyFromAnchor || (handle.includes('bottom') ? 1 : -1));
-            } else {
-                // Y 驱动的调整大小更合适。调整 dx。
-                dxFromAnchor = newWidth_from_y * Math.sign(dxFromAnchor || (handle.includes('right') ? 1 : -1));
-            }
-        } else if (handle.includes('left') || handle.includes('right')) { // horizontal handles
-            dyFromAnchor = (Math.abs(dxFromAnchor) / targetAspectRatio) * Math.sign(dyFromAnchor || 1);
-        } else { // vertical handles
-            dxFromAnchor = (Math.abs(dyFromAnchor) * targetAspectRatio) * Math.sign(dxFromAnchor || 1);
-        }
-    }
-    
     const affectsX = handle.includes('left') || handle.includes('right');
     const affectsY = handle.includes('top') || handle.includes('bottom');
 
-    const finalPoint = { x: localCurrentPos.x, y: localCurrentPos.y };
+    const baseWidth = handle.includes('left') ? -oldWidth : oldWidth;
+    const baseHeight = handle.includes('top') ? -oldHeight : oldHeight;
 
-    if (!affectsX && !keepAspectRatio) {
-        finalPoint.x = anchor.x === oldX ? oldX + oldWidth : oldX;
-    }
-    if (!affectsY && !keepAspectRatio) {
-        finalPoint.y = anchor.y === oldY ? oldY + oldHeight : oldY;
-    }
+    let newWidth = affectsX ? dxFromAnchor : baseWidth;
+    let newHeight = affectsY ? dyFromAnchor : baseHeight;
 
-    dxFromAnchor = finalPoint.x - anchor.x;
-    dyFromAnchor = finalPoint.y - anchor.y;
+    if (keepAspectRatio && oldWidth > 0 && oldHeight > 0) {
+        const targetRatio = oldWidth / oldHeight;
+        const isCorner = affectsX && affectsY;
 
-    const adjustedFinal = { x: anchor.x + dxFromAnchor, y: anchor.y + dyFromAnchor };
-
-    let newX = Math.min(anchor.x, adjustedFinal.x);
-    let newY = Math.min(anchor.y, adjustedFinal.y);
-    let newWidth = Math.abs(dxFromAnchor);
-    let newHeight = Math.abs(dyFromAnchor);
-
-    if (!affectsX && !keepAspectRatio) {
-        newX = anchor.x === oldX ? anchor.x : anchor.x - newWidth;
-    }
-    if (!affectsY && !keepAspectRatio) {
-        newY = anchor.y === oldY ? anchor.y : anchor.y - newHeight;
+        if (isCorner) {
+            if (Math.abs(newWidth) > Math.abs(newHeight) * targetRatio) {
+                newHeight = Math.abs(newWidth) / targetRatio * Math.sign(newHeight || (handle.includes('bottom') ? 1 : -1));
+            } else {
+                newWidth = Math.abs(newHeight) * targetRatio * Math.sign(newWidth || (handle.includes('right') ? 1 : -1));
+            }
+        } else if (affectsX) {
+            newHeight = Math.abs(newWidth) / targetRatio * Math.sign(newHeight || (handle.includes('bottom') ? 1 : -1));
+        } else if (affectsY) {
+            newWidth = Math.abs(newHeight) * targetRatio * Math.sign(newWidth || (handle.includes('right') ? 1 : -1));
+        }
     }
 
-    return { ...originalPath, x: newX, y: newY, width: newWidth, height: newHeight };
+    const scaleX = affectsX ? newWidth / baseWidth : 1;
+    const scaleY = affectsY ? newHeight / baseHeight : 1;
+
+    const scaled = scalePath(originalPath, anchor, Math.abs(scaleX), Math.abs(scaleY));
+    const flippedScaleX = (scaled.scaleX ?? 1) * Math.sign(scaleX);
+    const flippedScaleY = (scaled.scaleY ?? 1) * Math.sign(scaleY);
+
+    return { ...scaled, scaleX: flippedScaleX, scaleY: flippedScaleY };
 }
 
 
@@ -472,7 +433,9 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         const scaledHeight = path.height * scaleY;
         const newX = scaledWidth < 0 ? scaledX + scaledWidth : scaledX;
         const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
-      return { ...path, x: newX, y: newY, width: Math.abs(scaledWidth), height: Math.abs(scaledHeight) };
+        const newScaleX = (path.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
+        const newScaleY = (path.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
+      return { ...path, x: newX, y: newY, width: Math.abs(scaledWidth), height: Math.abs(scaledHeight), scaleX: newScaleX, scaleY: newScaleY };
     case 'group':
         return { ...path, children: (path as GroupData).children.map(child => scalePath(child, pivot, scaleX, scaleY)) };
   }
