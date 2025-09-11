@@ -291,14 +291,8 @@ const useGlobalEventHandlers = () => {
                                 );
                             }
 
-                            const MAX_DIM = 400;
                             let width = img.width;
                             let height = img.height;
-                            if (width > MAX_DIM || height > MAX_DIM) {
-                                const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-                                width *= ratio;
-                                height *= ratio;
-                            }
 
                             const newImage: ImageData = {
                                 id: Date.now().toString(),
