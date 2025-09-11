@@ -5,7 +5,11 @@
  */
 
 import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
-import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
+import { samplePath } from './drawing/path';
+import { getPathBoundingBox, doBboxesIntersect, isBboxInside } from './drawing/bbox';
+import { dist, rotatePoint } from './drawing/geom';
+import { getPolygonVertices } from './drawing/polygon';
+import { sampleArc } from './drawing/arc';
 import { parseColor } from './color';
 
 /**
