@@ -3,12 +3,14 @@ import React from 'react';
 export type PanelButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const PanelButton = React.forwardRef<HTMLButtonElement, PanelButtonProps>(
-  ({ className = '', ...props }, ref) => (
+  ({ className = '', children, ...props }, ref) => (
     <button
       ref={ref}
       className={`flex items-center justify-center h-10 w-10 rounded-lg bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-lg border border-[var(--ui-panel-border)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${className}`}
       {...props}
-    />
+    >
+      {children}
+    </button>
   )
 );
 
