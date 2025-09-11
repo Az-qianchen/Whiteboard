@@ -167,31 +167,37 @@ export const LayersPanel: React.FC = () => {
           renderLayerTree(paths, 0)
         )}
       </div>
-      {selectedPathIds.length > 0 && (
-        <div className="flex-shrink-0 pt-2 mt-2 border-t border-[var(--ui-separator)]">
-           <button 
-             onClick={() => handleDeletePaths(selectedPathIds)} 
-             className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
-           >
-             <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.TRASH}</div>
-             删除选中
-           </button>
-        </div>
-      )}
-      {paths.length > 0 && (
-        <div className="flex-shrink-0 pt-2">
-          <button
-            onClick={() => showConfirmation(
-              '清空画布',
-              '确定要清空当前画布吗？此操作无法撤销。',
-              () => { setPaths([]); setSelectedPathIds([]); },
-              '清空'
-            )}
-            className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
-          >
-            <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.CLEAR}</div>
-            清空画布
-          </button>
+      {(paths.length > 0 || selectedPathIds.length > 0) && (
+        <div
+          className={`flex-shrink-0 pt-2 flex gap-2 ${
+            selectedPathIds.length > 0 ? 'mt-2 border-t border-[var(--ui-separator)]' : ''
+          }`}
+        >
+          {paths.length > 0 && (
+            <button
+              onClick={() =>
+                showConfirmation(
+                  '清空画布',
+                  '确定要清空当前画布吗？此操作无法撤销。',
+                  () => { setPaths([]); setSelectedPathIds([]); },
+                  '清空'
+                )
+              }
+              className="flex-1 flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
+            >
+              <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.CLEAR}</div>
+              清空画布
+            </button>
+          )}
+          {selectedPathIds.length > 0 && (
+            <button
+              onClick={() => handleDeletePaths(selectedPathIds)}
+              className="flex-1 flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
+            >
+              <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.TRASH}</div>
+              删除选中
+            </button>
+          )}
         </div>
       )}
     </div>
