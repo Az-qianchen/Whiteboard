@@ -5,7 +5,7 @@
 
 import React, { useMemo } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, FrameData, GroupData, ImageData } from '../../types';
+import type { AnyPath, FrameData, GroupData } from '../../types';
 import { renderPathNode } from '../../lib/export';
 
 /**
@@ -51,20 +51,8 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
         return node ? node.outerHTML : '';
     }, [rc, data]);
 
-    // 根据图像的翻转标记应用 CSS 变换。
-    const style = useMemo<React.CSSProperties>(() => {
-        if (data.tool !== 'image') return {};
-        const transforms: string[] = [];
-        const img = data as ImageData;
-        if (img.flipX) transforms.push('scaleX(-1)');
-        if (img.flipY) transforms.push('scaleY(-1)');
-        return transforms.length > 0
-            ? { transform: transforms.join(' '), transformOrigin: 'center', transformBox: 'fill-box' }
-            : {};
-    }, [data]);
-
     // 使用 dangerouslySetInnerHTML 来渲染预先计算好的 SVG 字符串。
-    return <g className="pointer-events-none" style={style} dangerouslySetInnerHTML={{ __html: nodeString }} />;
+    return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;
 });
 
 // FIX: Export a `RoughPath` component to be used for live previews in other components.
@@ -80,19 +68,8 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = Reac
         return node ? node.outerHTML : '';
     }, [rc, data]);
 
-    const style = useMemo<React.CSSProperties>(() => {
-        if (data.tool !== 'image') return {};
-        const transforms: string[] = [];
-        const img = data as ImageData;
-        if (img.flipX) transforms.push('scaleX(-1)');
-        if (img.flipY) transforms.push('scaleY(-1)');
-        return transforms.length > 0
-            ? { transform: transforms.join(' '), transformOrigin: 'center', transformBox: 'fill-box' }
-            : {};
-    }, [data]);
-
     // Use dangerouslySetInnerHTML to render the pre-computed SVG string.
-    return <g className="pointer-events-none" style={style} dangerouslySetInnerHTML={{ __html: nodeString }} />;
+    return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;
 });
 
 
