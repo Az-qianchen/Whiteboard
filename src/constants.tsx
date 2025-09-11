@@ -40,7 +40,7 @@ export const COLORS = [
 ];
 
 // RoughJS 的默认参数
-export const DEFAULT_ROUGHNESS = 0.5;
+export const DEFAULT_ROUGHNESS = 1;
 export const DEFAULT_BOWING = 1;
 // Sensible defaults that are not the special "-1" value.
 export const DEFAULT_FILL_WEIGHT = 2.55;
