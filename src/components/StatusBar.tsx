@@ -84,43 +84,38 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         leaveFrom="opacity-100 max-h-96"
         leaveTo="opacity-0 max-h-0"
       >
-        <div className="pt-2 space-y-2 overflow-hidden">
-            <div className="h-px bg-[var(--ui-separator)]" />
-            
-            <div className="text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-              <span>画布</span>
+        <div className="pt-2 overflow-hidden divide-y divide-[var(--ui-separator)]">
+          <div className="pb-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
+            <span>画布</span>
+            <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
+              <div className="flex justify-between">
+                <span>元素: {elementCount}</span>
+                <span>缩放: {Math.round(zoomLevel * 100)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>W: {canvasWidth}</span>
+                <span>H: {canvasHeight}</span>
+              </div>
+            </div>
+          </div>
+
+          {selectionInfo && (
+            <div className="pt-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
+              <span>选区</span>
               <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
                 <div className="flex justify-between">
-                  <span>元素: {elementCount}</span>
-                  <span>缩放: {Math.round(zoomLevel * 100)}%</span>
+                  <span>元素: {selectionInfo.count ?? 1}</span>
+                  {selectionInfo.rotation !== undefined && (
+                    <span>R: {selectionInfo.rotation}°</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
-                  <span>W: {canvasWidth}</span>
-                  <span>H: {canvasHeight}</span>
+                  <span>W: {selectionInfo.width}</span>
+                  <span>H: {selectionInfo.height}</span>
                 </div>
               </div>
             </div>
-            
-            {selectionInfo && (
-              <>
-                <div className="h-px bg-[var(--ui-separator)]" />
-                <div className="text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-                  <span>选区</span>
-                  <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
-                    <div className="flex justify-between">
-                      <span>元素: {selectionInfo.count ?? 1}</span>
-                      {selectionInfo.rotation !== undefined && (
-                        <span>R: {selectionInfo.rotation}°</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span>W: {selectionInfo.width}</span>
-                      <span>H: {selectionInfo.height}</span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+          )}
         </div>
       </Transition>
     </div>
