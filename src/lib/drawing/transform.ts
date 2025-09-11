@@ -26,30 +26,31 @@ export function resizePath(
     const { rotation } = originalPath;
 
     let localCurrentPos = currentPos;
+    let localInitialPos = initialPos;
 
     if (rotation) {
-        const center = rotationCenter || { 
-            x: originalPath.x + originalPath.width / 2, 
-            y: originalPath.y + originalPath.height / 2 
+        const center = rotationCenter || {
+            x: originalPath.x + originalPath.width / 2,
+            y: originalPath.y + originalPath.height / 2
         };
         localCurrentPos = rotatePoint(currentPos, center, -rotation);
+        localInitialPos = rotatePoint(initialPos, center, -rotation);
     }
     
     const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = originalPath;
 
-    // 定义锚点，即与被拖动控制点相对的点。
+    // 依据初始指针位置选择对角点作为锚点
+    const center = { x: oldX + oldWidth / 2, y: oldY + oldHeight / 2 };
     const anchor = {
         x: handle.includes('left') ? oldX + oldWidth : oldX,
         y: handle.includes('top') ? oldY + oldHeight : oldY,
     };
-    
-    // 对于边控制点，锚点是一条线，但其中一个坐标是固定的。
-    // 另一个坐标是原始框在该轴上的中心。
-    if (!handle.includes('left') && !handle.includes('right')) { // top or bottom
-        anchor.x = oldX + oldWidth / 2;
+
+    if (handle === 'top' || handle === 'bottom') {
+        anchor.x = localInitialPos.x < center.x ? oldX + oldWidth : oldX;
     }
-    if (!handle.includes('top') && !handle.includes('bottom')) { // left or right
-        anchor.y = oldY + oldHeight / 2;
+    if (handle === 'left' || handle === 'right') {
+        anchor.y = localInitialPos.y < center.y ? oldY + oldHeight : oldY;
     }
 
     // 计算从锚点到鼠标的位移向量
@@ -99,34 +100,33 @@ export function resizePath(
         }
     }
     
-    const finalPoint = {
-        x: anchor.x + dxFromAnchor,
-        y: anchor.y + dyFromAnchor,
-    };
-
     const affectsX = handle.includes('left') || handle.includes('right');
     const affectsY = handle.includes('top') || handle.includes('bottom');
 
-    let newX = oldX;
-    let newY = oldY;
-    let newWidth = oldWidth;
-    let newHeight = oldHeight;
+    const finalPoint = { x: localCurrentPos.x, y: localCurrentPos.y };
 
-    if (affectsX || (keepAspectRatio && affectsY)) {
-        newX = Math.min(anchor.x, finalPoint.x);
-        newWidth = Math.abs(dxFromAnchor);
+    if (!affectsX && !keepAspectRatio) {
+        finalPoint.x = anchor.x === oldX ? oldX + oldWidth : oldX;
+    }
+    if (!affectsY && !keepAspectRatio) {
+        finalPoint.y = anchor.y === oldY ? oldY + oldHeight : oldY;
     }
 
-    if (affectsY || (keepAspectRatio && affectsX)) {
-        newY = Math.min(anchor.y, finalPoint.y);
-        newHeight = Math.abs(dyFromAnchor);
-    }
+    dxFromAnchor = finalPoint.x - anchor.x;
+    dyFromAnchor = finalPoint.y - anchor.y;
 
-    if (!affectsX) {
-        newX = anchor.x - newWidth / 2;
+    const adjustedFinal = { x: anchor.x + dxFromAnchor, y: anchor.y + dyFromAnchor };
+
+    let newX = Math.min(anchor.x, adjustedFinal.x);
+    let newY = Math.min(anchor.y, adjustedFinal.y);
+    let newWidth = Math.abs(dxFromAnchor);
+    let newHeight = Math.abs(dyFromAnchor);
+
+    if (!affectsX && !keepAspectRatio) {
+        newX = anchor.x === oldX ? anchor.x : anchor.x - newWidth;
     }
-    if (!affectsY) {
-        newY = anchor.y - newHeight / 2;
+    if (!affectsY && !keepAspectRatio) {
+        newY = anchor.y === oldY ? anchor.y : anchor.y - newHeight;
     }
 
     return { ...originalPath, x: newX, y: newY, width: newWidth, height: newHeight };

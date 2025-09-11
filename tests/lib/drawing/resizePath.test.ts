@@ -46,3 +46,38 @@ describe('resizePath with rotation', () => {
   });
 });
 
+describe('edge handles use diagonal anchors', () => {
+  it('keeps the opposite corner fixed when dragging the top edge', () => {
+    const rect: ImageData = {
+      id: 'r',
+      tool: 'image',
+      src: '',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 80,
+      rotation: 0,
+      color: '',
+      fill: '',
+      fillStyle: '',
+      strokeWidth: 0,
+      roughness: 0,
+      bowing: 0,
+      fillWeight: 0,
+      hachureAngle: 0,
+      hachureGap: 0,
+      curveTightness: 0,
+      curveStepCount: 9,
+    };
+
+    const initialPos = { x: 10, y: 0 };
+    const currentPos = { x: 10, y: -20 };
+
+    const resized = resizePath(rect, 'top', currentPos, initialPos, false);
+
+    expect(resized.x + resized.width).toBeCloseTo(100);
+    expect(resized.y).toBeCloseTo(-20);
+    expect(resized.height).toBeCloseTo(100);
+  });
+});
+
