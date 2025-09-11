@@ -104,19 +104,31 @@ export function resizePath(
         y: anchor.y + dyFromAnchor,
     };
 
-    let newX = Math.min(anchor.x, finalPoint.x);
-    let newY = Math.min(anchor.y, finalPoint.y);
-    let newWidth = Math.abs(dxFromAnchor);
-    let newHeight = Math.abs(dyFromAnchor);
+    const affectsX = handle.includes('left') || handle.includes('right');
+    const affectsY = handle.includes('top') || handle.includes('bottom');
 
-    // 纠正边控制点的位置，它们应该在非拖动轴上从中心调整大小
-    if (!handle.includes('left') && !handle.includes('right')) { // top or bottom
+    let newX = oldX;
+    let newY = oldY;
+    let newWidth = oldWidth;
+    let newHeight = oldHeight;
+
+    if (affectsX || (keepAspectRatio && affectsY)) {
+        newX = Math.min(anchor.x, finalPoint.x);
+        newWidth = Math.abs(dxFromAnchor);
+    }
+
+    if (affectsY || (keepAspectRatio && affectsX)) {
+        newY = Math.min(anchor.y, finalPoint.y);
+        newHeight = Math.abs(dyFromAnchor);
+    }
+
+    if (!affectsX) {
         newX = anchor.x - newWidth / 2;
     }
-    if (!handle.includes('top') && !handle.includes('bottom')) { // left or right
+    if (!affectsY) {
         newY = anchor.y - newHeight / 2;
     }
-    
+
     return { ...originalPath, x: newX, y: newY, width: newWidth, height: newHeight };
 }
 
