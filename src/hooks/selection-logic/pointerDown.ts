@@ -240,4 +240,5 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
     if (selectionMode === 'move') handlePointerDownForMove(point, e, clickedPath, props);
     else if (selectionMode === 'edit') handlePointerDownForEdit(point, e, clickedPath, props);
     else if (selectionMode === 'lasso') handlePointerDownForLasso(point, e, props);
+    else if (selectionMode === 'cut') { beginCoalescing(); props.setLassoPath([point]); }
 };

@@ -134,7 +134,7 @@ export const MainLayout: React.FC = () => {
         if (selectionInteraction.dragState?.type === 'crop') return (selectionInteraction.dragState as any).cursor || 'crosshair';
         switch (tool) {
             case 'selection':
-                if (selectionMode === 'lasso') return 'crosshair';
+                if (selectionMode === 'lasso' || selectionMode === 'cut') return 'crosshair';
                 if (selectionMode === 'move') return selectionInteraction.isHoveringMovable ? 'grab' : 'default';
                 if (selectionMode === 'edit') return selectionInteraction.isHoveringEditable ? 'pointer' : 'default';
                 return 'default';

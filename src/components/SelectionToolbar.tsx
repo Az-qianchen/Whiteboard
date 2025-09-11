@@ -31,6 +31,7 @@ const MODES = [
   { name: 'move', title: '移动/变换 (M)', icon: ICONS.MOVE },
   { name: 'edit', title: '编辑锚点 (V)', icon: ICONS.EDIT },
   { name: 'lasso', title: '套索选择', icon: ICONS.LASSO },
+  { name: 'cut', title: '切刀', icon: ICONS.CUT },
 ];
 
 const ALIGN_BUTTONS = [
