@@ -30,6 +30,8 @@ interface ExcalidrawElement {
   fontSize?: number;
   fontFamily?: string | number;
   textAlign?: 'left' | 'center' | 'right';
+  fillStyle?: string;
+  roundness?: number | { type?: number; value?: number; radius?: number };
 }
 
 const sharedProps = (el: ExcalidrawElement) => ({
@@ -37,7 +39,7 @@ const sharedProps = (el: ExcalidrawElement) => ({
   color: el.strokeColor ?? '#000000',
   fill: el.backgroundColor ?? 'transparent',
   strokeWidth: el.strokeWidth ?? 1,
-  fillStyle: 'solid',
+  fillStyle: el.fillStyle ?? 'hachure',
   roughness: el.roughness ?? DEFAULT_ROUGHNESS,
   bowing: DEFAULT_BOWING,
   fillWeight: DEFAULT_FILL_WEIGHT,
@@ -59,6 +61,17 @@ export function importExcalidraw(json: string): AnyPath[] {
 
   for (const el of elements) {
     if (el.type === 'rectangle') {
+      const borderRadius = (() => {
+        const r = el.roundness as any;
+        if (r == null) return 0;
+        if (typeof r === 'number') return r;
+        if (typeof r === 'object') {
+          if (typeof r.value === 'number') return r.value;
+          if (typeof r.radius === 'number') return r.radius;
+          if (typeof r.type === 'number' && r.type > 0) return 16;
+        }
+        return 0;
+      })();
       paths.push({
         ...sharedProps(el),
         tool: 'rectangle',
@@ -66,6 +79,7 @@ export function importExcalidraw(json: string): AnyPath[] {
         y: el.y,
         width: el.width,
         height: el.height,
+        borderRadius,
       } as RectangleData);
     } else if (el.type === 'ellipse') {
       paths.push({
