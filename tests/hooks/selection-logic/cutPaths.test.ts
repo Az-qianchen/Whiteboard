@@ -25,7 +25,7 @@ const baseStyle = {
 };
 
 describe('cutPaths', () => {
-  it('cuts a line into two segments when intersected twice', () => {
+  it('removes a line completely when intersected', () => {
     const line: BrushPathData = {
       id: 'line',
       tool: 'brush',
@@ -36,20 +36,42 @@ describe('cutPaths', () => {
       ...baseStyle,
     };
     const lasso: Point[] = [
-      { x: 8, y: -5 },
-      { x: 8, y: 5 },
-      { x: 12, y: 5 },
-      { x: 12, y: -5 },
+      { x: 10, y: -5 },
+      { x: 10, y: 5 },
     ];
     const result = cutPaths(lasso, [line]);
-    expect(result).toHaveLength(2);
-    expect((result[0] as BrushPathData).points[0]).toEqual({ x: 0, y: 0 });
-    expect((result[0] as BrushPathData).points.at(-1)?.x).toBeCloseTo(8, 5);
-    expect((result[1] as BrushPathData).points[0].x).toBeCloseTo(12, 5);
-    expect((result[1] as BrushPathData).points.at(-1)?.x).toBeCloseTo(20, 5);
+    expect(result).toHaveLength(0);
   });
 
-  it('cuts a closed path and removes middle segment', () => {
+  it('removes only the crossed segment of a polyline', () => {
+    const poly: BrushPathData = {
+      id: 'poly',
+      tool: 'brush',
+      points: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 20, y: 0 },
+        { x: 30, y: 0 },
+      ],
+      ...baseStyle,
+    };
+    const lasso: Point[] = [
+      { x: 15, y: -5 },
+      { x: 15, y: 5 },
+    ];
+    const res = cutPaths(lasso, [poly]);
+    expect(res).toHaveLength(2);
+    expect((res[0] as BrushPathData).points).toEqual([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ]);
+    expect((res[1] as BrushPathData).points).toEqual([
+      { x: 20, y: 0 },
+      { x: 30, y: 0 },
+    ]);
+  });
+
+  it('cuts segments out of a closed path', () => {
     const square: BrushPathData = {
       id: 'sq',
       tool: 'brush',
@@ -63,32 +85,11 @@ describe('cutPaths', () => {
       ...baseStyle,
     };
     const lasso: Point[] = [
-      { x: -5, y: 10 },
-      { x: 25, y: 10 },
+      { x: 10, y: -5 },
+      { x: 10, y: 25 },
     ];
-    const res = cutPaths(lasso, [square]);
-    expect(res.length).toBeGreaterThan(1);
-    expect(res.every(p => (p as BrushPathData).points.length >= 2)).toBe(true);
-  });
-
-  it('handles multiple intersection pairs', () => {
-    const zigzag: BrushPathData = {
-      id: 'zz',
-      tool: 'brush',
-      points: [
-        { x: 0, y: -10 },
-        { x: 10, y: 10 },
-        { x: 20, y: -10 },
-        { x: 30, y: 10 },
-        { x: 40, y: -10 },
-      ],
-      ...baseStyle,
-    };
-    const lasso: Point[] = [
-      { x: -5, y: 0 },
-      { x: 45, y: 0 },
-    ];
-    const result = cutPaths(lasso, [zigzag]);
-    expect(result).toHaveLength(3);
+    const result = cutPaths(lasso, [square]);
+    expect(result).toHaveLength(2);
+    expect(result.every(p => (p as BrushPathData).points.length >= 2)).toBe(true);
   });
 });
