@@ -5,6 +5,7 @@
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { useAppContext } from '../../context/AppContext';
+import PanelButton from '@/components/PanelButton';
 
 const links = [
   { name: 'vtracer - PNG转矢量工具', href: 'https://www.visioncortex.org/vtracer/' },
@@ -21,8 +22,9 @@ export const AboutButton: React.FC = () => {
     >
         <Popover className="relative">
           <Popover.Button
+            as={PanelButton}
             title="关于"
-            className="h-12 w-12 flex items-center justify-center rounded-full bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-lg border border-[var(--ui-panel-border)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+            className="rounded-full"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           </Popover.Button>

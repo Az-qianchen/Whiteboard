@@ -9,6 +9,7 @@ import useGlobalEventHandlers from '../hooks/useGlobalEventHandlers';
 import { Whiteboard } from './Whiteboard';
 import { LayersProvider } from '../lib/layers-context';
 import { ICONS } from '../constants';
+import PanelButton from '@/components/PanelButton';
 import type { MaterialData, AnyPath } from '../types';
 
 // Import new layout components
@@ -179,11 +180,13 @@ export const MainLayout: React.FC = () => {
                 <MainMenuPanel />
 
                 <main className="flex-grow h-full relative flex flex-col">
-                    <button onClick={() => setIsMainMenuCollapsed(prev => !prev)}
-                        className="absolute top-4 left-4 z-30 h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-lg border border-[var(--ui-panel-border)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                        title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}>
+                    <PanelButton
+                        onClick={() => setIsMainMenuCollapsed(prev => !prev)}
+                        className="absolute top-4 left-4 z-30"
+                        title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
+                    >
                         <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
-                    </button>
+                    </PanelButton>
                     
                     <SideToolbarPanel />
 

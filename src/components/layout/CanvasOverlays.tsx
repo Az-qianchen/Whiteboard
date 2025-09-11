@@ -4,6 +4,7 @@
  */
 import React, { useMemo, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import PanelButton from '@/components/PanelButton';
 import { Toolbar } from '../Toolbar';
 import { SelectionToolbar } from '../SelectionToolbar';
 import { ContextMenu } from '../ContextMenu';
@@ -199,12 +200,12 @@ export const CanvasOverlays: React.FC = () => {
                     transition: 'bottom 300ms ease-in-out'
                 }}
             >
-                <button onClick={() => setIsTimelineCollapsed(prev => !prev)}
-                    className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-lg border border-[var(--ui-panel-border)] text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                <PanelButton
+                    onClick={() => setIsTimelineCollapsed(prev => !prev)}
                     title={isTimelineCollapsed ? '展开时间线' : '折叠时间线'}
                 >
                     <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
-                </button>
+                </PanelButton>
             </div>
 
             <AboutButton />
