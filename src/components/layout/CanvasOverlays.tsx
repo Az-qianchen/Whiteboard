@@ -154,8 +154,8 @@ export const CanvasOverlays: React.FC = () => {
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}
             </div>
 
-            {tool === 'selection' && !croppingState && selectedPathIds.length > 0 && (
-                <div 
+            {tool === 'selection' && !croppingState && (
+                <div
                     className="absolute left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ease-in-out"
                     style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
                 >
