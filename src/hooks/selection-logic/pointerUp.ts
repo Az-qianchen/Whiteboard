@@ -27,7 +27,7 @@ interface SegmentIntersection {
   point: Point;
 }
 
-export const cutSelectedPaths = (lasso: Point[], paths: AnyPath[], selectedIds: string[]): AnyPath[] => {
+export const cutPaths = (lasso: Point[], paths: AnyPath[]): AnyPath[] => {
   const cutterSegments: { a: Point; b: Point }[] = [];
   for (let i = 0; i < lasso.length - 1; i++) {
     cutterSegments.push({ a: lasso[i], b: lasso[i + 1] });
@@ -49,8 +49,6 @@ export const cutSelectedPaths = (lasso: Point[], paths: AnyPath[], selectedIds: 
   };
 
   return paths.flatMap(p => {
-    if (!selectedIds.includes(p.id)) return [p];
-
     const pts = 'points' in p
       ? p.points
       : 'anchors' in p && p.anchors
@@ -123,7 +121,7 @@ export const cutSelectedPaths = (lasso: Point[], paths: AnyPath[], selectedIds: 
  */
 export const handlePointerUpLogic = (props: HandlePointerUpProps) => {
     const { e, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath, pathState, isClosingPath, selectionMode } = props;
-    const { paths, setPaths, setSelectedPathIds, endCoalescing, selectedPathIds } = pathState;
+    const { paths, setPaths, setSelectedPathIds, endCoalescing } = pathState;
 
     if (dragState) {
         if (isClosingPath.current) {
@@ -160,7 +158,12 @@ export const handlePointerUpLogic = (props: HandlePointerUpProps) => {
             setLassoPath(null);
         } else if (selectionMode === 'cut') {
             if (lassoPath.length > 1) {
-                setPaths((prev: AnyPath[]) => cutSelectedPaths(lassoPath, prev, selectedPathIds));
+                let next: AnyPath[] = [];
+                setPaths((prev: AnyPath[]) => {
+                    next = cutPaths(lassoPath, prev);
+                    return next;
+                });
+                setSelectedPathIds((ids: string[]) => ids.filter(id => next.some(p => p.id === id)));
             }
             setLassoPath(null);
             endCoalescing();

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { BrushPathData, Point } from '@/types';
 
-let cutSelectedPaths: (lasso: Point[], paths: any[], ids: string[]) => any[];
+let cutPaths: (lasso: Point[], paths: any[]) => any[];
 
 beforeAll(async () => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     value: () => ({}),
   });
-  ({ cutSelectedPaths } = await import('@/hooks/selection-logic/pointerUp'));
+  ({ cutPaths } = await import('@/hooks/selection-logic/pointerUp'));
 });
 
 const baseStyle = {
@@ -24,7 +24,7 @@ const baseStyle = {
   curveStepCount: 0,
 };
 
-describe('cutSelectedPaths', () => {
+describe('cutPaths', () => {
   it('cuts a line into two segments when intersected twice', () => {
     const line: BrushPathData = {
       id: 'line',
@@ -41,7 +41,7 @@ describe('cutSelectedPaths', () => {
       { x: 12, y: 5 },
       { x: 12, y: -5 },
     ];
-    const result = cutSelectedPaths(lasso, [line], ['line']);
+    const result = cutPaths(lasso, [line]);
     expect(result).toHaveLength(2);
     expect((result[0] as BrushPathData).points[0]).toEqual({ x: 0, y: 0 });
     expect((result[0] as BrushPathData).points.at(-1)?.x).toBeCloseTo(8, 5);
@@ -66,7 +66,7 @@ describe('cutSelectedPaths', () => {
       { x: -5, y: 10 },
       { x: 25, y: 10 },
     ];
-    const res = cutSelectedPaths(lasso, [square], ['sq']);
+    const res = cutPaths(lasso, [square]);
     expect(res.length).toBeGreaterThan(1);
     expect(res.every(p => (p as BrushPathData).points.length >= 2)).toBe(true);
   });
@@ -88,7 +88,7 @@ describe('cutSelectedPaths', () => {
       { x: -5, y: 0 },
       { x: 45, y: 0 },
     ];
-    const result = cutSelectedPaths(lasso, [zigzag], ['zz']);
+    const result = cutPaths(lasso, [zigzag]);
     expect(result).toHaveLength(3);
   });
 });
