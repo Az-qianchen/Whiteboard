@@ -3,9 +3,10 @@
  */
 
 import { useCallback } from 'react';
-import type { AnyPath, WhiteboardData, Point, Tool } from '../../types';
-import { getPathsBoundingBox, movePath } from '../../lib/drawing';
-import { importSvg } from '../../lib/import';
+import type { AnyPath, WhiteboardData, Point, Tool } from '@/types';
+import { getPathsBoundingBox, movePath } from '@/lib/drawing';
+import { importSvg } from '@/lib/import';
+import { importExcalidraw } from '@/lib/importExcalidraw';
 import type { AppActionsProps } from '../useAppActions';
 
 /**
@@ -73,17 +74,22 @@ export const useClipboardActions = ({
     } catch (err) {}
 
     if (pathsToPaste.length === 0) {
-        const trimmedText = text.trim();
-        if (trimmedText.startsWith('<svg') && trimmedText.includes('</svg')) {
-            try {
-                const svgPaths = await importSvg(trimmedText);
-                if (svgPaths.length > 0) pathsToPaste = svgPaths;
-            } catch (err) {
-                console.error("Failed to parse pasted SVG:", err);
-                alert("粘贴的内容看起来是 SVG，但无法解析。");
-                return;
-            }
+      const excalidrawPaths = importExcalidraw(text);
+      if (excalidrawPaths.length > 0) pathsToPaste = excalidrawPaths;
+    }
+
+    if (pathsToPaste.length === 0) {
+      const trimmedText = text.trim();
+      if (trimmedText.startsWith('<svg') && trimmedText.includes('</svg')) {
+        try {
+          const svgPaths = await importSvg(trimmedText);
+          if (svgPaths.length > 0) pathsToPaste = svgPaths;
+        } catch (err) {
+          console.error('Failed to parse pasted SVG:', err);
+          alert('粘贴的内容看起来是 SVG，但无法解析。');
+          return;
         }
+      }
     }
     
     if (pathsToPaste.length === 0) return;

@@ -324,12 +324,35 @@ const useGlobalEventHandlers = () => {
                     };
                     reader.readAsDataURL(blob);
                     // Image found and handled, so we can exit.
-                    return; 
+                    return;
+                }
+            }
+
+            // Priority 2: Check for Excalidraw JSON in clipboard items.
+            for (const item of items) {
+                if (item.type === 'application/vnd.excalidraw+json') {
+                    event.preventDefault();
+                    item.getAsString((str) => {
+                        let pasteAt: Point | undefined;
+                        if (lastPointerPosition) {
+                            pasteAt = lastPointerPosition;
+                        } else {
+                            const svg = document.querySelector('svg');
+                            if (svg) {
+                                pasteAt = getPointerPosition(
+                                    { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 },
+                                    svg
+                                );
+                            }
+                        }
+                        void handlePaste({ pasteAt, clipboardText: str });
+                    });
+                    return;
                 }
             }
         }
-        
-        // Priority 2: If no image was found, check for our shape data.
+
+        // Priority 3: If no image or Excalidraw data was found, check for our shape data.
         const target = event.target as HTMLElement;
         const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
