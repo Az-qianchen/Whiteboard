@@ -129,7 +129,7 @@ describe('edge handles use diagonal anchors', () => {
 });
 
 describe('resizePath flips across anchor', () => {
-  it('mirrors the image when dragging a handle past the opposite corner', () => {
+  it('mirrors across global X and keeps anchor fixed', () => {
     const image: ImageData = {
       id: 'f',
       tool: 'image',
@@ -153,37 +153,38 @@ describe('resizePath flips across anchor', () => {
     };
 
     const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
-    const initialPos = rotatePoint({ x: 0, y: image.height / 2 }, center, image.rotation!);
-    const currentPos = rotatePoint({ x: image.width + 20, y: image.height / 2 }, center, image.rotation!);
+    const anchorLocal = { x: image.x, y: image.y };
+    const anchorBefore = rotatePoint(anchorLocal, center, image.rotation!);
+    const initialLocal = { x: image.x + image.width, y: image.y + image.height };
+    const initialPos = rotatePoint(initialLocal, center, image.rotation!);
+    const currentPos = { x: anchorBefore.x + 20, y: initialPos.y };
 
-    const anchorBefore = rotatePoint({ x: image.x + image.width, y: image.y }, center, image.rotation!);
-
-    const resized = resizePath(image, 'left', currentPos, initialPos, false);
+    const resized = resizePath(image, 'bottom-right', currentPos, initialPos, false);
 
     const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
     const anchorLocalAfter = {
-      x: resized.scaleX < 0 ? resized.x : resized.x + resized.width,
+      x: resized.scaleX < 0 ? resized.x + resized.width : resized.x,
       y: resized.scaleY < 0 ? resized.y + resized.height : resized.y,
     };
     const anchorAfter = rotatePoint(anchorLocalAfter, newCenter, image.rotation!);
 
     expect(resized.scaleX).toBe(-1);
-    expect(resized.width).toBeCloseTo(20);
-    expect(resized.height).toBeCloseTo(80);
     expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
     expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
   });
+});
 
-  it('flips horizontally for an arbitrarily rotated image', () => {
+describe('resizePath uses global axes for flips', () => {
+  it('only flips horizontally when crossing the anchor on the global X axis', () => {
     const image: ImageData = {
-      id: 'fh',
+      id: 'gh',
       tool: 'image',
       src: '',
       x: 0,
       y: 0,
       width: 100,
-      height: 80,
-      rotation: Math.PI / 4,
+      height: 60,
+      rotation: Math.PI / 2,
       color: '',
       fill: '',
       fillStyle: '',
@@ -198,23 +199,21 @@ describe('resizePath flips across anchor', () => {
     };
 
     const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
-    const initialPos = rotatePoint({ x: 0, y: image.height / 2 }, center, image.rotation!);
-    const currentPos = rotatePoint({ x: image.width + 20, y: image.height / 2 }, center, image.rotation!);
+    const anchorLocal = { x: image.x, y: image.y };
+    const anchorGlobal = rotatePoint(anchorLocal, center, image.rotation!);
+    const initialPos = rotatePoint({ x: image.x + image.width, y: image.y + image.height }, center, image.rotation!);
 
-    const anchorBefore = rotatePoint({ x: image.x + image.width, y: image.y }, center, image.rotation!);
-
-    const resized = resizePath(image, 'left', currentPos, initialPos, false);
-
-    const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
-    const anchorLocalAfter = {
-      x: resized.scaleX < 0 ? resized.x : resized.x + resized.width,
-      y: resized.scaleY < 0 ? resized.y + resized.height : resized.y,
-    };
-    const anchorAfter = rotatePoint(anchorLocalAfter, newCenter, image.rotation!);
+    const mirroredX = { x: anchorGlobal.x - (initialPos.x - anchorGlobal.x), y: initialPos.y };
+    const resized = resizePath(image, 'bottom-right', mirroredX, initialPos, false);
 
     expect(resized.scaleX).toBe(-1);
-    expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
-    expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
+    expect(resized.scaleY).toBeCloseTo(1);
+
+    const mirroredY = { x: initialPos.x, y: anchorGlobal.y - (initialPos.y - anchorGlobal.y) };
+    const resizedY = resizePath(image, 'bottom-right', mirroredY, initialPos, false);
+
+    expect(resizedY.scaleX).toBeCloseTo(1);
+    expect(resizedY.scaleY).toBe(-1);
   });
 });
 

@@ -56,9 +56,13 @@ export function resizePath(
 
     const anchorGlobal = rotation ? rotatePoint(anchor, pivot, rotation) : anchor;
 
-    // 计算从锚点到当前指针的位移
-    let dxFromAnchor = localCurrentPos.x - anchor.x;
-    let dyFromAnchor = localCurrentPos.y - anchor.y;
+    // 计算从锚点到当前指针的位移（局部用于尺寸，全球用于翻转）
+    const dxLocal = localCurrentPos.x - anchor.x;
+    const dyLocal = localCurrentPos.y - anchor.y;
+    const dxInitialGlobal = initialPos.x - anchorGlobal.x;
+    const dyInitialGlobal = initialPos.y - anchorGlobal.y;
+    const dxCurrentGlobal = currentPos.x - anchorGlobal.x;
+    const dyCurrentGlobal = currentPos.y - anchorGlobal.y;
 
     const affectsX = handle.includes('left') || handle.includes('right');
     const affectsY = handle.includes('top') || handle.includes('bottom');
@@ -66,8 +70,8 @@ export function resizePath(
     const baseWidth = handle.includes('left') ? -oldWidth : oldWidth;
     const baseHeight = handle.includes('top') ? -oldHeight : oldHeight;
 
-    let newWidth = affectsX ? dxFromAnchor : baseWidth;
-    let newHeight = affectsY ? dyFromAnchor : baseHeight;
+    let newWidth = affectsX ? dxLocal : baseWidth;
+    let newHeight = affectsY ? dyLocal : baseHeight;
 
     if (keepAspectRatio && oldWidth > 0 && oldHeight > 0) {
         const targetRatio = oldWidth / oldHeight;
@@ -86,8 +90,23 @@ export function resizePath(
         }
     }
 
-    const scaleX = affectsX ? newWidth / baseWidth : 1;
-    const scaleY = affectsY ? newHeight / baseHeight : 1;
+    let scaleX = affectsX ? Math.abs(newWidth / baseWidth) : 1;
+    let scaleY = affectsY ? Math.abs(newHeight / baseHeight) : 1;
+
+    if (affectsX) {
+        const baseSign = Math.sign(dxInitialGlobal);
+        const currentSign = Math.sign(dxCurrentGlobal);
+        if (baseSign && currentSign && baseSign !== currentSign) {
+            scaleX *= -1;
+        }
+    }
+    if (affectsY) {
+        const baseSign = Math.sign(dyInitialGlobal);
+        const currentSign = Math.sign(dyCurrentGlobal);
+        if (baseSign && currentSign && baseSign !== currentSign) {
+            scaleY *= -1;
+        }
+    }
 
     let result = scalePath(originalPath, anchor, scaleX, scaleY);
 
