@@ -25,15 +25,18 @@ export interface UiState {
   onionSkinOpacity: number;
 }
 
+// 根据屏幕宽度判断是否为移动端
+const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+
 const initialUiState = (): UiState => ({
   isGridVisible: getLocalStorageItem('whiteboard_isGridVisible', true),
   gridSize: getLocalStorageItem('whiteboard_gridSize', 100),
   gridSubdivisions: getLocalStorageItem('whiteboard_gridSubdivisions', 5),
   gridOpacity: getLocalStorageItem('whiteboard_gridOpacity', 0.5),
   backgroundColor: getLocalStorageItem('whiteboard_backgroundColor', '#212529'),
-  isStatusBarCollapsed: getLocalStorageItem('whiteboard_isStatusBarCollapsed', false),
-  isSideToolbarCollapsed: getLocalStorageItem('whiteboard_isSideToolbarCollapsed', false),
-  isMainMenuCollapsed: getLocalStorageItem('whiteboard_isMainMenuCollapsed', false),
+  isStatusBarCollapsed: getLocalStorageItem('whiteboard_isStatusBarCollapsed', isMobile),
+  isSideToolbarCollapsed: getLocalStorageItem('whiteboard_isSideToolbarCollapsed', isMobile),
+  isMainMenuCollapsed: getLocalStorageItem('whiteboard_isMainMenuCollapsed', isMobile),
   mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', 240),
   pngExportOptions: getLocalStorageItem('whiteboard_pngExportOptions', { scale: 1, highQuality: true, transparentBg: true }),
   isStyleLibraryOpen: false,

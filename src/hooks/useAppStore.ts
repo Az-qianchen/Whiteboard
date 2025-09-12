@@ -67,27 +67,34 @@ interface AppState {
 
 // --- Initial State Loaders ---
 
-const getInitialUiState = (): UiState => ({
-  isGridVisible: getLocalStorageItem('whiteboard_isGridVisible', true),
-  gridSize: getLocalStorageItem('whiteboard_gridSize', 100),
-  gridSubdivisions: getLocalStorageItem('whiteboard_gridSubdivisions', 5),
-  gridOpacity: getLocalStorageItem('whiteboard_gridOpacity', 0.5),
-  backgroundColor: getLocalStorageItem('whiteboard_backgroundColor', '#212529'),
-  isStatusBarCollapsed: getLocalStorageItem('whiteboard_isStatusBarCollapsed', false),
-  isSideToolbarCollapsed: getLocalStorageItem('whiteboard_isSideToolbarCollapsed', false),
-  isMainMenuCollapsed: getLocalStorageItem('whiteboard_isMainMenuCollapsed', false),
-  mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', 240),
-  pngExportOptions: getLocalStorageItem('whiteboard_pngExportOptions', { scale: 1, highQuality: true, transparentBg: true }),
-  isStyleLibraryOpen: false,
-  styleLibraryPosition: { x: 0, y: 0 },
-  isTimelineCollapsed: getLocalStorageItem('whiteboard_isTimelineCollapsed', true),
-  fps: getLocalStorageItem('whiteboard_fps', 12),
-  isPlaying: false,
-  isOnionSkinEnabled: getLocalStorageItem('whiteboard_isOnionSkinEnabled', false),
-  onionSkinPrevFrames: getLocalStorageItem('whiteboard_onionSkinPrevFrames', 1),
-  onionSkinNextFrames: getLocalStorageItem('whiteboard_onionSkinNextFrames', 1),
-  onionSkinOpacity: getLocalStorageItem('whiteboard_onionSkinOpacity', 0.4),
-});
+/**
+ * 获取 UI 片段的初始状态。
+ */
+const getInitialUiState = (): UiState => {
+  // 根据屏幕宽度判断是否为移动端
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  return {
+    isGridVisible: getLocalStorageItem('whiteboard_isGridVisible', true),
+    gridSize: getLocalStorageItem('whiteboard_gridSize', 100),
+    gridSubdivisions: getLocalStorageItem('whiteboard_gridSubdivisions', 5),
+    gridOpacity: getLocalStorageItem('whiteboard_gridOpacity', 0.5),
+    backgroundColor: getLocalStorageItem('whiteboard_backgroundColor', '#212529'),
+    isStatusBarCollapsed: getLocalStorageItem('whiteboard_isStatusBarCollapsed', isMobile),
+    isSideToolbarCollapsed: getLocalStorageItem('whiteboard_isSideToolbarCollapsed', isMobile),
+    isMainMenuCollapsed: getLocalStorageItem('whiteboard_isMainMenuCollapsed', isMobile),
+    mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', 240),
+    pngExportOptions: getLocalStorageItem('whiteboard_pngExportOptions', { scale: 1, highQuality: true, transparentBg: true }),
+    isStyleLibraryOpen: false,
+    styleLibraryPosition: { x: 0, y: 0 },
+    isTimelineCollapsed: getLocalStorageItem('whiteboard_isTimelineCollapsed', true),
+    fps: getLocalStorageItem('whiteboard_fps', 12),
+    isPlaying: false,
+    isOnionSkinEnabled: getLocalStorageItem('whiteboard_isOnionSkinEnabled', false),
+    onionSkinPrevFrames: getLocalStorageItem('whiteboard_onionSkinPrevFrames', 1),
+    onionSkinNextFrames: getLocalStorageItem('whiteboard_onionSkinNextFrames', 1),
+    onionSkinOpacity: getLocalStorageItem('whiteboard_onionSkinOpacity', 0.4),
+  };
+};
 
 const getInitialAppState = (): AppState => ({
   contextMenu: null,
