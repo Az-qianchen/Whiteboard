@@ -5,7 +5,7 @@
 
 import React from 'react';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, TextData, FrameData, BBox } from '../../types';
-import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, rotatePoint, calculateArcPathD } from '../../lib/drawing';
+import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, rotatePoint, calculateArcPathD, rotateResizeHandle } from '../../lib/drawing';
 
 
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
@@ -197,24 +197,41 @@ const CropControls: React.FC<{
     const o = croppingState.originalPath;
     const c = currentCropRect;
 
+    const rotation = o.rotation ?? 0;
     const rotationCenter = { x: o.x + o.width / 2, y: o.y + o.height / 2 };
-    const rotationAngle = (o.rotation ?? 0) * (180 / Math.PI);
+    const rotationAngle = rotation * (180 / Math.PI);
     const transform = `rotate(${rotationAngle} ${rotationCenter.x} ${rotationCenter.y})`;
 
     const handleSize = 10 / scale;
     const halfHandleSize = handleSize / 2;
     const accent = 'var(--accent-primary)';
-    
-    const handles: { pos: Point, name: ResizeHandlePosition, cursor: string }[] = [
-        { pos: { x: c.x, y: c.y }, name: 'top-left', cursor: 'nwse-resize' },
-        { pos: { x: c.x + c.width, y: c.y }, name: 'top-right', cursor: 'nesw-resize' },
-        { pos: { x: c.x, y: c.y + c.height }, name: 'bottom-left', cursor: 'nesw-resize' },
-        { pos: { x: c.x + c.width, y: c.y + c.height }, name: 'bottom-right', cursor: 'nwse-resize' },
-        { pos: { x: c.x + c.width / 2, y: c.y }, name: 'top', cursor: 'ns-resize' },
-        { pos: { x: c.x + c.width, y: c.y + c.height / 2 }, name: 'right', cursor: 'ew-resize' },
-        { pos: { x: c.x + c.width / 2, y: c.y + c.height }, name: 'bottom', cursor: 'ns-resize' },
-        { pos: { x: c.x, y: c.y + c.height / 2 }, name: 'left', cursor: 'ew-resize' },
+
+    const baseHandles: { pos: Point; name: ResizeHandlePosition }[] = [
+        { pos: { x: c.x, y: c.y }, name: 'top-left' },
+        { pos: { x: c.x + c.width, y: c.y }, name: 'top-right' },
+        { pos: { x: c.x, y: c.y + c.height }, name: 'bottom-left' },
+        { pos: { x: c.x + c.width, y: c.y + c.height }, name: 'bottom-right' },
+        { pos: { x: c.x + c.width / 2, y: c.y }, name: 'top' },
+        { pos: { x: c.x + c.width, y: c.y + c.height / 2 }, name: 'right' },
+        { pos: { x: c.x + c.width / 2, y: c.y + c.height }, name: 'bottom' },
+        { pos: { x: c.x, y: c.y + c.height / 2 }, name: 'left' },
     ];
+
+    const cursorMap: Record<ResizeHandlePosition, string> = {
+        'top-left': 'nwse-resize',
+        'top-right': 'nesw-resize',
+        'bottom-left': 'nesw-resize',
+        'bottom-right': 'nwse-resize',
+        'top': 'ns-resize',
+        'bottom': 'ns-resize',
+        'left': 'ew-resize',
+        'right': 'ew-resize',
+    };
+
+    const handles = baseHandles.map(h => {
+        const screenName = rotateResizeHandle(h.name, rotation);
+        return { pos: h.pos, name: screenName, cursor: cursorMap[screenName] };
+    });
 
     const strokeWidth = 1 / scale;
     const cornerStrokeWidth = 3 / scale;

@@ -4,7 +4,7 @@
 // FIX: Removed 'React' from type import as it's not used and can cause errors.
 import type { MutableRefObject } from 'react';
 import type { Point, DragState, AnyPath, VectorPathData, ResizeHandlePosition, ImageData, BBox, GroupData, ArcData } from '../../types';
-import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier } from '../../lib/drawing';
+import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '../../lib/drawing';
 import { isPointHittingPath, findDeepestHitPath } from '../../lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
@@ -154,11 +154,12 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
     // Prevent all other canvas interactions.
     if (croppingState) {
         if (currentCropRect && pathId === croppingState.pathId && handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
+            const localHandle = rotateResizeHandle(handle as ResizeHandlePosition, -(croppingState.originalPath.rotation ?? 0));
             beginCoalescing();
             setDragState({
                 type: 'crop',
                 pathId,
-                handle,
+                handle: localHandle,
                 initialCropRect: currentCropRect,
                 originalImage: croppingState.originalPath,
                 initialPointerPos: point,
