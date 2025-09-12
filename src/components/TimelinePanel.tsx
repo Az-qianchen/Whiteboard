@@ -220,7 +220,7 @@ export const TimelinePanel: React.FC = () => {
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
-                    <div className="h-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                    <div className="h-full w-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
                         <div className="flex items-center gap-2 h-full">
                             {frames.map((frame, index) => (
                                 <div 
