@@ -54,9 +54,34 @@ export const useExportActions = ({
         try {
           const res = await fetch((selectedPath as ImageData).src);
           const blob = await res.blob();
-          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+          try {
+            await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+          } catch (err) {
+            console.error('Failed to copy image to clipboard:', err);
+            if (blob.type !== 'image/png') {
+              try {
+                const bitmap = await createImageBitmap(blob);
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+                const pngBlob = await new Promise<Blob | null>(resolve =>
+                  canvas.toBlob(b => resolve(b), 'image/png')
+                );
+                if (pngBlob) {
+                  await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': pngBlob })
+                  ]);
+                  return;
+                }
+              } catch (err2) {
+                console.error('Failed to copy image as PNG to clipboard:', err2);
+              }
+            }
+            alert('Could not copy image.');
+          }
         } catch (err) {
-          console.error('Failed to copy image to clipboard:', err);
+          console.error('Failed to fetch image for clipboard:', err);
           alert('Could not copy image.');
         }
         return;
