@@ -230,7 +230,7 @@ const CropControls: React.FC<{
 
     const handles = baseHandles.map(h => {
         const screenName = rotateResizeHandle(h.name, rotation);
-        return { pos: h.pos, name: screenName, cursor: cursorMap[screenName] };
+        return { pos: h.pos, handle: h.name, cursor: cursorMap[screenName] };
     });
 
     const strokeWidth = 1 / scale;
@@ -250,8 +250,8 @@ const CropControls: React.FC<{
             <path d={`M ${c.x + cornerLineLength} ${c.y + c.height} L ${c.x} ${c.y + c.height} L ${c.x} ${c.y + c.height - cornerLineLength}`} fill="none" stroke={accent} strokeWidth={cornerStrokeWidth} strokeLinecap="round" strokeLinejoin="round" />
             <path d={`M ${c.x + c.width - cornerLineLength} ${c.y + c.height} L ${c.x + c.width} ${c.y + c.height} L ${c.x + c.width} ${c.y + c.height - cornerLineLength}`} fill="none" stroke={accent} strokeWidth={cornerStrokeWidth} strokeLinecap="round" strokeLinejoin="round" />
             
-            {handles.map(({ pos, name, cursor }) => (
-                <rect key={name} x={pos.x - halfHandleSize} y={pos.y - halfHandleSize} width={handleSize} height={handleSize} fill="transparent" data-handle={name} data-path-id={o.id} style={{ cursor }} className="pointer-events-all" />
+            {handles.map(({ pos, handle, cursor }) => (
+                <rect key={handle} x={pos.x - halfHandleSize} y={pos.y - halfHandleSize} width={handleSize} height={handleSize} fill="transparent" data-handle={handle} data-path-id={o.id} style={{ cursor }} className="pointer-events-all" />
             ))}
         </g>
     );

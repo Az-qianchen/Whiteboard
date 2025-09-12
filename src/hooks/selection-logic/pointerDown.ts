@@ -154,12 +154,11 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
     // Prevent all other canvas interactions.
     if (croppingState) {
         if (currentCropRect && pathId === croppingState.pathId && handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
-            const localHandle = rotateResizeHandle(handle as ResizeHandlePosition, -(croppingState.originalPath.rotation ?? 0));
             beginCoalescing();
             setDragState({
                 type: 'crop',
                 pathId,
-                handle: localHandle,
+                handle: handle as ResizeHandlePosition,
                 initialCropRect: currentCropRect,
                 originalImage: croppingState.originalPath,
                 initialPointerPos: point,
