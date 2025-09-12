@@ -116,6 +116,19 @@ button .icon {
   transform: none;
 }
 
+.menu-bar button,
+.right-sidebar button,
+.menu-bar .icon,
+.right-sidebar .icon {
+  transform: scale(0.9);
+  transform-origin: center;
+}
+
+.menu-bar button .icon,
+.right-sidebar button .icon {
+  transform: none;
+}
+
 /* 为输入框和文本区域重新启用文本选择 */
 input,
 textarea {

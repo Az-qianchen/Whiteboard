@@ -139,7 +139,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
 
   return (
-    <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 flex flex-col items-center gap-4 text-[var(--text-primary)]">
+    <div className="right-sidebar bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 flex flex-col items-center gap-2 text-[var(--text-primary)]">
       {isFrameSelected ? (
         <div className="text-center text-sm text-[var(--text-secondary)]">画框属性</div>
       ) : isTextMode ? (
@@ -249,7 +249,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       )}
 
 
-      <div className="h-px w-full bg-[var(--ui-separator)] my-1"></div>
+      <div className="h-px w-full bg-[var(--ui-separator)] my-0.5"></div>
       
       <div className="flex flex-col items-center w-14" title="样式库">
         <button 

@@ -52,7 +52,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   setGridOpacity,
 }) => {
   return (
-    <div className="flex flex-wrap items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
+    <div className="menu-bar flex flex-wrap items-center gap-1 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
       {TOOLS.map((t) => (
         <button
           key={t.name}
@@ -69,7 +69,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       ))}
 
-      <div className="h-6 w-px bg-[var(--ui-separator)] mx-1" />
+      <div className="h-6 w-px bg-[var(--ui-separator)] mx-0.5" />
 
       <Popover className="relative">
         <Popover.Button
