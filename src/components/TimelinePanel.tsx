@@ -135,7 +135,7 @@ export const TimelinePanel: React.FC = () => {
         <Transition
             show={!isTimelineCollapsed}
             as="div"
-            className="w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
+            className="w-full max-w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"
             enterTo="opacity-100 max-h-48"
@@ -143,7 +143,7 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-48"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-48 w-full flex flex-col gap-3">
+            <div className="p-3 h-48 w-full max-w-full flex flex-col gap-3">
                 <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                           <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
