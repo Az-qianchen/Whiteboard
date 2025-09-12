@@ -6,7 +6,6 @@ import type { MutableRefObject } from 'react';
 import type { Point, DragState, AnyPath, BrushPathData, SelectionMode } from '../../types';
 import { getMarqueeRect } from '../../lib/drawing/bbox';
 import { isPathIntersectingMarquee, isPathIntersectingLasso } from '../../lib/hit-testing';
-import { samplePath } from '../../lib/drawing/path';
 
 interface HandlePointerUpProps {
   e: React.PointerEvent<SVGSVGElement>;
@@ -27,88 +26,93 @@ export const cutPaths = (lasso: Point[], paths: AnyPath[]): AnyPath[] => {
     cutterSegments.push({ a: lasso[i], b: lasso[i + 1] });
   }
 
-  const intersects = (p1: Point, p2: Point, p3: Point, p4: Point): boolean => {
+  const intersectAt = (
+    p1: Point,
+    p2: Point,
+    p3: Point,
+    p4: Point
+  ): { t: number; point: Point } | null => {
     const s1x = p2.x - p1.x;
     const s1y = p2.y - p1.y;
     const s2x = p4.x - p3.x;
     const s2y = p4.y - p3.y;
     const denom = -s2x * s1y + s1x * s2y;
-    if (Math.abs(denom) < 1e-6) return false;
+    if (Math.abs(denom) < 1e-6) return null;
     const s = (-s1y * (p1.x - p3.x) + s1x * (p1.y - p3.y)) / denom;
     const t = (s2x * (p1.y - p3.y) - s2y * (p1.x - p3.x)) / denom;
-    return s >= 0 && s <= 1 && t >= 0 && t <= 1;
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+      return { t, point: { x: p1.x + t * s1x, y: p1.y + t * s1y } };
+    }
+    return null;
+  };
+
+  const getPointAt = (pts: Point[], t: number): Point => {
+    const segs = pts.length - 1;
+    const idx = Math.min(Math.floor(t * segs), segs - 1);
+    const localT = t * segs - idx;
+    const a = pts[idx];
+    const b = pts[idx + 1];
+    return { x: a.x + (b.x - a.x) * localT, y: a.y + (b.y - a.y) * localT };
   };
 
   return paths.flatMap(p => {
-    if ('points' in p) {
-      const cutIdx = new Set<number>();
-      for (let i = 0; i < p.points.length - 1; i++) {
-        const a = p.points[i];
-        const b = p.points[i + 1];
-        for (const seg of cutterSegments) {
-          if (intersects(a, b, seg.a, seg.b)) {
-            cutIdx.add(i);
-            break;
-          }
+    if (!('points' in p) || p.points.length < 2) return [p];
+    const pts = p.points;
+    const first = pts[0];
+    const last = pts[pts.length - 1];
+    if (first.x === last.x && first.y === last.y) return [p];
+
+    const segs = pts.length - 1;
+    const others = paths.filter(op => op.id !== p.id && 'points' in op) as BrushPathData[];
+    const otherInts: { t: number; point: Point }[] = [];
+    for (let i = 0; i < segs; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      for (const op of others) {
+        for (let j = 0; j < op.points.length - 1; j++) {
+          const oInt = intersectAt(a, b, op.points[j], op.points[j + 1]);
+          if (oInt) otherInts.push({ t: (i + oInt.t) / segs, point: oInt.point });
         }
       }
-
-      if (cutIdx.size === 0) return [p];
-
-      const segments: Point[][] = [];
-      let current: Point[] = [p.points[0]];
-      for (let i = 0; i < p.points.length - 1; i++) {
-        if (cutIdx.has(i)) {
-          if (current.length > 1) segments.push(current);
-          current = [p.points[i + 1]];
-        } else {
-          current.push(p.points[i + 1]);
-        }
-      }
-      if (current.length > 1) segments.push(current);
-
-      return segments.map((pts, idx) => ({ ...p, id: `${p.id}-${idx}`, points: pts } as BrushPathData));
     }
 
-    if ('anchors' in p && p.anchors) {
-      const { anchors, isClosed } = p;
-      const cutIdx = new Set<number>();
-      const segCount = anchors.length - (isClosed ? 0 : 1);
-
-      for (let i = 0; i < segCount; i++) {
-        const start = anchors[i];
-        const end = anchors[(i + 1) % anchors.length];
-        const samples = samplePath([start, end], 8, false);
-        for (let j = 0; j < samples.length - 1; j++) {
-          for (const seg of cutterSegments) {
-            if (intersects(samples[j], samples[j + 1], seg.a, seg.b)) {
-              cutIdx.add(i);
-              j = samples.length; // break outer
-              break;
-            }
-          }
-        }
+    const cutInts: { t: number; point: Point }[] = [];
+    for (let i = 0; i < segs; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      for (const c of cutterSegments) {
+        const cInt = intersectAt(a, b, c.a, c.b);
+        if (cInt) cutInts.push({ t: (i + cInt.t) / segs, point: cInt.point });
       }
-
-      if (cutIdx.size === 0) return [p];
-
-      const segments: typeof anchors[] = [];
-      let current: typeof anchors = [anchors[0]];
-      for (let i = 0; i < segCount; i++) {
-        const nextAnchor = anchors[(i + 1) % anchors.length];
-        if (cutIdx.has(i)) {
-          if (current.length > 1) segments.push(current);
-          current = [nextAnchor];
-        } else {
-          current.push(nextAnchor);
-        }
-      }
-      if (current.length > 1) segments.push(current);
-
-      return segments.map((ancs, idx) => ({ ...p, id: `${p.id}-${idx}`, anchors: ancs, isClosed: false }));
     }
 
-    return [p];
+    if (cutInts.length === 0) return [p];
+
+    let startT = 0;
+    let endT = 1;
+
+    for (const c of cutInts) {
+      if (c.t <= 0.5) {
+        const after = otherInts
+          .filter(o => o.t > c.t)
+          .sort((a, b) => a.t - b.t)[0] || c;
+        startT = Math.max(startT, after.t);
+      } else {
+        const before = otherInts
+          .filter(o => o.t < c.t)
+          .sort((a, b) => b.t - a.t)[0] || c;
+        endT = Math.min(endT, before.t);
+      }
+    }
+
+    if (startT >= endT) return [];
+
+    const startPt = getPointAt(pts, startT);
+    const endPt = getPointAt(pts, endT);
+    const startIdx = Math.floor(startT * segs);
+    const endIdx = Math.ceil(endT * segs);
+    const newPoints = [startPt, ...pts.slice(startIdx + 1, endIdx), endPt];
+    return [{ ...p, points: newPoints }];
   });
 };
 
