@@ -34,6 +34,10 @@ export const usePointerInteraction = ({
   const { isPanning, setIsPanning } = viewTransform;
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === 'touch') {
+      viewTransform.handleTouchStart(e);
+      if (viewTransform.isPinching) return;
+    }
     // Middle-mouse-button panning is always available
     if (e.button === 1 || (e.altKey && tool !== 'selection')) {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -50,11 +54,15 @@ export const usePointerInteraction = ({
   };
 
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === 'touch') {
+      viewTransform.handleTouchMove(e);
+      if (viewTransform.isPinching) return;
+    }
     if (isPanning) {
       viewTransform.handlePanMove(e);
       return;
     }
-    
+
     if (tool === 'selection') {
       selectionInteraction.onPointerMove(e);
     } else {
@@ -63,6 +71,10 @@ export const usePointerInteraction = ({
   };
 
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === 'touch') {
+      viewTransform.handleTouchEnd(e);
+      if (viewTransform.isPinching) return;
+    }
     if (isPanning) {
       if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -70,7 +82,7 @@ export const usePointerInteraction = ({
       setIsPanning(false);
       return;
     }
-    
+
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
     } else {
@@ -79,13 +91,17 @@ export const usePointerInteraction = ({
   };
   
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === 'touch') {
+      viewTransform.handleTouchEnd(e);
+      if (viewTransform.isPinching) return;
+    }
     if (isPanning) {
-        if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
-            // FIX: Corrected method name to releasePointerCapture and completed the function.
-            e.currentTarget.releasePointerCapture(e.pointerId);
-        }
-        setIsPanning(false);
-        return;
+      if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+        // FIX: Corrected method name to releasePointerCapture and completed the function.
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      setIsPanning(false);
+      return;
     }
     
     if (tool === 'selection') {
