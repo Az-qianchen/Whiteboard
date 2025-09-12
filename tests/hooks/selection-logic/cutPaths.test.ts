@@ -49,6 +49,7 @@ describe('cutPaths', () => {
       { x: 5, y: 8 },
     ];
     const res = cutPaths(stroke, [vertical, horizontal]);
+    expect(res).toHaveLength(2);
     const vRes = res.find(p => p.id === 'v') as BrushPathData;
     const hRes = res.find(p => p.id === 'h') as BrushPathData;
     expect(vRes.points).toEqual([
@@ -92,6 +93,7 @@ describe('cutPaths', () => {
       { x: 5, y: 5 },
     ];
     const res = cutPaths(stroke, [poly]);
+    expect(res).toHaveLength(1);
     const remaining = res[0] as BrushPathData;
     expect(remaining.points).toEqual([
       { x: -10, y: 0 },

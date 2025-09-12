@@ -20,6 +20,7 @@ interface HandlePointerUpProps {
   selectionMode: SelectionMode;
 }
 
+// 切刀逻辑：按光标轨迹剪去被划过的路径段
 export const cutPaths = (lasso: Point[], paths: AnyPath[]): AnyPath[] => {
   const cutterSegments: { a: Point; b: Point }[] = [];
   for (let i = 0; i < lasso.length - 1; i++) {
@@ -60,81 +61,79 @@ export const cutPaths = (lasso: Point[], paths: AnyPath[]): AnyPath[] => {
     const pts = p.points;
     const segs = pts.length - 1;
 
-    // 找到与其它路径的交点，用来作为裁剪的边界
+    // 先判断路径是否与切刀相交，未命中则直接返回原路径
+    let pathHit = false;
+    for (let i = 0; i < segs && !pathHit; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      for (const c of cutterSegments) {
+        if (intersectAt(a, b, c.a, c.b)) { pathHit = true; break; }
+      }
+    }
+    if (!pathHit) return [p];
+
+    // === 1. 计算与其它路径的交点作为拆分边界 ===
     const others = paths.filter(op => op.id !== p.id && 'points' in op) as BrushPathData[];
-    const boundaries = new Set<number>();
-    for (let i = 0; i <= segs; i++) boundaries.add(i / segs);
+    const tVals = new Set<number>([0, 1]);
+    for (let i = 1; i < segs; i++) tVals.add(i / segs); // 现有节点
     for (let i = 0; i < segs; i++) {
       const a = pts[i];
       const b = pts[i + 1];
       for (const op of others) {
         for (let j = 0; j < op.points.length - 1; j++) {
-          const oInt = intersectAt(a, b, op.points[j], op.points[j + 1]);
-          if (oInt) boundaries.add((i + oInt.t) / segs);
+          const hit = intersectAt(a, b, op.points[j], op.points[j + 1]);
+          if (hit) tVals.add((i + hit.t) / segs);
         }
       }
     }
 
-    // 记录切刀与路径的所有交点
-    const cutTs: number[] = [];
-    for (let i = 0; i < segs; i++) {
-      const a = pts[i];
-      const b = pts[i + 1];
-      for (const c of cutterSegments) {
-        const cInt = intersectAt(a, b, c.a, c.b);
-        if (cInt) cutTs.push((i + cInt.t) / segs);
-      }
-    }
-    if (cutTs.length === 0) return [p];
+    const sorted = Array.from(tVals).sort((a, b) => a - b);
 
-    const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
-
-    // 根据每个切点确定要删除的区间
-    const ranges: [number, number][] = [];
-    for (const t of cutTs) {
-      let start = 0;
-      let end = 1;
-      for (let i = 0; i < sortedBoundaries.length - 1; i++) {
-        const a = sortedBoundaries[i];
-        const b = sortedBoundaries[i + 1];
-        if (t > a && t < b) {
-          start = a;
-          end = b;
-          break;
-        }
-      }
-      ranges.push([start, end]);
-    }
-
-    // 合并重叠删除区间
-    ranges.sort((a, b) => a[0] - b[0]);
-    const merged: [number, number][] = [];
-    for (const r of ranges) {
-      const last = merged[merged.length - 1];
-      if (!last || r[0] > last[1]) merged.push([...r]);
-      else last[1] = Math.max(last[1], r[1]);
-    }
-
-    // 计算需要保留的区间
-    const keep: [number, number][] = [];
-    let cursor = 0;
-    for (const r of merged) {
-      if (r[0] > cursor) keep.push([cursor, r[0]]);
-      cursor = r[1];
-    }
-    if (cursor < 1) keep.push([cursor, 1]);
-    if (keep.length === 0) return [];
-
-    // 将保留区间转换为新的路径片段
-    return keep.map((range, idx) => {
-      const [startT, endT] = range;
+    // === 2. 按边界将路径拆分为多个段 ===
+    const segments: Point[][] = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const startT = sorted[i];
+      const endT = sorted[i + 1];
       const startPt = getPointAt(pts, startT);
       const endPt = getPointAt(pts, endT);
       const startIdx = Math.floor(startT * segs);
       const endIdx = Math.ceil(endT * segs);
-      const newPoints = [startPt, ...pts.slice(startIdx + 1, endIdx), endPt];
-      return { ...p, id: idx === 0 ? p.id : crypto.randomUUID(), points: newPoints };
-    });
+      segments.push([startPt, ...pts.slice(startIdx + 1, endIdx), endPt]);
+    }
+
+    // === 3. 删除与切刀相交的段并合并剩余段 ===
+    const rebuilt: Point[][] = [];
+    let current: Point[] = [];
+    for (const segPts of segments) {
+      let hit = false;
+      for (let i = 0; i < segPts.length - 1 && !hit; i++) {
+        const a = segPts[i];
+        const b = segPts[i + 1];
+        for (const c of cutterSegments) {
+          if (intersectAt(a, b, c.a, c.b)) {
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (hit) {
+        if (current.length > 1) rebuilt.push(current);
+        current = [];
+      } else {
+        if (current.length === 0) current = [...segPts];
+        else current.push(...segPts.slice(1));
+      }
+    }
+    if (current.length > 1) rebuilt.push(current);
+
+    if (rebuilt.length === 0) return [];
+
+    // === 4. 将剩余段落重建为路径 ===
+    return rebuilt.map((ptsSeg, idx) => ({
+      ...p,
+      id: idx === 0 ? p.id : crypto.randomUUID(),
+      points: ptsSeg,
+    }));
   });
 };
 
