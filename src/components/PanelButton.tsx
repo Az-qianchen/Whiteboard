@@ -1,8 +1,14 @@
+/**
+ * 本文件定义了用于面板中的通用按钮组件。
+ */
 import React from 'react';
 import { BUTTON_SIZE } from '@/constants';
 
 export type PanelButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
+/**
+ * 面板通用按钮组件。
+ */
 export const PanelButton = React.forwardRef<HTMLButtonElement, PanelButtonProps>(
   ({ className = '', ...props }, ref) => (
     <button

@@ -1,3 +1,6 @@
+/**
+ * 本文件定义侧边栏的虚线样式控制组件。
+ */
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, BUTTON_SIZE_SM } from '@/constants';
@@ -15,6 +18,9 @@ interface DashControlProps {
     endCoalescing: () => void;
 }
 
+/**
+ * 虚线样式控制组件。
+ */
 export const DashControl: React.FC<DashControlProps> = React.memo((props) => {
     const { 
         strokeWidth,

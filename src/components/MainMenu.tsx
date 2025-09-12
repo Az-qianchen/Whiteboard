@@ -1,3 +1,6 @@
+/**
+ * 本文件定义了应用的主菜单组件，提供文件操作与颜色设置等入口。
+ */
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, Tab } from '@headlessui/react';
 import { Paintbrush } from 'lucide-react';
@@ -8,8 +11,6 @@ import type { PngExportOptions, AnimationExportOptions } from '../types';
 import { LayersPanel } from './layers-panel/LayersPanel';
 import { FloatingPngExporter } from './FloatingPngExporter';
 import { FloatingAnimationExporter } from './FloatingAnimationExporter';
-
-// --- 主菜单组件 ---
 
 interface MainMenuProps {
   onSave: () => Promise<void>;
@@ -46,7 +47,10 @@ interface MainMenuProps {
   setPngExportOptions: (options: PngExportOptions | ((prev: PngExportOptions) => PngExportOptions)) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = (props) => { 
+/**
+ * 主菜单组件，聚合文件操作与导出等功能。
+ */
+export const MainMenu: React.FC<MainMenuProps> = (props) => {
   const {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,

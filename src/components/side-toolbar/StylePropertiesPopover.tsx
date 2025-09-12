@@ -1,3 +1,6 @@
+/**
+ * 本文件定义侧边栏的风格属性设置弹出层组件。
+ */
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, BUTTON_SIZE_SM } from '@/constants';
@@ -31,6 +34,9 @@ interface StylePropertiesPopoverProps {
   endCoalescing: () => void;
 }
 
+/**
+ * 风格属性设置弹出层组件。
+ */
 export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = React.memo((props) => {
     const {
         isRough, setIsRough, roughness, setRoughness, bowing, setBowing,

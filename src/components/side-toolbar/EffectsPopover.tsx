@@ -1,3 +1,6 @@
+/**
+ * 本文件定义侧边栏的效果设置弹出层组件。
+ */
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, BUTTON_SIZE_SM } from '@/constants';
@@ -21,6 +24,9 @@ interface EffectsPopoverProps {
   endCoalescing: () => void;
 }
 
+/**
+ * 效果设置弹出层组件。
+ */
 export const EffectsPopover: React.FC<EffectsPopoverProps> = React.memo((props) => {
     const {
         blur, setBlur, shadowEnabled, setShadowEnabled, shadowOffsetX, setShadowOffsetX,

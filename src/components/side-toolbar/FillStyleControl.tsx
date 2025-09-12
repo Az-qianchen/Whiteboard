@@ -1,3 +1,6 @@
+/**
+ * 本文件定义侧边栏的填充样式选择控件。
+ */
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, BUTTON_SIZE_SM } from '@/constants';
@@ -8,6 +11,9 @@ interface FillStyleControlProps {
     setFillStyle: (style: string) => void;
 }
 
+/**
+ * 填充样式选择控件组件。
+ */
 export const FillStyleControl: React.FC<FillStyleControlProps> = React.memo(({ fillStyle, setFillStyle }) => (
     <div className="flex flex-col items-center w-14 transition-opacity" title={`填充样式: ${FILL_STYLES.find(s => s.name === fillStyle)?.title}`}>
         <Popover className="relative">

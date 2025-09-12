@@ -1,4 +1,6 @@
-
+/**
+ * 本文件定义侧边栏的颜色选择控件。
+ */
 import React from 'react';
 import { FloatingColorPicker } from '../FloatingColorPicker';
 import { BUTTON_SIZE_XS } from '@/constants';
@@ -12,6 +14,9 @@ interface ColorControlProps {
     disabled?: boolean;
 }
 
+/**
+ * 颜色选择控件组件。
+ */
 export const ColorControl: React.FC<ColorControlProps> = React.memo(({
     label,
     color,

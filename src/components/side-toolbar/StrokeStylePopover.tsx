@@ -1,10 +1,12 @@
+/**
+ * 本文件定义侧边栏的端点样式弹出层组件。
+ */
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, ENDPOINT_STYLES, BUTTON_SIZE_SM } from '@/constants';
 import type { EndpointStyle } from '../../types';
 import { SwitchControl, Slider, EndpointGrid } from './shared';
 
-// Define props for the component
 interface EndpointPopoverProps {
     strokeLineCapStart: EndpointStyle;
     setStrokeLineCapStart: (cap: EndpointStyle) => void;
@@ -19,7 +21,9 @@ interface EndpointPopoverProps {
     strokeWidth: number;
 }
 
-
+/**
+ * 端点样式弹出层组件。
+ */
 export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props) => {
     const { 
         strokeLineCapStart, setStrokeLineCapStart,

@@ -1,3 +1,6 @@
+/**
+ * 本文件包含侧边栏控件使用的常量，例如填充样式图标等。
+ */
 import React from 'react';
 import { ICONS, ICON_SIZE } from '@/constants';
 import type { EndpointStyle } from '../../types';
