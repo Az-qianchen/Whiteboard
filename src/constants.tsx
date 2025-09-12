@@ -31,6 +31,10 @@ import {
 const ICON_SIZE = 'w-[17px] h-[17px]';
 const ICON_SIZE_SM = 'w-[14px] h-[14px]';
 
+export const BUTTON_SIZE = 'w-[34px] h-[34px]';
+export const BUTTON_SIZE_SM = 'w-[31px] h-[31px]';
+export const BUTTON_SIZE_XS = 'w-[27px] h-[27px]';
+
 
 export const COLORS = [
   '#FFFFFF', // White

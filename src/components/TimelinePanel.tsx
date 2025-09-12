@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { ICONS } from '../constants';
+import { ICONS, BUTTON_SIZE } from '@/constants';
 import { Transition } from '@headlessui/react';
 import { pathsToSvgString } from '../lib/export';
 import type { Frame } from '../types';
@@ -145,10 +145,10 @@ export const TimelinePanel: React.FC = () => {
             <div className="p-3 h-48 flex flex-col gap-3">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <button onClick={handleRewind} title="回到开头" className="p-2 rounded-lg flex items-center justify-center w-10 h-10 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]">
+                        <button onClick={handleRewind} title="回到开头" className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}>
                             {ICONS.REWIND}
                         </button>
-                        <button onClick={handlePlayPause} title={isPlaying ? '暂停' : '播放'} className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 ${isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>
+                        <button onClick={handlePlayPause} title={isPlaying ? '暂停' : '播放'} className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} ${isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>
                             {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
                         </button>
                     </div>
@@ -163,7 +163,7 @@ export const TimelinePanel: React.FC = () => {
                          </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setIsOnionSkinEnabled(p => !p)} title="洋葱皮" className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 ${isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>
+                        <button onClick={() => setIsOnionSkinEnabled(p => !p)} title="洋葱皮" className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} ${isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>
                             {ICONS.ONION_SKIN}
                         </button>
                         <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -204,8 +204,8 @@ export const TimelinePanel: React.FC = () => {
                 </div>
                 <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0">
                     <div className="flex flex-col gap-2 h-full">
-                        <button onClick={addFrame} title="添加新帧" className="flex-1 p-2 rounded-lg flex items-center justify-center w-10 bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]">{ICONS.PLUS}</button>
-                        <button onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className="flex-1 p-2 rounded-lg flex items-center justify-center w-10 bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]">{ICONS.COPY}</button>
+                        <button onClick={addFrame} title="添加新帧" className={`flex-1 p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]`}>{ICONS.PLUS}</button>
+                        <button onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className={`flex-1 p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]`}>{ICONS.COPY}</button>
                     </div>
                     <div className="h-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
                         <div className="flex items-center gap-2 h-full">

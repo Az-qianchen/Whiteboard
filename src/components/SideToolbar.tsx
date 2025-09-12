@@ -6,7 +6,7 @@
 
 import React, { useMemo } from 'react';
 import type { Tool, AnyPath, VectorPathData, TextData } from '../types';
-import { ICONS } from '../constants';
+import { ICONS, BUTTON_SIZE_SM } from '@/constants';
 
 import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, TextProperties, EffectsPopover } from './side-toolbar';
 
@@ -254,7 +254,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       <div className="flex flex-col items-center w-14" title="样式库">
         <button 
           onClick={e => onToggleStyleLibrary(e)}
-          className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
+          className={`p-2 ${BUTTON_SIZE_SM} rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
             isStyleLibraryOpen
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'

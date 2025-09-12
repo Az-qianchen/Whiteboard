@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ICONS } from '../../constants';
+import { ICONS, BUTTON_SIZE_SM } from '@/constants';
 import type { EndpointStyle } from '../../types';
 import { useDashGapInput } from '../../hooks/side-toolbar/useDashGapInput';
 import { SwitchControl } from './shared';
@@ -27,7 +27,7 @@ export const DashControl: React.FC<DashControlProps> = React.memo((props) => {
             <Popover className="relative">
                 <Popover.Button
                     disabled={strokeWidth === 0}
-                    className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed"
+                    className={`p-2 ${BUTTON_SIZE_SM} rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed`}
                     title="虚线样式"
                 >
                     {ICONS.DASH_SETTINGS}

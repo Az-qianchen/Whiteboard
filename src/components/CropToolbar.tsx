@@ -18,7 +18,7 @@ export const CropToolbar: React.FC = () => {
         type="button"
         title="取消裁剪"
         onClick={cancelCrop}
-        className="p-2 rounded-lg flex items-center justify-center w-20 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
+        className="p-2 rounded-lg flex items-center justify-center w-[68px] h-[34px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
       >
         {React.cloneElement(ICONS.X, { className: 'h-[17px] w-[17px] mr-1' })}
         取消
@@ -28,7 +28,7 @@ export const CropToolbar: React.FC = () => {
         type="button"
         title="确认裁剪"
         onClick={confirmCrop}
-        className="p-2 rounded-lg flex items-center justify-center w-20 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 bg-[var(--accent-bg)] text-[var(--accent-primary)]"
+        className="p-2 rounded-lg flex items-center justify-center w-[68px] h-[34px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 bg-[var(--accent-bg)] text-[var(--accent-primary)]"
       >
         {React.cloneElement(ICONS.CHECK, { className: 'h-[17px] w-[17px] mr-1' })}
         确认

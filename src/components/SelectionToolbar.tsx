@@ -5,7 +5,7 @@
 
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, RadioGroup } from '@headlessui/react';
-import { ICONS } from '../constants';
+import { ICONS, BUTTON_SIZE } from '@/constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider } from './side-toolbar';
 
@@ -96,7 +96,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           type="button"
           title={mode.title}
           onClick={() => setSelectionMode(mode.name as SelectionMode)}
-          className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
+          className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
             selectionMode === mode.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -110,7 +110,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           <Popover className="relative">
             <Popover.Button
               title="简化路径"
-              className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+              className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
             >
               {ICONS.SIMPLIFY_PATH}
             </Popover.Button>
@@ -133,7 +133,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         <button
           onClick={onTraceImage}
           title="将图片转换为矢量图"
-          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
         >
           {ICONS.TRACE_IMAGE}
         </button>
@@ -143,7 +143,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           <Popover className="relative">
              <Popover.Button
                   title="对齐与分布"
-                  className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                  className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
                 >
                   {ICONS.ALIGN_DISTRIBUTE}
             </Popover.Button>
@@ -164,8 +164,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     <div>
                       <label className="text-sm font-semibold text-[var(--text-primary)]">分布</label>
                       <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => handleDistribute('horizontal')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
-                        <button onClick={() => handleDistribute('vertical')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
+                        <button onClick={() => handleDistribute('horizontal')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-[31px] rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
+                        <button onClick={() => handleDistribute('vertical')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-[31px] rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-3">
                          <div>
@@ -203,7 +203,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         <Popover className="relative">
             <Popover.Button
                 title="布尔运算"
-                className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
             >
                 {ICONS.BOOLEAN_UNION}
             </Popover.Button>
@@ -232,7 +232,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         <button
           onClick={onMask}
           title="使用顶层对象作为蒙版"
-          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className={`p-2 rounded-lg flex items-center justify-center ${BUTTON_SIZE} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
         >
           {ICONS.MASK}
         </button>

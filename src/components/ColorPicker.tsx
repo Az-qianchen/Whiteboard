@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { HSLA, parseColor, hslaToHslaString, hslaToHex } from '../lib/color';
-import { ICONS } from '../constants';
+import { ICONS, BUTTON_SIZE_SM } from '@/constants';
 
 // 预设颜色数组
 const PRESET_COLORS = [
@@ -214,7 +214,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
            </div>
            
             {'EyeDropper' in window && (
-                <button onClick={handleEyeDropper} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors" title="Pick color from screen">
+                <button onClick={handleEyeDropper} className={`${BUTTON_SIZE_SM} flex-shrink-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors`} title="Pick color from screen">
                     {ICONS.EYEDROPPER}
                 </button>
             )}

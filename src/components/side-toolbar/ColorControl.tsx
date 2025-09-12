@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { FloatingColorPicker } from '../FloatingColorPicker';
+import { BUTTON_SIZE_XS } from '@/constants';
 
 interface ColorControlProps {
     label: string;
@@ -40,7 +41,7 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
                         ref={ref}
                         onClick={onClick}
                         disabled={disabled}
-                        className="h-8 w-8 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-[var(--ui-panel-bg)] disabled:cursor-not-allowed disabled:hover:scale-100"
+                        className={`${BUTTON_SIZE_XS} rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-[var(--ui-panel-bg)] disabled:cursor-not-allowed disabled:hover:scale-100`}
                         style={{ 
                             backgroundColor: color, 
                             ...(isTransparent && checkerboardStyle) 

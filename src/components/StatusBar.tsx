@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ICONS } from '../constants';
+import { ICONS, BUTTON_SIZE_XS } from '@/constants';
 
 interface StatusBarProps {
   zoomLevel: number;
@@ -49,7 +49,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               onClick={onUndo}
               disabled={!canUndo}
               title="撤销 (Ctrl+Z)"
-              className="p-2 h-8 w-8 rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]"
+              className={`p-2 ${BUTTON_SIZE_XS} rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]`}
           >
               {ICONS.UNDO}
           </button>
@@ -57,7 +57,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               onClick={onRedo}
               disabled={!canRedo}
               title="重做 (Ctrl+Shift+Z)"
-              className="p-2 h-8 w-8 rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]"
+              className={`p-2 ${BUTTON_SIZE_XS} rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]`}
           >
               {ICONS.REDO}
           </button>

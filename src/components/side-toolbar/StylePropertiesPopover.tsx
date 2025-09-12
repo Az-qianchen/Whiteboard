@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ICONS } from '../../constants';
+import { ICONS, BUTTON_SIZE_SM } from '@/constants';
 import { SwitchControl, Slider } from './shared';
 
 // Define props interface
@@ -44,7 +44,7 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
     return (
         <div className="flex flex-col items-center w-14" title="样式属性">
             <Popover className="relative">
-                <Popover.Button className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]" title="样式属性">
+                <Popover.Button className={`p-2 ${BUTTON_SIZE_SM} rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]`} title="样式属性">
                     {ICONS.PROPERTIES}
                 </Popover.Button>
                 <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
