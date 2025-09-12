@@ -241,17 +241,18 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         const { x, y, width, height } = data;
         const cx = x + width / 2;
         const cy = y + height / 2;
-        const transforms: string[] = [];
         const scaleX = data.scaleX ?? 1;
         const scaleY = data.scaleY ?? 1;
-        if (scaleX !== 1 || scaleY !== 1) {
-            transforms.push(`translate(${cx} ${cy}) scale(${scaleX} ${scaleY}) translate(${-cx} ${-cy})`);
-        }
-        if (data.rotation) {
+        if (data.rotation || scaleX !== 1 || scaleY !== 1) {
             const angleDegrees = (data.rotation || 0) * (180 / Math.PI);
-            transforms.push(`rotate(${angleDegrees} ${cx} ${cy})`);
-        }
-        if (transforms.length > 0) {
+            const transforms: string[] = [`translate(${cx} ${cy})`];
+            if (data.rotation) {
+                transforms.push(`rotate(${angleDegrees})`);
+            }
+            if (scaleX !== 1 || scaleY !== 1) {
+                transforms.push(`scale(${scaleX} ${scaleY})`);
+            }
+            transforms.push(`translate(${-cx} ${-cy})`);
             finalElement.setAttribute('transform', transforms.join(' '));
         }
     }
