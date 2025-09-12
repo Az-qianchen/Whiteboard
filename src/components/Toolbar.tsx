@@ -59,7 +59,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           type="button"
           title={t.title}
           onClick={() => setTool(t.name)}
-          className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
+          className={`p-2 rounded-lg flex items-center justify-center w-11 h-11 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
             tool === t.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -74,7 +74,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <Popover className="relative">
         <Popover.Button
           title="网格设置"
-          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className="p-2 rounded-lg flex items-center justify-center w-11 h-11 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.GRID}
         </Popover.Button>

@@ -154,7 +154,7 @@ export const LayersPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="layers-panel flex flex-col h-full">
       <div 
         ref={listRef}
         className="flex-grow overflow-y-auto layers-panel-list pr-1 pt-1 space-y-1"

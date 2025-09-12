@@ -71,7 +71,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
   return (
     <div className="flex flex-col items-center w-16" title={label}>
       <div
-        className="flex items-center bg-black/20 rounded-md h-9 px-2 w-full cursor-ns-resize"
+        className="flex items-center bg-black/20 rounded-md h-11 px-2 w-full cursor-ns-resize"
         onWheel={(e) => handleWheel(e, handleWheelUpdate)}
       >
         <input

@@ -118,14 +118,17 @@ button .icon {
 
 .menu-bar button,
 .right-sidebar button,
+.layers-panel button,
 .menu-bar .icon,
-.right-sidebar .icon {
-  transform: scale(0.9);
+.right-sidebar .icon,
+.layers-panel .icon {
+  transform: scale(0.95);
   transform-origin: center;
 }
 
 .menu-bar button .icon,
-.right-sidebar button .icon {
+.right-sidebar button .icon,
+.layers-panel button .icon {
   transform: none;
 }
 

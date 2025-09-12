@@ -79,7 +79,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
       />
 
       <Popover className="relative w-full">
-        <Popover.Button className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
+        <Popover.Button className="w-full flex items-center justify-between p-2 h-11 rounded-md bg-black/20 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
             <span style={{fontFamily: fontFamily}}>{FONT_OPTIONS.find(f => f.name === fontFamily)?.label ?? fontFamily}</span>
             <div className="w-4 h-4 text-[var(--text-secondary)]">{ICONS.CHEVRON_DOWN}</div>
         </Popover.Button>

@@ -139,7 +139,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
 
   return (
-    <div className="right-sidebar bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 flex flex-col items-center gap-2 text-[var(--text-primary)]">
+    <div className="right-sidebar bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 flex flex-col items-center gap-1 text-[var(--text-primary)]">
       {isFrameSelected ? (
         <div className="text-center text-sm text-[var(--text-secondary)]">画框属性</div>
       ) : isTextMode ? (
@@ -252,9 +252,9 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       <div className="h-px w-full bg-[var(--ui-separator)] my-0.5"></div>
       
       <div className="flex flex-col items-center w-14" title="样式库">
-        <button 
+        <button
           onClick={e => onToggleStyleLibrary(e)}
-          className={`p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
+          className={`p-2 h-11 w-11 rounded-lg flex items-center justify-center transition-colors ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
             isStyleLibraryOpen
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
