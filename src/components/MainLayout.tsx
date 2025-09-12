@@ -168,18 +168,18 @@ export const MainLayout: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-primary)]">
+            <div className="h-full w-full flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-primary)]">
                 正在加载...
             </div>
         );
     }
 
     return (
-        <div className="h-screen w-screen font-sans bg-transparent flex overflow-hidden">
+        <div className="h-full w-full max-w-full font-sans bg-transparent flex overflow-hidden">
             <LayersProvider {...store}>
                 <MainMenuPanel />
 
-                <main className="flex-grow h-full relative flex flex-col">
+                <main className="flex-grow h-full relative flex flex-col min-w-0">
                     <PanelButton
                         onClick={() => setIsMainMenuCollapsed(prev => !prev)}
                         className="absolute top-4 left-4 z-30"
@@ -192,10 +192,10 @@ export const MainLayout: React.FC = () => {
 
                     <CanvasOverlays />
 
-                    <div 
-                        className="flex-grow w-full relative" 
-                        style={{ backgroundColor }} 
-                        onDrop={handleDrop} 
+                    <div
+                        className="flex-grow w-full relative min-w-0"
+                        style={{ backgroundColor }}
+                        onDrop={handleDrop}
                         onDragOver={(e) => e.preventDefault()}
                     >
                         <Whiteboard

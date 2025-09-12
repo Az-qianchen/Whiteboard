@@ -89,6 +89,10 @@ export const CanvasOverlays: React.FC = () => {
         handleTextChange,
         handleTextEditCommit,
         croppingState,
+        undo: handleUndo,
+        canUndo,
+        redo: handleRedo,
+        canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
     } = store;
@@ -205,6 +209,22 @@ export const CanvasOverlays: React.FC = () => {
                     title={isTimelineCollapsed ? '展开时间线' : '折叠时间线'}
                 >
                     <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
+                </PanelButton>
+                <PanelButton
+                    onClick={handleUndo}
+                    disabled={!canUndo}
+                    title="撤销 (Ctrl+Z)"
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {ICONS.UNDO}
+                </PanelButton>
+                <PanelButton
+                    onClick={handleRedo}
+                    disabled={!canRedo}
+                    title="重做 (Ctrl+Shift+Z)"
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {ICONS.REDO}
                 </PanelButton>
             </div>
 

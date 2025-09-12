@@ -31,10 +31,6 @@ interface MainMenuProps {
   onResetPreferences: () => void;
   // StatusBar Props
   zoomLevel: number;
-  onUndo: () => void;
-  canUndo: boolean;
-  onRedo: () => void;
-  canRedo: boolean;
   selectionInfo: any;
   elementCount: number;
   canvasWidth: number;
@@ -53,7 +49,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     backgroundColor, setBackgroundColor,
     activeFileName,
     onResetPreferences,
-    zoomLevel, onUndo, canUndo, onRedo, canRedo,
+    zoomLevel,
     selectionInfo, elementCount, canvasWidth, canvasHeight,
     isStatusBarCollapsed, setIsStatusBarCollapsed,
     pngExportOptions, setPngExportOptions,
@@ -240,12 +236,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
       </Tab.Group>
 
       <div className="mt-auto pt-2 flex-shrink-0">
-        <StatusBar 
-            zoomLevel={zoomLevel} 
-            onUndo={onUndo} 
-            canUndo={canUndo} 
-            onRedo={onRedo} 
-            canRedo={canRedo} 
+        <StatusBar
+            zoomLevel={zoomLevel}
             selectionInfo={selectionInfo}
             elementCount={elementCount}
             canvasWidth={canvasWidth}
