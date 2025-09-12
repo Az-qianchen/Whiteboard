@@ -245,7 +245,7 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds, pathState]);
 
   /**
-   * 对选中的图片执行简单抠图。
+   * 对选中的图片执行简单抠图，支持跨域图片。
    */
   const handleRemoveBackground = useCallback(async () => {
     if (selectedPathIds.length !== 1) return;
@@ -254,6 +254,7 @@ export const useObjectActions = ({
 
     pathState.beginCoalescing();
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.src = (imagePath as ImageData).src;
     await new Promise(resolve => { img.onload = resolve; });
     const canvas = document.createElement('canvas');
@@ -272,7 +273,7 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds, pathState]);
 
   /**
-   * 调整选中图片的 HSV。
+   * 调整选中图片的 HSV，支持跨域图片。
    */
   const handleAdjustImageHsv = useCallback(async (adj: HsvAdjustment) => {
     if (selectedPathIds.length !== 1) return;
@@ -281,6 +282,7 @@ export const useObjectActions = ({
 
     pathState.beginCoalescing();
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.src = (imagePath as ImageData).src;
     await new Promise(resolve => { img.onload = resolve; });
     const canvas = document.createElement('canvas');
