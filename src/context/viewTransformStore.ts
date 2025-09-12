@@ -1,3 +1,6 @@
+/**
+ * 管理画布视图变换的状态存储，提供缩放、平移与触摸手势处理
+ */
 import { create } from 'zustand';
 import type { Point } from '@/types';
 import { getPointerPosition as getPointerPositionUtil } from '@/lib/utils';
@@ -39,10 +42,14 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   initialPinch: null,
   lastPointerPosition: null,
 
+  // 设置是否处于平移状态
   setIsPanning: (v) => set({ isPanning: v }),
+  // 更新视图变换
   setViewTransform: (updater) => set((s) => ({ viewTransform: updater(s.viewTransform) })),
+  // 记录最后一次指针位置
   setLastPointerPosition: (p) => set({ lastPointerPosition: p }),
 
+  // 处理滚轮缩放和平移
   handleWheel: (e) => {
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
     const { viewTransform } = get();
@@ -77,6 +84,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     }
   },
 
+  // 处理平移移动
   handlePanMove: (e) => {
     const { isPanning } = get();
     if (!isPanning) return;
@@ -91,6 +99,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     }));
   },
 
+  // 处理触摸开始
   handleTouchStart: (e) => {
     const { pointerId, clientX, clientY } = e;
     const svg = e.currentTarget;
@@ -123,6 +132,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     });
   },
 
+  // 处理触摸移动
   handleTouchMove: (e) => {
     const { pointerId, clientX, clientY } = e;
     set((s) => {
@@ -150,6 +160,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     });
   },
 
+  // 处理触摸结束
   handleTouchEnd: (e) => {
     const { pointerId } = e;
     set((s) => {
@@ -162,6 +173,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     });
   },
 
+  // 获取指针在 SVG 中的位置
   getPointerPosition: (e, svg) => {
     const { viewTransform } = get();
     const point = getPointerPositionUtil(e, svg, viewTransform);

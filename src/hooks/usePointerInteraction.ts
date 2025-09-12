@@ -15,7 +15,15 @@ interface InteractionHandlers {
 
 interface PointerInteractionProps {
   tool: Tool;
-  viewTransform: any; // from useViewTransform
+  viewTransform: {
+    isPanning: boolean;
+    setIsPanning: (v: boolean) => void;
+    handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
+    handleTouchStart: (e: React.PointerEvent<SVGSVGElement>) => void;
+    handleTouchMove: (e: React.PointerEvent<SVGSVGElement>) => void;
+    handleTouchEnd: (e: React.PointerEvent<SVGSVGElement>) => void;
+    isPinching: boolean;
+  };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
 }
@@ -33,6 +41,7 @@ export const usePointerInteraction = ({
 
   const { isPanning, setIsPanning } = viewTransform;
 
+  // 处理指针按下
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchStart(e);
@@ -53,6 +62,7 @@ export const usePointerInteraction = ({
     }
   };
 
+  // 处理指针移动
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchMove(e);
@@ -70,6 +80,7 @@ export const usePointerInteraction = ({
     }
   };
 
+  // 处理指针抬起
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchEnd(e);
@@ -90,6 +101,7 @@ export const usePointerInteraction = ({
     }
   };
   
+  // 处理指针离开画布
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchEnd(e);
