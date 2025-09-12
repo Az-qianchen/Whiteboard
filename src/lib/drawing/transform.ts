@@ -89,15 +89,7 @@ export function resizePath(
     const scaleX = affectsX ? newWidth / baseWidth : 1;
     const scaleY = affectsY ? newHeight / baseHeight : 1;
 
-    const scaled = scalePath(originalPath, anchor, Math.abs(scaleX), Math.abs(scaleY));
-    const flippedScaleX = (scaled.scaleX ?? 1) * Math.sign(scaleX);
-    const flippedScaleY = (scaled.scaleY ?? 1) * Math.sign(scaleY);
-
-    let result: typeof scaled & { scaleX?: number; scaleY?: number } = {
-        ...scaled,
-        scaleX: flippedScaleX,
-        scaleY: flippedScaleY,
-    };
+    let result = scalePath(originalPath, anchor, scaleX, scaleY);
 
     if (rotation) {
         const newCenter = { x: result.x + result.width / 2, y: result.y + result.height / 2 };

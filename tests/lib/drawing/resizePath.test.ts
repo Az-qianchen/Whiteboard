@@ -161,7 +161,11 @@ describe('resizePath flips across anchor', () => {
     const resized = resizePath(image, 'left', currentPos, initialPos, false);
 
     const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
-    const anchorAfter = rotatePoint({ x: resized.x + resized.width, y: resized.y }, newCenter, image.rotation!);
+    const anchorLocalAfter = {
+      x: resized.scaleX < 0 ? resized.x : resized.x + resized.width,
+      y: resized.scaleY < 0 ? resized.y + resized.height : resized.y,
+    };
+    const anchorAfter = rotatePoint(anchorLocalAfter, newCenter, image.rotation!);
 
     expect(resized.scaleX).toBe(-1);
     expect(resized.width).toBeCloseTo(20);
