@@ -142,7 +142,7 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-48"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-48 flex flex-col gap-3">
+            <div className="p-3 h-48 w-full flex flex-col gap-3">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <button onClick={handleRewind} title="回到开头" className="p-2 rounded-lg flex items-center justify-center w-10 h-10 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]">
@@ -202,7 +202,7 @@ export const TimelinePanel: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0">
+                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
                     <div className="flex flex-col gap-2 h-full">
                         <button onClick={addFrame} title="添加新帧" className="flex-1 p-2 rounded-lg flex items-center justify-center w-10 bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]">{ICONS.PLUS}</button>
                         <button onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className="flex-1 p-2 rounded-lg flex items-center justify-center w-10 bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]">{ICONS.COPY}</button>
