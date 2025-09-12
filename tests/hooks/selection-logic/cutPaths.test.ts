@@ -75,4 +75,27 @@ describe('cutPaths', () => {
     const res = cutPaths(stroke, [line]);
     expect(res).toHaveLength(0);
   });
+
+  it('removes only the crossed segment in a polyline', () => {
+    const poly: BrushPathData = {
+      id: 'poly',
+      tool: 'brush',
+      points: [
+        { x: -10, y: 0 },
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      ...baseStyle,
+    };
+    const stroke: Point[] = [
+      { x: 5, y: -5 },
+      { x: 5, y: 5 },
+    ];
+    const res = cutPaths(stroke, [poly]);
+    const remaining = res[0] as BrushPathData;
+    expect(remaining.points).toEqual([
+      { x: -10, y: 0 },
+      { x: 0, y: 0 },
+    ]);
+  });
 });

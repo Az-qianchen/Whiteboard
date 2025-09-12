@@ -62,7 +62,8 @@ export const cutPaths = (lasso: Point[], paths: AnyPath[]): AnyPath[] => {
 
     // 找到与其它路径的交点，用来作为裁剪的边界
     const others = paths.filter(op => op.id !== p.id && 'points' in op) as BrushPathData[];
-    const boundaries = new Set<number>([0, 1]);
+    const boundaries = new Set<number>();
+    for (let i = 0; i <= segs; i++) boundaries.add(i / segs);
     for (let i = 0; i < segs; i++) {
       const a = pts[i];
       const b = pts[i + 1];
