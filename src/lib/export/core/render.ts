@@ -237,12 +237,24 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if (data.rotation && (data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'text' || data.tool === 'frame')) {
-        const { x, y, width, height, rotation } = data;
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'text' || data.tool === 'frame')) {
+        const { x, y, width, height } = data;
         const cx = x + width / 2;
         const cy = y + height / 2;
-        const angleDegrees = rotation * (180 / Math.PI);
-        finalElement.setAttribute('transform', `rotate(${angleDegrees} ${cx} ${cy})`);
+        const scaleX = data.scaleX ?? 1;
+        const scaleY = data.scaleY ?? 1;
+        if (data.rotation || scaleX !== 1 || scaleY !== 1) {
+            const angleDegrees = (data.rotation || 0) * (180 / Math.PI);
+            const transforms: string[] = [`translate(${cx} ${cy})`];
+            if (data.rotation) {
+                transforms.push(`rotate(${angleDegrees})`);
+            }
+            if (scaleX !== 1 || scaleY !== 1) {
+                transforms.push(`scale(${scaleX} ${scaleY})`);
+            }
+            transforms.push(`translate(${-cx} ${-cy})`);
+            finalElement.setAttribute('transform', transforms.join(' '));
+        }
     }
 
     return finalElement;

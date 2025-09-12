@@ -25,99 +25,100 @@ export function resizePath(
 ): RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData {
     const { rotation } = originalPath;
 
+    const defaultCenter = {
+        x: originalPath.x + originalPath.width / 2,
+        y: originalPath.y + originalPath.height / 2,
+    };
+    const pivot = rotationCenter || defaultCenter;
+
     let localCurrentPos = currentPos;
+    let localInitialPos = initialPos;
 
     if (rotation) {
-        const center = rotationCenter || { 
-            x: originalPath.x + originalPath.width / 2, 
-            y: originalPath.y + originalPath.height / 2 
-        };
-        localCurrentPos = rotatePoint(currentPos, center, -rotation);
+        localCurrentPos = rotatePoint(currentPos, pivot, -rotation);
+        localInitialPos = rotatePoint(initialPos, pivot, -rotation);
     }
-    
+
     const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = originalPath;
 
-    // 定义锚点，即与被拖动控制点相对的点。
+    // 依据初始指针位置选择对角点作为锚点
     const anchor = {
         x: handle.includes('left') ? oldX + oldWidth : oldX,
         y: handle.includes('top') ? oldY + oldHeight : oldY,
     };
-    
-    // 对于边控制点，锚点是一条线，但其中一个坐标是固定的。
-    // 另一个坐标是原始框在该轴上的中心。
-    if (!handle.includes('left') && !handle.includes('right')) { // top or bottom
-        anchor.x = oldX + oldWidth / 2;
+
+    if (handle === 'top' || handle === 'bottom') {
+        anchor.x = localInitialPos.x < defaultCenter.x ? oldX + oldWidth : oldX;
     }
-    if (!handle.includes('top') && !handle.includes('bottom')) { // left or right
-        anchor.y = oldY + oldHeight / 2;
+    if (handle === 'left' || handle === 'right') {
+        anchor.y = localInitialPos.y < defaultCenter.y ? oldY + oldHeight : oldY;
     }
 
-    // 计算从锚点到鼠标的位移向量
-    let dxFromAnchor = localCurrentPos.x - anchor.x;
-    let dyFromAnchor = localCurrentPos.y - anchor.y;
+    const anchorGlobal = rotation ? rotatePoint(anchor, pivot, rotation) : anchor;
+
+    // 计算从锚点到当前指针的位移（局部坐标用于尺寸与翻转）
+    const dxLocal = localCurrentPos.x - anchor.x;
+    const dyLocal = localCurrentPos.y - anchor.y;
+    const dxInitialLocal = localInitialPos.x - anchor.x;
+    const dyInitialLocal = localInitialPos.y - anchor.y;
+
+    const affectsX = handle.includes('left') || handle.includes('right');
+    const affectsY = handle.includes('top') || handle.includes('bottom');
+
+    const baseWidth = handle.includes('left') ? -oldWidth : oldWidth;
+    const baseHeight = handle.includes('top') ? -oldHeight : oldHeight;
+
+    let newWidth = affectsX ? dxLocal : baseWidth;
+    let newHeight = affectsY ? dyLocal : baseHeight;
 
     if (keepAspectRatio && oldWidth > 0 && oldHeight > 0) {
-        const isCorner = (handle.includes('left') || handle.includes('right')) && (handle.includes('top') || handle.includes('bottom'));
-        const targetAspectRatio = oldWidth / oldHeight;
+        const targetRatio = oldWidth / oldHeight;
+        const isCorner = affectsX && affectsY;
 
         if (isCorner) {
-            // 为了使调整大小感觉直观，我们计算两个可能的矩形：
-            // 一个受鼠标 X 位置约束，一个受 Y 位置约束。
-            // 然后，我们选择那个被拖动的角点更接近实际鼠标位置的矩形。
-            // 这可以防止在鼠标移动的主导轴改变时发生突然跳动。
-
-            const distSq = (p1: Point, p2: Point) => (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
-
-            // 选项1：调整大小由鼠标的 X 轴移动驱动。
-            const newWidth_from_x = Math.abs(dxFromAnchor);
-            const newHeight_from_x = newWidth_from_x / targetAspectRatio;
-            const finalPoint_from_x = {
-                x: anchor.x + newWidth_from_x * Math.sign(dxFromAnchor),
-                y: anchor.y + newHeight_from_x * Math.sign(dyFromAnchor || (handle.includes('bottom') ? 1 : -1))
-            };
-
-            // 选项2：调整大小由鼠标的 Y 轴移动驱动。
-            const newHeight_from_y = Math.abs(dyFromAnchor);
-            const newWidth_from_y = newHeight_from_y * targetAspectRatio;
-             const finalPoint_from_y = {
-                x: anchor.x + newWidth_from_y * Math.sign(dxFromAnchor || (handle.includes('right') ? 1 : -1)),
-                y: anchor.y + newHeight_from_y * Math.sign(dyFromAnchor)
-            };
-
-            // 比较哪个选项的角点更接近鼠标光标。
-            if (distSq(localCurrentPos, finalPoint_from_x) < distSq(localCurrentPos, finalPoint_from_y)) {
-                // X 驱动的调整大小更合适。调整 dy。
-                dyFromAnchor = newHeight_from_x * Math.sign(dyFromAnchor || (handle.includes('bottom') ? 1 : -1));
+            if (Math.abs(newWidth) > Math.abs(newHeight) * targetRatio) {
+                newHeight = Math.abs(newWidth) / targetRatio * Math.sign(newHeight || (handle.includes('bottom') ? 1 : -1));
             } else {
-                // Y 驱动的调整大小更合适。调整 dx。
-                dxFromAnchor = newWidth_from_y * Math.sign(dxFromAnchor || (handle.includes('right') ? 1 : -1));
+                newWidth = Math.abs(newHeight) * targetRatio * Math.sign(newWidth || (handle.includes('right') ? 1 : -1));
             }
-        } else if (handle.includes('left') || handle.includes('right')) { // horizontal handles
-            dyFromAnchor = (Math.abs(dxFromAnchor) / targetAspectRatio) * Math.sign(dyFromAnchor || 1);
-        } else { // vertical handles
-            dxFromAnchor = (Math.abs(dyFromAnchor) * targetAspectRatio) * Math.sign(dxFromAnchor || 1);
+        } else if (affectsX) {
+            newHeight = Math.abs(newWidth) / targetRatio * Math.sign(newHeight || (handle.includes('bottom') ? 1 : -1));
+        } else if (affectsY) {
+            newWidth = Math.abs(newHeight) * targetRatio * Math.sign(newWidth || (handle.includes('right') ? 1 : -1));
         }
     }
-    
-    const finalPoint = {
-        x: anchor.x + dxFromAnchor,
-        y: anchor.y + dyFromAnchor,
-    };
 
-    let newX = Math.min(anchor.x, finalPoint.x);
-    let newY = Math.min(anchor.y, finalPoint.y);
-    let newWidth = Math.abs(dxFromAnchor);
-    let newHeight = Math.abs(dyFromAnchor);
+    let scaleX = affectsX ? Math.abs(newWidth / baseWidth) : 1;
+    let scaleY = affectsY ? Math.abs(newHeight / baseHeight) : 1;
 
-    // 纠正边控制点的位置，它们应该在非拖动轴上从中心调整大小
-    if (!handle.includes('left') && !handle.includes('right')) { // top or bottom
-        newX = anchor.x - newWidth / 2;
+    if (affectsX) {
+        const baseSign = Math.sign(dxInitialLocal);
+        const currentSign = Math.sign(dxLocal);
+        if (baseSign && currentSign && baseSign !== currentSign) {
+            scaleX *= -1;
+        }
     }
-    if (!handle.includes('top') && !handle.includes('bottom')) { // left or right
-        newY = anchor.y - newHeight / 2;
+    if (affectsY) {
+        const baseSign = Math.sign(dyInitialLocal);
+        const currentSign = Math.sign(dyLocal);
+        if (baseSign && currentSign && baseSign !== currentSign) {
+            scaleY *= -1;
+        }
     }
-    
-    return { ...originalPath, x: newX, y: newY, width: newWidth, height: newHeight };
+
+    let result = scalePath(originalPath, anchor, scaleX, scaleY);
+
+    if (rotation) {
+        const newCenter = { x: result.x + result.width / 2, y: result.y + result.height / 2 };
+        const anchorGlobalNew = rotatePoint(anchor, newCenter, rotation);
+        const translation = {
+            x: anchorGlobal.x - anchorGlobalNew.x,
+            y: anchorGlobal.y - anchorGlobalNew.y,
+        };
+        result = movePath(result, translation.x, translation.y);
+    }
+
+    return result;
 }
 
 
@@ -460,7 +461,9 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         const scaledHeight = path.height * scaleY;
         const newX = scaledWidth < 0 ? scaledX + scaledWidth : scaledX;
         const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
-      return { ...path, x: newX, y: newY, width: Math.abs(scaledWidth), height: Math.abs(scaledHeight) };
+        const newScaleX = (path.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
+        const newScaleY = (path.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
+      return { ...path, x: newX, y: newY, width: Math.abs(scaledWidth), height: Math.abs(scaledHeight), scaleX: newScaleX, scaleY: newScaleY };
     case 'group':
         return { ...path, children: (path as GroupData).children.map(child => scalePath(child, pivot, scaleX, scaleY)) };
   }
