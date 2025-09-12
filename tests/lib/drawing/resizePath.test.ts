@@ -11,7 +11,7 @@ import { rotatePoint } from '@/lib/drawing/geom';
 import type { ImageData } from '@/types';
 
 describe('resizePath with rotation', () => {
-  it('resizes a rotated image without collapsing the opposite axis', () => {
+  it('keeps the diagonal anchor fixed while resizing a rotated image', () => {
     const image: ImageData = {
       id: 'img',
       tool: 'image',
@@ -33,17 +33,63 @@ describe('resizePath with rotation', () => {
       curveTightness: 0,
       curveStepCount: 9,
     };
-
     const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
     const initialPos = { x: center.x, y: center.y + image.width / 2 };
     const currentPos = { x: initialPos.x, y: initialPos.y + 20 };
+
+    const anchorBefore = rotatePoint({ x: image.x, y: image.y }, center, image.rotation!);
 
     const resized = resizePath(image, 'right', currentPos, initialPos, false);
 
     expect(resized.width).toBeCloseTo(120);
     expect(resized.height).toBeCloseTo(80);
-    expect(resized.x).toBeCloseTo(0);
-    expect(resized.y).toBeCloseTo(0);
+
+    const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
+    const anchorAfter = rotatePoint({ x: resized.x, y: resized.y }, newCenter, image.rotation!);
+
+    expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
+    expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
+  });
+
+  it('maintains the opposite corner when resizing a rotated image from a corner handle', () => {
+    const image: ImageData = {
+      id: 'img2',
+      tool: 'image',
+      src: '',
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 80,
+      rotation: Math.PI / 4,
+      color: '',
+      fill: '',
+      fillStyle: '',
+      strokeWidth: 0,
+      roughness: 0,
+      bowing: 0,
+      fillWeight: 0,
+      hachureAngle: 0,
+      hachureGap: 0,
+      curveTightness: 0,
+      curveStepCount: 9,
+    };
+
+    const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
+    const initialPos = rotatePoint({ x: image.x + image.width, y: image.y + image.height }, center, image.rotation!);
+    const currentPos = rotatePoint({ x: image.x + image.width + 30, y: image.y + image.height + 10 }, center, image.rotation!);
+
+    const anchorBefore = rotatePoint({ x: image.x, y: image.y }, center, image.rotation!);
+
+    const resized = resizePath(image, 'bottom-right', currentPos, initialPos, false);
+
+    expect(resized.width).toBeCloseTo(130);
+    expect(resized.height).toBeCloseTo(90);
+
+    const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
+    const anchorAfter = rotatePoint({ x: resized.x, y: resized.y }, newCenter, image.rotation!);
+
+    expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
+    expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
   });
 });
 
@@ -110,12 +156,18 @@ describe('resizePath flips across anchor', () => {
     const initialPos = rotatePoint({ x: 0, y: image.height / 2 }, center, image.rotation!);
     const currentPos = rotatePoint({ x: image.width + 20, y: image.height / 2 }, center, image.rotation!);
 
+    const anchorBefore = rotatePoint({ x: image.x + image.width, y: image.y }, center, image.rotation!);
+
     const resized = resizePath(image, 'left', currentPos, initialPos, false);
 
+    const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
+    const anchorAfter = rotatePoint({ x: resized.x + resized.width, y: resized.y }, newCenter, image.rotation!);
+
     expect(resized.scaleX).toBe(-1);
-    expect(resized.x + resized.width).toBeCloseTo(100);
     expect(resized.width).toBeCloseTo(20);
     expect(resized.height).toBeCloseTo(80);
+    expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
+    expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
   });
 });
 

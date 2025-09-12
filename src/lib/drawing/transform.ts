@@ -25,33 +25,36 @@ export function resizePath(
 ): RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData {
     const { rotation } = originalPath;
 
+    const defaultCenter = {
+        x: originalPath.x + originalPath.width / 2,
+        y: originalPath.y + originalPath.height / 2,
+    };
+    const pivot = rotationCenter || defaultCenter;
+
     let localCurrentPos = currentPos;
     let localInitialPos = initialPos;
 
     if (rotation) {
-        const center = rotationCenter || {
-            x: originalPath.x + originalPath.width / 2,
-            y: originalPath.y + originalPath.height / 2
-        };
-        localCurrentPos = rotatePoint(currentPos, center, -rotation);
-        localInitialPos = rotatePoint(initialPos, center, -rotation);
+        localCurrentPos = rotatePoint(currentPos, pivot, -rotation);
+        localInitialPos = rotatePoint(initialPos, pivot, -rotation);
     }
-    
+
     const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = originalPath;
 
     // 依据初始指针位置选择对角点作为锚点
-    const center = { x: oldX + oldWidth / 2, y: oldY + oldHeight / 2 };
     const anchor = {
         x: handle.includes('left') ? oldX + oldWidth : oldX,
         y: handle.includes('top') ? oldY + oldHeight : oldY,
     };
 
     if (handle === 'top' || handle === 'bottom') {
-        anchor.x = localInitialPos.x < center.x ? oldX + oldWidth : oldX;
+        anchor.x = localInitialPos.x < defaultCenter.x ? oldX + oldWidth : oldX;
     }
     if (handle === 'left' || handle === 'right') {
-        anchor.y = localInitialPos.y < center.y ? oldY + oldHeight : oldY;
+        anchor.y = localInitialPos.y < defaultCenter.y ? oldY + oldHeight : oldY;
     }
+
+    const anchorGlobal = rotation ? rotatePoint(anchor, pivot, rotation) : anchor;
 
     // 计算从锚点到当前指针的位移
     let dxFromAnchor = localCurrentPos.x - anchor.x;
@@ -90,7 +93,23 @@ export function resizePath(
     const flippedScaleX = (scaled.scaleX ?? 1) * Math.sign(scaleX);
     const flippedScaleY = (scaled.scaleY ?? 1) * Math.sign(scaleY);
 
-    return { ...scaled, scaleX: flippedScaleX, scaleY: flippedScaleY };
+    let result: typeof scaled & { scaleX?: number; scaleY?: number } = {
+        ...scaled,
+        scaleX: flippedScaleX,
+        scaleY: flippedScaleY,
+    };
+
+    if (rotation) {
+        const newCenter = { x: result.x + result.width / 2, y: result.y + result.height / 2 };
+        const anchorGlobalNew = rotatePoint(anchor, newCenter, rotation);
+        const translation = {
+            x: anchorGlobal.x - anchorGlobalNew.x,
+            y: anchorGlobal.y - anchorGlobalNew.y,
+        };
+        result = movePath(result, translation.x, translation.y);
+    }
+
+    return result;
 }
 
 
