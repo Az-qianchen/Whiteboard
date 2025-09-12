@@ -37,40 +37,55 @@ function paperColorToCss(c: any | null | undefined): string {
 
 // Shared properties for any new path created from an SVG item
 const getSharedSvgProps = (item: any) => {
-    const rotationInRadians = item.rotation ? item.rotation * (Math.PI / 180) : 0;
-    const dashArray = (item.dashArray && item.dashArray.length >= 2) ? [item.dashArray[0], item.dashArray[1]] as [number, number] : undefined;
+  const parent = item.parent;
+  const styleSource = parent instanceof paper.CompoundPath ? parent : item;
+  const rotationDeg = item.rotation ?? styleSource.rotation ?? 0;
+  const rotationInRadians = rotationDeg * (Math.PI / 180);
+  const dashArray =
+    styleSource.dashArray && styleSource.dashArray.length >= 2
+      ? ([styleSource.dashArray[0], styleSource.dashArray[1]] as [number, number])
+      : undefined;
 
-    const hasFill = typeof item.hasFill === 'function' && item.hasFill();
-    const hasStroke = typeof item.hasStroke === 'function' && item.hasStroke();
+  const hasFill = typeof styleSource.hasFill === 'function' && styleSource.hasFill();
+  const hasStroke = typeof styleSource.hasStroke === 'function' && styleSource.hasStroke();
 
-    let capStyle: 'round' | 'butt' | 'square_cap' = 'round'; // Default to round
-    if (item.strokeCap === 'square') {
-        capStyle = 'square_cap';
-    } else if (item.strokeCap === 'butt') {
-        capStyle = 'butt';
+  let capStyle: 'round' | 'butt' | 'square_cap' = 'round';
+  if (styleSource.strokeCap === 'square') {
+    capStyle = 'square_cap';
+  } else if (styleSource.strokeCap === 'butt') {
+    capStyle = 'butt';
+  }
+
+  let fillColor = 'transparent';
+  if (hasFill) {
+    if (parent instanceof paper.CompoundPath && typeof item.area === 'number' && item.area < 0) {
+      fillColor = 'transparent';
+    } else {
+      fillColor = paperColorToCss(styleSource.fillColor);
     }
+  }
 
-    return {
-        id: `${Date.now()}-${Math.random()}`,
-        color: hasStroke ? paperColorToCss(item.strokeColor) : 'transparent',
-        strokeWidth: hasStroke ? (item.strokeWidth ?? 1) : 0,
-        strokeLineDash: dashArray,
-        strokeLineJoin: item.strokeJoin as 'miter' | 'round' | 'bevel' | undefined,
-        strokeLineCapStart: capStyle,
-        strokeLineCapEnd: capStyle,
-        fill: hasFill ? paperColorToCss(item.fillColor) : 'transparent',
-        opacity: item.opacity ?? 1,
-        isRough: false,
-        fillStyle: 'solid',
-        roughness: 0,
-        bowing: 0,
-        fillWeight: DEFAULT_FILL_WEIGHT,
-        hachureAngle: DEFAULT_HACHURE_ANGLE,
-        hachureGap: DEFAULT_HACHURE_GAP,
-        curveTightness: DEFAULT_CURVE_TIGHTNESS,
-        curveStepCount: DEFAULT_CURVE_STEP_COUNT,
-        rotation: rotationInRadians,
-    };
+  return {
+    id: `${Date.now()}-${Math.random()}`,
+    color: hasStroke ? paperColorToCss(styleSource.strokeColor) : 'transparent',
+    strokeWidth: hasStroke ? styleSource.strokeWidth ?? 1 : 0,
+    strokeLineDash: dashArray,
+    strokeLineJoin: styleSource.strokeJoin as 'miter' | 'round' | 'bevel' | undefined,
+    strokeLineCapStart: capStyle,
+    strokeLineCapEnd: capStyle,
+    fill: fillColor,
+    opacity: styleSource.opacity ?? 1,
+    isRough: false,
+    fillStyle: 'solid',
+    roughness: 0,
+    bowing: 0,
+    fillWeight: DEFAULT_FILL_WEIGHT,
+    hachureAngle: DEFAULT_HACHURE_ANGLE,
+    hachureGap: DEFAULT_HACHURE_GAP,
+    curveTightness: DEFAULT_CURVE_TIGHTNESS,
+    curveStepCount: DEFAULT_CURVE_STEP_COUNT,
+    rotation: rotationInRadians,
+  };
 };
 
 
