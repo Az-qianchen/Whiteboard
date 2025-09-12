@@ -168,14 +168,14 @@ export const MainLayout: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-primary)]">
+            <div className="h-full w-full flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-primary)]">
                 正在加载...
             </div>
         );
     }
 
     return (
-        <div className="h-screen w-screen font-sans bg-transparent flex overflow-hidden">
+        <div className="h-full w-full font-sans bg-transparent flex overflow-hidden">
             <LayersProvider {...store}>
                 <MainMenuPanel />
 
