@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { pathsToSvgString, pathsToPngBlob } from '../../lib/export';
 import { fileSave } from 'browser-fs-access';
 import type { AppActionsProps } from '../useAppActions';
-import type { FrameData, AnimationExportOptions } from '../../types';
+import type { FrameData, AnimationExportOptions, ImageData } from '../../types';
 import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '../../lib/drawing';
 import JSZip from 'jszip';
 
@@ -48,9 +48,19 @@ export const useExportActions = ({
   const handleCopyAsPng = useCallback(async () => {
     if (selectedPathIds.length === 0) return;
 
-    // --- Frame Export Logic ---
     if (selectedPathIds.length === 1) {
       const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
+      if (selectedPath?.tool === 'image') {
+        try {
+          const res = await fetch((selectedPath as ImageData).src);
+          const blob = await res.blob();
+          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        } catch (err) {
+          console.error('Failed to copy image to clipboard:', err);
+          alert('Could not copy image.');
+        }
+        return;
+      }
       if (selectedPath && selectedPath.tool === 'frame') {
         const frame = selectedPath as FrameData;
         const rotatedFrameBbox = getPathBoundingBox(frame, true);
