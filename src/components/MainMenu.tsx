@@ -105,7 +105,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
   return (
     <nav className="w-full h-full bg-[var(--ui-panel-bg)] border-r border-[var(--ui-panel-border)] flex flex-col p-3 z-30">
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
+        <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-[20px] w-[20px]" /></div>
         <div>
             <h1 className="text-base font-bold text-[var(--text-primary)]">画板</h1>
             <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? '未命名'}>{activeFileName ?? '未命名'}</p>
