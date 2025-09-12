@@ -119,7 +119,7 @@ export const useSelection = ({
     
     handlePointerUpLogic({
       e, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath,
-      pathState, isClosingPath,
+      pathState, isClosingPath, selectionMode: toolbarState.selectionMode,
     });
     
     setIsHoveringMovable(false);

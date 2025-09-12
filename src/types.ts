@@ -244,7 +244,7 @@ export type BrushPathWithPoints = LivePath;
 
 export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'text' | 'frame';
 
-export type SelectionMode = 'move' | 'edit' | 'lasso';
+export type SelectionMode = 'move' | 'edit' | 'lasso' | 'cut';
 
 export type ResizeHandlePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'right' | 'bottom' | 'left';
 

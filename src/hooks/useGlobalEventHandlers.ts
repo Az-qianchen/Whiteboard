@@ -41,12 +41,13 @@ const useGlobalEventHandlers = () => {
   useEffect(() => {
     // --- Group 1: Shortcuts that should respect the default input filter ---
     // These will NOT fire when an INPUT, SELECT, or TEXTAREA is focused.
-    hotkeys('v,m,b,p,r,o,l,a,escape,enter,backspace,delete,t,f', (event, handler) => {
+    hotkeys('v,m,c,b,p,r,o,l,a,escape,enter,backspace,delete,t,f', (event, handler) => {
       event.preventDefault();
       switch (handler.key) {
         case 'v': setTool('selection'); setSelectionMode('edit'); break;
         case 'm': setTool('selection'); setSelectionMode('move'); break;
         case 'b': setTool('brush'); break;
+        case 'c': setTool('selection'); setSelectionMode('cut'); break;
         case 'p': setTool('pen'); break;
         case 'r': setTool('rectangle'); break;
         case 'o': setTool('ellipse'); break;

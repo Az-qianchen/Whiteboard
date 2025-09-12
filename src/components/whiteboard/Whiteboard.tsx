@@ -204,7 +204,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />
-          <Lasso lassoPath={lassoPath} viewTransform={viewTransform} />
+          <Lasso lassoPath={lassoPath} viewTransform={viewTransform} selectionMode={selectionMode} />
           
         </g>
       </svg>

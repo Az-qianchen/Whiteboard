@@ -1,6 +1,6 @@
 /**
- * 本文件定义了当有图形被选中时出现的选择工具栏。
- * 它允许用户在“移动/变换”模式和“编辑锚点”模式之间切换。
+ * 本文件定义了在使用选择工具时显示的选择工具栏。
+ * 它允许用户在不同选择模式间切换，并执行对齐、布尔运算等操作。
  */
 
 import React, { Fragment, useState } from 'react';
@@ -31,6 +31,7 @@ const MODES = [
   { name: 'move', title: '移动/变换 (M)', icon: ICONS.MOVE },
   { name: 'edit', title: '编辑锚点 (V)', icon: ICONS.EDIT },
   { name: 'lasso', title: '套索选择', icon: ICONS.LASSO },
+  { name: 'cut', title: '切刀', icon: ICONS.CUT },
 ];
 
 const ALIGN_BUTTONS = [
