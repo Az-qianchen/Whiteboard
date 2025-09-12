@@ -173,5 +173,48 @@ describe('resizePath flips across anchor', () => {
     expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
     expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
   });
+
+  it('flips horizontally for an arbitrarily rotated image', () => {
+    const image: ImageData = {
+      id: 'fh',
+      tool: 'image',
+      src: '',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 80,
+      rotation: Math.PI / 4,
+      color: '',
+      fill: '',
+      fillStyle: '',
+      strokeWidth: 0,
+      roughness: 0,
+      bowing: 0,
+      fillWeight: 0,
+      hachureAngle: 0,
+      hachureGap: 0,
+      curveTightness: 0,
+      curveStepCount: 9,
+    };
+
+    const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
+    const initialPos = rotatePoint({ x: 0, y: image.height / 2 }, center, image.rotation!);
+    const currentPos = rotatePoint({ x: image.width + 20, y: image.height / 2 }, center, image.rotation!);
+
+    const anchorBefore = rotatePoint({ x: image.x + image.width, y: image.y }, center, image.rotation!);
+
+    const resized = resizePath(image, 'left', currentPos, initialPos, false);
+
+    const newCenter = { x: resized.x + resized.width / 2, y: resized.y + resized.height / 2 };
+    const anchorLocalAfter = {
+      x: resized.scaleX < 0 ? resized.x : resized.x + resized.width,
+      y: resized.scaleY < 0 ? resized.y + resized.height : resized.y,
+    };
+    const anchorAfter = rotatePoint(anchorLocalAfter, newCenter, image.rotation!);
+
+    expect(resized.scaleX).toBe(-1);
+    expect(anchorAfter.x).toBeCloseTo(anchorBefore.x);
+    expect(anchorAfter.y).toBeCloseTo(anchorBefore.y);
+  });
 });
 

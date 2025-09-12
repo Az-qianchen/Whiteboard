@@ -85,23 +85,25 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
     case 'rectangle':
     case 'image':
     case 'text': {
-      const { x, y, width, height, rotation } = path;
-      if (!rotation) {
-        return {
-          x: x - margin,
-          y: y - margin,
-          width: width + margin * 2,
-          height: height + margin * 2,
-        };
-      }
+      const { x, y, width, height, rotation, scaleX = 1, scaleY = 1 } = path;
+      const cx = x + width / 2;
+      const cy = y + height / 2;
 
-      const center = { x: x + width / 2, y: y + height / 2 };
+      const transformPoint = (p: Point): Point => {
+        let tx = cx + (p.x - cx) * scaleX;
+        let ty = cy + (p.y - cy) * scaleY;
+        if (rotation) {
+          return rotatePoint({ x: tx, y: ty }, { x: cx, y: cy }, rotation);
+        }
+        return { x: tx, y: ty };
+      };
+
       const corners = [
-        { x: x, y: y },
-        { x: x + width, y: y },
+        { x, y },
+        { x: x + width, y },
         { x: x + width, y: y + height },
-        { x: x, y: y + height },
-      ].map(p => rotatePoint(p, center, rotation));
+        { x, y: y + height },
+      ].map(transformPoint);
 
       const minX = Math.min(...corners.map(p => p.x));
       const minY = Math.min(...corners.map(p => p.y));
@@ -116,19 +118,22 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       };
     }
     case 'polygon': {
-      const { x, y, width, height, sides, rotation } = path;
-      const vertices = getPolygonVertices(x, y, width, height, sides);
-      
-      let finalVertices = vertices;
-      if (rotation) {
-        const center = { x: x + width / 2, y: y + height / 2 };
-        finalVertices = vertices.map(p => rotatePoint(p, center, rotation));
-      }
-      
-      const minX = Math.min(...finalVertices.map(p => p.x));
-      const minY = Math.min(...finalVertices.map(p => p.y));
-      const maxX = Math.max(...finalVertices.map(p => p.x));
-      const maxY = Math.max(...finalVertices.map(p => p.y));
+      const { x, y, width, height, sides, rotation, scaleX = 1, scaleY = 1 } = path;
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      const vertices = getPolygonVertices(x, y, width, height, sides).map(p => {
+        let tx = cx + (p.x - cx) * scaleX;
+        let ty = cy + (p.y - cy) * scaleY;
+        if (rotation) {
+          return rotatePoint({ x: tx, y: ty }, { x: cx, y: cy }, rotation);
+        }
+        return { x: tx, y: ty };
+      });
+
+      const minX = Math.min(...vertices.map(p => p.x));
+      const minY = Math.min(...vertices.map(p => p.y));
+      const maxX = Math.max(...vertices.map(p => p.x));
+      const maxY = Math.max(...vertices.map(p => p.y));
 
       return {
         x: minX - margin,
