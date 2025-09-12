@@ -3,7 +3,7 @@
  */
 import { useCallback } from 'react';
 import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '../../lib/drawing';
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData } from '../../types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '../../types';
 import type { AppActionsProps } from '../useAppActions';
 import { importSvg } from '../../lib/import';
 
@@ -245,8 +245,9 @@ export const useObjectActions = ({
 
   /**
    * 将选中的图片转换为矢量图形。
+   * @param options - 矢量化参数选项。
    */
-  const handleTraceImage = useCallback(async () => {
+  const handleTraceImage = useCallback(async (options: TraceOptions) => {
     if (selectedPathIds.length !== 1) return;
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
 
@@ -254,11 +255,11 @@ export const useObjectActions = ({
     const imagePathData = imagePath as ImageData;
 
     const ImageTracer = (await import('imagetracerjs')).default;
-    
+
     const svgString = await new Promise<string>((resolve) => {
         ImageTracer.imageToSVG(imagePathData.src, (svgstr: string) => {
             resolve(svgstr);
-        }, 'default');
+        }, options);
     });
 
     const tracedPaths = importSvg(svgString);

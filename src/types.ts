@@ -87,6 +87,14 @@ export interface AnimationExportOptions {
   clipToFrameId?: string | 'full';
 }
 
+// 图片矢量化参数选项
+export interface TraceOptions {
+  ltres: number;          // 直线阈值
+  qtres: number;          // 曲线阈值
+  pathomit: number;       // 忽略小路径长度
+  numberofcolors: number; // 颜色数量
+}
+
 interface ShapeBase {
   id: string;
   name?: string; // 用于图层，特别是组
