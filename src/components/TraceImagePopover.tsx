@@ -47,13 +47,13 @@ export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace })
           >
             <Popover.Panel className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
               <div className="space-y-3">
-                <Slider label="颜色数量" value={colors} setValue={setColors} min={2} max={32} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}} displayValue={`${colors}`}
+                <Slider label="颜色数量" value={colors} setValue={setColors} min={2} max={32} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <Slider label="直线阈值" value={ltres} setValue={setLtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}} displayValue={`${ltres}`}
+                <Slider label="直线阈值" value={ltres} setValue={setLtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <Slider label="曲线阈值" value={qtres} setValue={setQtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}} displayValue={`${qtres}`}
+                <Slider label="曲线阈值" value={qtres} setValue={setQtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <Slider label="路径忽略" value={pathomit} setValue={setPathomit} min={0} max={50} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}} displayValue={`${pathomit}`}
+                <Slider label="路径忽略" value={pathomit} setValue={setPathomit} min={0} max={50} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
                 <button
                   type="button"
