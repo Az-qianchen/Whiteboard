@@ -6,6 +6,7 @@ import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVe
 import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '../../types';
 import type { AppActionsProps } from '../useAppActions';
 import { importSvg } from '../../lib/import';
+import { removeBackground, adjustHsv, type HsvAdjustment } from '../../lib/image';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
 
@@ -244,6 +245,59 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds, pathState]);
 
   /**
+   * 对选中的图片执行简单抠图。
+   */
+  const handleRemoveBackground = useCallback(async () => {
+    if (selectedPathIds.length !== 1) return;
+    const imagePath = paths.find(p => p.id === selectedPathIds[0]);
+    if (!imagePath || imagePath.tool !== 'image') return;
+
+    pathState.beginCoalescing();
+    const img = new Image();
+    img.src = (imagePath as ImageData).src;
+    await new Promise(resolve => { img.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { pathState.endCoalescing(); return; }
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const bg = { r: data.data[0], g: data.data[1], b: data.data[2] };
+    const newData = removeBackground(data, { background: bg });
+    ctx.putImageData(newData, 0, 0);
+    const newSrc = canvas.toDataURL();
+    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+    pathState.endCoalescing();
+  }, [paths, selectedPathIds, pathState]);
+
+  /**
+   * 调整选中图片的 HSV。
+   */
+  const handleAdjustImageHsv = useCallback(async (adj: HsvAdjustment) => {
+    if (selectedPathIds.length !== 1) return;
+    const imagePath = paths.find(p => p.id === selectedPathIds[0]);
+    if (!imagePath || imagePath.tool !== 'image') return;
+
+    pathState.beginCoalescing();
+    const img = new Image();
+    img.src = (imagePath as ImageData).src;
+    await new Promise(resolve => { img.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { pathState.endCoalescing(); return; }
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const newData = adjustHsv(data, adj);
+    ctx.putImageData(newData, 0, 0);
+    const newSrc = canvas.toDataURL();
+    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+    pathState.endCoalescing();
+  }, [paths, selectedPathIds, pathState]);
+
+  /**
    * 将选中的图片转换为矢量图形。
    * @param options - 矢量化参数选项。
    */
@@ -311,5 +365,5 @@ export const useObjectActions = ({
 
   }, [paths, selectedPathIds, pathState]);
   
-  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage };
+  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, handleRemoveBackground, handleAdjustImageHsv };
 };

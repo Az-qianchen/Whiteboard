@@ -27,6 +27,8 @@ interface SelectionToolbarProps {
   onMask: () => void;
   isTraceable: boolean;
   onTraceImage: (options: TraceOptions) => void;
+  canRemoveBackground: boolean;
+  onRemoveBackground: () => void;
 }
 
 const MODES = [
@@ -65,6 +67,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   onMask,
   isTraceable,
   onTraceImage,
+  canRemoveBackground,
+  onRemoveBackground,
 }) => {
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
@@ -132,6 +136,15 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
+      {canRemoveBackground && (
+        <button
+          onClick={onRemoveBackground}
+          title="抠图"
+          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+        >
+          {ICONS.REMOVE_BG}
+        </button>
+      )}
 
       {canAlignOrDistribute && (
           <Popover className="relative">
