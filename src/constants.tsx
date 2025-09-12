@@ -28,8 +28,8 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
-const ICON_SIZE = 'w-[17px] h-[17px]';
-const ICON_SIZE_SM = 'w-[14px] h-[14px]';
+export const ICON_SIZE = 'w-[17px] h-[17px]';
+export const ICON_SIZE_SM = 'w-[14px] h-[14px]';
 
 export const BUTTON_SIZE = 'w-[34px] h-[34px]';
 export const BUTTON_SIZE_SM = 'w-[31px] h-[31px]';
