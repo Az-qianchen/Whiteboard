@@ -17,6 +17,20 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, 'src'),
         }
       },
+      build: {
+        chunkSizeWarningLimit: 1500,
+        rollupOptions: {
+          onwarn(warning, handler) {
+            if (
+              warning.code === 'MODULE_LEVEL_DIRECTIVE' &&
+              /@headlessui/.test(warning.id ?? '')
+            ) {
+              return;
+            }
+            handler(warning);
+          },
+        },
+      },
       test: {
         environment: 'jsdom',
         setupFiles: ['src/setupTests.ts'],

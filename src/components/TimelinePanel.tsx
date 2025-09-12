@@ -7,6 +7,7 @@ import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
 import { pathsToSvgString } from '../lib/export';
+import PanelButton from '@/components/PanelButton';
 import type { Frame } from '../types';
 
 /**
@@ -134,7 +135,7 @@ export const TimelinePanel: React.FC = () => {
         <Transition
             show={!isTimelineCollapsed}
             as="div"
-            className="flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
+            className="w-full max-w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"
             enterTo="opacity-100 max-h-48"
@@ -142,16 +143,20 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-48"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-48 flex flex-col gap-3">
+            <div className="p-3 h-48 w-full max-w-full flex flex-col gap-3">
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <button onClick={handleRewind} title="回到开头" className="p-2 rounded-lg flex items-center justify-center w-10 h-10 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]">
-                            {ICONS.REWIND}
-                        </button>
-                        <button onClick={handlePlayPause} title={isPlaying ? '暂停' : '播放'} className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 ${isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>
-                            {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
-                        </button>
-                    </div>
+                      <div className="flex items-center gap-2">
+                          <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
+                              {ICONS.REWIND}
+                          </PanelButton>
+                          <PanelButton
+                              onClick={handlePlayPause}
+                              title={isPlaying ? '暂停' : '播放'}
+                              className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                          >
+                              {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
+                          </PanelButton>
+                      </div>
                     <div className="flex items-center gap-2">
                          <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
                          <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-20">
@@ -162,11 +167,15 @@ export const TimelinePanel: React.FC = () => {
                            />
                          </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setIsOnionSkinEnabled(p => !p)} title="洋葱皮" className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 ${isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>
-                            {ICONS.ONION_SKIN}
-                        </button>
-                        <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                      <div className="flex items-center gap-2">
+                          <PanelButton
+                              onClick={() => setIsOnionSkinEnabled(p => !p)}
+                              title="洋葱皮"
+                              className={isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                          >
+                              {ICONS.ONION_SKIN}
+                          </PanelButton>
+                          <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
                                 <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-20">
@@ -202,12 +211,16 @@ export const TimelinePanel: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0">
-                    <div className="flex flex-col gap-2 h-full">
-                        <button onClick={addFrame} title="添加新帧" className="flex-1 p-2 rounded-lg flex items-center justify-center w-10 bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]">{ICONS.PLUS}</button>
-                        <button onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className="flex-1 p-2 rounded-lg flex items-center justify-center w-10 bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)]">{ICONS.COPY}</button>
-                    </div>
-                    <div className="h-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
+                      <div className="flex flex-col gap-2 h-full">
+                          <PanelButton onClick={addFrame} title="添加新帧" className="flex-1 !h-auto">
+                              {ICONS.PLUS}
+                          </PanelButton>
+                          <PanelButton onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className="flex-1 !h-auto">
+                              {ICONS.COPY}
+                          </PanelButton>
+                      </div>
+                    <div className="h-full w-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
                         <div className="flex items-center gap-2 h-full">
                             {frames.map((frame, index) => (
                                 <div 
