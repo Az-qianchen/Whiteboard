@@ -134,7 +134,7 @@ export const TimelinePanel: React.FC = () => {
         <Transition
             show={!isTimelineCollapsed}
             as="div"
-            className="flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
+            className="w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"
             enterTo="opacity-100 max-h-48"

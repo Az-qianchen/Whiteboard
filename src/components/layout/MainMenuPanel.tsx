@@ -32,11 +32,6 @@ export const MainMenuPanel: React.FC = () => {
         setBackgroundColor,
         activeFileName,
         viewTransform,
-        // FIX: Destructure `undo` and `redo` from context and alias them to `handleUndo` and `handleRedo`.
-        undo: handleUndo,
-        canUndo,
-        redo: handleRedo,
-        canRedo,
         isStatusBarCollapsed,
         setIsStatusBarCollapsed,
         pngExportOptions,
@@ -161,10 +156,6 @@ export const MainMenuPanel: React.FC = () => {
                     activeFileName={activeFileName}
                     onResetPreferences={handleResetPreferences}
                     zoomLevel={viewTransform.scale}
-                    onUndo={handleUndo}
-                    canUndo={canUndo}
-                    onRedo={handleRedo}
-                    canRedo={canRedo}
                     selectionInfo={selectionInfo}
                     elementCount={elementCount}
                     canvasWidth={canvasWidth}
