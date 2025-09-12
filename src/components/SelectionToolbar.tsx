@@ -8,6 +8,8 @@ import { Popover, Transition, RadioGroup } from '@headlessui/react';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider } from './side-toolbar';
+import { TraceImagePopover } from './TraceImagePopover';
+import type { TraceOptions } from '../types';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
 
@@ -24,7 +26,7 @@ interface SelectionToolbarProps {
   onBooleanOperation: (operation: BooleanOperation) => void;
   onMask: () => void;
   isTraceable: boolean;
-  onTraceImage: () => void;
+  onTraceImage: (options: TraceOptions) => void;
 }
 
 const MODES = [
@@ -129,15 +131,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           </Popover>
       )}
 
-      {isTraceable && (
-        <button
-          onClick={onTraceImage}
-          title="将图片转换为矢量图"
-          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
-        >
-          {ICONS.TRACE_IMAGE}
-        </button>
-      )}
+      {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
 
       {canAlignOrDistribute && (
           <Popover className="relative">
