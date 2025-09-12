@@ -102,6 +102,20 @@ body {
   display: block;
 }
 
+button {
+  transform: scale(0.85);
+  transform-origin: center;
+}
+
+.icon {
+  transform: scale(0.85);
+  transform-origin: center;
+}
+
+button .icon {
+  transform: none;
+}
+
 /* 为输入框和文本区域重新启用文本选择 */
 input,
 textarea {

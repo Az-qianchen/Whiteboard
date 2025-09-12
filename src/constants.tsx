@@ -54,53 +54,53 @@ export const DEFAULT_DISABLE_MULTI_STROKE_FILL = false;
 
 const ENDPOINT_ICONS = {
   NONE: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4" y1="12" x2="20" y2="12" />
     </svg>
   ),
   DOT: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="14" y2="12" />
         <path d="M20 8.5 L14 12 L20 15.5 Z" fill="none" />
     </svg>
   ),
   ARROW: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="20" y2="12" />
         <polyline points="14 8.5 20 12 14 15.5" />
     </svg>
   ),
   REVERSE_ARROW: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 12h8m0 0l6 -4.5m-6 4.5l6 4.5" />
     </svg>
   ),
   TRIANGLE: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="14" y2="12" />
         <path d="M14 8.5 L20 12 L14 15.5 Z" fill="none" />
     </svg>
   ),
   SQUARE: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="16" y2="12" />
         <rect x="16" y="8" width="8" height="8" fill="none" />
     </svg>
   ),
   CIRCLE: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="15" y2="12" />
         <circle cx="19" cy="12" r="4" fill="none" />
     </svg>
   ),
   DIAMOND: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="14" y2="12" />
         <path d="M18 8 L22 12 L18 16 L14 12 Z" fill="none" />
     </svg>
   ),
   BAR: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="4" y1="12" x2="20" y2="12" />
         <line x1="20" y1="7" x2="20" y2="17" />
     </svg>
@@ -121,82 +121,82 @@ export const ENDPOINT_STYLES: { name: EndpointStyle; title: string; icon: JSX.El
 
 
 export const ICONS = {
-  UNDO: <Undo2 className="h-5 w-5" />,
-  REDO: <Redo2 className="h-5 w-5" />,
-  CLEAR: <Trash2 className="h-5 w-5" />,
-  PEN: <PenTool className="h-5 w-5" />,
-  BRUSH: <Pencil className="h-5 w-5" />,
-  CHECK: <Check className="h-5 w-5" />,
-  SELECTION: <MousePointer2 className="h-5 w-5" />,
-  EDIT: <Spline className="h-5 w-5" />,
-  MOVE: <Move className="h-5 w-5" />,
-  RECTANGLE: <Square className="h-5 w-5" />,
-  POLYGON: <Triangle className="h-5 w-5" />,
-  ELLIPSE: <Circle className="h-5 w-5" />,
-  LINE: <Slash className="h-5 w-5" />,
-  ARC: <Spline className="h-5 w-5" />,
-  TEXT: <Type className="h-5 w-5" />,
-  FRAME: <SquareDashed className="h-5 w-5" />,
-  LASSO: <Lasso className="h-5 w-5" />,
-  PROPERTIES: <SlidersHorizontal className="h-5 w-5" />,
-  GRID: <Grid3X3 className="h-5 w-5" />,
-  CUT: <Scissors className="h-5 w-5" />,
-  COPY: <Copy className="h-5 w-5" />,
-  PASTE: <ClipboardList className="h-5 w-5" />,
-  FLIP_HORIZONTAL: <FlipHorizontal2 className="h-5 w-5" />,
-  FLIP_VERTICAL: <FlipVertical2 className="h-5 w-5" />,
-  COPY_SVG: <FileCode2 className="h-5 w-5" />,
-  COPY_PNG: <FileImage className="h-5 w-5" />,
-  IMPORT: <FileDown className="h-5 w-5" />,
-  MENU: <Menu className="h-5 w-5" />,
-  SAVE: <Save className="h-5 w-5" />,
-  OPEN: <Folder className="h-5 w-5" />,
-  PATH_CONVERT: <Spline className="h-5 w-5" />,
-  SIMPLIFY_PATH: <Waypoints className="h-5 w-5" />,
-  BRING_FORWARD: <ArrowUpSquare className="h-5 w-5" />,
-  SEND_BACKWARD: <ArrowDownSquare className="h-5 w-5" />,
-  CHEVRON_LEFT: <ChevronLeft className="h-5 w-5" />,
-  CHEVRON_DOWN: <ChevronDown className="w-full h-full" />,
-  CHEVRON_UP: <ChevronUp className="h-5 w-5" />,
-  LOCK_CLOSED: <Lock className="h-5 w-5" />,
-  LOCK_OPEN: <LockOpen className="h-5 w-5" />,
-  EYE_OPEN: <Eye className="h-5 w-5" />,
-  EYE_OFF: <EyeOff className="h-5 w-5" />,
-  TRASH: <Trash2 className="h-5 w-5" />,
-  LAYERS: <Layers className="h-5 w-5" />,
-  BACKGROUND_COLOR: <Paintbrush className="h-5 w-5" />,
-  ALIGN_LEFT: <AlignLeft className="h-5 w-5" />,
-  ALIGN_HORIZONTAL_CENTER: <AlignJustify className="h-5 w-5" />,
-  ALIGN_RIGHT: <AlignRight className="h-5 w-5" />,
-  ALIGN_TOP: <AlignStartHorizontal className="h-5 w-5" />,
-  ALIGN_VERTICAL_CENTER: <AlignCenterHorizontal className="h-5 w-5" />,
-  ALIGN_BOTTOM: <AlignEndHorizontal className="h-5 w-5" />,
-  ALIGN_DISTRIBUTE: <AlignHorizontalSpaceAround className="h-5 w-5" />,
-  DISTRIBUTE_HORIZONTAL: <AlignHorizontalJustifyCenter className="h-4 w-4" />,
-  DISTRIBUTE_VERTICAL: <AlignVerticalJustifyCenter className="h-4 w-4" />,
-  STYLE_LIBRARY: <SwatchBook className="h-5 w-5" />,
-  ENDPOINT_FILL_HOLLOW: <CircleDot />,
-  ENDPOINT_FILL_SOLID: <Circle className="fill-current" />,
-  ENDPOINT_SETTINGS: <MoveRight className="h-5 w-5" />,
-  DASH_SETTINGS: <MoreHorizontal className="h-5 w-5" />,
-  MORE_VERTICAL: <MoreVertical className="h-4 w-4" />,
-  PLUS: <Plus className="h-5 w-5" />,
-  IMAGE: <ImageIcon className="h-5 w-5" />,
-  GROUP: <Boxes className="h-5 w-5" />,
-  LOGO: <Pencil />,
-  EYEDROPPER: <Pipette className="h-5 w-5" />,
-  EFFECTS: <Sparkles className="h-5 w-5" />,
-  X: <X className="h-4 w-4" />,
-  GRIP: <GripVertical className="h-4 w-4" />,
-  MASK: <Blend className="h-5 w-5" />,
-  PLAY: <Play className="h-5 w-5" />,
-  PAUSE: <Pause className="h-5 w-5" />,
-  REWIND: <Rewind className="h-5 w-5" />,
-  TRACE_IMAGE: <Wand2 className="h-5 w-5" />,
-  BOOLEAN_UNION: <SquaresUnite className="h-5 w-5" />,
-  BOOLEAN_SUBTRACT: <SquaresSubtract className="h-5 w-5" />,
-  BOOLEAN_INTERSECT: <SquaresIntersect className="h-5 w-5" />,
-  BOOLEAN_EXCLUDE: <SquaresExclude className="h-5 w-5" />,
-  ONION_SKIN: <Layers2 className="h-5 w-5" />,
-  RESET_PREFERENCES: <RotateCcw className="h-5 w-5" />,
+  UNDO: <Undo2 className="icon h-5 w-5" />,
+  REDO: <Redo2 className="icon h-5 w-5" />,
+  CLEAR: <Trash2 className="icon h-5 w-5" />,
+  PEN: <PenTool className="icon h-5 w-5" />,
+  BRUSH: <Pencil className="icon h-5 w-5" />,
+  CHECK: <Check className="icon h-5 w-5" />,
+  SELECTION: <MousePointer2 className="icon h-5 w-5" />,
+  EDIT: <Spline className="icon h-5 w-5" />,
+  MOVE: <Move className="icon h-5 w-5" />,
+  RECTANGLE: <Square className="icon h-5 w-5" />,
+  POLYGON: <Triangle className="icon h-5 w-5" />,
+  ELLIPSE: <Circle className="icon h-5 w-5" />,
+  LINE: <Slash className="icon h-5 w-5" />,
+  ARC: <Spline className="icon h-5 w-5" />,
+  TEXT: <Type className="icon h-5 w-5" />,
+  FRAME: <SquareDashed className="icon h-5 w-5" />,
+  LASSO: <Lasso className="icon h-5 w-5" />,
+  PROPERTIES: <SlidersHorizontal className="icon h-5 w-5" />,
+  GRID: <Grid3X3 className="icon h-5 w-5" />,
+  CUT: <Scissors className="icon h-5 w-5" />,
+  COPY: <Copy className="icon h-5 w-5" />,
+  PASTE: <ClipboardList className="icon h-5 w-5" />,
+  FLIP_HORIZONTAL: <FlipHorizontal2 className="icon h-5 w-5" />,
+  FLIP_VERTICAL: <FlipVertical2 className="icon h-5 w-5" />,
+  COPY_SVG: <FileCode2 className="icon h-5 w-5" />,
+  COPY_PNG: <FileImage className="icon h-5 w-5" />,
+  IMPORT: <FileDown className="icon h-5 w-5" />,
+  MENU: <Menu className="icon h-5 w-5" />,
+  SAVE: <Save className="icon h-5 w-5" />,
+  OPEN: <Folder className="icon h-5 w-5" />,
+  PATH_CONVERT: <Spline className="icon h-5 w-5" />,
+  SIMPLIFY_PATH: <Waypoints className="icon h-5 w-5" />,
+  BRING_FORWARD: <ArrowUpSquare className="icon h-5 w-5" />,
+  SEND_BACKWARD: <ArrowDownSquare className="icon h-5 w-5" />,
+  CHEVRON_LEFT: <ChevronLeft className="icon h-5 w-5" />,
+  CHEVRON_DOWN: <ChevronDown className="icon w-full h-full" />,
+  CHEVRON_UP: <ChevronUp className="icon h-5 w-5" />,
+  LOCK_CLOSED: <Lock className="icon h-5 w-5" />,
+  LOCK_OPEN: <LockOpen className="icon h-5 w-5" />,
+  EYE_OPEN: <Eye className="icon h-5 w-5" />,
+  EYE_OFF: <EyeOff className="icon h-5 w-5" />,
+  TRASH: <Trash2 className="icon h-5 w-5" />,
+  LAYERS: <Layers className="icon h-5 w-5" />,
+  BACKGROUND_COLOR: <Paintbrush className="icon h-5 w-5" />,
+  ALIGN_LEFT: <AlignLeft className="icon h-5 w-5" />,
+  ALIGN_HORIZONTAL_CENTER: <AlignJustify className="icon h-5 w-5" />,
+  ALIGN_RIGHT: <AlignRight className="icon h-5 w-5" />,
+  ALIGN_TOP: <AlignStartHorizontal className="icon h-5 w-5" />,
+  ALIGN_VERTICAL_CENTER: <AlignCenterHorizontal className="icon h-5 w-5" />,
+  ALIGN_BOTTOM: <AlignEndHorizontal className="icon h-5 w-5" />,
+  ALIGN_DISTRIBUTE: <AlignHorizontalSpaceAround className="icon h-5 w-5" />,
+  DISTRIBUTE_HORIZONTAL: <AlignHorizontalJustifyCenter className="icon h-4 w-4" />,
+  DISTRIBUTE_VERTICAL: <AlignVerticalJustifyCenter className="icon h-4 w-4" />,
+  STYLE_LIBRARY: <SwatchBook className="icon h-5 w-5" />,
+  ENDPOINT_FILL_HOLLOW: <CircleDot className="icon" />, 
+  ENDPOINT_FILL_SOLID: <Circle className="icon fill-current" />,
+  ENDPOINT_SETTINGS: <MoveRight className="icon h-5 w-5" />,
+  DASH_SETTINGS: <MoreHorizontal className="icon h-5 w-5" />,
+  MORE_VERTICAL: <MoreVertical className="icon h-4 w-4" />,
+  PLUS: <Plus className="icon h-5 w-5" />,
+  IMAGE: <ImageIcon className="icon h-5 w-5" />,
+  GROUP: <Boxes className="icon h-5 w-5" />,
+  LOGO: <Pencil className="icon" />,
+  EYEDROPPER: <Pipette className="icon h-5 w-5" />,
+  EFFECTS: <Sparkles className="icon h-5 w-5" />,
+  X: <X className="icon h-4 w-4" />,
+  GRIP: <GripVertical className="icon h-4 w-4" />,
+  MASK: <Blend className="icon h-5 w-5" />,
+  PLAY: <Play className="icon h-5 w-5" />,
+  PAUSE: <Pause className="icon h-5 w-5" />,
+  REWIND: <Rewind className="icon h-5 w-5" />,
+  TRACE_IMAGE: <Wand2 className="icon h-5 w-5" />,
+  BOOLEAN_UNION: <SquaresUnite className="icon h-5 w-5" />,
+  BOOLEAN_SUBTRACT: <SquaresSubtract className="icon h-5 w-5" />,
+  BOOLEAN_INTERSECT: <SquaresIntersect className="icon h-5 w-5" />,
+  BOOLEAN_EXCLUDE: <SquaresExclude className="icon h-5 w-5" />,
+  ONION_SKIN: <Layers2 className="icon h-5 w-5" />,
+  RESET_PREFERENCES: <RotateCcw className="icon h-5 w-5" />,
 };
