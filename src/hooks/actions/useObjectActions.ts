@@ -6,6 +6,7 @@ import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVe
 import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '../../types';
 import type { AppActionsProps } from '../useAppActions';
 import { importSvg } from '../../lib/import';
+import { removeBackground, adjustHsv, type HsvAdjustment } from '../../lib/image';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
 
@@ -19,6 +20,7 @@ export const useObjectActions = ({
   selectedPathIds,
   pathState,
   toolbarState,
+  getPointerPosition,
 }: AppActionsProps) => {
 
   /**
@@ -244,6 +246,70 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds, pathState]);
 
   /**
+   * 对选中的图片执行简单抠图，支持跨域图片。
+   */
+  const handleRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean }) => {
+    if (selectedPathIds.length !== 1) return;
+    const imagePath = paths.find(p => p.id === selectedPathIds[0]);
+    if (!imagePath || imagePath.tool !== 'image') return;
+
+    const onClick = async (e: MouseEvent) => {
+      document.removeEventListener('click', onClick);
+      pathState.beginCoalescing();
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = (imagePath as ImageData).src;
+      await new Promise(resolve => { img.onload = resolve; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { pathState.endCoalescing(); return; }
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const svg = document.querySelector('svg') as SVGSVGElement;
+      const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      const imgData = imagePath as ImageData;
+      const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
+      const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
+      const newData = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
+      ctx.putImageData(newData, 0, 0);
+      const newSrc = canvas.toDataURL();
+      pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+      pathState.endCoalescing();
+    };
+
+    document.addEventListener('click', onClick, { once: true });
+  }, [paths, selectedPathIds, pathState, getPointerPosition]);
+
+  /**
+   * 调整选中图片的 HSV，支持跨域图片。
+   */
+  const handleAdjustImageHsv = useCallback(async (adj: HsvAdjustment) => {
+    if (selectedPathIds.length !== 1) return;
+    const imagePath = paths.find(p => p.id === selectedPathIds[0]);
+    if (!imagePath || imagePath.tool !== 'image') return;
+
+    pathState.beginCoalescing();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = (imagePath as ImageData).src;
+    await new Promise(resolve => { img.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { pathState.endCoalescing(); return; }
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const newData = adjustHsv(data, adj);
+    ctx.putImageData(newData, 0, 0);
+    const newSrc = canvas.toDataURL();
+    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+    pathState.endCoalescing();
+  }, [paths, selectedPathIds, pathState]);
+
+  /**
    * 将选中的图片转换为矢量图形。
    * @param options - 矢量化参数选项。
    */
@@ -311,5 +377,5 @@ export const useObjectActions = ({
 
   }, [paths, selectedPathIds, pathState]);
   
-  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage };
+  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, handleRemoveBackground, handleAdjustImageHsv };
 };
