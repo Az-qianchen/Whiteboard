@@ -20,6 +20,7 @@ export const useObjectActions = ({
   selectedPathIds,
   pathState,
   toolbarState,
+  getPointerPosition,
 }: AppActionsProps) => {
 
   /**
@@ -247,30 +248,39 @@ export const useObjectActions = ({
   /**
    * 对选中的图片执行简单抠图，支持跨域图片。
    */
-  const handleRemoveBackground = useCallback(async () => {
+  const handleRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean }) => {
     if (selectedPathIds.length !== 1) return;
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
 
-    pathState.beginCoalescing();
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = (imagePath as ImageData).src;
-    await new Promise(resolve => { img.onload = resolve; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) { pathState.endCoalescing(); return; }
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const bg = { r: data.data[0], g: data.data[1], b: data.data[2] };
-    const newData = removeBackground(data, { background: bg });
-    ctx.putImageData(newData, 0, 0);
-    const newSrc = canvas.toDataURL();
-    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
-    pathState.endCoalescing();
-  }, [paths, selectedPathIds, pathState]);
+    const onClick = async (e: MouseEvent) => {
+      document.removeEventListener('click', onClick);
+      pathState.beginCoalescing();
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = (imagePath as ImageData).src;
+      await new Promise(resolve => { img.onload = resolve; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { pathState.endCoalescing(); return; }
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const svg = document.querySelector('svg') as SVGSVGElement;
+      const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      const imgData = imagePath as ImageData;
+      const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
+      const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
+      const newData = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
+      ctx.putImageData(newData, 0, 0);
+      const newSrc = canvas.toDataURL();
+      pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+      pathState.endCoalescing();
+    };
+
+    document.addEventListener('click', onClick, { once: true });
+  }, [paths, selectedPathIds, pathState, getPointerPosition]);
 
   /**
    * 调整选中图片的 HSV，支持跨域图片。

@@ -12,10 +12,14 @@ export interface HsvAdjustment {
 }
 
 export interface MattingOptions {
-  /** 需要去除的背景颜色 */
-  background: { r: number; g: number; b: number };
+  /** 点击位置 x 坐标 */
+  x: number;
+  /** 点击位置 y 坐标 */
+  y: number;
   /** 颜色差阈值，默认 10 */
   threshold?: number;
+  /** 是否只抠除连续区域，默认 true */
+  contiguous?: boolean;
 }
 
 /**
@@ -45,22 +49,49 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
 }
 
 /**
- * 简单抠图：根据给定背景色将相近像素透明化。
+ * 类似 PS 魔法棒的抠图：在点击位置根据阈值去除颜色。
  * @param imageData 原始图像数据
  * @param options 抠图选项
  * @returns 处理后的图像数据
  */
 export function removeBackground(imageData: ImageData, options: MattingOptions): ImageData {
-  const { background, threshold = 10 } = options;
+  const { x, y, threshold = 10, contiguous = true } = options;
+  const { width, height } = imageData;
   const data = new Uint8ClampedArray(imageData.data);
-  for (let i = 0; i < data.length; i += 4) {
-    const dr = data[i] - background.r;
-    const dg = data[i + 1] - background.g;
-    const db = data[i + 2] - background.b;
-    const dist = Math.sqrt(dr * dr + dg * dg + db * db);
-    if (dist <= threshold) data[i + 3] = 0;
+  const idx = (y * width + x) * 4;
+  const target = { r: data[idx], g: data[idx + 1], b: data[idx + 2] };
+
+  const withinThreshold = (i: number) => {
+    const dr = data[i] - target.r;
+    const dg = data[i + 1] - target.g;
+    const db = data[i + 2] - target.b;
+    return Math.sqrt(dr * dr + dg * dg + db * db) <= threshold;
+  };
+
+  if (contiguous) {
+    const stack: [number, number][] = [[x, y]];
+    const visited = new Uint8Array(width * height);
+    while (stack.length) {
+      const [cx, cy] = stack.pop()!;
+      const pi = cy * width + cx;
+      if (cx < 0 || cx >= width || cy < 0 || cy >= height || visited[pi]) continue;
+      visited[pi] = 1;
+      const di = pi * 4;
+      if (withinThreshold(di)) {
+        data[di + 3] = 0;
+        stack.push([cx + 1, cy]);
+        stack.push([cx - 1, cy]);
+        stack.push([cx, cy + 1]);
+        stack.push([cx, cy - 1]);
+      }
+    }
+  } else {
+    for (let i = 0; i < data.length; i += 4) {
+      if (withinThreshold(i)) data[i + 3] = 0;
+    }
   }
-  return new ImageData(data, imageData.width, imageData.height);
+
+  return new ImageData(data, width, height);
 }
 
 function clamp(value: number, min: number, max: number): number {
