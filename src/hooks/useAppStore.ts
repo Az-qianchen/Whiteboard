@@ -284,10 +284,13 @@ export const useAppStore = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      const sourceX = minX - originalPath.x;
+      const sourceY = minY - originalPath.y;
+
       ctx.drawImage(
         img,
-        minX,
-        minY,
+        sourceX,
+        sourceY,
         canvas.width,
         canvas.height,
         0,
