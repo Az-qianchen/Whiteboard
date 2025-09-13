@@ -17,7 +17,7 @@ import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
-import { measureText } from '../lib/drawing';
+import { measureText, rotatePoint } from '@/lib/drawing';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -248,8 +248,78 @@ export const useAppStore = () => {
   }, [activePathState]);
   const handleTextEditCommit = useCallback(() => { pathState.endCoalescing(); setEditingTextPathId(null); }, [pathState, setEditingTextPathId]);
   
-  const confirmCrop = useCallback(() => { /* ... crop logic ... */ }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
-  const cancelCrop = useCallback(() => { setCroppingState(null); setCurrentCropRect(null); }, [setCroppingState, setCurrentCropRect]);
+  const confirmCrop = useCallback(() => {
+    if (!appState.croppingState || !appState.currentCropRect) return;
+    const { pathId, originalPath } = appState.croppingState;
+    const cropRect = appState.currentCropRect;
+
+    const performCrop = async () => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = originalPath.src;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = err => reject(err);
+      });
+
+      const rotation = originalPath.rotation ?? 0;
+      const rotationCenter = {
+        x: originalPath.x + originalPath.width / 2,
+        y: originalPath.y + originalPath.height / 2,
+      };
+      const corners = [
+        { x: cropRect.x, y: cropRect.y },
+        { x: cropRect.x + cropRect.width, y: cropRect.y },
+        { x: cropRect.x + cropRect.width, y: cropRect.y + cropRect.height },
+        { x: cropRect.x, y: cropRect.y + cropRect.height },
+      ].map(p => rotatePoint(p, rotationCenter, -rotation));
+      const minX = Math.min(...corners.map(p => p.x));
+      const maxX = Math.max(...corners.map(p => p.x));
+      const minY = Math.min(...corners.map(p => p.y));
+      const maxY = Math.max(...corners.map(p => p.y));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(maxX - minX);
+      canvas.height = Math.round(maxY - minY);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const sourceX = minX - originalPath.x;
+      const sourceY = minY - originalPath.y;
+
+      ctx.drawImage(
+        img,
+        sourceX,
+        sourceY,
+        canvas.width,
+        canvas.height,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const newSrc = canvas.toDataURL();
+
+      pathState.setPaths(prev => prev.map(p =>
+        p.id === pathId
+          ? { ...(p as ImageData), src: newSrc, x: cropRect.x, y: cropRect.y, width: cropRect.width, height: cropRect.height, rotation }
+          : p
+      ));
+
+      setCroppingState(null);
+      setCurrentCropRect(null);
+      pathState.endCoalescing();
+    };
+
+    void performCrop();
+  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
+
+  const cancelCrop = useCallback(() => {
+    setCroppingState(null);
+    setCurrentCropRect(null);
+    pathState.endCoalescing();
+  }, [setCroppingState, setCurrentCropRect, pathState]);
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;

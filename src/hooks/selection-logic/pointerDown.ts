@@ -4,7 +4,7 @@
 // FIX: Removed 'React' from type import as it's not used and can cause errors.
 import type { MutableRefObject } from 'react';
 import type { Point, DragState, AnyPath, VectorPathData, ResizeHandlePosition, ImageData, BBox, GroupData, ArcData } from '../../types';
-import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier } from '../../lib/drawing';
+import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '../../lib/drawing';
 import { isPointHittingPath, findDeepestHitPath } from '../../lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
@@ -158,7 +158,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
             setDragState({
                 type: 'crop',
                 pathId,
-                handle,
+                handle: handle as ResizeHandlePosition,
                 initialCropRect: currentCropRect,
                 originalImage: croppingState.originalPath,
                 initialPointerPos: point,

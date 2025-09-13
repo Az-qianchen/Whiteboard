@@ -121,6 +121,43 @@ export function resizePath(
     return result;
 }
 
+/**
+ * 根据旋转角度转换尺寸调整手柄的位置。
+ * @param handle 原始手柄位置（未旋转）。
+ * @param angle 旋转角度（弧度，顺时针为正）。
+ * @returns 旋转后对应的手柄位置。
+ */
+export function rotateResizeHandle(handle: ResizeHandlePosition, angle: number): ResizeHandlePosition {
+    const vectors: Record<ResizeHandlePosition, Point> = {
+        'top-left': { x: -1, y: -1 },
+        'top': { x: 0, y: -1 },
+        'top-right': { x: 1, y: -1 },
+        'right': { x: 1, y: 0 },
+        'bottom-right': { x: 1, y: 1 },
+        'bottom': { x: 0, y: 1 },
+        'bottom-left': { x: -1, y: 1 },
+        'left': { x: -1, y: 0 },
+    };
+
+    const v = vectors[handle];
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const rx = v.x * cos - v.y * sin;
+    const ry = v.x * sin + v.y * cos;
+    const sx = Math.abs(rx) < 1e-8 ? 0 : Math.sign(rx);
+    const sy = Math.abs(ry) < 1e-8 ? 0 : Math.sign(ry);
+
+    if (sx === 0 && sy === -1) return 'top';
+    if (sx === 1 && sy === -1) return 'top-right';
+    if (sx === 1 && sy === 0) return 'right';
+    if (sx === 1 && sy === 1) return 'bottom-right';
+    if (sx === 0 && sy === 1) return 'bottom';
+    if (sx === -1 && sy === 1) return 'bottom-left';
+    if (sx === -1 && sy === 0) return 'left';
+    return 'top-left';
+}
+
+
 
 /**
  * 变换裁剪矩形。
