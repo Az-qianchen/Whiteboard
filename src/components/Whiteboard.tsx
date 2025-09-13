@@ -96,6 +96,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   croppingState,
   currentCropRect,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
   const [currentPointerPos, setCurrentPointerPos] = useState<Point | null>(null);
@@ -107,6 +108,19 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     if (svgRef.current) {
       setRc(rough.svg(svgRef.current));
     }
+  }, []);
+
+  // 阻止 Safari 上的捏合手势触发浏览器缩放
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const preventDefault = (e: Event) => e.preventDefault();
+    el.addEventListener('gesturestart', preventDefault);
+    el.addEventListener('gesturechange', preventDefault);
+    return () => {
+      el.removeEventListener('gesturestart', preventDefault);
+      el.removeEventListener('gesturechange', preventDefault);
+    };
   }, []);
 
   /**
@@ -174,6 +188,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className="w-full h-full bg-transparent overflow-hidden touch-none overscroll-contain"
       onWheel={onWheel}
       style={{ cursor }}
