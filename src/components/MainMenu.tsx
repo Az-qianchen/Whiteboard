@@ -90,6 +90,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     { label: '导出为 PNG…', isPngExporter: true },
     { label: '导出动画…', isAnimationExporter: true },
     { label: '---' },
+    { isLanguageSelector: true },
+    { label: '---' },
     { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
     { label: '清空数据', handler: onClearAllData, icon: ICONS.CLEAR, isDanger: true, disabled: !canClearAllData },
   ];
@@ -106,17 +108,14 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
 
   return (
     <nav className="w-full h-full bg-[var(--ui-panel-bg)] border-r border-[var(--ui-panel-border)] flex flex-col p-3 z-30">
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-2">
-          <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
-          <div>
-            <h1 className="text-base font-bold text-[var(--text-primary)]">{t('appTitle')}</h1>
-            <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? t('untitled')}>
-              {activeFileName ?? t('untitled')}
-            </p>
-          </div>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
+        <div>
+          <h1 className="text-base font-bold text-[var(--text-primary)]">{t('appTitle')}</h1>
+          <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? t('untitled')}>
+            {activeFileName ?? t('untitled')}
+          </p>
         </div>
-        <LanguageSelector />
       </div>
       
       <Tab.Group as="div" className="flex flex-col flex-grow min-h-0">
@@ -200,28 +199,36 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                 );
               }
 
-              if ((action as any).isAnimationExporter) {
-                return (
-                  <FloatingAnimationExporter
-                    key="animation-exporter"
-                    placement="right"
-                    onExportAnimation={onExportAnimation}
-                    canExport={frameCount > 1}
-                  >
-                    {({ ref, onClick }) => (
-                      <button
-                        ref={ref}
-                        onClick={onClick}
-                        disabled={frameCount <= 1}
-                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
-                      >
-                        <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.PLAY}</div>
-                        <span className="flex-grow">{action.label}</span>
-                      </button>
-                    )}
-                  </FloatingAnimationExporter>
-                );
-              }
+                if ((action as any).isAnimationExporter) {
+                  return (
+                    <FloatingAnimationExporter
+                      key="animation-exporter"
+                      placement="right"
+                      onExportAnimation={onExportAnimation}
+                      canExport={frameCount > 1}
+                    >
+                      {({ ref, onClick }) => (
+                        <button
+                          ref={ref}
+                          onClick={onClick}
+                          disabled={frameCount <= 1}
+                          className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
+                        >
+                          <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.PLAY}</div>
+                          <span className="flex-grow">{action.label}</span>
+                        </button>
+                      )}
+                    </FloatingAnimationExporter>
+                  );
+                }
+
+                if ((action as any).isLanguageSelector) {
+                  return (
+                    <div key="language-selector" className="p-2">
+                      <LanguageSelector />
+                    </div>
+                  );
+                }
 
               return (
                 <button
