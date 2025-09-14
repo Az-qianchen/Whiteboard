@@ -9,11 +9,11 @@ import App from './App';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
-// 屏蔽全局浏览器捏合手势，避免页面缩放
+// 屏蔽全局浏览器捏合及双指滑动手势，避免页面缩放或回退
 const blockGesture = (e: Event) => e.preventDefault();
-document.addEventListener('gesturestart', blockGesture);
-document.addEventListener('gesturechange', blockGesture);
-document.addEventListener('gestureend', blockGesture);
+['gesturestart', 'gesturechange', 'gestureend', 'touchstart', 'touchmove'].forEach(evt => {
+  document.addEventListener(evt, blockGesture, { passive: false });
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
