@@ -1,8 +1,14 @@
+/**
+ * 国际化配置
+ */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 export type Lang = 'en' | 'zh';
 
+/**
+ * 翻译资源
+ */
 const resources = {
   en: {
     translation: {
@@ -35,6 +41,9 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+/**
+ * 支持的语言列表
+ */
 export const supportedLangs: { code: Lang; labelKey: TranslationKey }[] = [
   { code: 'en', labelKey: 'en' },
   { code: 'zh', labelKey: 'zh' },
