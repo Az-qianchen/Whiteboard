@@ -176,8 +176,8 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
 
                     <div className={`grid grid-cols-2 items-center gap-2 transition-opacity ${format !== 'spritesheet' ? 'opacity-50 pointer-events-none' : ''}`}>
                         <label htmlFor="spritesheet-cols" className="text-sm font-medium text-[var(--text-primary)]">列数</label>
-                        <div className="flex items-center bg-black/20 rounded-md h-8 px-2">
-                            <input id="spritesheet-cols" type="number" min="1" step="1" value={columns} onChange={e => setColumns(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners" />
+                        <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px]">
+                            <input id="spritesheet-cols" type="number" min="1" step="1" value={columns} onChange={e => setColumns(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners" />
                         </div>
                     </div>
                     

@@ -143,7 +143,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
               onChange={e => setNameInput(e.target.value)}
               onBlur={handleNameCommit}
               onKeyDown={e => { if (e.key === 'Enter') handleNameCommit(); if (e.key === 'Escape') setIsEditing(false); }}
-              className="flex-grow text-sm truncate bg-transparent ring-1 ring-[var(--accent-primary)] rounded-sm px-1 min-w-0"
+              className="flex-grow text-xs truncate bg-transparent ring-1 ring-[var(--accent-primary)] rounded-sm px-1 min-w-0"
               onClick={e => e.stopPropagation()}
             />
           ) : (

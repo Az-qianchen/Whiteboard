@@ -188,19 +188,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
         </div>
         
         <div className="flex items-center justify-between gap-2 pt-1">
-           <div className="flex items-center bg-black/20 rounded-md h-9 px-2 w-[100px]">
+           <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-[100px]">
              <input
                type="text"
                value={hexInput}
                onChange={handleHexInputChange}
                onBlur={handleHexInputCommit}
                onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur() }}
-               className="w-full text-sm font-mono bg-transparent text-[var(--text-primary)] focus:outline-none"
+               className="w-full text-xs font-mono bg-transparent text-[var(--text-primary)] focus:outline-none"
                aria-label="Hex color value"
              />
            </div>
            
-           <div className="flex items-center bg-black/20 rounded-md h-9 px-2 w-[70px]">
+           <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-[70px]">
                <input
                  type="number"
                  min="0"
@@ -208,10 +208,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
                  value={Math.round(hsla.a * 100)}
                  onChange={handleAlphaInputChange}
                  onBlur={(e) => { if (e.target.value === '') handleHslaChange({a: 1})}}
-                 className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                 className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                  aria-label="Alpha percentage"
                />
-               <span className="text-sm text-[var(--text-secondary)]">%</span>
+               <span className="text-xs text-[var(--text-secondary)]">%</span>
            </div>
            
             {'EyeDropper' in window && (

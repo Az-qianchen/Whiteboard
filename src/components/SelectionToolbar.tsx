@@ -230,16 +230,16 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                          </div>
                          <div>
                             <label htmlFor="dist-spacing" className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">固定间距</label>
-                             <div className="flex items-center bg-[var(--ui-element-bg)] rounded-md h-[34px] px-2">
+                             <div className="flex items-center bg-[var(--ui-element-bg)] rounded-md h-[30px] px-[7px]">
                               <input
                                 id="dist-spacing"
                                 type="number"
                                 placeholder="自动"
                                 value={distributeSpacing}
                                 onChange={(e) => setDistributeSpacing(e.target.value)}
-                                className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                               />
-                              <span className="text-sm text-[var(--text-secondary)]">px</span>
+                              <span className="text-xs text-[var(--text-secondary)]">px</span>
                             </div>
                          </div>
                       </div>
