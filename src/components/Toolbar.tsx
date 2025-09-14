@@ -60,11 +60,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           type="button"
           title={t.title}
           onClick={() => setTool(t.name)}
-          className={
+          variant="unstyled"
+          className={`flex items-center justify-center h-10 w-10 rounded-lg transition-colors ${
             tool === t.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-          }
+          }`}
         >
           {t.icon}
         </PanelButton>
@@ -75,8 +76,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <Popover className="relative">
         <Popover.Button
           as={PanelButton}
+          variant="unstyled"
           title="网格设置"
-          className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className="flex items-center justify-center h-10 w-10 rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.GRID}
         </Popover.Button>
