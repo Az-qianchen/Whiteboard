@@ -7,7 +7,7 @@ import React from 'react';
 import type { EndpointStyle } from './types';
 import {
   Undo2, Redo2, Trash2, PenTool, Check,
-  Move, Square, Circle, Lasso, SlidersHorizontal,
+  Move, Square, Circle, Lasso, SlidersHorizontal, Sliders, Eraser,
   Grid3X3, Scissors, Copy, ClipboardList, FlipHorizontal2, FlipVertical2,
   FileCode2, FileImage, FileDown, Menu, Save, Folder, Layers, MoreVertical,
   MoreHorizontal, Plus, Image as ImageIcon, Boxes, ChevronLeft, Lock, LockOpen,
@@ -189,10 +189,12 @@ export const ICONS = {
   X: <X className="h-4 w-4" />,
   GRIP: <GripVertical className="h-4 w-4" />,
   MASK: <Blend className="h-5 w-5" />,
+  REMOVE_BG: <Eraser className="h-5 w-5" />,
   PLAY: <Play className="h-5 w-5" />,
   PAUSE: <Pause className="h-5 w-5" />,
   REWIND: <Rewind className="h-5 w-5" />,
   TRACE_IMAGE: <Wand2 className="h-5 w-5" />,
+  HSV: <Sliders className="h-5 w-5" />,
   BOOLEAN_UNION: <SquaresUnite className="h-5 w-5" />,
   BOOLEAN_SUBTRACT: <SquaresSubtract className="h-5 w-5" />,
   BOOLEAN_INTERSECT: <SquaresIntersect className="h-5 w-5" />,

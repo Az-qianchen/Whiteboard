@@ -7,7 +7,7 @@ import React, { Fragment, useState } from 'react';
 import { Popover, Transition, RadioGroup } from '@headlessui/react';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
-import { Slider } from './side-toolbar';
+import { Slider, SwitchControl } from './side-toolbar';
 import { TraceImagePopover } from './TraceImagePopover';
 import type { TraceOptions } from '../types';
 
@@ -27,6 +27,8 @@ interface SelectionToolbarProps {
   onMask: () => void;
   isTraceable: boolean;
   onTraceImage: (options: TraceOptions) => void;
+  canRemoveBackground: boolean;
+  onRemoveBackground: (opts: { threshold: number; contiguous: boolean }) => void;
 }
 
 const MODES = [
@@ -65,10 +67,13 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   onMask,
   isTraceable,
   onTraceImage,
+  canRemoveBackground,
+  onRemoveBackground,
 }) => {
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
   const [distributeSpacing, setDistributeSpacing] = useState<string>('');
+  const [removeBgOpen, setRemoveBgOpen] = useState(false);
 
   const handleSimplifyStart = () => {
     beginSimplify();
@@ -132,6 +137,22 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
+      {canRemoveBackground && (
+        <div className="relative">
+          <button
+            title="抠图"
+            onClick={() => setRemoveBgOpen(o => !o)}
+            className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          >
+            {ICONS.REMOVE_BG}
+          </button>
+          {removeBgOpen && (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
+              <RemoveBgPanel onConfirm={onRemoveBackground} />
+            </div>
+          )}
+        </div>
+      )}
 
       {canAlignOrDistribute && (
           <Popover className="relative">
@@ -232,6 +253,25 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         </button>
       )}
 
+    </div>
+  );
+};
+
+const RemoveBgPanel: React.FC<{ onConfirm: (opts: { threshold: number; contiguous: boolean }) => void }> = ({ onConfirm }) => {
+  const [threshold, setThreshold] = useState(10);
+  const [contiguous, setContiguous] = useState(true);
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">抠图</h3>
+      <SwitchControl label="连续" enabled={contiguous} setEnabled={setContiguous} />
+      <Slider label="阈值" value={threshold} setValue={setThreshold} min={0} max={255} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}} />
+      <p className="text-xs text-[var(--text-secondary)] text-center">点击图片区域以抠图</p>
+      <button
+        onClick={() => onConfirm({ threshold, contiguous })}
+        className="w-full h-8 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] text-sm"
+      >
+        开始
+      </button>
     </div>
   );
 };

@@ -190,3 +190,14 @@ input[type='range'].themed-slider::-moz-range-thumb {
   border-radius: 9999px;
   border: 2px solid var(--accent-primary);
 }
+
+@keyframes marching-ants {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 8; }
+}
+
+.marching-ants {
+  stroke: var(--text-primary);
+  stroke-dasharray: 4 2;
+  animation: marching-ants 0.5s linear infinite;
+}
