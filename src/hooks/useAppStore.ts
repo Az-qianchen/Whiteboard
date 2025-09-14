@@ -248,8 +248,48 @@ export const useAppStore = () => {
   }, [activePathState]);
   const handleTextEditCommit = useCallback(() => { pathState.endCoalescing(); setEditingTextPathId(null); }, [pathState, setEditingTextPathId]);
   
-  const confirmCrop = useCallback(() => { /* ... crop logic ... */ }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
-  const cancelCrop = useCallback(() => { setCroppingState(null); setCurrentCropRect(null); }, [setCroppingState, setCurrentCropRect]);
+  const confirmCrop = useCallback(async () => {
+      if (!appState.croppingState || !appState.currentCropRect) return;
+      const { pathId, originalPath } = appState.croppingState;
+      const cropRect = appState.currentCropRect;
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = originalPath.src;
+      await new Promise((resolve, reject) => {
+          img.onload = () => resolve(null);
+          img.onerror = reject;
+      });
+
+      const scaleX = img.naturalWidth / originalPath.width;
+      const scaleY = img.naturalHeight / originalPath.height;
+      const sx = (cropRect.x - originalPath.x) * scaleX;
+      const sy = (cropRect.y - originalPath.y) * scaleY;
+      const sw = cropRect.width * scaleX;
+      const sh = cropRect.height * scaleY;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      const newSrc = canvas.toDataURL();
+
+      pathState.setPaths((prev: AnyPath[]) => prev.map(p => {
+          if (p.id !== pathId || p.tool !== 'image') return p;
+          return { ...p, x: cropRect.x, y: cropRect.y, width: cropRect.width, height: cropRect.height, src: newSrc };
+      }));
+
+      setCroppingState(null);
+      setCurrentCropRect(null);
+      pathState.endCoalescing();
+  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
+  const cancelCrop = useCallback(() => {
+      pathState.endCoalescing();
+      setCroppingState(null);
+      setCurrentCropRect(null);
+  }, [pathState, setCroppingState, setCurrentCropRect]);
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
