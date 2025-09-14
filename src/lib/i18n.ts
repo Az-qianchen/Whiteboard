@@ -47,11 +47,10 @@ void i18n.use(initReactI18next).init({
 export const supportedLangs: {
   code: Lang;
   labelKey: TranslationKey;
-  icon: string;
   abbr: string;
 }[] = [
-  { code: 'en', labelKey: 'en', icon: '🇺🇸', abbr: 'EN' },
-  { code: 'zh', labelKey: 'zh', icon: '🇨🇳', abbr: 'CN' },
+  { code: 'en', labelKey: 'en', abbr: 'EN' },
+  { code: 'zh', labelKey: 'zh', abbr: 'CN' },
 ];
 
 export default i18n;

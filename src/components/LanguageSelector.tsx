@@ -36,14 +36,7 @@ const LanguageSelector: React.FC = () => {
           variant="unstyled"
           className="min-w-[72px] flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
         >
-          <span className="flex items-center gap-2 truncate">
-            {currentInfo && (
-              <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                {currentInfo.icon}
-              </span>
-            )}
-            <span className="truncate">{currentInfo?.abbr}</span>
-          </span>
+          <span className="truncate">{currentInfo?.abbr}</span>
           <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.CHEVRON_DOWN}</div>
         </Popover.Button>
         <Transition
@@ -69,10 +62,7 @@ const LanguageSelector: React.FC = () => {
                         : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'
                     }`}
                   >
-                    <span className="flex items-center gap-2 truncate">
-                      <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">{l.icon}</span>
-                      <span className="truncate">{`${l.abbr} ${t(l.labelKey)}`}</span>
-                    </span>
+                    <span className="truncate">{`${l.abbr} ${t(l.labelKey)}`}</span>
                     {currentLang === l.code && (
                       <div className="w-4 h-4 flex-shrink-0">{ICONS.CHECK}</div>
                     )}
