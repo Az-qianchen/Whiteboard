@@ -56,7 +56,10 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
     const { viewTransform } = get();
 
-    if (ctrlKey) {
+    // 垂直滚轮或按下 Ctrl 时进行缩放，否则平移
+    const shouldZoom = ctrlKey || Math.abs(deltaY) > Math.abs(deltaX);
+
+    if (shouldZoom) {
       const { scale, translateX, translateY } = viewTransform;
       // 调整滚轮缩放步长以提高灵敏度
       const zoomStep = 0.01;
