@@ -56,7 +56,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
     const { viewTransform } = get();
 
-    if (ctrlKey || Math.abs(deltaX) < Math.abs(deltaY)) {
+    if (ctrlKey) {
       const { scale, translateX, translateY } = viewTransform;
       const zoomStep = 0.001;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
