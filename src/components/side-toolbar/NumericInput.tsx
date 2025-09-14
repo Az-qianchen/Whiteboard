@@ -69,7 +69,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
   const handleWheel = useWheelCoalescer(beginCoalescing, endCoalescing);
 
   return (
-    <div className="flex flex-col items-center w-16" title={label}>
+    <div className="flex flex-col items-center w-14" title={label}>
       <div
         className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-full cursor-ns-resize"
         onWheel={(e) => handleWheel(e, handleWheelUpdate)}

@@ -106,7 +106,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </div>
 
               <label htmlFor="grid-size" className="text-sm font-medium justify-self-start">网格大小</label>
-              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-24 justify-self-end">
+              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-size"
                   type="number"
@@ -122,7 +122,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </div>
 
               <label htmlFor="grid-subdivisions" className="text-sm font-medium justify-self-start">细分</label>
-              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-24 justify-self-end">
+              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-subdivisions"
                   type="number"
@@ -137,7 +137,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </div>
 
               <label htmlFor="grid-opacity" className="text-sm font-medium justify-self-start">透明度</label>
-              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-24 justify-self-end">
+              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-opacity"
                   type="number"
