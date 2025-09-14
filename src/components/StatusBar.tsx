@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ICONS } from '../constants';
+import PanelButton from '@/components/PanelButton';
 
 interface StatusBarProps {
   zoomLevel: number;
@@ -36,15 +37,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   return (
     <div className="w-full bg-[var(--ui-element-bg)] rounded-lg p-2 text-[var(--text-primary)] text-sm">
       <div className="flex items-center justify-end h-8">
-        <button
+        <PanelButton
+            variant="unstyled"
             onClick={() => setIsStatusBarCollapsed(prev => !prev)}
-            title={isStatusBarCollapsed ? "展开信息" : "折叠信息"}
-            className="p-1 rounded-md flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+            title={isStatusBarCollapsed ? '展开信息' : '折叠信息'}
+            className="p-1 rounded-md flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
         >
             <div className={`transition-transform duration-300 ease-in-out ${isStatusBarCollapsed ? 'rotate-180' : ''}`}>
                 {ICONS.CHEVRON_DOWN}
             </div>
-        </button>
+        </PanelButton>
       </div>
 
       <div

@@ -233,18 +233,24 @@ export const TimelinePanel: React.FC = () => {
                                     onDragEnd={handleDragEnd}
                                     style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
                                 >
-                                    <button
+                                    <PanelButton
+                                        variant="unstyled"
                                         onClick={() => handleFrameClick(index)}
                                         className={`w-full h-full rounded-md transition-all duration-150 ${currentFrameIndex === index ? 'ring-2 ring-offset-2 ring-offset-[var(--ui-panel-bg)] ring-[var(--accent-primary)]' : 'ring-1 ring-white/10'}`}
                                         disabled={isPlaying}
                                     >
                                         <FrameThumbnail frame={frame} />
                                         <div className="absolute bottom-1 left-1 px-1.5 py-0.5 text-xs font-mono bg-black/50 rounded-sm text-white">{index + 1}</div>
-                                    </button>
+                                    </PanelButton>
                                     {frames.length > 1 && (
-                                      <button onClick={() => deleteFrame(index)} className="absolute -top-1 -right-1 h-5 w-5 p-1 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity" title="删除帧">
+                                      <PanelButton
+                                        variant="unstyled"
+                                        onClick={() => deleteFrame(index)}
+                                        className="absolute -top-1 -right-1 h-5 w-5 p-1 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="删除帧"
+                                      >
                                           {ICONS.TRASH}
-                                      </button>
+                                      </PanelButton>
                                     )}
                                     {dropIndicator && dropIndicator.index === index && (
                                         <div className="absolute top-0 bottom-0 w-1 bg-[var(--accent-primary)] rounded-full pointer-events-none"

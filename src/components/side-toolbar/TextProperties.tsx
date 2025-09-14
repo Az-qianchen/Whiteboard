@@ -6,6 +6,7 @@ import React, { useLayoutEffect, useRef, Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS } from '../../constants';
 import { NumericInput } from './NumericInput';
+import PanelButton from '@/components/PanelButton';
 
 interface TextPropertiesProps {
   text: string;
@@ -78,11 +79,15 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
         placeholder="文本"
       />
 
-      <Popover className="relative w-full">
-        <Popover.Button className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
-            <span style={{fontFamily: fontFamily}}>{FONT_OPTIONS.find(f => f.name === fontFamily)?.label ?? fontFamily}</span>
-            <div className="w-4 h-4 text-[var(--text-secondary)]">{ICONS.CHEVRON_DOWN}</div>
-        </Popover.Button>
+        <Popover className="relative w-full">
+          <Popover.Button
+            as={PanelButton}
+            variant="unstyled"
+            className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
+          >
+              <span style={{fontFamily: fontFamily}}>{FONT_OPTIONS.find(f => f.name === fontFamily)?.label ?? fontFamily}</span>
+              <div className="w-4 h-4 text-[var(--text-secondary)]">{ICONS.CHEVRON_DOWN}</div>
+          </Popover.Button>
         <Transition
             as={Fragment}
             enter="transition ease-out duration-100"
@@ -96,14 +101,15 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
                 {({ close }) => (
                     <div className="flex flex-col gap-1">
                         {FONT_OPTIONS.map(font => (
-                            <button
+                            <PanelButton
+                                variant="unstyled"
                                 key={font.name}
                                 onClick={() => { setFontFamily(font.name); close(); }}
                                 className={`w-full text-left p-2 rounded-md text-sm ${fontFamily === font.name ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'}`}
                                 style={{ fontFamily: font.name }}
                             >
                                 {font.label}
-                            </button>
+                            </PanelButton>
                         ))}
                     </div>
                 )}
@@ -125,16 +131,17 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
       
       <div className="flex flex-col items-center w-full" title="对齐">
         <div className="flex bg-black/20 rounded-md p-1 w-full">
-          {ALIGN_OPTIONS.map(opt => (
-            <button
-              key={opt.name}
-              title={opt.title}
-              onClick={() => setTextAlign(opt.name)}
-              className={`flex-1 flex justify-center items-center h-8 rounded-sm transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] ${textAlign === opt.name ? 'bg-[var(--accent-bg)] !text-[var(--accent-primary)]' : ''}`}
-            >
-              <div className="w-5 h-5">{opt.icon}</div>
-            </button>
-          ))}
+            {ALIGN_OPTIONS.map(opt => (
+              <PanelButton
+                variant="unstyled"
+                key={opt.name}
+                title={opt.title}
+                onClick={() => setTextAlign(opt.name)}
+                className={`flex-1 flex justify-center items-center h-8 rounded-sm transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] ${textAlign === opt.name ? 'bg-[var(--accent-bg)] !text-[var(--accent-primary)]' : ''}`}
+              >
+                <div className="w-5 h-5">{opt.icon}</div>
+              </PanelButton>
+            ))}
         </div>
       </div>
     </div>

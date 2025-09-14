@@ -5,6 +5,7 @@ import { ICONS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_
 import type { AnyPath, StyleClipboardData, RectangleData, MaterialData } from '../../types';
 import { renderPathNode, pathsToSvgString } from '../../lib/export';
 import { Tab, Popover, Transition } from '@headlessui/react';
+import PanelButton from '@/components/PanelButton';
 
 
 const StyleSwatch: React.FC<{ style: StyleClipboardData }> = React.memo(({ style }) => {
@@ -194,62 +195,81 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
 
           <div>
             <Tab.List className="flex space-x-1 rounded-lg bg-[var(--ui-element-bg)] p-1">
-              {tabs.map(tab => (
-                <Tab as={Fragment} key={tab}>
-                  {({ selected }) => (
-                    <button
-                      className={`w-16 rounded-md py-1.5 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-[var(--ui-popover-bg)] ring-[var(--accent-primary)] ${
-                        selected
-                          ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                          : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  )}
-                </Tab>
-              ))}
+                {tabs.map(tab => (
+                  <Tab as={Fragment} key={tab}>
+                    {({ selected }) => (
+                      <PanelButton
+                        variant="unstyled"
+                        className={`w-16 rounded-md py-1.5 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out ring-offset-2 ring-offset-[var(--ui-popover-bg)] ring-[var(--accent-primary)] ${
+                          selected
+                            ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                        }`}
+                      >
+                        {tab}
+                      </PanelButton>
+                    )}
+                  </Tab>
+                ))}
             </Tab.List>
           </div>
 
           <div className="flex items-center">
               <Popover as="div" className="relative">
-                <Popover.Button className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]" title="素材库选项">
+                <Popover.Button
+                  as={PanelButton}
+                  variant="unstyled"
+                  className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                  title="素材库选项"
+                >
                   {ICONS.MORE_VERTICAL}
                 </Popover.Button>
                  <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
                   <Popover.Panel className="absolute top-full mt-1 right-0 w-48 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-50 p-1">
                     {({ close }) => (
                       <div className="flex flex-col">
-                        <button onClick={async () => { await onLoadLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]">
-                          <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.OPEN}</div>
-                          <span>加载...</span>
-                        </button>
-                        <button onClick={async () => { await onSaveLibrary(); close(); }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]">
-                          <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.SAVE}</div>
-                          <span>保存...</span>
-                        </button>
-                        <div className="h-px my-1 bg-[var(--ui-separator)]" />
-                        <button onClick={() => {
-                          onClearLibrary();
-                          close();
-                        }} className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]">
-                          <div className="w-4 h-4 flex-shrink-0">{ICONS.TRASH}</div>
-                          <span>清空图库</span>
-                        </button>
+                          <PanelButton
+                            variant="unstyled"
+                            onClick={async () => { await onLoadLibrary(); close(); }}
+                            className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]"
+                          >
+                            <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.OPEN}</div>
+                            <span>加载...</span>
+                          </PanelButton>
+                          <PanelButton
+                            variant="unstyled"
+                            onClick={async () => { await onSaveLibrary(); close(); }}
+                            className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]"
+                          >
+                            <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.SAVE}</div>
+                            <span>保存...</span>
+                          </PanelButton>
+                          <div className="h-px my-1 bg-[var(--ui-separator)]" />
+                          <PanelButton
+                            variant="unstyled"
+                            onClick={() => {
+                            onClearLibrary();
+                            close();
+                          }}
+                            className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
+                          >
+                            <div className="w-4 h-4 flex-shrink-0">{ICONS.TRASH}</div>
+                            <span>清空图库</span>
+                          </PanelButton>
                       </div>
                     )}
                   </Popover.Panel>
                 </Transition>
               </Popover>
 
-              <button
+              <PanelButton
+                variant="unstyled"
                 onClick={onClose}
                 className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 title="关闭面板"
               >
                  {ICONS.X}
-              </button>
+              </PanelButton>
           </div>
         </div>
         
@@ -257,32 +277,35 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
           <Tab.Panel>
             <div className="max-h-60 overflow-y-auto p-2 style-library-grid">
                 <div className="grid grid-cols-5 gap-2">
-                    <button
+                    <PanelButton
+                        variant="unstyled"
                         onClick={onAddStyle}
                         disabled={!canAddStyle}
-                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full aspect-square rounded-md focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="从选区添加样式"
                     >
                         {ICONS.PLUS}
-                    </button>
+                    </PanelButton>
                     {styleLibrary.map((style, index) => (
                         <div key={index} className="relative group">
-                            <button 
-                              onClick={() => onApplyStyle(style)} 
-                              title="应用样式"
-                              className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
-                            >
+                              <PanelButton
+                                variant="unstyled"
+                                onClick={() => onApplyStyle(style)}
+                                title="应用样式"
+                                className="w-full aspect-square rounded-md focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
+                              >
                                 <div className="w-full h-full transition-transform transform group-hover:scale-110">
                                     <StyleSwatch style={style} />
                                 </div>
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteStyle(index)} 
-                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="删除样式"
-                            >
+                              </PanelButton>
+                              <PanelButton
+                                variant="unstyled"
+                                onClick={() => handleDeleteStyle(index)}
+                                className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="删除样式"
+                              >
                                {ICONS.TRASH}
-                            </button>
+                              </PanelButton>
                         </div>
                     ))}
                 </div>
@@ -291,33 +314,36 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
           <Tab.Panel>
              <div className="max-h-60 overflow-y-auto p-2 style-library-grid">
                 <div className="grid grid-cols-3 gap-2">
-                     <button
+                     <PanelButton
+                        variant="unstyled"
                         onClick={onAddMaterial}
                         disabled={!canAddMaterial}
-                        className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full aspect-square rounded-md focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="从选区添加素材"
                     >
                         {ICONS.PLUS}
-                    </button>
+                    </PanelButton>
                     {materialLibrary.map((material, index) => (
                         <div key={index} className="relative group">
-                            <button 
-                              draggable
-                              onDragStart={(e) => handleDragStartMaterial(e, material)}
-                              title="拖拽素材"
-                              className="w-full aspect-square rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
-                            >
+                              <PanelButton
+                                variant="unstyled"
+                                draggable
+                                onDragStart={(e) => handleDragStartMaterial(e, material)}
+                                title="拖拽素材"
+                                className="w-full aspect-square rounded-md focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
+                              >
                                 <div className="w-full h-full transition-transform transform group-hover:scale-110">
                                     <MaterialSwatch material={material} />
                                 </div>
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteMaterial(index)} 
-                              className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="删除素材"
-                            >
+                              </PanelButton>
+                              <PanelButton
+                                variant="unstyled"
+                                onClick={() => handleDeleteMaterial(index)}
+                                className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="删除素材"
+                              >
                                {ICONS.TRASH}
-                            </button>
+                              </PanelButton>
                         </div>
                     ))}
                 </div>

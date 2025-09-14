@@ -3,6 +3,7 @@ import React, { Fragment, useState } from 'react';
 import { Popover, Transition, Tab } from '@headlessui/react';
 import { Paintbrush } from 'lucide-react';
 import { ICONS } from '../constants';
+import PanelButton from '@/components/PanelButton';
 import { FloatingColorPicker } from './FloatingColorPicker';
 import { StatusBar } from './StatusBar';
 import type { PngExportOptions, AnimationExportOptions } from '../types';
@@ -123,8 +124,9 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
           {tabs.map(tab => (
             <Tab as={Fragment} key={tab.name}>
               {({ selected }) => (
-                <button
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 ring-offset-2 ring-offset-[var(--ui-panel-bg)] ring-[var(--accent-primary)] ${
+                <PanelButton
+                  variant="unstyled"
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out ring-offset-2 ring-offset-[var(--ui-panel-bg)] ring-[var(--accent-primary)] ${
                     selected
                       ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -132,7 +134,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                 >
                   <div className="w-4 h-4 flex items-center justify-center">{tab.icon}</div>
                   {tab.name}
-                </button>
+                </PanelButton>
               )}
             </Tab>
           ))}
@@ -154,21 +156,22 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                     placement="right"
                   >
                     {({ ref, onClick }) => (
-                      <button
-                        ref={ref}
+                      <PanelButton
+                        variant="unstyled"
+                        ref={ref as any}
                         onClick={onClick}
-                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
+                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
                         <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.BACKGROUND_COLOR}</div>
                         <span className="flex-grow">画布背景...</span>
-                        <div 
+                        <div
                           className="w-5 h-5 rounded-sm ring-1 ring-inset ring-white/20"
-                          style={{ 
+                          style={{
                             backgroundColor: backgroundColor,
                             ...(backgroundColor === 'transparent' && checkerboardStyle)
                           }}
                         />
-                      </button>
+                      </PanelButton>
                     )}
                   </FloatingColorPicker>
                 );
@@ -185,19 +188,21 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                     canExport={canExport}
                   >
                     {({ ref, onClick }) => (
-                      <button
-                        ref={ref}
+                      <PanelButton
+                        variant="unstyled"
+                        ref={ref as any}
                         onClick={onClick}
                         disabled={!canExport}
-                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
+                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
                         <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.COPY_PNG}</div>
                         <span className="flex-grow">{action.label}</span>
-                      </button>
+                      </PanelButton>
                     )}
                   </FloatingPngExporter>
                 );
               }
+
 
                 if ((action as any).isAnimationExporter) {
                   return (
@@ -231,7 +236,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                 }
 
               return (
-                <button
+                <PanelButton
+                  variant="unstyled"
                   key={action.label}
                   onClick={() => !(action as any).disabled && (action as any).handler()}
                   disabled={(action as any).disabled}
@@ -239,11 +245,11 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                     (action as any).isDanger
                       ? 'text-[var(--danger-text)] hover:bg-[var(--danger-bg)] focus:bg-[var(--danger-bg)]'
                       : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)]'
-                  } focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]`}
+                  } focus-visible:ring-2 ring-[var(--accent-primary)]`}
                 >
                   <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{(action as any).icon}</div>
                   <span className="flex-grow">{action.label}</span>
-                </button>
+                </PanelButton>
               );
             })}
           </Tab.Panel>

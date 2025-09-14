@@ -9,6 +9,7 @@ import { ICONS } from '../../constants';
 import { useLayers } from '../../lib/layers-context';
 import { useAppContext } from '@/context/AppContext';
 import { LayerItem } from './LayerItem';
+import PanelButton from '@/components/PanelButton';
 
 export const LayersPanel: React.FC = () => {
   const { paths, selectedPathIds, reorderPaths, handleDeletePaths, setPaths, setSelectedPathIds } = useLayers();
@@ -174,7 +175,8 @@ export const LayersPanel: React.FC = () => {
           }`}
         >
           {paths.length > 0 && (
-            <button
+            <PanelButton
+              variant="unstyled"
               onClick={() =>
                 showConfirmation(
                   '清空画布',
@@ -187,16 +189,17 @@ export const LayersPanel: React.FC = () => {
             >
               <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.CLEAR}</div>
               清空画布
-            </button>
+            </PanelButton>
           )}
           {selectedPathIds.length > 0 && (
-            <button
+            <PanelButton
+              variant="unstyled"
               onClick={() => handleDeletePaths(selectedPathIds)}
               className="flex-1 flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
             >
               <div className="w-5 h-5 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.TRASH}</div>
               删除选中
-            </button>
+            </PanelButton>
           )}
         </div>
       )}
