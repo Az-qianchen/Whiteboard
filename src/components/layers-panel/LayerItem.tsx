@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { AnyPath, GroupData } from '../../types';
 import { ICONS } from '../../constants';
 import { useLayers } from '../../lib/layers-context';
-import { getToolIcon, capitalize } from './constants';
+import { getToolIcon, capitalize, withLayerIconSize } from './constants';
 import PanelButton from '@/components/PanelButton';
 
 interface LayerItemProps {
@@ -128,11 +128,11 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                 disabled={isEditing}
               >
                 <div className={`transition-transform duration-300 ease-in-out ${(path as GroupData).isCollapsed ? '-rotate-90' : ''}`}>
-                  {ICONS.CHEVRON_DOWN}
+                  {withLayerIconSize(ICONS.CHEVRON_DOWN)}
                 </div>
               </PanelButton>
             )}
-            <div className="w-5 h-5 text-[var(--text-secondary)]">{getToolIcon(path.tool, path)}</div>
+            <div className="w-4 h-4 text-[var(--text-secondary)]">{getToolIcon(path.tool, path)}</div>
           </div>
           
           {isEditing ? (
@@ -160,7 +160,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
             className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
             title={isLocked ? '解锁' : '锁定'}
           >
-            {isLocked ? ICONS.LOCK_CLOSED : ICONS.LOCK_OPEN}
+            {isLocked ? withLayerIconSize(ICONS.LOCK_CLOSED) : withLayerIconSize(ICONS.LOCK_OPEN)}
           </PanelButton>
           <PanelButton
             variant="unstyled"
@@ -168,7 +168,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
             className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
             title={isVisible ? '隐藏' : '显示'}
           >
-            {isVisible ? ICONS.EYE_OPEN : ICONS.EYE_OFF}
+            {isVisible ? withLayerIconSize(ICONS.EYE_OPEN) : withLayerIconSize(ICONS.EYE_OFF)}
           </PanelButton>
           <PanelButton
             variant="unstyled"
@@ -176,7 +176,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
             className="p-1 rounded-md text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
             title="删除"
           >
-            {ICONS.TRASH}
+            {withLayerIconSize(ICONS.TRASH)}
           </PanelButton>
         </div>
       </div>
