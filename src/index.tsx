@@ -7,6 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import '@/lib/i18n';
 import { registerSW } from 'virtual:pwa-register';
 
 // 屏蔽全局浏览器捏合手势，避免页面缩放

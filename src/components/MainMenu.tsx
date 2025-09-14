@@ -1,3 +1,4 @@
+/** 主菜单组件，包含基本操作面板 */
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, Tab } from '@headlessui/react';
 import { Paintbrush } from 'lucide-react';
@@ -9,6 +10,8 @@ import type { PngExportOptions, AnimationExportOptions } from '../types';
 import { LayersPanel } from './layers-panel/LayersPanel';
 import { FloatingPngExporter } from './FloatingPngExporter';
 import { FloatingAnimationExporter } from './FloatingAnimationExporter';
+import LanguageSelector from './LanguageSelector';
+import { useTranslation } from 'react-i18next';
 
 // --- 主菜单组件 ---
 
@@ -43,7 +46,8 @@ interface MainMenuProps {
   setPngExportOptions: (options: PngExportOptions | ((prev: PngExportOptions) => PngExportOptions)) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = (props) => { 
+/** 主菜单组件入口 */
+export const MainMenu: React.FC<MainMenuProps> = (props) => {
   const {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
@@ -55,6 +59,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     isStatusBarCollapsed, setIsStatusBarCollapsed,
     pngExportOptions, setPngExportOptions,
   } = props;
+
+  const { t } = useTranslation();
 
   const legacyMenuActions = [
     { label: '打开...', handler: onOpen, icon: ICONS.OPEN, disabled: false },
@@ -85,6 +91,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     { label: '导出为 PNG…', isPngExporter: true },
     { label: '导出动画…', isAnimationExporter: true },
     { label: '---' },
+    { isLanguageSelector: true },
+    { label: '---' },
     { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
     { label: '清空数据', handler: onClearAllData, icon: ICONS.CLEAR, isDanger: true, disabled: !canClearAllData },
   ];
@@ -104,8 +112,10 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
       <div className="flex items-center gap-2 mb-4">
         <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
         <div>
-            <h1 className="text-base font-bold text-[var(--text-primary)]">画板</h1>
-            <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? '未命名'}>{activeFileName ?? '未命名'}</p>
+          <h1 className="text-base font-bold text-[var(--text-primary)]">{t('appTitle')}</h1>
+          <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? t('untitled')}>
+            {activeFileName ?? t('untitled')}
+          </p>
         </div>
       </div>
       
@@ -193,29 +203,37 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                 );
               }
 
-              if ((action as any).isAnimationExporter) {
-                return (
-                  <FloatingAnimationExporter
-                    key="animation-exporter"
-                    placement="right"
-                    onExportAnimation={onExportAnimation}
-                    canExport={frameCount > 1}
-                  >
-                    {({ ref, onClick }) => (
-                      <PanelButton
-                        variant="unstyled"
-                        ref={ref as any}
-                        onClick={onClick}
-                        disabled={frameCount <= 1}
-                        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 ring-[var(--accent-primary)]"
-                      >
-                        <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.PLAY}</div>
-                        <span className="flex-grow">{action.label}</span>
-                      </PanelButton>
-                    )}
-                  </FloatingAnimationExporter>
-                );
-              }
+
+                if ((action as any).isAnimationExporter) {
+                  return (
+                    <FloatingAnimationExporter
+                      key="animation-exporter"
+                      placement="right"
+                      onExportAnimation={onExportAnimation}
+                      canExport={frameCount > 1}
+                    >
+                      {({ ref, onClick }) => (
+                        <button
+                          ref={ref}
+                          onClick={onClick}
+                          disabled={frameCount <= 1}
+                          className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
+                        >
+                          <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.PLAY}</div>
+                          <span className="flex-grow">{action.label}</span>
+                        </button>
+                      )}
+                    </FloatingAnimationExporter>
+                  );
+                }
+
+                if ((action as any).isLanguageSelector) {
+                  return (
+                    <div key="language-selector" className="p-2">
+                      <LanguageSelector />
+                    </div>
+                  );
+                }
 
               return (
                 <PanelButton
@@ -255,3 +273,4 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     </nav>
   );
 };
+
