@@ -9,6 +9,12 @@ import App from './App';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
+// 屏蔽全局浏览器捏合手势，避免页面缩放
+const blockGesture = (e: Event) => e.preventDefault();
+document.addEventListener('gesturestart', blockGesture);
+document.addEventListener('gesturechange', blockGesture);
+document.addEventListener('gestureend', blockGesture);
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Could not find root element to mount to');

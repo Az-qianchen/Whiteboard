@@ -110,19 +110,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     }
   }, []);
 
-  // 阻止 Safari 上的捏合手势触发浏览器缩放
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const preventDefault = (e: Event) => e.preventDefault();
-    el.addEventListener('gesturestart', preventDefault);
-    el.addEventListener('gesturechange', preventDefault);
-    return () => {
-      el.removeEventListener('gesturestart', preventDefault);
-      el.removeEventListener('gesturechange', preventDefault);
-    };
-  }, []);
-
   /**
    * 处理指针在 SVG 画布上移动的事件。
    * @description 更新当前指针位置以用于悬停效果，并调用上层的 onPointerMove 处理函数。
