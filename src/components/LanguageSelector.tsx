@@ -24,20 +24,26 @@ const LanguageSelector: React.FC = () => {
   };
 
   const currentLang = i18n.language as Lang;
-  const currentLabel = t(
-    supportedLangs.find((l) => l.code === currentLang)?.labelKey ?? ''
-  );
+  const currentInfo = supportedLangs.find((l) => l.code === currentLang);
+  const currentLabel = t(currentInfo?.labelKey ?? '');
 
   return (
-    <label className="flex flex-col gap-1 text-sm text-[var(--text-primary)]">
-      {t('language')}
+    <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+      <span className="whitespace-nowrap">{t('language')}</span>
       <Popover className="relative">
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
-          className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
+          className="min-w-[120px] flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
         >
-          <span className="truncate">{currentLabel}</span>
+          <span className="flex items-center gap-2 truncate">
+            {currentInfo && (
+              <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                {currentInfo.icon}
+              </span>
+            )}
+            <span className="truncate">{currentLabel}</span>
+          </span>
           <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.CHEVRON_DOWN}</div>
         </Popover.Button>
         <Transition
@@ -57,13 +63,19 @@ const LanguageSelector: React.FC = () => {
                     key={l.code}
                     variant="unstyled"
                     onClick={() => handleSelect(l.code as Lang, close)}
-                    className={`w-full text-left p-2 rounded-md text-sm ${
+                    className={`flex items-center justify-between p-2 rounded-md text-sm ${
                       currentLang === l.code
                         ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                         : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'
                     }`}
                   >
-                    {t(l.labelKey)}
+                    <span className="flex items-center gap-2 truncate">
+                      <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">{l.icon}</span>
+                      <span className="truncate">{t(l.labelKey)}</span>
+                    </span>
+                    {currentLang === l.code && (
+                      <div className="w-4 h-4 flex-shrink-0">{ICONS.CHECK}</div>
+                    )}
                   </PanelButton>
                 ))}
               </div>
