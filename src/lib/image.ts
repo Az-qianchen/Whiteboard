@@ -2,7 +2,7 @@
  * 图像处理工具函数，支持 HSV 调整与抠图。
  */
 
-import MagicWand from 'magic-wand-tool';
+// 由于无法使用第三方库，此处实现一个简单的阈值抠图算法。
 
 export interface HsvAdjustment {
   /** 色相增量，范围 -360 至 360 */
@@ -51,7 +51,7 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
 }
 
 /**
- * 使用 magic-wand-tool 实现类似 PS 魔法棒的抠图：在点击位置根据阈值去除颜色。
+ * 以点击位置为起点，对颜色差异在阈值内的像素设为透明。
  * @param imageData 原始图像数据
  * @param options 抠图选项
  * @returns 处理后的图像数据及被抠除区域的边界
@@ -62,22 +62,69 @@ export function removeBackground(
 ): { image: ImageData; region: { x: number; y: number; width: number; height: number } | null } {
   const { x, y, threshold = 10, contiguous = true } = options;
   const { width, height } = imageData;
-  // 使用 magic-wand-tool 计算掩膜
-  const wandImage = { data: new Uint8ClampedArray(imageData.data), width, height };
-  // @ts-ignore magic-wand-tool 无类型定义
-  const mask = MagicWand.floodFill(wandImage, { x, y }, threshold, contiguous);
-  if (!mask) {
-    return { image: imageData, region: null };
+  const data = new Uint8ClampedArray(imageData.data);
+  if (x < 0 || y < 0 || x >= width || y >= height) {
+    return { image: new ImageData(data, width, height), region: null };
   }
-  // @ts-ignore 应用掩膜，将选中区域透明化
-  MagicWand.applyMask(wandImage, mask, 0);
 
-  const b = mask.bounds;
-  const region = b
-    ? { x: b.minX, y: b.minY, width: b.maxX - b.minX + 1, height: b.maxY - b.minY + 1 }
+  const idx = (y * width + x) * 4;
+  const tr = data[idx];
+  const tg = data[idx + 1];
+  const tb = data[idx + 2];
+
+  const visited = new Uint8Array(width * height);
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  const match = (i: number) => {
+    const dr = Math.abs(data[i] - tr);
+    const dg = Math.abs(data[i + 1] - tg);
+    const db = Math.abs(data[i + 2] - tb);
+    return dr + dg + db <= threshold * 3;
+  };
+
+  const paint = (px: number, py: number) => {
+    const pos = py * width + px;
+    const i = pos * 4;
+    data[i + 3] = 0;
+    if (px < minX) minX = px;
+    if (py < minY) minY = py;
+    if (px > maxX) maxX = px;
+    if (py > maxY) maxY = py;
+    visited[pos] = 1;
+  };
+
+  if (contiguous) {
+    const stack: number[] = [x, y];
+    while (stack.length) {
+      const cy = stack.pop() as number;
+      const cx = stack.pop() as number;
+      if (cx < 0 || cy < 0 || cx >= width || cy >= height) continue;
+      const pos = cy * width + cx;
+      if (visited[pos]) continue;
+      const i = pos * 4;
+      if (!match(i)) continue;
+      paint(cx, cy);
+      stack.push(cx + 1, cy, cx - 1, cy, cx, cy + 1, cx, cy - 1);
+    }
+  } else {
+    for (let py = 0; py < height; py++) {
+      for (let px = 0; px < width; px++) {
+        const i = (py * width + px) * 4;
+        if (match(i)) {
+          paint(px, py);
+        }
+      }
+    }
+  }
+
+  const region = maxX >= minX && maxY >= minY
+    ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
     : null;
 
-  return { image: new ImageData(wandImage.data, width, height), region };
+  return { image: new ImageData(data, width, height), region };
 }
 
 function clamp(value: number, min: number, max: number): number {
