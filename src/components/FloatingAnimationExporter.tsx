@@ -111,7 +111,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                     <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">导出动画</h3>
                     
                     <div>
-                        <label className="text-sm font-medium text-[var(--text-primary)]">裁剪到</label>
+                        <label className="text-sm font-medium text-[var(--text-primary)]">导出区域</label>
                         <Popover className="relative mt-1">
                             <Popover.Button
                                 as={PanelButton}
