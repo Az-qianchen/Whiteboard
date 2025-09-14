@@ -30,8 +30,6 @@ const resources = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof resources.en.translation;
-
 const storedLang = localStorage.getItem('whiteboard_lang') as Lang | null;
 
 void i18n.use(initReactI18next).init({
@@ -44,9 +42,12 @@ void i18n.use(initReactI18next).init({
 /**
  * 支持的语言列表
  */
-export const supportedLangs: { code: Lang; labelKey: TranslationKey }[] = [
-  { code: 'en', labelKey: 'en' },
-  { code: 'zh', labelKey: 'zh' },
+export const supportedLangs: {
+  code: Lang;
+  abbr: string;
+}[] = [
+  { code: 'en', abbr: 'EN' },
+  { code: 'zh', abbr: 'CN' },
 ];
 
 export default i18n;
