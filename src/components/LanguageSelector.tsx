@@ -27,14 +27,16 @@ const LanguageSelector: React.FC = () => {
   const currentInfo = supportedLangs.find((l) => l.code === currentLang);
 
   return (
-    <Popover className="relative">
+    <Popover className="relative w-full">
       <Popover.Button
         as={PanelButton}
         variant="unstyled"
-        className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
+        className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
       >
-        <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
-        <span className="flex-grow">{t('language')}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 flex items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
+          <span>{t('language')}</span>
+        </div>
         <div className="flex items-center gap-1">
           <span>{currentInfo?.abbr}</span>
           <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.CHEVRON_DOWN}</div>
@@ -49,7 +51,7 @@ const LanguageSelector: React.FC = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Popover.Panel className="absolute left-0 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
+        <Popover.Panel className="absolute right-0 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
           {({ close }) => (
             <div className="flex flex-col gap-1">
               {supportedLangs.map((l) => (
