@@ -20,7 +20,7 @@ import {
   Pencil, Type,
   MousePointer2, Paintbrush2, AlignHorizontalSpaceAround,
   AlignLeft, AlignJustify, AlignRight,
-  Sparkles, GripVertical,
+  Sparkles, Languages, GripVertical,
   Blend,Slash,MoveRight,
   Play, Pause, Rewind, ChevronUp, Wand2,SquaresExclude,SquaresIntersect,SquaresSubtract,SquaresUnite,
   // FIX: `RectangleDashed` is not a valid icon in `lucide-react`. Replaced with `SquareDashed`.
@@ -186,6 +186,7 @@ export const ICONS = {
   LOGO: <Pencil />,
   EYEDROPPER: <Pipette className="h-5 w-5" />,
   EFFECTS: <Sparkles className="h-5 w-5" />,
+  LANGUAGE: <Languages className="h-5 w-5" />,
   X: <X className="h-4 w-4" />,
   GRIP: <GripVertical className="h-4 w-4" />,
   MASK: <Blend className="h-5 w-5" />,
