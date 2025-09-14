@@ -123,6 +123,7 @@ export const useAppStore = () => {
     useUiStore.setState(updater as (prev: UiState) => UiState, true);
   }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
+  const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
 
   const pathState = usePaths();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -159,6 +160,30 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
+
+  const pushCropHistory = useCallback((rect: BBox) => {
+    setCropHistory(h => ({ past: [...h.past, rect], future: [] }));
+  }, []);
+
+  const undoCropRect = useCallback(() => {
+    if (!appState.currentCropRect) return;
+    setCropHistory(h => {
+      if (h.past.length === 0) return h;
+      const prev = h.past[h.past.length - 1];
+      setCurrentCropRect(prev);
+      return { past: h.past.slice(0, -1), future: [appState.currentCropRect as BBox, ...h.future] };
+    });
+  }, [appState.currentCropRect, setCurrentCropRect]);
+
+  const redoCropRect = useCallback(() => {
+    if (!appState.currentCropRect) return;
+    setCropHistory(h => {
+      if (h.future.length === 0) return h;
+      const [next, ...rest] = h.future;
+      setCurrentCropRect(next);
+      return { past: [...h.past, appState.currentCropRect as BBox], future: rest };
+    });
+  }, [appState.currentCropRect, setCurrentCropRect]);
 
   const showConfirmation = useCallback((title: string, message: string, onConfirm: () => void | Promise<void>, confirmButtonText?: string) => {
     setConfirmationDialog({
@@ -315,6 +340,7 @@ export const useAppStore = () => {
 
       setCroppingState(null);
       setCurrentCropRect(null);
+      setCropHistory({ past: [], future: [] });
       pathState.endCoalescing();
     };
 
@@ -324,23 +350,49 @@ export const useAppStore = () => {
   const cancelCrop = useCallback(() => {
     setCroppingState(null);
     setCurrentCropRect(null);
+    setCropHistory({ past: [], future: [] });
     pathState.endCoalescing();
   }, [setCroppingState, setCurrentCropRect, pathState]);
+
+  const handleUndo = useCallback(() => {
+    if (appState.croppingState) {
+      if (cropHistory.past.length > 0) {
+        undoCropRect();
+      } else {
+        cancelCrop();
+        pathState.undo();
+      }
+    } else {
+      pathState.undo();
+    }
+  }, [appState.croppingState, cropHistory.past.length, undoCropRect, cancelCrop, pathState]);
+
+  const handleRedo = useCallback(() => {
+    if (appState.croppingState && cropHistory.future.length > 0) {
+      redoCropRect();
+    } else {
+      pathState.redo();
+    }
+  }, [appState.croppingState, cropHistory.future.length, redoCropRect, pathState]);
+
+  const canUndo = pathState.canUndo || (appState.croppingState !== null && cropHistory.past.length > 0);
+  const canRedo = pathState.canRedo || (appState.croppingState !== null && cropHistory.future.length > 0);
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
       if (path.tool === 'text') { setEditingTextPathId(path.id); pathState.beginCoalescing(); } 
-      else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); } 
+      else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           pathState.beginCoalescing();
           setCroppingState({ pathId: path.id, originalPath: path as ImageData });
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
+          setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);
       }
   }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
-  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect });
+  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   
   const handleSetTool = useCallback((newTool: Tool) => {
@@ -483,5 +535,9 @@ export const useAppStore = () => {
     setOnionSkinPrevFrames,
     setOnionSkinNextFrames,
     setOnionSkinOpacity,
+    undo: handleUndo,
+    redo: handleRedo,
+    canUndo,
+    canRedo,
   };
 };

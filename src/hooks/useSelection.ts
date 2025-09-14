@@ -20,6 +20,7 @@ interface SelectionInteractionProps {
   croppingState: { pathId: string, originalPath: ImageData } | null;
   currentCropRect: BBox | null;
   setCurrentCropRect: React.Dispatch<React.SetStateAction<BBox | null>>;
+  pushCropHistory: (rect: BBox) => void;
 }
 
 /**
@@ -37,6 +38,7 @@ export const useSelection = ({
   croppingState,
   currentCropRect,
   setCurrentCropRect,
+  pushCropHistory,
 }: SelectionInteractionProps) => {
   const [dragState, setDragState] = useState<DragState>(null);
   const [marquee, setMarquee] = useState<{ start: Point; end: Point } | null>(null);
@@ -119,7 +121,7 @@ export const useSelection = ({
     
     handlePointerUpLogic({
       e, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath,
-      pathState, isClosingPath,
+      pathState, isClosingPath, pushCropHistory,
     });
     
     setIsHoveringMovable(false);

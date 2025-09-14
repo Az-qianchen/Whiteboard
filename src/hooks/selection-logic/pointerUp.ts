@@ -3,7 +3,7 @@
  */
 // FIX: Removed 'React' from type import as it's not used and can cause errors.
 import type { MutableRefObject } from 'react';
-import type { Point, DragState, AnyPath } from '../../types';
+import type { Point, DragState, AnyPath, BBox } from '../../types';
 import { getMarqueeRect } from '../../lib/drawing';
 import { isPathIntersectingMarquee, isPathIntersectingLasso } from '../../lib/hit-testing';
 
@@ -17,6 +17,7 @@ interface HandlePointerUpProps {
   setLassoPath: (path: Point[] | null) => void;
   pathState: any;
   isClosingPath: MutableRefObject<{ pathId: string; anchorIndex: number } | null>;
+  pushCropHistory?: (rect: BBox) => void;
 }
 
 /**
@@ -24,7 +25,7 @@ interface HandlePointerUpProps {
  * @param props - 包含事件对象、状态和设置器的对象。
  */
 export const handlePointerUpLogic = (props: HandlePointerUpProps) => {
-    const { e, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath, pathState, isClosingPath } = props;
+    const { e, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath, pathState, isClosingPath, pushCropHistory } = props;
     const { paths, setPaths, setSelectedPathIds, endCoalescing } = pathState;
 
     if (dragState) {
@@ -38,6 +39,9 @@ export const handlePointerUpLogic = (props: HandlePointerUpProps) => {
                 } return p;
             }));
             isClosingPath.current = null;
+        }
+        if (dragState.type === 'crop' && pushCropHistory) {
+            pushCropHistory(dragState.initialCropRect);
         }
         endCoalescing();
         setDragState(null);
