@@ -2,6 +2,8 @@
  * 图像处理工具函数，支持 HSV 调整与抠图。
  */
 
+import MagicWand from 'magic-wand-tool';
+
 export interface HsvAdjustment {
   /** 色相增量，范围 -360 至 360 */
   h?: number;
@@ -49,7 +51,7 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
 }
 
 /**
- * 类似 PS 魔法棒的抠图：在点击位置根据阈值去除颜色。
+ * 使用 magic-wand-tool 实现类似 PS 魔法棒的抠图：在点击位置根据阈值去除颜色。
  * @param imageData 原始图像数据
  * @param options 抠图选项
  * @returns 处理后的图像数据及被抠除区域的边界
@@ -60,62 +62,22 @@ export function removeBackground(
 ): { image: ImageData; region: { x: number; y: number; width: number; height: number } | null } {
   const { x, y, threshold = 10, contiguous = true } = options;
   const { width, height } = imageData;
-  const data = new Uint8ClampedArray(imageData.data);
-  const idx = (y * width + x) * 4;
-  const target = { r: data[idx], g: data[idx + 1], b: data[idx + 2] };
-
-  const withinThreshold = (i: number) => {
-    const dr = data[i] - target.r;
-    const dg = data[i + 1] - target.g;
-    const db = data[i + 2] - target.b;
-    return Math.sqrt(dr * dr + dg * dg + db * db) <= threshold;
-  };
-
-  let minX = width;
-  let minY = height;
-  let maxX = -1;
-  let maxY = -1;
-
-  if (contiguous) {
-    const stack: [number, number][] = [[x, y]];
-    const visited = new Uint8Array(width * height);
-    while (stack.length) {
-      const [cx, cy] = stack.pop()!;
-      const pi = cy * width + cx;
-      if (cx < 0 || cx >= width || cy < 0 || cy >= height || visited[pi]) continue;
-      visited[pi] = 1;
-      const di = pi * 4;
-      if (withinThreshold(di)) {
-        data[di + 3] = 0;
-        if (cx < minX) minX = cx;
-        if (cy < minY) minY = cy;
-        if (cx > maxX) maxX = cx;
-        if (cy > maxY) maxY = cy;
-        stack.push([cx + 1, cy]);
-        stack.push([cx - 1, cy]);
-        stack.push([cx, cy + 1]);
-        stack.push([cx, cy - 1]);
-      }
-    }
-  } else {
-    for (let i = 0; i < data.length; i += 4) {
-      if (withinThreshold(i)) {
-        data[i + 3] = 0;
-        const px = (i / 4) % width;
-        const py = Math.floor(i / 4 / width);
-        if (px < minX) minX = px;
-        if (py < minY) minY = py;
-        if (px > maxX) maxX = px;
-        if (py > maxY) maxY = py;
-      }
-    }
+  // 使用 magic-wand-tool 计算掩膜
+  const wandImage = { data: new Uint8ClampedArray(imageData.data), width, height };
+  // @ts-ignore magic-wand-tool 无类型定义
+  const mask = MagicWand.floodFill(wandImage, { x, y }, threshold, contiguous);
+  if (!mask) {
+    return { image: imageData, region: null };
   }
+  // @ts-ignore 应用掩膜，将选中区域透明化
+  MagicWand.applyMask(wandImage, mask, 0);
 
-  const region = maxX >= minX && maxY >= minY
-    ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
+  const b = mask.bounds;
+  const region = b
+    ? { x: b.minX, y: b.minY, width: b.maxX - b.minX + 1, height: b.maxY - b.minY + 1 }
     : null;
 
-  return { image: new ImageData(data, width, height), region };
+  return { image: new ImageData(wandImage.data, width, height), region };
 }
 
 function clamp(value: number, min: number, max: number): number {
