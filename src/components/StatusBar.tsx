@@ -56,8 +56,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         }`}
       >
         <div
-          className={`pt-2 overflow-hidden divide-y divide-[var(--ui-separator)] transition-opacity duration-300 ${
-            isStatusBarCollapsed ? 'opacity-0' : 'opacity-100'
+          className={`overflow-hidden divide-y divide-[var(--ui-separator)] transition-[padding,opacity] duration-300 ${
+            isStatusBarCollapsed ? 'pt-0 opacity-0' : 'pt-2 opacity-100'
           }`}
         >
           <div className="pb-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
