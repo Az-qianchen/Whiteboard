@@ -1,3 +1,4 @@
+/** 主菜单组件，包含基本操作面板 */
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, Tab } from '@headlessui/react';
 import { Paintbrush } from 'lucide-react';
@@ -8,6 +9,8 @@ import type { PngExportOptions, AnimationExportOptions } from '../types';
 import { LayersPanel } from './layers-panel/LayersPanel';
 import { FloatingPngExporter } from './FloatingPngExporter';
 import { FloatingAnimationExporter } from './FloatingAnimationExporter';
+import LanguageSelector from './LanguageSelector';
+import { useTranslation } from 'react-i18next';
 
 // --- 主菜单组件 ---
 
@@ -42,7 +45,8 @@ interface MainMenuProps {
   setPngExportOptions: (options: PngExportOptions | ((prev: PngExportOptions) => PngExportOptions)) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = (props) => { 
+/** 主菜单组件入口 */
+export const MainMenu: React.FC<MainMenuProps> = (props) => {
   const {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
@@ -54,6 +58,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     isStatusBarCollapsed, setIsStatusBarCollapsed,
     pngExportOptions, setPngExportOptions,
   } = props;
+
+  const { t } = useTranslation();
 
   const legacyMenuActions = [
     { label: '打开...', handler: onOpen, icon: ICONS.OPEN, disabled: false },
@@ -100,12 +106,17 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
 
   return (
     <nav className="w-full h-full bg-[var(--ui-panel-bg)] border-r border-[var(--ui-panel-border)] flex flex-col p-3 z-30">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
-        <div>
-            <h1 className="text-base font-bold text-[var(--text-primary)]">画板</h1>
-            <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? '未命名'}>{activeFileName ?? '未命名'}</p>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
+          <div>
+            <h1 className="text-base font-bold text-[var(--text-primary)]">{t('appTitle')}</h1>
+            <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? t('untitled')}>
+              {activeFileName ?? t('untitled')}
+            </p>
+          </div>
         </div>
+        <LanguageSelector />
       </div>
       
       <Tab.Group as="div" className="flex flex-col flex-grow min-h-0">
@@ -249,3 +260,4 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     </nav>
   );
 };
+
