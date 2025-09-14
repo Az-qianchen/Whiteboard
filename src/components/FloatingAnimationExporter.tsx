@@ -8,6 +8,7 @@ import { Transition, RadioGroup, Popover } from '@headlessui/react';
 import type { AnimationExportOptions, FrameData } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
+import PanelButton from '@/components/PanelButton';
 
 interface FloatingAnimationExporterProps {
     children: (props: { ref: React.RefObject<any>, onClick: () => void }) => React.ReactNode;
@@ -103,8 +104,10 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                         <label className="text-sm font-medium text-[var(--text-primary)]">裁剪到</label>
                         <Popover className="relative mt-1">
                             <Popover.Button
+                                as={PanelButton}
+                                variant="unstyled"
                                 disabled={allFrameShapes.length === 0}
-                                className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50"
+                                className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50"
                             >
                                 <span className="truncate">{getFrameLabel(clipToFrameId)}</span>
                                 <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.CHEVRON_DOWN}</div>
@@ -121,20 +124,22 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                 <Popover.Panel className="absolute bottom-full mb-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
                                     {({ close }) => (
                                         <div className="flex flex-col gap-1">
-                                            <button
+                                            <PanelButton
+                                                variant="unstyled"
                                                 onClick={() => { setClipToFrameId('full'); close(); }}
                                                 className={`w-full text-left p-2 rounded-md text-sm ${clipToFrameId === 'full' ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'}`}
                                             >
                                                 完整画布
-                                            </button>
+                                            </PanelButton>
                                             {allFrameShapes.map((frame, index) => (
-                                                <button
+                                                <PanelButton
+                                                    variant="unstyled"
                                                     key={frame.id}
                                                     onClick={() => { setClipToFrameId(frame.id); close(); }}
                                                     className={`w-full text-left p-2 rounded-md text-sm ${clipToFrameId === frame.id ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'}`}
                                                 >
                                                     <span className="truncate">画框 {index + 1} {frame.name ? `(${frame.name})` : ''}</span>
-                                                </button>
+                                                </PanelButton>
                                             ))}
                                         </div>
                                     )}
@@ -147,10 +152,24 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                         <RadioGroup.Label className="text-sm font-medium">格式</RadioGroup.Label>
                         <div className="flex gap-2 mt-1">
                             <RadioGroup.Option value="sequence" as={Fragment}>
-                                {({ checked }) => (<button className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>PNG 序列 (ZIP)</button>)}
+                                {({ checked }) => (
+                                  <PanelButton
+                                    variant="unstyled"
+                                    className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                                  >
+                                    PNG 序列 (ZIP)
+                                  </PanelButton>
+                                )}
                             </RadioGroup.Option>
                             <RadioGroup.Option value="spritesheet" as={Fragment}>
-                                {({ checked }) => (<button className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>雪碧图</button>)}
+                                {({ checked }) => (
+                                  <PanelButton
+                                    variant="unstyled"
+                                    className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                                  >
+                                    雪碧图
+                                  </PanelButton>
+                                )}
                             </RadioGroup.Option>
                         </div>
                     </RadioGroup>
@@ -162,9 +181,13 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                         </div>
                     </div>
                     
-                    <button onClick={async () => { await onExportAnimation({ format, columns, clipToFrameId }); setIsOpen(false); }} className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 transition-opacity">
-                        导出
-                    </button>
+                    <PanelButton
+                      variant="unstyled"
+                      onClick={async () => { await onExportAnimation({ format, columns, clipToFrameId }); setIsOpen(false); }}
+                      className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 transition-opacity"
+                    >
+                      导出
+                    </PanelButton>
                 </div>
             </div>
         </Transition>

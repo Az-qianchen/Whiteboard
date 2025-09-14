@@ -7,6 +7,7 @@ import type { AnyPath, GroupData } from '../../types';
 import { ICONS } from '../../constants';
 import { useLayers } from '../../lib/layers-context';
 import { getToolIcon, capitalize } from './constants';
+import PanelButton from '@/components/PanelButton';
 
 interface LayerItemProps {
   path: AnyPath;
@@ -119,7 +120,8 @@ export const LayerItem: React.FC<LayerItemProps> = ({
         >
           <div className="flex items-center gap-1 flex-shrink-0">
             {path.tool === 'group' && (
-              <button
+              <PanelButton
+                variant="unstyled"
                 onClick={(e) => { e.stopPropagation(); toggleGroupCollapse(path.id); }}
                 className={`p-0.5 rounded-sm text-[var(--text-secondary)] hover:bg-white/10 ${isEditing ? 'invisible' : ''}`}
                 title={(path as GroupData).isCollapsed ? '展开' : '折叠'}
@@ -128,7 +130,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                 <div className={`transition-transform duration-300 ease-in-out ${(path as GroupData).isCollapsed ? '-rotate-90' : ''}`}>
                   {ICONS.CHEVRON_DOWN}
                 </div>
-              </button>
+              </PanelButton>
             )}
             <div className="w-5 h-5 text-[var(--text-secondary)]">{getToolIcon(path.tool, path)}</div>
           </div>
@@ -152,27 +154,30 @@ export const LayerItem: React.FC<LayerItemProps> = ({
         </div>
 
         <div className={`flex items-center gap-2 flex-shrink-0 ${isEditing ? 'invisible' : ''}`}>
-          <button
+          <PanelButton
+            variant="unstyled"
             onClick={(e) => { e.stopPropagation(); togglePathsProperty([path.id], 'isLocked'); }}
             className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
             title={isLocked ? '解锁' : '锁定'}
           >
             {isLocked ? ICONS.LOCK_CLOSED : ICONS.LOCK_OPEN}
-          </button>
-          <button
+          </PanelButton>
+          <PanelButton
+            variant="unstyled"
             onClick={(e) => { e.stopPropagation(); togglePathsProperty([path.id], 'isVisible'); }}
             className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
             title={isVisible ? '隐藏' : '显示'}
           >
             {isVisible ? ICONS.EYE_OPEN : ICONS.EYE_OFF}
-          </button>
-          <button
+          </PanelButton>
+          <PanelButton
+            variant="unstyled"
             onClick={(e) => { e.stopPropagation(); handleDeletePaths([path.id]); }}
             className="p-1 rounded-md text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
             title="删除"
           >
             {ICONS.TRASH}
-          </button>
+          </PanelButton>
         </div>
       </div>
     </div>

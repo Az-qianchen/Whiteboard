@@ -169,8 +169,22 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     <div>
                       <label className="text-sm font-semibold text-[var(--text-primary)]">分布</label>
                       <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => handleDistribute('horizontal')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
-                        <button onClick={() => handleDistribute('vertical')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
+                        <PanelButton
+                          variant="unstyled"
+                          onClick={() => handleDistribute('horizontal')}
+                          disabled={!canAlignOrDistribute}
+                          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          {ICONS.DISTRIBUTE_HORIZONTAL} 水平
+                        </PanelButton>
+                        <PanelButton
+                          variant="unstyled"
+                          onClick={() => handleDistribute('vertical')}
+                          disabled={!canAlignOrDistribute}
+                          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          {ICONS.DISTRIBUTE_VERTICAL} 垂直
+                        </PanelButton>
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-3">
                          <div>

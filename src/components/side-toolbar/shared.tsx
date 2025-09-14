@@ -1,6 +1,7 @@
 import React from 'react';
 import { Switch } from '@headlessui/react';
 import { FloatingColorPicker } from '../FloatingColorPicker';
+import PanelButton from '@/components/PanelButton';
 
 interface SwitchControlProps {
   label: string;
@@ -74,14 +75,15 @@ export const EndpointGrid = <T extends string>({ label, options, value, onChange
     <label className="text-sm font-medium text-[var(--text-primary)]">{label}</label>
     <div className="grid grid-cols-3 gap-1 bg-black/20 rounded-md p-1">
       {options.map(opt => (
-        <button
+        <PanelButton
+          variant="unstyled"
           key={opt.name}
           title={opt.title}
           onClick={() => onChange(opt.name)}
           className={`flex-1 flex justify-center items-center h-8 rounded-sm transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] ${value === opt.name ? 'bg-[var(--accent-bg)] !text-[var(--accent-primary)]' : ''}`}
         >
           <div className="w-6 h-6">{opt.icon}</div>
-        </button>
+        </PanelButton>
       ))}
     </div>
   </div>
@@ -100,7 +102,8 @@ export const PopoverSegmentedControl = <T extends string>({ label, options, valu
     <label className="text-sm font-medium text-[var(--text-primary)]">{label}</label>
     <div className={`flex items-center bg-black/20 rounded-md p-1 w-full ${disabled ? 'cursor-not-allowed' : ''}`}>
       {options.map(opt => (
-        <button
+        <PanelButton
+          variant="unstyled"
           key={opt.name}
           title={opt.title}
           onClick={() => { if (!disabled) onChange(opt.name); }}
@@ -108,7 +111,7 @@ export const PopoverSegmentedControl = <T extends string>({ label, options, valu
           className={`flex-1 flex justify-center items-center h-8 rounded-sm transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:hover:bg-transparent ${value === opt.name ? 'bg-[var(--accent-bg)] !text-[var(--accent-primary)]' : ''}`}
         >
           <div className="w-6 h-6">{opt.icon}</div>
-        </button>
+        </PanelButton>
       ))}
     </div>
   </div>
@@ -131,8 +134,9 @@ export const PopoverColorControl: React.FC<{ label: string, color: string, setCo
                 placement="left"
             >
                 {({ ref, onClick }) => (
-                    <button
-                        ref={ref}
+                    <PanelButton
+                        variant="unstyled"
+                        ref={ref as any}
                         onClick={onClick}
                         className="h-6 w-full rounded-md ring-1 ring-inset ring-white/10"
                         style={{ backgroundColor: isTransparent ? 'transparent' : color, ...(isTransparent && checkerboardStyle) }}

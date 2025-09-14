@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HSLA, parseColor, hslaToHslaString, hslaToHex } from '../lib/color';
 import { ICONS } from '../constants';
+import PanelButton from '@/components/PanelButton';
 
 // 预设颜色数组
 const PRESET_COLORS = [
@@ -214,9 +215,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
            </div>
            
             {'EyeDropper' in window && (
-                <button onClick={handleEyeDropper} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors" title="Pick color from screen">
+                <PanelButton
+                    variant="unstyled"
+                    onClick={handleEyeDropper}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors"
+                    title="Pick color from screen"
+                >
                     {ICONS.EYEDROPPER}
-                </button>
+                </PanelButton>
             )}
         </div>
         
@@ -224,7 +230,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
 
       <div className="grid grid-cols-7 gap-2 mt-4">
         {PRESET_COLORS.map(c => (
-          <button
+          <PanelButton
+            variant="unstyled"
             key={c}
             onClick={() => {
                 const newHsla = parseColor(c);
@@ -236,7 +243,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
             aria-label={`Select color ${c}`}
           />
         ))}
-         <button
+        <PanelButton
+            variant="unstyled"
             onClick={() => handleHslaChange({a: 0})}
             className="w-full aspect-square rounded-full ring-1 ring-inset ring-white/10 bg-white"
             style={{ backgroundImage: checkerboard, backgroundSize: '8px 8px' }}
