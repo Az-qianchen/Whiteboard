@@ -110,7 +110,8 @@ export function resizePath(
 
     if (rotation) {
         const newCenter = { x: result.x + result.width / 2, y: result.y + result.height / 2 };
-        const anchorGlobalNew = rotatePoint(anchor, newCenter, rotation);
+        const rotationPivot = rotationCenter ?? newCenter; // 有外部旋转中心时使用该点作为旋转轴
+        const anchorGlobalNew = rotatePoint(anchor, rotationPivot, rotation);
         const translation = {
             x: anchorGlobal.x - anchorGlobalNew.x,
             y: anchorGlobal.y - anchorGlobalNew.y,
