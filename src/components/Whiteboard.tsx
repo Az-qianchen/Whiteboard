@@ -176,7 +176,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-transparent overflow-hidden touch-none overscroll-contain"
+      className="w-full h-full bg-transparent overflow-hidden touch-none overscroll-none"
       onWheel={onWheel}
       style={{ cursor }}
       onContextMenu={onContextMenu}
