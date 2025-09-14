@@ -19,7 +19,7 @@ export function resizePath(
     originalPath: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData,
     handle: ResizeHandlePosition,
     currentPos: Point,
-    initialPos: Point,
+    _initialPos: Point,
     keepAspectRatio: boolean,
     rotationCenter?: Point
 ): RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData {
@@ -32,11 +32,11 @@ export function resizePath(
     const pivot = rotationCenter || defaultCenter;
 
     let localCurrentPos = currentPos;
-    let localInitialPos = initialPos;
+    let localInitialPos = _initialPos;
 
     if (rotation) {
         localCurrentPos = rotatePoint(currentPos, pivot, -rotation);
-        localInitialPos = rotatePoint(initialPos, pivot, -rotation);
+        localInitialPos = rotatePoint(_initialPos, pivot, -rotation);
     }
 
     const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = originalPath;
@@ -173,43 +173,46 @@ export function transformCropRect(
     originalImage: ImageData,
     handle: ResizeHandlePosition,
     currentPos: Point,
-    initialPos: Point,
+    _initialPos: Point,
 ): BBox {
-    const rotationCenter = {
+    const rotation = originalImage.rotation ?? 0;
+    const center = {
         x: originalImage.x + originalImage.width / 2,
         y: originalImage.y + originalImage.height / 2,
     };
-    
-    const resized = resizePath(
-        { ...initialCropRect, tool: 'rectangle', id: '', color:'', fill:'', fillStyle:'', strokeWidth:0, roughness:0,bowing:0,fillWeight:0,hachureAngle:0,hachureGap:0,curveTightness:0,curveStepCount:9, rotation: originalImage.rotation },
-        handle,
-        currentPos,
-        initialPos,
-        false, // no aspect ratio for crop
-        rotationCenter
-    );
 
-    // Now constrain the result within originalImage bounds
-    const o_x1 = originalImage.x;
-    const o_y1 = originalImage.y;
-    const o_x2 = originalImage.x + originalImage.width;
-    const o_y2 = originalImage.y + originalImage.height;
+    const localCurrent = rotatePoint(currentPos, center, -rotation);
 
-    const r_x1 = resized.x;
-    const r_y1 = resized.y;
-    const r_x2 = resized.x + resized.width;
-    const r_y2 = resized.y + resized.height;
+    let x1 = initialCropRect.x;
+    let y1 = initialCropRect.y;
+    let x2 = initialCropRect.x + initialCropRect.width;
+    let y2 = initialCropRect.y + initialCropRect.height;
 
-    const final_x1 = Math.max(r_x1, o_x1);
-    const final_y1 = Math.max(r_y1, o_y1);
-    const final_x2 = Math.min(r_x2, o_x2);
-    const final_y2 = Math.min(r_y2, o_y2);
-    
+    if (handle.includes('left')) x1 = localCurrent.x;
+    if (handle.includes('right')) x2 = localCurrent.x;
+    if (handle.includes('top')) y1 = localCurrent.y;
+    if (handle.includes('bottom')) y2 = localCurrent.y;
+
+    const newX1 = Math.min(x1, x2);
+    const newY1 = Math.min(y1, y2);
+    const newX2 = Math.max(x1, x2);
+    const newY2 = Math.max(y1, y2);
+
+    const ix1 = originalImage.x;
+    const iy1 = originalImage.y;
+    const ix2 = originalImage.x + originalImage.width;
+    const iy2 = originalImage.y + originalImage.height;
+
+    const finalX1 = Math.max(newX1, ix1);
+    const finalY1 = Math.max(newY1, iy1);
+    const finalX2 = Math.min(newX2, ix2);
+    const finalY2 = Math.min(newY2, iy2);
+
     return {
-        x: final_x1,
-        y: final_y1,
-        width: Math.max(0, final_x2 - final_x1),
-        height: Math.max(0, final_y2 - final_y1),
+        x: finalX1,
+        y: finalY1,
+        width: Math.max(0, finalX2 - finalX1),
+        height: Math.max(0, finalY2 - finalY1),
     };
 }
 

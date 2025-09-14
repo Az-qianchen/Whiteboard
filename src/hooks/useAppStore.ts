@@ -17,7 +17,7 @@ import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
-import { measureText, rotatePoint } from '@/lib/drawing';
+import { measureText } from '@/lib/drawing';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -262,30 +262,14 @@ export const useAppStore = () => {
         img.onerror = err => reject(err);
       });
 
-      const rotation = originalPath.rotation ?? 0;
-      const rotationCenter = {
-        x: originalPath.x + originalPath.width / 2,
-        y: originalPath.y + originalPath.height / 2,
-      };
-      const corners = [
-        { x: cropRect.x, y: cropRect.y },
-        { x: cropRect.x + cropRect.width, y: cropRect.y },
-        { x: cropRect.x + cropRect.width, y: cropRect.y + cropRect.height },
-        { x: cropRect.x, y: cropRect.y + cropRect.height },
-      ].map(p => rotatePoint(p, rotationCenter, -rotation));
-      const minX = Math.min(...corners.map(p => p.x));
-      const maxX = Math.max(...corners.map(p => p.x));
-      const minY = Math.min(...corners.map(p => p.y));
-      const maxY = Math.max(...corners.map(p => p.y));
-
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(maxX - minX);
-      canvas.height = Math.round(maxY - minY);
+      canvas.width = Math.round(cropRect.width);
+      canvas.height = Math.round(cropRect.height);
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const sourceX = minX - originalPath.x;
-      const sourceY = minY - originalPath.y;
+      const sourceX = cropRect.x - originalPath.x;
+      const sourceY = cropRect.y - originalPath.y;
 
       ctx.drawImage(
         img,
@@ -300,6 +284,7 @@ export const useAppStore = () => {
       );
 
       const newSrc = canvas.toDataURL();
+      const rotation = originalPath.rotation ?? 0;
 
       pathState.setPaths(prev => prev.map(p =>
         p.id === pathId
