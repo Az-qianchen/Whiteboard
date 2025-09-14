@@ -232,6 +232,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
                 setColor={setFill}
                 beginCoalescing={beginCoalescing}
                 endCoalescing={endCoalescing}
+                className="mt-2"
               />
               <FillStyleControl
                 fillStyle={fillStyle}
