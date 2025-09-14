@@ -61,7 +61,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={t.title}
           onClick={() => setTool(t.name)}
           variant="unstyled"
-          className={`flex items-center justify-center h-10 w-10 rounded-lg transition-colors ${
+          className={`flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors ${
             tool === t.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -78,7 +78,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           as={PanelButton}
           variant="unstyled"
           title="网格设置"
-          className="flex items-center justify-center h-10 w-10 rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.GRID}
         </Popover.Button>

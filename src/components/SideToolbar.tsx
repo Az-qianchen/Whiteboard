@@ -268,7 +268,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
         <PanelButton
           variant="unstyled"
           onClick={onToggleStyleLibrary}
-          className={`flex items-center justify-center h-10 w-10 rounded-lg transition-colors ${
+          className={`flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors ${
             isStyleLibraryOpen
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
