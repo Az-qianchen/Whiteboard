@@ -97,7 +97,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
           className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)]"
           aria-label={label}
         />
-        <span className="text-sm text-[var(--text-secondary)]">{unit}</span>
+        <span className="input-unit text-sm text-[var(--text-secondary)]">{unit}</span>
       </div>
     </div>
   );
