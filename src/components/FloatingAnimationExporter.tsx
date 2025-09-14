@@ -36,7 +36,17 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
     const { frames } = useAppContext();
     
     const allFrameShapes = useMemo(() => {
-        return frames.flatMap(frame => frame.paths.filter(path => path.tool === 'frame')) as FrameData[];
+        const seen = new Set<string>();
+        const uniqueFrames: FrameData[] = [];
+        for (const frame of frames) {
+            for (const path of frame.paths) {
+                if (path.tool === 'frame' && !seen.has(path.id)) {
+                    uniqueFrames.push(path as FrameData);
+                    seen.add(path.id);
+                }
+            }
+        }
+        return uniqueFrames;
     }, [frames]);
 
     useEffect(() => { setIsMounted(true); }, []);
@@ -121,7 +131,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Popover.Panel className="absolute bottom-full mb-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
+                                <Popover.Panel className="absolute bottom-full mb-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1 style-library-grid">
                                     {({ close }) => (
                                         <div className="flex flex-col gap-1">
                                             <PanelButton
