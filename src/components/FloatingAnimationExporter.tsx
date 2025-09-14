@@ -1,6 +1,6 @@
 /**
  * 本文件定义了一个浮动的动画导出选项面板组件。
- * 它允许用户选择导出格式（PNG 序列或雪碧图）并配置相关选项。
+ * 它允许用户选择导出格式（PNG 序列或精灵图）并配置相关选项。
  */
 import React, { Fragment, useState, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -167,7 +167,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                     variant="unstyled"
                                     className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
                                   >
-                                    PNG 序列 (ZIP)
+                                    PNG 序列
                                   </PanelButton>
                                 )}
                             </RadioGroup.Option>
@@ -177,7 +177,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                     variant="unstyled"
                                     className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
                                   >
-                                    雪碧图
+                                    精灵图
                                   </PanelButton>
                                 )}
                             </RadioGroup.Option>
