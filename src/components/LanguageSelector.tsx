@@ -31,7 +31,7 @@ const LanguageSelector: React.FC = () => {
       <Popover.Button
         as={PanelButton}
         variant="unstyled"
-        className="w-full flex items-center gap-3 p-2 h-9 rounded-md bg-black/20 text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
+        className="w-full flex items-center gap-3 p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
       >
         <div className="w-4 h-4 flex items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
         <span className="flex-grow">{t('language')}</span>
@@ -57,7 +57,7 @@ const LanguageSelector: React.FC = () => {
                   key={l.code}
                   variant="unstyled"
                   onClick={() => handleSelect(l.code as Lang, close)}
-                  className={`flex items-center justify-between p-2 rounded-md text-sm ${
+                  className={`w-full flex items-center justify-between p-2 rounded-md text-left text-sm ${
                     currentLang === l.code
                       ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                       : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'
