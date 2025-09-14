@@ -42,7 +42,7 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
                         ref={ref as any}
                         onClick={onClick}
                         disabled={disabled}
-                        className="h-8 w-8 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-[var(--ui-panel-bg)] disabled:cursor-not-allowed disabled:hover:scale-100"
+                        className="h-8 w-8 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
                         style={{
                             backgroundColor: color,
                             ...(isTransparent && checkerboardStyle)

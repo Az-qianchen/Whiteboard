@@ -266,8 +266,13 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       
       <div className="flex flex-col items-center w-14" title="样式库">
         <PanelButton
+          variant="unstyled"
           onClick={onToggleStyleLibrary}
-          className={`${isStyleLibraryOpen ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
+          className={`flex items-center justify-center h-10 w-10 rounded-lg transition-colors ${
+            isStyleLibraryOpen
+              ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+          }`}
           title="样式库"
         >
           {ICONS.STYLE_LIBRARY}
