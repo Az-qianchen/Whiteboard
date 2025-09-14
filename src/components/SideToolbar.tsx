@@ -144,7 +144,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
 
   return (
-    <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 flex flex-col items-center gap-2 text-[var(--text-primary)]">
+    <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 flex flex-col items-center gap-2 text-[var(--text-primary)]">
       {isFrameSelected ? (
         <div className="text-center text-sm text-[var(--text-secondary)]">画框属性</div>
       ) : isTextMode ? (
