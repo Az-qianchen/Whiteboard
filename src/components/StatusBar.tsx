@@ -36,16 +36,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   return (
     <div className="w-full bg-[var(--ui-element-bg)] rounded-lg p-2 text-[var(--text-primary)] text-sm">
-      <div className="flex items-center justify-end h-8">
+      <div className="flex items-center justify-between h-8 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap">
+        <span>画布</span>
         <PanelButton
-            variant="unstyled"
-            onClick={() => setIsStatusBarCollapsed(prev => !prev)}
-            title={isStatusBarCollapsed ? '展开信息' : '折叠信息'}
-            className="p-1 rounded-md flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+          variant="unstyled"
+          onClick={() => setIsStatusBarCollapsed(prev => !prev)}
+          title={isStatusBarCollapsed ? '展开信息' : '折叠信息'}
+          className="p-1 rounded-md flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
         >
-            <div className={`transition-transform duration-300 ease-in-out ${isStatusBarCollapsed ? 'rotate-180' : ''}`}>
-                {ICONS.CHEVRON_DOWN}
-            </div>
+          <div className={`transition-transform duration-300 ease-in-out ${isStatusBarCollapsed ? 'rotate-180' : ''}`}>
+            {ICONS.CHEVRON_DOWN}
+          </div>
         </PanelButton>
       </div>
 
@@ -60,7 +61,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           }`}
         >
           <div className="pb-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-            <span>画布</span>
             <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
               <div className="flex justify-between">
                 <span>元素: {elementCount}</span>
