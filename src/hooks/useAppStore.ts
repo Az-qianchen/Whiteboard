@@ -17,7 +17,7 @@ import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
-import { measureText } from '@/lib/drawing';
+import { measureText, rotatePoint } from '@/lib/drawing';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -286,9 +286,30 @@ export const useAppStore = () => {
       const newSrc = canvas.toDataURL();
       const rotation = originalPath.rotation ?? 0;
 
+      const oldCenter = {
+        x: originalPath.x + originalPath.width / 2,
+        y: originalPath.y + originalPath.height / 2,
+      };
+      const newCenterLocal = {
+        x: cropRect.width / 2,
+        y: cropRect.height / 2,
+      };
+      const offsetLocal = {
+        x: cropRect.x - originalPath.x - (originalPath.width / 2 - newCenterLocal.x),
+        y: cropRect.y - originalPath.y - (originalPath.height / 2 - newCenterLocal.y),
+      };
+      const rotatedOffset = rotatePoint(offsetLocal, { x: 0, y: 0 }, rotation);
+      const newCenter = {
+        x: oldCenter.x + rotatedOffset.x,
+        y: oldCenter.y + rotatedOffset.y,
+      };
+
+      const newX = newCenter.x - newCenterLocal.x;
+      const newY = newCenter.y - newCenterLocal.y;
+
       pathState.setPaths(prev => prev.map(p =>
         p.id === pathId
-          ? { ...(p as ImageData), src: newSrc, x: cropRect.x, y: cropRect.y, width: cropRect.width, height: cropRect.height, rotation }
+          ? { ...(p as ImageData), src: newSrc, x: newX, y: newY, width: cropRect.width, height: cropRect.height, rotation }
           : p
       ));
 
