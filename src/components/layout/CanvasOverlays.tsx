@@ -83,7 +83,9 @@ export const CanvasOverlays: React.FC = () => {
         handleDistribute,
         handleBooleanOperation,
         handleTraceImage,
-        handleRemoveBackground,
+        beginRemoveBackground,
+        applyRemoveBackground,
+        cancelRemoveBackground,
         confirmationDialog,
         hideConfirmation,
         editingTextPathId: activeEditingTextPathId, // rename to avoid conflict
@@ -180,7 +182,9 @@ export const CanvasOverlays: React.FC = () => {
                         isTraceable={isTraceable}
                         onTraceImage={handleTraceImage}
                         canRemoveBackground={canRemoveBackground}
-                        onRemoveBackground={handleRemoveBackground}
+                        beginRemoveBackground={beginRemoveBackground}
+                        applyRemoveBackground={applyRemoveBackground}
+                        cancelRemoveBackground={cancelRemoveBackground}
                     />
                 </div>
             )}

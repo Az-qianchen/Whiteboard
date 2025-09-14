@@ -28,7 +28,9 @@ interface SelectionToolbarProps {
   isTraceable: boolean;
   onTraceImage: (options: TraceOptions) => void;
   canRemoveBackground: boolean;
-  onRemoveBackground: (opts: { threshold: number; contiguous: boolean }) => void;
+  beginRemoveBackground: (opts: { threshold: number; contiguous: boolean }) => void;
+  applyRemoveBackground: () => void;
+  cancelRemoveBackground: () => void;
 }
 
 const MODES = [
@@ -68,7 +70,9 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   isTraceable,
   onTraceImage,
   canRemoveBackground,
-  onRemoveBackground,
+  beginRemoveBackground,
+  applyRemoveBackground,
+  cancelRemoveBackground,
 }) => {
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
@@ -141,14 +145,21 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         <div className="relative">
           <button
             title="抠图"
-            onClick={() => setRemoveBgOpen(o => !o)}
+            onClick={() => {
+              if (removeBgOpen) cancelRemoveBackground();
+              setRemoveBgOpen(o => !o);
+            }}
             className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
           >
             {ICONS.REMOVE_BG}
           </button>
           {removeBgOpen && (
             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
-              <RemoveBgPanel onConfirm={onRemoveBackground} />
+              <RemoveBgPanel
+                onBegin={beginRemoveBackground}
+                onApply={() => { applyRemoveBackground(); setRemoveBgOpen(false); }}
+                onCancel={() => { cancelRemoveBackground(); setRemoveBgOpen(false); }}
+              />
             </div>
           )}
         </div>
@@ -257,21 +268,32 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   );
 };
 
-const RemoveBgPanel: React.FC<{ onConfirm: (opts: { threshold: number; contiguous: boolean }) => void }> = ({ onConfirm }) => {
+const RemoveBgPanel: React.FC<{
+  onBegin: (opts: { threshold: number; contiguous: boolean }) => void;
+  onApply: () => void;
+  onCancel: () => void;
+}> = ({ onBegin, onApply, onCancel }) => {
   const [threshold, setThreshold] = useState(10);
   const [contiguous, setContiguous] = useState(true);
+
+  React.useEffect(() => {
+    onBegin({ threshold, contiguous });
+  }, [onBegin, threshold, contiguous]);
+
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">抠图</h3>
       <SwitchControl label="连续" enabled={contiguous} setEnabled={setContiguous} />
       <Slider label="阈值" value={threshold} setValue={setThreshold} min={0} max={255} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}} />
-      <p className="text-xs text-[var(--text-secondary)] text-center">点击图片区域以抠图</p>
-      <button
-        onClick={() => onConfirm({ threshold, contiguous })}
-        className="w-full h-8 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] text-sm"
-      >
-        开始
-      </button>
+      <p className="text-xs text-[var(--text-secondary)] text-center">点击图片以选择区域</p>
+      <div className="flex gap-2">
+        <button onClick={onApply} className="flex-1 h-8 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] text-sm">
+          扣除
+        </button>
+        <button onClick={onCancel} className="flex-1 h-8 rounded-md bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)] text-sm">
+          取消
+        </button>
+      </div>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 /**
  * 本文件定义了一个自定义 Hook，用于封装画布上对象的变换和组织操作。
  */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '../../lib/drawing';
 import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '../../types';
 import type { AppActionsProps } from '../useAppActions';
@@ -246,16 +246,36 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds, pathState]);
 
   /**
-   * 对选中的图片执行简单抠图，支持跨域图片。
+   * 抠图模式状态。
+   * 保存临时选区、生成的新图像以及点击监听器，
+   * 以便在用户确认或取消时进行处理。
    */
-  const handleRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean }) => {
+  const removeBgRef = useRef<{
+    handler?: (e: MouseEvent) => void;
+    overlay?: SVGRectElement;
+    newSrc?: string;
+    targetId?: string;
+  } | null>(null);
+
+  /**
+   * 开始抠图模式，等待用户在图像上点击选区。
+   */
+  const beginRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean }) => {
     if (selectedPathIds.length !== 1) return;
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
 
-    const onClick = async (e: MouseEvent) => {
-      document.removeEventListener('click', onClick);
-      pathState.beginCoalescing();
+    // 若已有挂起的抠图操作，先清理
+    if (removeBgRef.current?.handler) {
+      document.removeEventListener('click', removeBgRef.current.handler);
+    }
+    removeBgRef.current?.overlay?.remove();
+    removeBgRef.current = { targetId: imagePath.id };
+
+    const handler = async (e: MouseEvent) => {
+      removeBgRef.current = removeBgRef.current ?? { targetId: imagePath.id };
+      removeBgRef.current.handler = undefined;
+
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = (imagePath as ImageData).src;
@@ -264,7 +284,7 @@ export const useObjectActions = ({
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) { pathState.endCoalescing(); return; }
+      if (!ctx) { return; }
       ctx.drawImage(img, 0, 0);
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const svg = document.querySelector('svg') as SVGSVGElement;
@@ -275,8 +295,7 @@ export const useObjectActions = ({
       const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
       ctx.putImageData(newData, 0, 0);
       const newSrc = canvas.toDataURL();
-      pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
-      pathState.endCoalescing();
+      removeBgRef.current = { ...removeBgRef.current, newSrc };
 
       if (region) {
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -294,12 +313,42 @@ export const useObjectActions = ({
         rect.setAttribute('vector-effect', 'non-scaling-stroke');
         rect.setAttribute('pointer-events', 'none');
         svg.appendChild(rect);
-        setTimeout(() => rect.remove(), 2000);
+        removeBgRef.current.overlay = rect;
       }
     };
 
-    document.addEventListener('click', onClick, { once: true });
-  }, [paths, selectedPathIds, pathState, getPointerPosition]);
+    removeBgRef.current.handler = handler;
+    // 延迟注册以避免立即触发当前点击
+    setTimeout(() => {
+      document.addEventListener('click', handler, { once: true });
+    });
+  }, [paths, selectedPathIds, getPointerPosition]);
+
+  /**
+   * 确认抠图，应用预览结果。
+   */
+  const applyRemoveBackground = useCallback(() => {
+    const info = removeBgRef.current;
+    if (!info?.newSrc || !info.targetId) return;
+    pathState.beginCoalescing();
+    pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, src: info.newSrc! } : p));
+    pathState.endCoalescing();
+    info.overlay?.remove();
+    removeBgRef.current = null;
+  }, [pathState]);
+
+  /**
+   * 取消抠图，移除选区与监听器。
+   */
+  const cancelRemoveBackground = useCallback(() => {
+    const info = removeBgRef.current;
+    if (!info) return;
+    if (info.handler) {
+      document.removeEventListener('click', info.handler);
+    }
+    info.overlay?.remove();
+    removeBgRef.current = null;
+  }, []);
 
   /**
    * 调整选中图片的 HSV，支持跨域图片。
@@ -396,5 +445,5 @@ export const useObjectActions = ({
 
   }, [paths, selectedPathIds, pathState]);
   
-  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, handleRemoveBackground, handleAdjustImageHsv };
+  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, beginRemoveBackground, applyRemoveBackground, cancelRemoveBackground, handleAdjustImageHsv };
 };
