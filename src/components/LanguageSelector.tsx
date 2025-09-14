@@ -25,16 +25,16 @@ const LanguageSelector: React.FC = () => {
 
   const currentLang = i18n.language as Lang;
   const currentInfo = supportedLangs.find((l) => l.code === currentLang);
-  const currentLabel = t(currentInfo?.labelKey ?? '');
 
   return (
-    <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+    <label className="flex items-center gap-2 w-full text-sm text-[var(--text-primary)]">
+      <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.LANGUAGE}</div>
       <span className="whitespace-nowrap">{t('language')}</span>
-      <Popover className="relative">
+      <Popover className="relative ml-auto">
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
-          className="min-w-[120px] flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
+          className="min-w-[72px] flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
         >
           <span className="flex items-center gap-2 truncate">
             {currentInfo && (
@@ -42,7 +42,7 @@ const LanguageSelector: React.FC = () => {
                 {currentInfo.icon}
               </span>
             )}
-            <span className="truncate">{currentLabel}</span>
+            <span className="truncate">{currentInfo?.abbr}</span>
           </span>
           <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.CHEVRON_DOWN}</div>
         </Popover.Button>
@@ -71,7 +71,7 @@ const LanguageSelector: React.FC = () => {
                   >
                     <span className="flex items-center gap-2 truncate">
                       <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">{l.icon}</span>
-                      <span className="truncate">{t(l.labelKey)}</span>
+                      <span className="truncate">{`${l.abbr} ${t(l.labelKey)}`}</span>
                     </span>
                     {currentLang === l.code && (
                       <div className="w-4 h-4 flex-shrink-0">{ICONS.CHECK}</div>

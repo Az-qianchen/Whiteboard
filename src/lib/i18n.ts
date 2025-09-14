@@ -44,9 +44,14 @@ void i18n.use(initReactI18next).init({
 /**
  * 支持的语言列表
  */
-export const supportedLangs: { code: Lang; labelKey: TranslationKey; icon: string }[] = [
-  { code: 'en', labelKey: 'en', icon: '🇺🇸' },
-  { code: 'zh', labelKey: 'zh', icon: '🇨🇳' },
+export const supportedLangs: {
+  code: Lang;
+  labelKey: TranslationKey;
+  icon: string;
+  abbr: string;
+}[] = [
+  { code: 'en', labelKey: 'en', icon: '🇺🇸', abbr: 'EN' },
+  { code: 'zh', labelKey: 'zh', icon: '🇨🇳', abbr: 'CN' },
 ];
 
 export default i18n;
