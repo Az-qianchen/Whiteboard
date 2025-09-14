@@ -115,7 +115,14 @@ export function performBooleanOperation(
 
   let resultPathItem: paper.PathItem | paper.Group | null;
   if (operation === 'divide') {
-    resultPathItem = paperPaths[0].divide(paperPaths[1]);
+    resultPathItem = paperPaths[0].divide(paperPaths[1], { trace: false });
+    if (resultPathItem instanceof paper.CompoundPath) {
+      resultPathItem.children.forEach(child => {
+        if (child instanceof paper.Path) {
+          child.closed = true;
+        }
+      });
+    }
   } else {
     resultPathItem = paperPaths[0];
     for (let i = 1; i < paperPaths.length; i++) {
