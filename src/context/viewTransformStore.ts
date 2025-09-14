@@ -59,7 +59,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     if (ctrlKey) {
       const { scale, translateX, translateY } = viewTransform;
       // 调整滚轮缩放步长以提高灵敏度
-      const zoomStep = 0.003;
+      const zoomStep = 0.001;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
