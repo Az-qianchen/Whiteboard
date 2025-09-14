@@ -281,7 +281,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                         variant="unstyled"
                         onClick={onAddStyle}
                         disabled={!canAddStyle}
-                        className="w-full aspect-square rounded-md focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full aspect-square rounded-md flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="从选区添加样式"
                     >
                         {ICONS.PLUS}
@@ -292,7 +292,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                                 variant="unstyled"
                                 onClick={() => onApplyStyle(style)}
                                 title="应用样式"
-                                className="w-full aspect-square rounded-md focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
+                                className="w-full aspect-square rounded-md flex items-center justify-center"
                               >
                                 <div className="w-full h-full transition-transform transform group-hover:scale-110">
                                     <StyleSwatch style={style} />
@@ -318,7 +318,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                         variant="unstyled"
                         onClick={onAddMaterial}
                         disabled={!canAddMaterial}
-                        className="w-full aspect-square rounded-md focus-visible:ring-2 ring-inset focus-visible:ring-[var(--accent-primary)] flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full aspect-square rounded-md flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="从选区添加素材"
                     >
                         {ICONS.PLUS}
@@ -330,7 +330,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                                 draggable
                                 onDragStart={(e) => handleDragStartMaterial(e, material)}
                                 title="拖拽素材"
-                                className="w-full aspect-square rounded-md focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center"
+                                className="w-full aspect-square rounded-md flex items-center justify-center"
                               >
                                 <div className="w-full h-full transition-transform transform group-hover:scale-110">
                                     <MaterialSwatch material={material} />

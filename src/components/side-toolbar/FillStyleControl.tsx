@@ -15,7 +15,7 @@ export const FillStyleControl: React.FC<FillStyleControlProps> = React.memo(({ f
             <Popover.Button
               as={PanelButton}
               variant="unstyled"
-              className="h-9 w-9 p-1.5 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] ring-1 ring-inset ring-white/10 focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed"
+              className="h-9 w-9 p-1.5 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed"
               title={`填充样式: ${FILL_STYLES.find(s => s.name === fillStyle)?.title}`}
               aria-label="选择填充样式"
             >

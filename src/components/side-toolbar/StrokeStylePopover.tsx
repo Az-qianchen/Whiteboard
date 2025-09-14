@@ -2,6 +2,7 @@ import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, ENDPOINT_STYLES } from '../../constants';
 import type { EndpointStyle } from '../../types';
+import PanelButton from '@/components/PanelButton';
 import { SwitchControl, Slider, EndpointGrid } from './shared';
 
 // Define props for the component
@@ -50,8 +51,10 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
         <div className={`flex flex-col items-center w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title="端点样式">
             <Popover className="relative">
                 <Popover.Button
+                    as={PanelButton}
+                    variant="unstyled"
                     disabled={strokeWidth === 0}
-                    className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-hover-bg)] ring-1 ring-inset ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed"
+                    className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed"
                     title="端点样式"
                 >
                     {ICONS.ENDPOINT_SETTINGS}
