@@ -6,6 +6,7 @@ import React, { Fragment, useState, useRef, useLayoutEffect, useEffect } from 'r
 import { createPortal } from 'react-dom';
 import { Transition, Switch } from '@headlessui/react';
 import type { PngExportOptions } from '../types';
+import PanelButton from '@/components/PanelButton';
 
 interface FloatingPngExporterProps {
     children: (props: { ref: React.RefObject<any>, onClick: () => void }) => React.ReactNode;
@@ -147,7 +148,8 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                     </div>
                     <SwitchControl label="透明背景" enabled={pngExportOptions.transparentBg} setEnabled={val => setPngExportOptions(prev => ({ ...prev, transparentBg: val }))} />
                     <SwitchControl label="高质量压缩" enabled={pngExportOptions.highQuality} setEnabled={val => setPngExportOptions(prev => ({ ...prev, highQuality: val }))} />
-                    <button
+                    <PanelButton
+                        variant="unstyled"
                         onClick={async () => {
                             await onExportPng();
                             setIsOpen(false);
@@ -155,7 +157,7 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                         className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 transition-opacity"
                     >
                         导出
-                    </button>
+                    </PanelButton>
                 </div>
             </div>
         </Transition>

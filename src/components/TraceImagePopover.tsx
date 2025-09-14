@@ -3,6 +3,7 @@
  */
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition } from '@headlessui/react';
+import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import { Slider } from './side-toolbar';
 import type { TraceOptions } from '../types';
@@ -31,8 +32,9 @@ export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace })
       {({ close }) => (
         <>
           <Popover.Button
+            as={PanelButton}
             title="将图片转换为矢量图"
-            className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+            className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
           >
             {ICONS.TRACE_IMAGE}
           </Popover.Button>
@@ -55,13 +57,13 @@ export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace })
                 />
                 <Slider label="路径忽略" value={pathomit} setValue={setPathomit} min={0} max={50} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <button
+                <PanelButton
                   type="button"
                   onClick={() => handleTrace(close)}
-                  className="w-full mt-2 h-9 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90"
+                  className="w-full mt-2 h-9 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90 border-0 shadow-none"
                 >
                   矢量化
-                </button>
+                </PanelButton>
               </div>
             </Popover.Panel>
           </Transition>

@@ -4,6 +4,7 @@
  */
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import PanelButton from '@/components/PanelButton';
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -75,20 +76,22 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                 </div>
 
                 <div className="mt-6 flex justify-center gap-3">
-                  <button
+                  <PanelButton
+                    variant="unstyled"
                     type="button"
-                    className="inline-flex justify-center rounded-lg border border-transparent bg-[var(--ui-element-bg)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-popover-bg)] transition-colors"
+                    className="inline-flex justify-center rounded-lg border border-transparent bg-[var(--ui-element-bg)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-popover-bg)] transition-colors"
                     onClick={onClose}
                   >
                     {cancelButtonText}
-                  </button>
-                  <button
+                  </PanelButton>
+                  <PanelButton
+                    variant="unstyled"
                     type="button"
-                    className="inline-flex justify-center rounded-lg border border-transparent bg-[var(--danger-bg)] px-4 py-2 text-sm font-medium text-[var(--danger-text)] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-popover-bg)] transition-colors"
+                    className="inline-flex justify-center rounded-lg border border-transparent bg-[var(--danger-bg)] px-4 py-2 text-sm font-medium text-[var(--danger-text)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-popover-bg)] transition-colors"
                     onClick={onConfirm}
                   >
                     {confirmButtonText}
-                  </button>
+                  </PanelButton>
                 </div>
               </Dialog.Panel>
             </Transition.Child>

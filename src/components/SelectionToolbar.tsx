@@ -5,6 +5,7 @@
 
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, RadioGroup } from '@headlessui/react';
+import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider } from './side-toolbar';
@@ -93,26 +94,27 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   return (
     <div className="flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
       {MODES.map((mode) => (
-        <button
+        <PanelButton
           key={mode.name}
           type="button"
           title={mode.title}
           onClick={() => setSelectionMode(mode.name as SelectionMode)}
-          className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
+          className={
             selectionMode === mode.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-          }`}
+          }
         >
           {mode.icon}
-        </button>
+        </PanelButton>
       ))}
 
       {isSimplifiable && (
           <Popover className="relative">
             <Popover.Button
+              as={PanelButton}
               title="简化路径"
-              className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+              className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
             >
               {ICONS.SIMPLIFY_PATH}
             </Popover.Button>
@@ -136,8 +138,9 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       {canAlignOrDistribute && (
           <Popover className="relative">
              <Popover.Button
+                  as={PanelButton}
                   title="对齐与分布"
-                  className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                  className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 >
                   {ICONS.ALIGN_DISTRIBUTE}
             </Popover.Button>
@@ -148,7 +151,15 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                       <label className="text-sm font-semibold text-[var(--text-primary)]">对齐</label>
                       <div className="grid grid-cols-6 gap-1 mt-2">
                         {ALIGN_BUTTONS.map(btn => (
-                           <button key={btn.name} onClick={() => onAlign(btn.name as Alignment)} title={btn.title} disabled={!canAlignOrDistribute} className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed">{btn.icon}</button>
+                           <PanelButton
+                             key={btn.name}
+                             onClick={() => onAlign(btn.name as Alignment)}
+                             title={btn.title}
+                             disabled={!canAlignOrDistribute}
+                             className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                             {btn.icon}
+                           </PanelButton>
                         ))}
                       </div>
                     </div>
@@ -158,8 +169,22 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     <div>
                       <label className="text-sm font-semibold text-[var(--text-primary)]">分布</label>
                       <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => handleDistribute('horizontal')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_HORIZONTAL} 水平</button>
-                        <button onClick={() => handleDistribute('vertical')} disabled={!canAlignOrDistribute} className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm">{ICONS.DISTRIBUTE_VERTICAL} 垂直</button>
+                        <PanelButton
+                          variant="unstyled"
+                          onClick={() => handleDistribute('horizontal')}
+                          disabled={!canAlignOrDistribute}
+                          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          {ICONS.DISTRIBUTE_HORIZONTAL} 水平
+                        </PanelButton>
+                        <PanelButton
+                          variant="unstyled"
+                          onClick={() => handleDistribute('vertical')}
+                          disabled={!canAlignOrDistribute}
+                          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          {ICONS.DISTRIBUTE_VERTICAL} 垂直
+                        </PanelButton>
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-3">
                          <div>
@@ -196,8 +221,9 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       {canPerformBooleanOrMask && (
         <Popover className="relative">
             <Popover.Button
+                as={PanelButton}
                 title="布尔运算"
-                className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
             >
                 {ICONS.BOOLEAN_UNION}
             </Popover.Button>
@@ -206,14 +232,14 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     {({ close }) => (
                         <div className="flex items-center gap-1">
                             {BOOLEAN_BUTTONS.map(btn => (
-                                <button
+                                <PanelButton
                                     key={btn.name}
                                     onClick={() => { onBooleanOperation(btn.name); close(); }}
                                     title={btn.title}
-                                    className="p-2 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                                    className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                                 >
                                     {btn.icon}
-                                </button>
+                                </PanelButton>
                             ))}
                         </div>
                     )}
@@ -223,13 +249,13 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {canPerformBooleanOrMask && (
-        <button
+        <PanelButton
           onClick={onMask}
           title="使用顶层对象作为蒙版"
-          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.MASK}
-        </button>
+        </PanelButton>
       )}
 
     </div>

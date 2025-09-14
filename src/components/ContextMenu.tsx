@@ -5,6 +5,7 @@
 
 import React, { useState, useLayoutEffect, useEffect, useRef, Fragment } from 'react';
 import { Transition } from '@headlessui/react';
+import PanelButton from '@/components/PanelButton';
 
 interface ContextMenuProps {
   isOpen: boolean;
@@ -107,7 +108,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
         <div className="flex flex-col">
           {actions.map((action, index) => (
              action.label === '---' ? <div key={`sep-${index}`} className="h-px my-1 bg-[var(--ui-separator)]" /> : (
-            <button
+            <PanelButton
+              variant="unstyled"
               key={action.label}
               onClick={async () => {
                 if (action.handler) {
@@ -124,7 +126,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ isOpen, position, acti
             >
               <span className="flex-grow pr-4">{action.label}</span>
               {action.shortcut && <span className="text-xs text-[var(--text-secondary)]">{action.shortcut}</span>}
-            </button>
+            </PanelButton>
             )
           ))}
         </div>
