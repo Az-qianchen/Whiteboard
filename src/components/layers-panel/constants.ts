@@ -1,8 +1,17 @@
 /**
  * 本文件存放图层面板相关的常量和辅助函数。
  */
+import React from 'react';
 import { ICONS } from '../../constants';
 import type { AnyPath, GroupData } from '../../types';
+
+/**
+ * 将图标尺寸调整为与菜单统一
+ * @param icon - 原始图标元素
+ * @returns 调整尺寸后的图标元素
+ */
+export const withLayerIconSize = (icon: JSX.Element) =>
+  React.cloneElement(icon, { className: 'h-4 w-4' });
 
 /**
  * 根据路径的工具类型返回对应的图标。
@@ -12,20 +21,20 @@ import type { AnyPath, GroupData } from '../../types';
  */
 export const getToolIcon = (tool: AnyPath['tool'], path?: AnyPath) => {
   if (path && path.tool === 'group' && (path as GroupData).mask === 'clip') {
-    return ICONS.MASK;
+    return withLayerIconSize(ICONS.MASK);
   }
   switch (tool) {
-    case 'rectangle': return ICONS.RECTANGLE;
-    case 'ellipse': return ICONS.ELLIPSE;
-    case 'pen': return ICONS.PEN;
-    case 'line': return ICONS.LINE;
-    case 'brush': return ICONS.BRUSH;
-    case 'polygon': return ICONS.POLYGON;
-    case 'arc': return ICONS.ARC;
-    case 'image': return ICONS.IMAGE;
-    case 'group': return ICONS.GROUP;
-    case 'text': return ICONS.TEXT;
-    case 'frame': return ICONS.FRAME;
+    case 'rectangle': return withLayerIconSize(ICONS.RECTANGLE);
+    case 'ellipse': return withLayerIconSize(ICONS.ELLIPSE);
+    case 'pen': return withLayerIconSize(ICONS.PEN);
+    case 'line': return withLayerIconSize(ICONS.LINE);
+    case 'brush': return withLayerIconSize(ICONS.BRUSH);
+    case 'polygon': return withLayerIconSize(ICONS.POLYGON);
+    case 'arc': return withLayerIconSize(ICONS.ARC);
+    case 'image': return withLayerIconSize(ICONS.IMAGE);
+    case 'group': return withLayerIconSize(ICONS.GROUP);
+    case 'text': return withLayerIconSize(ICONS.TEXT);
+    case 'frame': return withLayerIconSize(ICONS.FRAME);
     default: return null;
   }
 };
