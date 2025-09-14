@@ -111,6 +111,9 @@ textarea {
   -moz-user-select: auto;
   -ms-user-select: auto;
   user-select: auto;
+  font-size: 85%;
+  transform: scale(0.85);
+  transform-origin: top left;
 }
 
 body.light-bg-canvas {
