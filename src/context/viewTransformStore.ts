@@ -151,7 +151,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
         };
         const rawFactor = dist / s.initialPinch.distance;
         // 提高捏合缩放灵敏度，放大缩放因子
-        const scaleFactor = 1 + (rawFactor - 1) * 4;
+        const scaleFactor = 1 + (rawFactor - 1) * 100;
         let newScale = s.initialPinch.scale * scaleFactor;
         newScale = Math.max(0.1, Math.min(10, newScale));
         const newTranslateX = midScreen.x - s.initialPinch.midpoint.x * newScale;
