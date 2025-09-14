@@ -92,47 +92,59 @@ function paperToVectorPath(paperPath: paper.Path, baseProps: Omit<VectorPathData
 /**
  * 对一组图形执行布尔运算。
  * @param paths - 要操作的图形数组。
- * @param operation - 要执行的操作类型。
+ * @param operation - 要执行的操作类型（unite、subtract、intersect、exclude、divide）。
  * @returns 操作产生的新图形数组，如果结果为空则返回 null。
  */
 export function performBooleanOperation(
   paths: AnyPath[],
-  operation: 'unite' | 'subtract' | 'intersect' | 'exclude'
+  operation: 'unite' | 'subtract' | 'intersect' | 'exclude' | 'divide'
 ): AnyPath[] | null {
   const project = new paper.Project(document.createElement('canvas'));
-  
+
   const vectorPaths = paths.map(ensureVectorPath).filter((p): p is VectorPathData => p !== null);
+  if (operation === 'divide' && vectorPaths.length !== 2) {
+    project.remove();
+    return null;
+  }
   if (vectorPaths.length < 2) {
     project.remove();
     return null;
   }
 
   const paperPaths = vectorPaths.map(p => vectorToPaperPath(p));
-  
-  let resultPathItem: paper.PathItem | null = paperPaths[0];
 
-  for (let i = 1; i < paperPaths.length; i++) {
-    if (!resultPathItem) break;
-    resultPathItem = resultPathItem[operation](paperPaths[i]);
+  let resultPathItem: paper.PathItem | paper.Group | null;
+  if (operation === 'divide') {
+    resultPathItem = paperPaths[0].divide(paperPaths[1]);
+  } else {
+    resultPathItem = paperPaths[0];
+    for (let i = 1; i < paperPaths.length; i++) {
+      if (!resultPathItem) break;
+      resultPathItem = (resultPathItem as paper.PathItem)[operation](paperPaths[i]);
+    }
   }
-  
-  if (!resultPathItem || resultPathItem.isEmpty()) {
+
+  if (!resultPathItem) {
     project.remove();
     return null;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { anchors, tool, id, isClosed, ...baseProps } = vectorPaths[0];
-  
+
   const simplePaths: paper.Path[] = [];
-  if (resultPathItem instanceof paper.CompoundPath) {
-      resultPathItem.children.forEach(child => {
-          if (child instanceof paper.Path) {
-              simplePaths.push(child);
-          }
-      });
-  } else if (resultPathItem instanceof paper.Path) {
-      simplePaths.push(resultPathItem);
+  const collectPaths = (item: paper.Item) => {
+    if (item instanceof paper.Path) {
+      simplePaths.push(item);
+    } else if ('children' in item) {
+      item.children.forEach((child: paper.Item) => collectPaths(child));
+    }
+  };
+  collectPaths(resultPathItem);
+
+  if (simplePaths.length === 0) {
+    project.remove();
+    return null;
   }
 
   const newVectorPaths = simplePaths.map((p, i) => {
@@ -140,7 +152,7 @@ export function performBooleanOperation(
     newPath.id = `${Date.now()}-boolean-${i}`;
     return newPath;
   });
-  
+
   project.remove();
   return newVectorPaths;
 }
