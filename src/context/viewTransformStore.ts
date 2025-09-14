@@ -51,6 +51,8 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
 
   // 处理滚轮缩放和平移
   handleWheel: (e) => {
+    // 阻止浏览器默认缩放行为，避免在 Mac 上触发页面缩放
+    e.preventDefault();
     const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
     const { viewTransform } = get();
 

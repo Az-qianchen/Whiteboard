@@ -96,6 +96,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   croppingState,
   currentCropRect,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
   const [currentPointerPos, setCurrentPointerPos] = useState<Point | null>(null);
@@ -174,6 +175,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className="w-full h-full bg-transparent overflow-hidden touch-none overscroll-contain"
       onWheel={onWheel}
       style={{ cursor }}
