@@ -272,11 +272,30 @@ export const useObjectActions = ({
       const imgData = imagePath as ImageData;
       const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
       const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
-      const newData = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
+      const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
       ctx.putImageData(newData, 0, 0);
       const newSrc = canvas.toDataURL();
       pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
       pathState.endCoalescing();
+
+      if (region) {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const sx = imgData.x + (region.x / img.width) * imgData.width;
+        const sy = imgData.y + (region.y / img.height) * imgData.height;
+        const sw = (region.width / img.width) * imgData.width;
+        const sh = (region.height / img.height) * imgData.height;
+        rect.setAttribute('x', String(sx));
+        rect.setAttribute('y', String(sy));
+        rect.setAttribute('width', String(sw));
+        rect.setAttribute('height', String(sh));
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('class', 'marching-ants');
+        rect.setAttribute('vector-effect', 'non-scaling-stroke');
+        rect.setAttribute('pointer-events', 'none');
+        svg.appendChild(rect);
+        setTimeout(() => rect.remove(), 2000);
+      }
     };
 
     document.addEventListener('click', onClick, { once: true });

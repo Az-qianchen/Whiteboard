@@ -52,9 +52,12 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
  * 类似 PS 魔法棒的抠图：在点击位置根据阈值去除颜色。
  * @param imageData 原始图像数据
  * @param options 抠图选项
- * @returns 处理后的图像数据
+ * @returns 处理后的图像数据及被抠除区域的边界
  */
-export function removeBackground(imageData: ImageData, options: MattingOptions): ImageData {
+export function removeBackground(
+  imageData: ImageData,
+  options: MattingOptions
+): { image: ImageData; region: { x: number; y: number; width: number; height: number } | null } {
   const { x, y, threshold = 10, contiguous = true } = options;
   const { width, height } = imageData;
   const data = new Uint8ClampedArray(imageData.data);
@@ -68,6 +71,11 @@ export function removeBackground(imageData: ImageData, options: MattingOptions):
     return Math.sqrt(dr * dr + dg * dg + db * db) <= threshold;
   };
 
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
   if (contiguous) {
     const stack: [number, number][] = [[x, y]];
     const visited = new Uint8Array(width * height);
@@ -79,6 +87,10 @@ export function removeBackground(imageData: ImageData, options: MattingOptions):
       const di = pi * 4;
       if (withinThreshold(di)) {
         data[di + 3] = 0;
+        if (cx < minX) minX = cx;
+        if (cy < minY) minY = cy;
+        if (cx > maxX) maxX = cx;
+        if (cy > maxY) maxY = cy;
         stack.push([cx + 1, cy]);
         stack.push([cx - 1, cy]);
         stack.push([cx, cy + 1]);
@@ -87,11 +99,23 @@ export function removeBackground(imageData: ImageData, options: MattingOptions):
     }
   } else {
     for (let i = 0; i < data.length; i += 4) {
-      if (withinThreshold(i)) data[i + 3] = 0;
+      if (withinThreshold(i)) {
+        data[i + 3] = 0;
+        const px = (i / 4) % width;
+        const py = Math.floor(i / 4 / width);
+        if (px < minX) minX = px;
+        if (py < minY) minY = py;
+        if (px > maxX) maxX = px;
+        if (py > maxY) maxY = py;
+      }
     }
   }
 
-  return new ImageData(data, width, height);
+  const region = maxX >= minX && maxY >= minY
+    ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
+    : null;
+
+  return { image: new ImageData(data, width, height), region };
 }
 
 function clamp(value: number, min: number, max: number): number {

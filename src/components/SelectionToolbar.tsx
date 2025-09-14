@@ -73,6 +73,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
   const [distributeSpacing, setDistributeSpacing] = useState<string>('');
+  const [removeBgOpen, setRemoveBgOpen] = useState(false);
 
   const handleSimplifyStart = () => {
     beginSimplify();
@@ -137,19 +138,20 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
 
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
       {canRemoveBackground && (
-        <Popover className="relative">
-          <Popover.Button
+        <div className="relative">
+          <button
             title="抠图"
+            onClick={() => setRemoveBgOpen(o => !o)}
             className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
           >
             {ICONS.REMOVE_BG}
-          </Popover.Button>
-          <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
-            <Popover.Panel className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
+          </button>
+          {removeBgOpen && (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
               <RemoveBgPanel onConfirm={onRemoveBackground} />
-            </Popover.Panel>
-          </Transition>
-        </Popover>
+            </div>
+          )}
+        </div>
       )}
 
       {canAlignOrDistribute && (

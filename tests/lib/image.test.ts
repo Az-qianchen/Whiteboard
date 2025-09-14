@@ -33,9 +33,11 @@ test('魔法棒抠除连续区域', () => {
   ]);
   const imageData = new ImageData(pixels, 3, 1);
   const contiguous = removeBackground(imageData, { x: 0, y: 0, threshold: 10, contiguous: true });
-  expect(contiguous.data[3]).toBe(0); // 第一个像素被抠除
-  expect(contiguous.data[7]).toBe(255); // 中间黑色未受影响
+  expect(contiguous.image.data[3]).toBe(0); // 第一个像素被抠除
+  expect(contiguous.image.data[7]).toBe(255); // 中间黑色未受影响
+  expect(contiguous.region).toEqual({ x: 0, y: 0, width: 1, height: 1 });
   const nonContiguous = removeBackground(imageData, { x: 0, y: 0, threshold: 10, contiguous: false });
-  expect(nonContiguous.data[3]).toBe(0); // 第一个像素
-  expect(nonContiguous.data[11]).toBe(0); // 第三个白色也被抠除
+  expect(nonContiguous.image.data[3]).toBe(0); // 第一个像素
+  expect(nonContiguous.image.data[11]).toBe(0); // 第三个白色也被抠除
+  expect(nonContiguous.region).toEqual({ x: 0, y: 0, width: 3, height: 1 });
 });
