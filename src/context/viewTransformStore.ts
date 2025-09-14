@@ -58,7 +58,8 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
 
     if (ctrlKey) {
       const { scale, translateX, translateY } = viewTransform;
-      const zoomStep = 0.001;
+      // 调整滚轮缩放步长以提高灵敏度
+      const zoomStep = 0.003;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
@@ -148,7 +149,9 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
           x: (values[0].x + values[1].x) / 2,
           y: (values[0].y + values[1].y) / 2,
         };
-        const scaleFactor = dist / s.initialPinch.distance;
+        const rawFactor = dist / s.initialPinch.distance;
+        // 提高捏合缩放灵敏度，放大缩放因子
+        const scaleFactor = 1 + (rawFactor - 1) * 1.5;
         let newScale = s.initialPinch.scale * scaleFactor;
         newScale = Math.max(0.1, Math.min(10, newScale));
         const newTranslateX = midScreen.x - s.initialPinch.midpoint.x * newScale;
