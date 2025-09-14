@@ -10,11 +10,22 @@ import './index.css';
 import '@/lib/i18n';
 import { registerSW } from 'virtual:pwa-register';
 
-// 屏蔽全局浏览器捏合手势，避免页面缩放
-const blockGesture = (e: Event) => e.preventDefault();
-document.addEventListener('gesturestart', blockGesture);
-document.addEventListener('gesturechange', blockGesture);
-document.addEventListener('gestureend', blockGesture);
+// 阻止浏览器默认手势（捏合缩放、双指滑动回退等）
+const preventDefault = (e: Event) => e.preventDefault();
+['gesturestart', 'gesturechange', 'gestureend', 'touchstart', 'touchmove'].forEach(evt => {
+  window.addEventListener(evt, preventDefault, { passive: false });
+});
+
+// 禁用 Ctrl+滚轮及页面层级的滚轮默认行为，避免触发页面缩放或回退
+window.addEventListener(
+  'wheel',
+  e => {
+    if ((e as WheelEvent).ctrlKey || e.target === document.body) {
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

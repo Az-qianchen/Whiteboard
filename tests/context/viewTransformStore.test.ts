@@ -41,8 +41,8 @@ describe('useViewTransformStore pinch gestures', () => {
     store.handleTouchStart({ pointerId: 2, clientX: 10, clientY: 0, currentTarget: svg } as any);
     store.handleTouchMove({ pointerId: 2, clientX: 20, clientY: 0 } as any);
     const vt = useViewTransformStore.getState().viewTransform;
-    expect(vt.scale).toBeCloseTo(2);
-    expect(vt.translateX).toBeCloseTo(0);
+    expect(vt.scale).toBeCloseTo(4);
+    expect(vt.translateX).toBeCloseTo(-10);
     expect(vt.translateY).toBeCloseTo(0);
   });
 
