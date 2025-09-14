@@ -142,12 +142,17 @@ export function performBooleanOperation(
   };
   collectPaths(resultPathItem);
 
-  if (simplePaths.length === 0) {
+  // 只保留切割后原始图形的闭合部分
+  const closedPaths = simplePaths.filter(
+    p => p.closed && paperPaths[0].contains(p.bounds.center)
+  );
+
+  if (closedPaths.length === 0) {
     project.remove();
     return null;
   }
 
-  const newVectorPaths = simplePaths.map((p, i) => {
+  const newVectorPaths = closedPaths.map((p, i) => {
     const newPath = paperToVectorPath(p, baseProps);
     newPath.id = `${Date.now()}-boolean-${i}`;
     return newPath;
