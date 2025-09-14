@@ -5,6 +5,7 @@
 
 import React, { Fragment } from 'react';
 import { Popover, Transition, Switch } from '@headlessui/react';
+import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import type { Tool } from '../types';
 
@@ -54,27 +55,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <div className="flex flex-wrap items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
       {TOOLS.map((t) => (
-        <button
+        <PanelButton
           key={t.name}
           type="button"
           title={t.title}
           onClick={() => setTool(t.name)}
-          className={`p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 ${
+          className={
             tool === t.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-          }`}
+          }
         >
           {t.icon}
-        </button>
+        </PanelButton>
       ))}
 
       <div className="h-6 w-px bg-[var(--ui-separator)] mx-1" />
 
       <Popover className="relative">
         <Popover.Button
+          as={PanelButton}
           title="网格设置"
-          className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.GRID}
         </Popover.Button>
