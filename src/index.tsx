@@ -9,11 +9,21 @@ import App from './App';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
-// 屏蔽全局浏览器捏合及双指滑动手势，避免页面缩放或回退
+// 屏蔽浏览器捏合缩放与 Ctrl+滚轮放大，避免页面缩放或回退
 const blockGesture = (e: Event) => e.preventDefault();
-['gesturestart', 'gesturechange', 'gestureend', 'touchstart', 'touchmove'].forEach(evt => {
+['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
   document.addEventListener(evt, blockGesture, { passive: false });
 });
+
+document.addEventListener(
+  'wheel',
+  e => {
+    if ((e as WheelEvent).ctrlKey) {
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
