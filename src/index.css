@@ -81,7 +81,7 @@
 html, body, #root {
   height: 100%;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden; /* 禁用滚动以防止系统手势 */
   touch-action: none; /* 禁用默认手势，防止回退或缩放 */
   overscroll-behavior: none; /* 阻止浏览器回退手势 */
 }

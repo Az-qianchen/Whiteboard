@@ -9,16 +9,17 @@ import App from './App';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
-// 屏蔽浏览器捏合缩放与 Ctrl+滚轮放大，避免页面缩放或回退
-const blockGesture = (e: Event) => e.preventDefault();
-['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
-  document.addEventListener(evt, blockGesture, { passive: false });
+// 阻止浏览器默认手势（捏合缩放、双指滑动回退等）
+const preventDefault = (e: Event) => e.preventDefault();
+['gesturestart', 'gesturechange', 'gestureend', 'touchstart', 'touchmove'].forEach(evt => {
+  window.addEventListener(evt, preventDefault, { passive: false });
 });
 
-document.addEventListener(
+// 禁用 Ctrl+滚轮及页面层级的滚轮默认行为，避免触发页面缩放或回退
+window.addEventListener(
   'wheel',
   e => {
-    if ((e as WheelEvent).ctrlKey) {
+    if ((e as WheelEvent).ctrlKey || e.target === document.body) {
       e.preventDefault();
     }
   },
