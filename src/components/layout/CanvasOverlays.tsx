@@ -83,6 +83,9 @@ export const CanvasOverlays: React.FC = () => {
         handleDistribute,
         handleBooleanOperation,
         handleTraceImage,
+        beginRemoveBackground,
+        applyRemoveBackground,
+        cancelRemoveBackground,
         confirmationDialog,
         hideConfirmation,
         editingTextPathId: activeEditingTextPathId, // rename to avoid conflict
@@ -109,6 +112,12 @@ export const CanvasOverlays: React.FC = () => {
         [paths, selectedPathIds]
     );
     const isTraceable = useMemo(() => {
+        if (selectedPathIds.length !== 1) return false;
+        const path = paths.find((p: AnyPath) => p.id === selectedPathIds[0]);
+        return path?.tool === 'image';
+    }, [paths, selectedPathIds]);
+
+    const canRemoveBackground = useMemo(() => {
         if (selectedPathIds.length !== 1) return false;
         const path = paths.find((p: AnyPath) => p.id === selectedPathIds[0]);
         return path?.tool === 'image';
@@ -172,6 +181,10 @@ export const CanvasOverlays: React.FC = () => {
                         onMask={handleMask}
                         isTraceable={isTraceable}
                         onTraceImage={handleTraceImage}
+                        canRemoveBackground={canRemoveBackground}
+                        beginRemoveBackground={beginRemoveBackground}
+                        applyRemoveBackground={applyRemoveBackground}
+                        cancelRemoveBackground={cancelRemoveBackground}
                     />
                 </div>
             )}

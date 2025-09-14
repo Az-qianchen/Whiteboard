@@ -10,7 +10,7 @@ import PanelButton from '@/components/PanelButton';
 
 export const SideToolbarPanel: React.FC = () => {
     const store = useAppContext();
-    const { isSideToolbarCollapsed, setIsSideToolbarCollapsed, handleToggleStyleLibrary, isTimelineCollapsed } = store;
+    const { isSideToolbarCollapsed, setIsSideToolbarCollapsed, handleToggleStyleLibrary, isTimelineCollapsed, handleAdjustImageHsv } = store;
     
     return (
         <>
@@ -29,7 +29,7 @@ export const SideToolbarPanel: React.FC = () => {
                     transform: `translateY(-50%) ${isSideToolbarCollapsed ? 'translateX(calc(100% + 1rem))' : 'translateX(0)'}`,
                 }}
             >
-                <SideToolbar {...store} onToggleStyleLibrary={handleToggleStyleLibrary} />
+                <SideToolbar {...store} onToggleStyleLibrary={handleToggleStyleLibrary} onAdjustImageHsv={handleAdjustImageHsv} />
             </div>
         </>
     );

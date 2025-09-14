@@ -6,10 +6,12 @@
 
 import React, { useMemo } from 'react';
 import type { Tool, AnyPath, VectorPathData, TextData } from '../types';
+import type { HsvAdjustment } from '@/lib/image';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 
 import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, TextProperties, EffectsPopover } from './side-toolbar';
+import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
 
 interface SideToolbarProps {
   tool: Tool;
@@ -86,6 +88,7 @@ interface SideToolbarProps {
   setShadowBlur: (sb: number) => void;
   shadowColor: string;
   setShadowColor: (sc: string) => void;
+  onAdjustImageHsv: (adj: HsvAdjustment) => void;
 }
 
 /**
@@ -111,6 +114,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     fontFamily, setFontFamily,
     fontSize, setFontSize,
     textAlign, setTextAlign,
+    onAdjustImageHsv,
   } = props;
 
   const isTextMode = useMemo(() => {
@@ -243,7 +247,15 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
           {isEndpointControlVisible && !isTextMode && (
             <EndpointPopover {...props} />
           )}
-          
+
+          {firstSelectedPath?.tool === 'image' && (
+            <ImageHsvPopover
+              onAdjust={onAdjustImageHsv}
+              beginCoalescing={beginCoalescing}
+              endCoalescing={endCoalescing}
+            />
+          )}
+
           {!isTextMode && <EffectsPopover {...props} />}
           {!isTextMode && <StylePropertiesPopover {...props} />}
         </>

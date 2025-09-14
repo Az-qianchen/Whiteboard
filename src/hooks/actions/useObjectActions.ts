@@ -1,11 +1,12 @@
 /**
  * 本文件定义了一个自定义 Hook，用于封装画布上对象的变换和组织操作。
  */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '../../lib/drawing';
 import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '../../types';
 import type { AppActionsProps } from '../useAppActions';
 import { importSvg } from '../../lib/import';
+import { removeBackground, adjustHsv, type HsvAdjustment } from '../../lib/image';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
 
@@ -19,6 +20,7 @@ export const useObjectActions = ({
   selectedPathIds,
   pathState,
   toolbarState,
+  getPointerPosition,
 }: AppActionsProps) => {
 
   /**
@@ -244,6 +246,138 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds, pathState]);
 
   /**
+   * 抠图模式状态。
+   * 保存临时选区、生成的新图像以及点击监听器，
+   * 以便在用户确认或取消时进行处理。
+   */
+  const removeBgRef = useRef<{
+    handler?: (e: MouseEvent) => void;
+    overlay?: SVGRectElement;
+    newSrc?: string;
+    targetId?: string;
+  } | null>(null);
+
+  /**
+   * 开始抠图模式，等待用户在图像上点击选区。
+   */
+  const beginRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean }) => {
+    if (selectedPathIds.length !== 1) return;
+    const imagePath = paths.find(p => p.id === selectedPathIds[0]);
+    if (!imagePath || imagePath.tool !== 'image') return;
+
+    // 若已有挂起的抠图操作，先清理
+    if (removeBgRef.current?.handler) {
+      document.removeEventListener('click', removeBgRef.current.handler);
+    }
+    removeBgRef.current?.overlay?.remove();
+    removeBgRef.current = { targetId: imagePath.id };
+
+    const handler = async (e: MouseEvent) => {
+      removeBgRef.current = removeBgRef.current ?? { targetId: imagePath.id };
+      removeBgRef.current.handler = undefined;
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = (imagePath as ImageData).src;
+      await new Promise(resolve => { img.onload = resolve; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { return; }
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const svg = document.querySelector('svg') as SVGSVGElement;
+      const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      const imgData = imagePath as ImageData;
+      const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
+      const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
+      const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
+      ctx.putImageData(newData, 0, 0);
+      const newSrc = canvas.toDataURL();
+      removeBgRef.current = { ...removeBgRef.current, newSrc };
+
+      if (region) {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const sx = imgData.x + (region.x / img.width) * imgData.width;
+        const sy = imgData.y + (region.y / img.height) * imgData.height;
+        const sw = (region.width / img.width) * imgData.width;
+        const sh = (region.height / img.height) * imgData.height;
+        rect.setAttribute('x', String(sx));
+        rect.setAttribute('y', String(sy));
+        rect.setAttribute('width', String(sw));
+        rect.setAttribute('height', String(sh));
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('class', 'marching-ants');
+        rect.setAttribute('vector-effect', 'non-scaling-stroke');
+        rect.setAttribute('pointer-events', 'none');
+        svg.appendChild(rect);
+        removeBgRef.current.overlay = rect;
+      }
+    };
+
+    removeBgRef.current.handler = handler;
+    // 延迟注册以避免立即触发当前点击
+    setTimeout(() => {
+      document.addEventListener('click', handler, { once: true });
+    });
+  }, [paths, selectedPathIds, getPointerPosition]);
+
+  /**
+   * 确认抠图，应用预览结果。
+   */
+  const applyRemoveBackground = useCallback(() => {
+    const info = removeBgRef.current;
+    if (!info?.newSrc || !info.targetId) return;
+    pathState.beginCoalescing();
+    pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, src: info.newSrc! } : p));
+    pathState.endCoalescing();
+    info.overlay?.remove();
+    removeBgRef.current = null;
+  }, [pathState]);
+
+  /**
+   * 取消抠图，移除选区与监听器。
+   */
+  const cancelRemoveBackground = useCallback(() => {
+    const info = removeBgRef.current;
+    if (!info) return;
+    if (info.handler) {
+      document.removeEventListener('click', info.handler);
+    }
+    info.overlay?.remove();
+    removeBgRef.current = null;
+  }, []);
+
+  /**
+   * 调整选中图片的 HSV，支持跨域图片。
+   */
+  const handleAdjustImageHsv = useCallback(async (adj: HsvAdjustment) => {
+    if (selectedPathIds.length !== 1) return;
+    const imagePath = paths.find(p => p.id === selectedPathIds[0]);
+    if (!imagePath || imagePath.tool !== 'image') return;
+
+    pathState.beginCoalescing();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = (imagePath as ImageData).src;
+    await new Promise(resolve => { img.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { pathState.endCoalescing(); return; }
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const newData = adjustHsv(data, adj);
+    ctx.putImageData(newData, 0, 0);
+    const newSrc = canvas.toDataURL();
+    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+    pathState.endCoalescing();
+  }, [paths, selectedPathIds, pathState]);
+
+  /**
    * 将选中的图片转换为矢量图形。
    * @param options - 矢量化参数选项。
    */
@@ -311,5 +445,5 @@ export const useObjectActions = ({
 
   }, [paths, selectedPathIds, pathState]);
   
-  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage };
+  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, beginRemoveBackground, applyRemoveBackground, cancelRemoveBackground, handleAdjustImageHsv };
 };
