@@ -227,13 +227,9 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                   );
                 }
 
-                if ((action as any).isLanguageSelector) {
-                  return (
-                    <div key="language-selector" className="px-2 py-1">
-                      <LanguageSelector />
-                    </div>
-                  );
-                }
+                  if ((action as any).isLanguageSelector) {
+                    return <LanguageSelector key="language-selector" />;
+                  }
 
               return (
                 <PanelButton

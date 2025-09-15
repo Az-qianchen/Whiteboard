@@ -1,6 +1,6 @@
 /**
  * 本文件定义了一个浮动的动画导出选项面板组件。
- * 它允许用户选择导出格式（PNG 序列或雪碧图）并配置相关选项。
+ * 它允许用户选择导出格式（PNG 序列或精灵图）并配置相关选项。
  */
 import React, { Fragment, useState, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -36,7 +36,17 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
     const { frames } = useAppContext();
     
     const allFrameShapes = useMemo(() => {
-        return frames.flatMap(frame => frame.paths.filter(path => path.tool === 'frame')) as FrameData[];
+        const seen = new Set<string>();
+        const uniqueFrames: FrameData[] = [];
+        for (const frame of frames) {
+            for (const path of frame.paths) {
+                if (path.tool === 'frame' && !seen.has(path.id)) {
+                    uniqueFrames.push(path as FrameData);
+                    seen.add(path.id);
+                }
+            }
+        }
+        return uniqueFrames;
     }, [frames]);
 
     useEffect(() => { setIsMounted(true); }, []);
@@ -101,7 +111,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                     <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">导出动画</h3>
                     
                     <div>
-                        <label className="text-sm font-medium text-[var(--text-primary)]">裁剪到</label>
+                        <label className="text-sm font-medium text-[var(--text-primary)]">导出区域</label>
                         <Popover className="relative mt-1">
                             <Popover.Button
                                 as={PanelButton}
@@ -121,7 +131,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Popover.Panel className="absolute bottom-full mb-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
+                                <Popover.Panel className="absolute bottom-full mb-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1 style-library-grid">
                                     {({ close }) => (
                                         <div className="flex flex-col gap-1">
                                             <PanelButton
@@ -157,7 +167,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                     variant="unstyled"
                                     className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
                                   >
-                                    PNG 序列 (ZIP)
+                                    PNG 序列
                                   </PanelButton>
                                 )}
                             </RadioGroup.Option>
@@ -167,7 +177,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                     variant="unstyled"
                                     className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
                                   >
-                                    雪碧图
+                                    精灵图
                                   </PanelButton>
                                 )}
                             </RadioGroup.Option>
