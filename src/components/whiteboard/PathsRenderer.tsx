@@ -5,8 +5,8 @@
 
 import React, { useMemo } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, FrameData, GroupData } from '../../types';
-import { renderPathNode } from '../../lib/export';
+import type { AnyPath, FrameData, GroupData } from '@/types';
+import { renderPathNode } from '@/lib/export';
 
 /**
  * 递归地查找并返回路径树中所有的画框对象。

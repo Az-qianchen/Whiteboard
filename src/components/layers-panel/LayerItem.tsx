@@ -3,9 +3,9 @@
  * 它负责渲染图层名称、图标和操作按钮，并处理用户交互。
  */
 import React, { useState, useRef, useEffect } from 'react';
-import type { AnyPath, GroupData } from '../../types';
-import { ICONS } from '../../constants';
-import { useLayers } from '../../lib/layers-context';
+import type { AnyPath, GroupData } from '@/types';
+import { ICONS } from '@/constants';
+import { useLayers } from '@/lib/layers-context';
 import { getToolIcon, capitalize, withLayerIconSize } from './constants';
 import PanelButton from '@/components/PanelButton';
 

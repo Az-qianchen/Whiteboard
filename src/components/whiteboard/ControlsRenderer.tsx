@@ -4,8 +4,8 @@
  */
 
 import React from 'react';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, TextData, FrameData, BBox } from '../../types';
-import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, rotatePoint, calculateArcPathD, rotateResizeHandle } from '../../lib/drawing';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, TextData, FrameData, BBox } from '@/types';
+import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, rotatePoint, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 
 
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {

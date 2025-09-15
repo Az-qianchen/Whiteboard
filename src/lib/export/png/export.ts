@@ -2,8 +2,8 @@
  * 本文件负责将路径数据导出为 PNG 格式。
  * 它首先将路径渲染为 SVG 字符串，然后使用 Canvas API 将 SVG 转换为 PNG Blob。
  */
-import type { AnyPath, PngExportOptions, BBox, FrameData } from '../../types';
-import { getPathsBoundingBox } from '../../drawing';
+import type { AnyPath, PngExportOptions, BBox, FrameData } from '@/types';
+import { getPathsBoundingBox } from '@/lib/drawing';
 import { pathsToSvgString } from '../svg/export';
 
 // Explicitly define all properties instead of extending PngExportOptions

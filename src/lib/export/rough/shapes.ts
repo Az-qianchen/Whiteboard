@@ -1,6 +1,6 @@
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { RectangleData, EllipseData, ImageData, PolygonData, FrameData } from '../../types';
-import { getPolygonPathD, getRoundedRectPathD } from '../../drawing';
+import type { RectangleData, EllipseData, ImageData, PolygonData, FrameData } from '@/types';
+import { getPolygonPathD, getRoundedRectPathD } from '@/lib/drawing';
 
 export function renderImage(data: ImageData): SVGElement {
     const imgData = data as ImageData;

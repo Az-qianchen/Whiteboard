@@ -1,7 +1,7 @@
 /**
  * 本文件包含 useSelection hook 中使用的通用工具函数。
  */
-import type { AnyPath, GroupData } from '../../types';
+import type { AnyPath, GroupData } from '@/types';
 
 /**
  * 递归更新路径树中的路径。

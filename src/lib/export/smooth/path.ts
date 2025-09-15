@@ -2,10 +2,10 @@
  * 本文件定义了用于创建平滑（非手绘风格）SVG 路径节点的函数。
  * 主要用于导出 SVG，以确保输出的 SVG 代码简洁且符合标准。
  */
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData } from '../../types';
-import { anchorsToPathD, pointsToPathD } from '../../path-fitting';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData } from '@/types';
+import { anchorsToPathD, pointsToPathD } from '@/lib/path-fitting';
 import { createSvgMarker } from '../markers/svg';
-import { getPolygonPathD, calculateArcPathD } from '../../drawing';
+import { getPolygonPathD, calculateArcPathD } from '@/lib/drawing';
 import { createEffectsFilter } from '../core/effects';
 
 export function createSmoothPathNode(data: AnyPath): SVGElement | null {

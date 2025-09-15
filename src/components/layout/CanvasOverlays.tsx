@@ -4,9 +4,9 @@
  */
 import React, { useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
-import { CONTROL_BUTTON_CLASS } from '../../constants';
+import { CONTROL_BUTTON_CLASS } from '@/constants';
 import { Toolbar } from '../Toolbar';
 import { SelectionToolbar } from '../SelectionToolbar';
 import { ContextMenu } from '../ContextMenu';
@@ -16,9 +16,9 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
-import type { AnyPath, TextData, MaterialData } from '../../types';
-import { ICONS } from '../../constants';
-import { getPathsBoundingBox, getPathBoundingBox } from '../../lib/drawing';
+import type { AnyPath, TextData, MaterialData } from '@/types';
+import { ICONS } from '@/constants';
+import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);

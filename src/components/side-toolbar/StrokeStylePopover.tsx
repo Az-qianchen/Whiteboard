@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ICONS, ENDPOINT_STYLES } from '../../constants';
-import type { EndpointStyle } from '../../types';
+import { ICONS, ENDPOINT_STYLES } from '@/constants';
+import type { EndpointStyle } from '@/types';
 import PanelButton from '@/components/PanelButton';
 import { SwitchControl, Slider, EndpointGrid } from './shared';
 

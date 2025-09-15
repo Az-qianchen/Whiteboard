@@ -7,8 +7,8 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../../types';
-import { getPointerPosition } from '../../lib/utils';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '@/types';
+import { getPointerPosition } from '@/lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
 // Import new sub-components

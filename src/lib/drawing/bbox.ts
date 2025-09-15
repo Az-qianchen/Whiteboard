@@ -1,9 +1,9 @@
-import type { BBox, AnyPath, Point, VectorPathData, BrushPathData, ArcData, GroupData, TextData } from '../../types';
+import type { BBox, AnyPath, Point, VectorPathData, BrushPathData, ArcData, GroupData, TextData } from '@/types';
 import { rotatePoint } from './geom';
 import { samplePath } from './path';
 import { getPolygonVertices } from './polygon';
 import { sampleArc } from './arc';
-import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '../../constants';
+import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '@/constants';
 
 export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true): BBox {
   let margin = 0;

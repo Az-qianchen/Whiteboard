@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useState, useMemo, Fragment } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import { ICONS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '../../constants';
-import type { AnyPath, StyleClipboardData, RectangleData, MaterialData } from '../../types';
-import { renderPathNode, pathsToSvgString } from '../../lib/export';
+import { ICONS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '@/constants';
+import type { AnyPath, StyleClipboardData, RectangleData, MaterialData } from '@/types';
+import { renderPathNode, pathsToSvgString } from '@/lib/export';
 import { Tab, Popover, Transition } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
 

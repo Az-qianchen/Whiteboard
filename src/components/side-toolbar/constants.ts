@@ -1,6 +1,6 @@
 import React from 'react';
-import { ICONS } from '../../constants';
-import type { EndpointStyle } from '../../types';
+import { ICONS } from '@/constants';
+import type { EndpointStyle } from '@/types';
 
 export const FILL_STYLE_ICONS = {
   solid: React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 20 20", className: "w-5 h-5", fill: "currentColor" },

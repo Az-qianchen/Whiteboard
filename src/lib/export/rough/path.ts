@@ -1,6 +1,6 @@
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { VectorPathData, EndpointStyle } from '../../types';
-import { samplePath } from '../../drawing';
+import type { VectorPathData, EndpointStyle } from '@/types';
+import { samplePath } from '@/lib/drawing';
 import { createCapNode } from '../markers/rough';
 
 /**

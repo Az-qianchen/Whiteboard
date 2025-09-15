@@ -5,9 +5,9 @@
 
 import React from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { LivePath, DrawingShape, VectorPathData } from '../../types';
-import { pointsToSimplePathD, anchorsToPathD } from '../../lib/path-fitting';
-import { getPolygonPathD } from '../../lib/drawing';
+import type { LivePath, DrawingShape, VectorPathData } from '@/types';
+import { pointsToSimplePathD, anchorsToPathD } from '@/lib/path-fitting';
+import { getPolygonPathD } from '@/lib/drawing';
 import { RoughPath } from './PathsRenderer';
 
 // For live brush previews, we use a simple, performant path.

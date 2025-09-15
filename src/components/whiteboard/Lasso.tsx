@@ -2,7 +2,7 @@
  * 本文件是 Whiteboard 的子组件，负责渲染拖拽套索选择时出现的虚线选择路径（Lasso）。
  */
 import React from 'react';
-import type { Point } from '../../types';
+import type { Point } from '@/types';
 
 interface LassoProps {
   lassoPath: Point[] | null;

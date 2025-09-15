@@ -1,6 +1,6 @@
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { Point, EndpointStyle } from '../../types';
-import { rotatePoint } from '../../drawing';
+import type { Point, EndpointStyle } from '@/types';
+import { rotatePoint } from '@/lib/drawing';
 
 // Helper function to create an endpoint marker node.
 export function createCapNode(

@@ -2,8 +2,8 @@
  * 本文件存放图层面板相关的常量和辅助函数。
  */
 import React from 'react';
-import { ICONS } from '../../constants';
-import type { AnyPath, GroupData } from '../../types';
+import { ICONS } from '@/constants';
+import type { AnyPath, GroupData } from '@/types';
 
 /**
  * 将图标尺寸调整为与菜单统一

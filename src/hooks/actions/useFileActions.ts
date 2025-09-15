@@ -2,11 +2,11 @@
  * 本文件定义了一个自定义 Hook，用于封装文件操作（打开、保存、导入）。
  */
 import React, { useCallback, useRef } from 'react';
-import type { AnyPath, WhiteboardData, Frame } from '../../types';
-import * as idb from '../../lib/indexedDB';
+import type { AnyPath, WhiteboardData, Frame } from '@/types';
+import * as idb from '@/lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import { fileOpen, fileSave } from 'browser-fs-access';
-import { importSvg } from '../../lib/import';
+import { importSvg } from '@/lib/import';
 import type { AppActionsProps } from './useAppActions';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
