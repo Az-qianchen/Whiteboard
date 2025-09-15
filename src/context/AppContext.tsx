@@ -1,37 +1,18 @@
 /**
- * 本文件定义了应用全局状态的 React Context。
- * 它提供了一个 AppProvider 组件和一个 useAppContext Hook，
- * 用于在整个应用中分发和访问由 useAppStore 管理的状态。
+ * 简化后的应用全局状态 React Context。
+ * 原有的 useAppStore 已被拆分为多个独立的 Zustand store，
+ * 这里提供一个占位实现以保持对 useAppContext 的兼容。
  */
 import React, { createContext, useContext } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
 
-// useAppStore 的返回类型是我们上下文的值类型
-type AppContextType = ReturnType<typeof useAppStore>;
+type AppContextType = Record<string, unknown>;
 
-const AppContext = createContext<AppContextType | null>(null);
+const AppContext = createContext<AppContextType>({});
 
-/**
- * AppProvider 组件
- * @description 为其子组件提供 useAppStore 的值。
- */
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const store = useAppStore();
-  return (
-    <AppContext.Provider value={store}>
-      {children}
-    </AppContext.Provider>
-  );
-};
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AppContext.Provider value={{}}>
+    {children}
+  </AppContext.Provider>
+);
 
-/**
- * useAppContext 自定义 Hook
- * @description 一个便捷的 Hook，用于访问 AppContext。
- */
-export const useAppContext = (): AppContextType => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
-  return context;
-};
+export const useAppContext = (): AppContextType => useContext(AppContext);

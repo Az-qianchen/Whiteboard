@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useViewTransformStore } from '@/context/viewTransformStore';
+import { useViewTransformStore } from '@/hooks/useViewTransformStore';
 
 const createSvgMock = () => ({
   createSVGPoint: () => ({

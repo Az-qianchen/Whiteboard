@@ -1,6 +1,6 @@
 // 工具状态存储测试
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useToolStore } from '@/context/toolStore';
+import { useToolStore } from '@/hooks/useToolsStore';
 
 // 每次测试前重置状态
 beforeEach(() => {

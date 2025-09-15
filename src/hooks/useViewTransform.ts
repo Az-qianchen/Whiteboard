@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import type { Point } from '@/types';
-import { useViewTransformStore } from '@/context/viewTransformStore';
+import { useViewTransformStore } from '@/hooks/useViewTransformStore';
 
 /**
  * 返回视图缩放与平移相关的状态与方法
