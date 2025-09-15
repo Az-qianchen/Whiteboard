@@ -4,9 +4,9 @@
  * 并使用 Context 获取和操作图层数据。
  */
 import React, { useState, useRef } from 'react';
-import type { AnyPath, GroupData } from '../../types';
-import { ICONS } from '../../constants';
-import { useLayers } from '../../lib/layers-context';
+import type { AnyPath, GroupData } from '@/types';
+import { ICONS } from '@/constants';
+import { useLayers } from '@/lib/layers-context';
 import { useAppContext } from '@/context/AppContext';
 import { LayerItem } from './LayerItem';
 import PanelButton from '@/components/PanelButton';

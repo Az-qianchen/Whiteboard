@@ -1,7 +1,7 @@
 /**
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
-import type { AnyPath } from '../../types';
+import type { AnyPath } from '@/types';
 
 /**
  * 根据路径数据创建 SVG 滤镜元素。

@@ -2,11 +2,11 @@
  * 本文件定义了一个自定义 Hook，用于封装导出操作（如导出为 SVG、PNG）。
  */
 import { useCallback } from 'react';
-import { pathsToSvgString, pathsToPngBlob } from '../../lib/export';
+import { pathsToSvgString, pathsToPngBlob } from '@/lib/export';
 import { fileSave } from 'browser-fs-access';
 import type { AppActionsProps } from './useAppActions';
-import type { FrameData, AnimationExportOptions, ImageData } from '../../types';
-import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '../../lib/drawing';
+import type { FrameData, AnimationExportOptions, ImageData } from '@/types';
+import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '@/lib/drawing';
 import JSZip from 'jszip';
 
 /**

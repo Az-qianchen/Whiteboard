@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ICONS } from '../../constants';
+import { ICONS } from '@/constants';
 import PanelButton from '@/components/PanelButton';
 import { SwitchControl, Slider, PopoverColorControl } from './shared';
 

@@ -1,7 +1,7 @@
 /**
  * 本文件包含了用于排列和分布画布上对象的函数。
  */
-import type { AnyPath, Alignment, DistributeMode, BBox } from '../../types';
+import type { AnyPath, Alignment, DistributeMode, BBox } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox } from './bbox';
 import { movePath } from './transform';
 

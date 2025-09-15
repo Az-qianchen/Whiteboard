@@ -3,10 +3,10 @@
  * 它包含了主菜单，并管理其宽度调整逻辑。
  */
 import React, { useState, useMemo } from 'react';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '@/context/AppContext';
 import { MainMenu } from '../MainMenu';
-import type { AnyPath } from '../../types';
-import { getPathsBoundingBox, getPathBoundingBox } from '../../lib/drawing';
+import type { AnyPath } from '@/types';
+import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 
 export const MainMenuPanel: React.FC = () => {
     const {

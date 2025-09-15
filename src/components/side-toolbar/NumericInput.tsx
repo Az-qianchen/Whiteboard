@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useWheelCoalescer } from '../../hooks/side-toolbar/useWheelCoalescer';
+import { useWheelCoalescer } from '@/hooks/side-toolbar/useWheelCoalescer';
 
 interface NumericInputProps {
   label: string;

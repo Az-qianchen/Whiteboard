@@ -2,8 +2,8 @@
  * 本文件定义了一个自定义 Hook，用于管理当前激活的工具和选择模式的状态。
  */
 import { useEffect } from 'react';
-import type { Tool, SelectionMode } from '../../types';
-import { getLocalStorageItem } from '../../lib/utils';
+import type { Tool, SelectionMode } from '@/types';
+import { getLocalStorageItem } from '@/lib/utils';
 import { useToolStore } from '@/context/toolStore';
 
 /**

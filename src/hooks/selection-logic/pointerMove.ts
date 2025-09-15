@@ -11,9 +11,9 @@ import type {
   SelectionPathState,
   SelectionToolbarState,
   SelectionViewTransform,
-} from '../../types';
-import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist } from '../../lib/drawing';
-import { isPointHittingPath } from '../../lib/hit-testing';
+} from '@/types';
+import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist } from '@/lib/drawing';
+import { isPointHittingPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10;

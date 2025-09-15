@@ -2,11 +2,11 @@
  * 本文件定义了一个自定义 Hook，用于封装画布上对象的变换和组织操作。
  */
 import { useCallback, useRef } from 'react';
-import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '../../lib/drawing';
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '../../types';
+import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '@/lib/drawing';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '@/types';
 import type { AppActionsProps } from './useAppActions';
-import { importSvg } from '../../lib/import';
-import { removeBackground, adjustHsv, type HsvAdjustment } from '../../lib/image';
+import { importSvg } from '@/lib/import';
+import { removeBackground, adjustHsv, type HsvAdjustment } from '@/lib/image';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'divide';
 

@@ -1,4 +1,4 @@
-import type { Point } from '../../types';
+import type { Point } from '@/types';
 
 const isFinitePoint = (p: Point | undefined | null): p is Point =>
   !!p && Number.isFinite(p.x) && Number.isFinite(p.y);

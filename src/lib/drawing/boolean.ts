@@ -2,7 +2,7 @@
  * 本文件包含了使用 paper.js 进行布尔运算的逻辑。
  */
 import paper from 'paper';
-import type { AnyPath, VectorPathData, Anchor } from '../../types';
+import type { AnyPath, VectorPathData, Anchor } from '@/types';
 import {
   rectangleToVectorPath,
   ellipseToVectorPath,

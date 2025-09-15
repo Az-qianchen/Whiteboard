@@ -1,9 +1,9 @@
 import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ICONS } from '../../constants';
-import type { EndpointStyle } from '../../types';
+import { ICONS } from '@/constants';
+import type { EndpointStyle } from '@/types';
 import PanelButton from '@/components/PanelButton';
-import { useDashGapInput } from '../../hooks/side-toolbar/useDashGapInput';
+import { useDashGapInput } from '@/hooks/side-toolbar/useDashGapInput';
 import { SwitchControl } from './shared';
 
 interface DashControlProps {

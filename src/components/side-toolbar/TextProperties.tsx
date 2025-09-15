@@ -4,7 +4,7 @@
  */
 import React, { useLayoutEffect, useRef, Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
-import { ICONS } from '../../constants';
+import { ICONS } from '@/constants';
 import { NumericInput } from './NumericInput';
 import PanelButton from '@/components/PanelButton';
 

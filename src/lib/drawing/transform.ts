@@ -1,7 +1,7 @@
 /**
  * 本文件包含了用于对画布上的对象进行几何变换的函数，如移动、旋转、缩放等。
  */
-import type { AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData, FrameData, BBox } from '../../types';
+import type { AnyPath, Point, RectangleData, EllipseData, ResizeHandlePosition, VectorPathData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData, FrameData, BBox } from '@/types';
 import { rotatePoint } from './geom';
 import { rectangleToVectorPath, ellipseToVectorPath, polygonToVectorPath } from './convert';
 

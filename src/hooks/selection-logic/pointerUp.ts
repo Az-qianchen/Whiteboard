@@ -8,9 +8,9 @@ import type {
   AnyPath,
   BBox,
   SelectionPathState,
-} from '../../types';
-import { getMarqueeRect } from '../../lib/drawing';
-import { isPathIntersectingMarquee, isPathIntersectingLasso } from '../../lib/hit-testing';
+} from '@/types';
+import { getMarqueeRect } from '@/lib/drawing';
+import { isPathIntersectingMarquee, isPathIntersectingLasso } from '@/lib/hit-testing';
 
 interface HandlePointerUpProps {
   e: React.PointerEvent<SVGSVGElement>;

@@ -13,9 +13,9 @@ import type {
   SelectionPathState,
   SelectionToolbarState,
   SelectionViewTransform,
-} from '../../types';
-import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '../../lib/drawing';
-import { isPointHittingPath, findDeepestHitPath } from '../../lib/hit-testing';
+} from '@/types';
+import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '@/lib/drawing';
+import { isPointHittingPath, findDeepestHitPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10; // 点击命中控制点的半径

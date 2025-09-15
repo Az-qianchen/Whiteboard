@@ -3,7 +3,7 @@
  * 它会使裁剪区域外的图像变暗，以清晰地显示裁剪结果。
  */
 import React from 'react';
-import type { ImageData, BBox } from '../../types';
+import type { ImageData, BBox } from '@/types';
 
 interface CropOverlayProps {
   croppingState: { pathId: string; originalPath: ImageData };

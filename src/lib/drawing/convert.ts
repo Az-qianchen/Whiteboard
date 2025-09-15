@@ -2,7 +2,7 @@
  * 本文件包含了用于图形类型转换和路径简化的函数。
  */
 import paper from 'paper';
-import type { AnyPath, Point, RectangleData, EllipseData, VectorPathData, Anchor, BrushPathData, PolygonData, ArcData } from '../../types';
+import type { AnyPath, Point, RectangleData, EllipseData, VectorPathData, Anchor, BrushPathData, PolygonData, ArcData } from '@/types';
 import { rotatePoint } from './geom';
 import { getPolygonVertices } from './polygon';
 

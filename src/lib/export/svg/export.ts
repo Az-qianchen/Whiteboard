@@ -2,9 +2,9 @@
  * 本文件负责处理 SVG 导出逻辑。
  * 它使用 `roughjs` 库将内部路径数据转换为 SVG 字符串，并可选择使用 SVGO 进行优化。
  */
-import type { AnyPath, BBox, FrameData, GroupData } from '../../types';
+import type { AnyPath, BBox, FrameData, GroupData } from '@/types';
 import rough from 'roughjs/bin/rough';
-import { getPathsBoundingBox } from '../../drawing';
+import { getPathsBoundingBox } from '@/lib/drawing';
 import { renderPathNode } from '../core/render';
 
 /**

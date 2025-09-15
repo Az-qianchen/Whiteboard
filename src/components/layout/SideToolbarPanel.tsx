@@ -3,9 +3,9 @@
  * 它包含侧边工具栏及其折叠/展开按钮。
  */
 import React from 'react';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '@/context/AppContext';
 import { SideToolbar } from '../SideToolbar';
-import { ICONS, CONTROL_BUTTON_CLASS } from '../../constants';
+import { ICONS, CONTROL_BUTTON_CLASS } from '@/constants';
 import PanelButton from '@/components/PanelButton';
 
 /**

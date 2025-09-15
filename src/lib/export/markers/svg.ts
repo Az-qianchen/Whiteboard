@@ -2,7 +2,7 @@
  * 本文件定义了用于为平滑路径创建 SVG <marker> 元素的函数。
  * 这些标记（如箭头、圆点）用于实现路径的起点和终点样式。
  */
-import type { EndpointStyle } from '../../types';
+import type { EndpointStyle } from '@/types';
 
 /**
  * 为平滑路径创建 SVG <marker> 元素。

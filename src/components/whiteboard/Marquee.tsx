@@ -3,8 +3,8 @@
  */
 
 import React from 'react';
-import type { Point } from '../../types';
-import { getMarqueeRect } from '../../lib/drawing';
+import type { Point } from '@/types';
+import { getMarqueeRect } from '@/lib/drawing';
 
 interface MarqueeProps {
   marquee: { start: Point; end: Point } | null;

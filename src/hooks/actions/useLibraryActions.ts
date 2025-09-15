@@ -3,8 +3,8 @@
  */
 import { useCallback } from 'react';
 import { fileOpen, fileSave } from 'browser-fs-access';
-import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, TextData, Point, GroupData, ArcData } from '../../types';
-import { getPathsBoundingBox, movePath } from '../../lib/drawing';
+import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, TextData, Point, GroupData, ArcData } from '@/types';
+import { getPathsBoundingBox, movePath } from '@/lib/drawing';
 import type { AppActionsProps } from './useAppActions';
 
 /**
