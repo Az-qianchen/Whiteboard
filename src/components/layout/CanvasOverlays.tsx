@@ -3,6 +3,7 @@
  * 它包含了所有绝对定位在画布上方的UI元素，如工具栏、菜单和对话框。
  */
 import React, { useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import PanelButton from '@/components/PanelButton';
 import { Toolbar } from '../Toolbar';
@@ -25,6 +26,7 @@ const modShiftKey = (key: string) => `${isMac ? '⇧⌘' : 'Ctrl+Shift+'}${key}`
 
 export const CanvasOverlays: React.FC = () => {
     const store = useAppContext();
+    const { t } = useTranslation();
     const {
         contextMenu,
         setContextMenu,
@@ -219,14 +221,14 @@ export const CanvasOverlays: React.FC = () => {
             >
                 <PanelButton
                     onClick={() => setIsTimelineCollapsed(prev => !prev)}
-                    title={isTimelineCollapsed ? '展开时间线' : '折叠时间线'}
+                    title={isTimelineCollapsed ? t('expandTimeline') : t('collapseTimeline')}
                 >
                     <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
                 </PanelButton>
                 <PanelButton
                     onClick={handleUndo}
                     disabled={!canUndo}
-                    title="撤销 (Ctrl+Z)"
+                    title={t('undo', { shortcut: modKey('Z') })}
                     className="disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {ICONS.UNDO}
@@ -234,7 +236,7 @@ export const CanvasOverlays: React.FC = () => {
                 <PanelButton
                     onClick={handleRedo}
                     disabled={!canRedo}
-                    title="重做 (Ctrl+Shift+Z)"
+                    title={t('redo', { shortcut: modShiftKey('Z') })}
                     className="disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {ICONS.REDO}
@@ -249,8 +251,8 @@ export const CanvasOverlays: React.FC = () => {
                 onConfirm={confirmationDialog?.onConfirm ?? (() => {})}
                 title={confirmationDialog?.title ?? ''}
                 message={confirmationDialog?.message ?? ''}
-                confirmButtonText={confirmationDialog?.confirmButtonText || "确认"}
-                cancelButtonText="取消"
+                confirmButtonText={confirmationDialog?.confirmButtonText || t('confirm')}
+                cancelButtonText={confirmationDialog?.cancelButtonText || t('cancel')}
             />
         </>
     );

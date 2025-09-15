@@ -4,6 +4,7 @@
  */
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
 
 interface ConfirmationDialogProps {
@@ -22,9 +23,10 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onConfirm,
   title,
   message,
-  confirmButtonText = "确认",
-  cancelButtonText = "取消"
+  confirmButtonText,
+  cancelButtonText,
 }) => {
+  const { t } = useTranslation();
   // 添加本地状态以在关闭过渡期间保持内容
   const [dialogContent, setDialogContent] = useState({ title, message });
 
@@ -82,7 +84,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                     className="inline-flex justify-center rounded-lg border border-transparent bg-[var(--ui-element-bg)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-popover-bg)] transition-colors"
                     onClick={onClose}
                   >
-                    {cancelButtonText}
+                    {cancelButtonText ?? t('cancel')}
                   </PanelButton>
                   <PanelButton
                     variant="unstyled"
@@ -90,7 +92,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                     className="inline-flex justify-center rounded-lg border border-transparent bg-[var(--danger-bg)] px-4 py-2 text-sm font-medium text-[var(--danger-text)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-popover-bg)] transition-colors"
                     onClick={onConfirm}
                   >
-                    {confirmButtonText}
+                    {confirmButtonText ?? t('confirm')}
                   </PanelButton>
                 </div>
               </Dialog.Panel>
