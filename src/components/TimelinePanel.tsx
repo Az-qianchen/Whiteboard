@@ -135,15 +135,15 @@ export const TimelinePanel: React.FC = () => {
         <Transition
             show={!isTimelineCollapsed}
             as="div"
-            className="w-full max-w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
+            className="inline-flex flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"
-            enterTo="opacity-100 max-h-48"
+            enterTo="opacity-100 max-h-40"
             leave="transition-[max-height,opacity] duration-300 ease-in-out"
-            leaveFrom="opacity-100 max-h-48"
+            leaveFrom="opacity-100 max-h-40"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-48 w-full max-w-full flex flex-col gap-3">
+            <div className="p-3 h-40 flex flex-col gap-3">
                 <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                           <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
@@ -211,7 +211,7 @@ export const TimelinePanel: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
+                <div className="flex items-center gap-2 min-h-0">
                       <div className="flex flex-col gap-2 h-full">
                           <PanelButton onClick={addFrame} title="添加新帧" className="flex-1 !h-auto">
                               {ICONS.PLUS}
@@ -220,12 +220,12 @@ export const TimelinePanel: React.FC = () => {
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
-                    <div className="h-full w-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                    <div className="h-full rounded-lg p-2 overflow-x-auto overflow-y-hidden timeline-frames-container w-fit" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
                         <div className="flex items-center gap-2 h-full">
                             {frames.map((frame, index) => (
-                                <div 
+                                <div
                                     key={index}
-                                    className="relative group flex-shrink-0 w-24 h-full"
+                                    className="relative group flex-shrink-0 w-20 h-full"
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
@@ -254,7 +254,7 @@ export const TimelinePanel: React.FC = () => {
                                     )}
                                     {dropIndicator && dropIndicator.index === index && (
                                         <div className="absolute top-0 bottom-0 w-1 bg-[var(--accent-primary)] rounded-full pointer-events-none"
-                                            style={{ [dropIndicator.side]: '-2px' }} 
+                                            style={{ [dropIndicator.side]: '-2px' }}
                                         />
                                     )}
                                 </div>
