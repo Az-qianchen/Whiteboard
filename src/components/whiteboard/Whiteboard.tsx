@@ -163,7 +163,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     >
       <svg
         ref={svgRef}
-        className="w-full h-full"
+        className="w-full h-full touch-none"
         onPointerDown={onPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={onPointerUp}
