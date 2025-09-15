@@ -5,23 +5,28 @@
 import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { SideToolbar } from '../SideToolbar';
-import { ICONS } from '../../constants';
+import { ICONS, CONTROL_BUTTON_CLASS } from '../../constants';
 import PanelButton from '@/components/PanelButton';
 
+/**
+ * 侧边工具栏面板组件
+ */
 export const SideToolbarPanel: React.FC = () => {
     const store = useAppContext();
     const { isSideToolbarCollapsed, setIsSideToolbarCollapsed, handleToggleStyleLibrary, isTimelineCollapsed, handleAdjustImageHsv } = store;
     
     return (
         <>
+        <div className="absolute top-4 right-4 z-30">
             <PanelButton
-                variant="unstyled"
                 onClick={() => setIsSideToolbarCollapsed(prev => !prev)}
-                className="absolute top-4 right-4 z-30 flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                variant="unstyled"
+                className={CONTROL_BUTTON_CLASS}
                 title={isSideToolbarCollapsed ? '展开工具栏' : '折叠工具栏'}
             >
                 <div className={`transition-transform duration-300 ${isSideToolbarCollapsed ? '' : 'rotate-180'}`}>{ICONS.CHEVRON_LEFT}</div>
             </PanelButton>
+        </div>
 
             <div 
                 className={`absolute right-4 z-20 transition-all duration-300 ease-in-out`}

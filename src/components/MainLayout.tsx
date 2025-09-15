@@ -8,7 +8,7 @@ import { useAppContext } from '../context/AppContext';
 import useGlobalEventHandlers from '../hooks/useGlobalEventHandlers';
 import { Whiteboard } from './Whiteboard';
 import { LayersProvider } from '../lib/layers-context';
-import { ICONS } from '../constants';
+import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import type { MaterialData, AnyPath } from '../types';
 
@@ -180,14 +180,17 @@ export const MainLayout: React.FC = () => {
                 <MainMenuPanel />
 
                 <main className="flex-grow h-full relative flex flex-col min-w-0">
-                    <PanelButton
-                        onClick={() => setIsMainMenuCollapsed(prev => !prev)}
-                        className="absolute top-4 left-4 z-30"
-                        title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
-                    >
-                        <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
-                    </PanelButton>
-                    
+                    <div className="absolute top-4 left-4 z-30">
+                        <PanelButton
+                            onClick={() => setIsMainMenuCollapsed(prev => !prev)}
+                            title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
+                            variant="unstyled"
+                            className={CONTROL_BUTTON_CLASS}
+                        >
+                            <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
+                        </PanelButton>
+                    </div>
+
                     <SideToolbarPanel />
 
                     <CanvasOverlays />
