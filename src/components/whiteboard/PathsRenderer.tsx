@@ -55,7 +55,6 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
     return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;
 });
 
-// FIX: Export a `RoughPath` component to be used for live previews in other components.
 /**
  * Renders a single non-group path using RoughJS.
  * This is optimized for live previews where we don't need group recursion or frame logic.

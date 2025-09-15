@@ -7,7 +7,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-// FIX: Import ImageData type for the croppingState prop.
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../types';
 import { getPointerPosition } from '../lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
@@ -19,13 +18,11 @@ import { LivePreviewRenderer } from './whiteboard/LivePreviewRenderer';
 import { ControlsRenderer } from './whiteboard/ControlsRenderer';
 import { Marquee } from './whiteboard/Marquee';
 import { Lasso } from './whiteboard/Lasso';
-// FIX: Import CropOverlay component to render the crop mask.
 import { CropOverlay } from './whiteboard/CropOverlay';
 
 
 interface WhiteboardProps {
   paths: AnyPath[];
-  // FIX: Add onionSkinPaths prop to fix type error in MainLayout.tsx.
   onionSkinPaths: AnyPath[];
   backgroundPaths: AnyPath[];
   tool: Tool;
@@ -52,7 +49,6 @@ interface WhiteboardProps {
   gridOpacity: number;
   dragState: DragState | null;
   editingTextPathId: string | null;
-  // FIX: Add croppingState prop to fix type error in MainLayout.tsx.
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
 }
@@ -65,7 +61,6 @@ interface WhiteboardProps {
  */
 export const Whiteboard: React.FC<WhiteboardProps> = ({
   paths,
-  // FIX: Destructure the new onionSkinPaths prop.
   onionSkinPaths,
   backgroundPaths,
   tool,
@@ -92,7 +87,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   gridOpacity,
   dragState,
   editingTextPathId,
-  // FIX: Destructure the new croppingState prop.
   croppingState,
   currentCropRect,
 }) => {
@@ -194,7 +188,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
           
           <PathsRenderer paths={backgroundPaths} rc={rc} isBackground />
-          {/* FIX: Render the onion skin paths. */}
           <PathsRenderer paths={onionSkinPaths} rc={rc} />
           <PathsRenderer paths={visiblePaths} rc={rc} />
 
@@ -208,7 +201,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             viewTransform={viewTransform}
           />
           
-          {/* FIX: Render the crop overlay when in cropping mode. */}
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
 
           <ControlsRenderer

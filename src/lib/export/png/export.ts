@@ -6,8 +6,6 @@ import type { AnyPath, PngExportOptions, BBox, FrameData } from '../../types';
 import { getPathsBoundingBox } from '../../drawing';
 import { pathsToSvgString } from '../svg/export';
 
-// FIX: Explicitly define all properties instead of extending PngExportOptions
-// to avoid TypeScript resolution issues in some environments.
 interface PngExportCoreOptions {
   backgroundColor: string;
   scale: number;
@@ -15,7 +13,6 @@ interface PngExportCoreOptions {
   transparentBg: boolean;
   overrideBbox?: BBox;
   clipFrame?: FrameData;
-  // FIX: Add the missing 'padding' property to fix a TypeScript error.
   padding?: number;
 }
 

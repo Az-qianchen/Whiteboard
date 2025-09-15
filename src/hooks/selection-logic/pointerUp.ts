@@ -1,7 +1,6 @@
 /**
  * 本文件包含了 useSelection hook 中处理 pointerUp 事件的复杂逻辑。
  */
-// FIX: Removed 'React' from type import as it's not used and can cause errors.
 import type { MutableRefObject } from 'react';
 import type { Point, DragState, AnyPath, BBox } from '../../types';
 import { getMarqueeRect } from '../../lib/drawing';

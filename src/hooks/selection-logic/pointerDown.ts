@@ -1,7 +1,6 @@
 /**
  * 本文件包含了 useSelection hook 中处理 pointerDown 事件的复杂逻辑。
  */
-// FIX: Removed 'React' from type import as it's not used and can cause errors.
 import type { MutableRefObject } from 'react';
 import type { Point, DragState, AnyPath, VectorPathData, ResizeHandlePosition, ImageData, BBox, GroupData, ArcData } from '../../types';
 import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '../../lib/drawing';
@@ -213,7 +212,6 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                  } else setDragState({ type: (e.shiftKey && type === 'anchor' ? 'handleOut' : type), pathId, anchorIndex });
             } else if (handle === 'border-radius' && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon')) setDragState({ type: 'border-radius', pathId, originalPath: path, initialPointerPos: point });
             else if (handle === 'arc' && path.tool === 'arc' && target.dataset.pointIndex) setDragState({ type: 'arc', pathId, pointIndex: parseInt(target.dataset.pointIndex, 10) as 0 | 1 | 2 });
-            // FIX: Ensure `handle` is of type `ResizeHandlePosition` before creating a resize state.
             else if (handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
                 if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame') setDragState({ type: 'resize', pathId, handle, originalPath: path as any, initialPointerPos: point });
             }

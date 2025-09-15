@@ -7,7 +7,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-// FIX: Import ImageData type for the croppingState prop.
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../../types';
 import { getPointerPosition } from '../../lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
@@ -19,7 +18,6 @@ import { LivePreviewRenderer } from './LivePreviewRenderer';
 import { ControlsRenderer } from './ControlsRenderer';
 import { Marquee } from './Marquee';
 import { Lasso } from './Lasso';
-// FIX: Import CropOverlay component to render the crop mask.
 import { CropOverlay } from './CropOverlay';
 
 
@@ -51,7 +49,6 @@ interface WhiteboardProps {
   gridOpacity: number;
   dragState: DragState | null;
   editingTextPathId: string | null;
-  // FIX: Add croppingState prop to fix type error in MainLayout.tsx.
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
 }
@@ -90,7 +87,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   gridOpacity,
   dragState,
   editingTextPathId,
-  // FIX: Destructure the new croppingState prop.
   croppingState,
   currentCropRect,
 }) => {
@@ -187,7 +183,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             viewTransform={viewTransform}
           />
           
-          {/* FIX: Render the crop overlay when in cropping mode. */}
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
 
           <ControlsRenderer
