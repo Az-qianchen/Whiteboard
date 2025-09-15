@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // 简易 IndexedDB 模拟实现
 class FakeRequest<T = any> {
-  result?: T;
+  result: T | undefined;
   error: any;
   onsuccess: ((this: FakeRequest<T>, ev: Event) => any) | null = null;
   onerror: ((this: FakeRequest<T>, ev: Event) => any) | null = null;
