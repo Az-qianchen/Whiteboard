@@ -100,6 +100,7 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        timelineHeight,
     } = store;
 
     const editingPath = useMemo(() => 
@@ -172,7 +173,7 @@ export const CanvasOverlays: React.FC = () => {
             {tool === 'selection' && !croppingState && selectedPathIds.length > 0 && (
                 <div 
                     className="absolute left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ease-in-out"
-                    style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+                    style={{ bottom: `calc(${timelineHeight}px + 1rem)` }}
                 >
                     <SelectionToolbar
                         selectionMode={selectionMode} setSelectionMode={store.setSelectionMode}
@@ -215,7 +216,7 @@ export const CanvasOverlays: React.FC = () => {
             <div
                 className="absolute left-4 z-30 flex items-center gap-2"
                 style={{
-                    bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)',
+                    bottom: `calc(${timelineHeight}px + 1rem)`,
                     transition: 'bottom 300ms ease-in-out'
                 }}
             >

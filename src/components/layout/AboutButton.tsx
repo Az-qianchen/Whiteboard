@@ -13,12 +13,12 @@ const links = [
 ];
 
 export const AboutButton: React.FC = () => {
-  const { isTimelineCollapsed } = useAppContext();
+  const { timelineHeight } = useAppContext();
 
   return (
     <div 
       className="absolute right-4 z-30 transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+      style={{ bottom: `calc(${timelineHeight}px + 1rem)` }}
     >
         <Popover className="relative">
           <Popover.Button

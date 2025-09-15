@@ -2,7 +2,7 @@
  * 本文件定义了应用底部的时间线面板。
  * 它提供了动画播放控制和关键帧编辑的界面。
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
@@ -71,10 +71,26 @@ export const TimelinePanel: React.FC = () => {
         onionSkinPrevFrames, setOnionSkinPrevFrames,
         onionSkinNextFrames, setOnionSkinNextFrames,
         onionSkinOpacity, setOnionSkinOpacity,
+        setTimelineHeight,
     } = useAppContext();
 
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dropIndicator, setDropIndicator] = useState<{ index: number; side: 'left' | 'right' } | null>(null);
+
+    const panelRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const updateHeight = () => {
+            const h = isTimelineCollapsed ? 0 : panelRef.current?.offsetHeight || 0;
+            setTimelineHeight(h);
+        };
+        updateHeight();
+        if (panelRef.current && typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(updateHeight);
+            ro.observe(panelRef.current);
+            return () => ro.disconnect();
+        }
+        return;
+    }, [isTimelineCollapsed, setTimelineHeight]);
 
     const handlePlayPause = () => setIsPlaying(p => !p);
     const handleRewind = () => { setIsPlaying(false); setCurrentFrameIndex(0); };
@@ -135,6 +151,7 @@ export const TimelinePanel: React.FC = () => {
         <Transition
             show={!isTimelineCollapsed}
             as="div"
+            ref={panelRef}
             className="w-full max-w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"

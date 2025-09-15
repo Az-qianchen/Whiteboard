@@ -17,6 +17,7 @@ export interface UiState {
   isStyleLibraryOpen: boolean;
   styleLibraryPosition: { x: number; y: number };
   isTimelineCollapsed: boolean;
+  timelineHeight: number;
   fps: number;
   isPlaying: boolean;
   isOnionSkinEnabled: boolean;
@@ -42,6 +43,7 @@ const initialUiState = (): UiState => ({
   isStyleLibraryOpen: false,
   styleLibraryPosition: { x: 0, y: 0 },
   isTimelineCollapsed: getLocalStorageItem('whiteboard_isTimelineCollapsed', true),
+  timelineHeight: 0,
   fps: getLocalStorageItem('whiteboard_fps', 12),
   isPlaying: false,
   isOnionSkinEnabled: getLocalStorageItem('whiteboard_isOnionSkinEnabled', false),

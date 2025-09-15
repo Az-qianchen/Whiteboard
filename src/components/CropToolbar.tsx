@@ -11,12 +11,12 @@ import { useAppContext } from '@/context/AppContext';
  * 裁剪模式下显示的工具栏组件，提供确认与取消裁剪操作。
  */
 export const CropToolbar: React.FC = () => {
-  const { confirmCrop, cancelCrop, isTimelineCollapsed } = useAppContext();
+  const { confirmCrop, cancelCrop, timelineHeight } = useAppContext();
 
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+      style={{ bottom: `calc(${timelineHeight}px + 1rem)` }}
     >
       <PanelButton
         type="button"
