@@ -222,6 +222,8 @@ export const CanvasOverlays: React.FC = () => {
                 <PanelButton
                     onClick={() => setIsTimelineCollapsed(prev => !prev)}
                     title={isTimelineCollapsed ? t('expandTimeline') : t('collapseTimeline')}
+                    variant="unstyled"
+                    className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 >
                     <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
                 </PanelButton>
@@ -229,7 +231,8 @@ export const CanvasOverlays: React.FC = () => {
                     onClick={handleUndo}
                     disabled={!canUndo}
                     title={t('undo', { shortcut: modKey('Z') })}
-                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="unstyled"
+                    className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {ICONS.UNDO}
                 </PanelButton>
@@ -237,7 +240,8 @@ export const CanvasOverlays: React.FC = () => {
                     onClick={handleRedo}
                     disabled={!canRedo}
                     title={t('redo', { shortcut: modShiftKey('Z') })}
-                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="unstyled"
+                    className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {ICONS.REDO}
                 </PanelButton>

@@ -19,7 +19,8 @@ export const SideToolbarPanel: React.FC = () => {
         <>
             <PanelButton
                 onClick={() => setIsSideToolbarCollapsed(prev => !prev)}
-                className="absolute top-4 right-4 z-30"
+                variant="unstyled"
+                className="absolute top-4 right-4 z-30 flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 title={isSideToolbarCollapsed ? '展开工具栏' : '折叠工具栏'}
             >
                 <div className={`transition-transform duration-300 ${isSideToolbarCollapsed ? '' : 'rotate-180'}`}>{ICONS.CHEVRON_LEFT}</div>
