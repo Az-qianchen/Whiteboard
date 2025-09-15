@@ -12,12 +12,13 @@ import { useAppContext } from '@/context/AppContext';
  */
 export const CropToolbar: React.FC = () => {
   const { confirmCrop, cancelCrop, timelineHeight } = useAppContext();
+  const bottomOffset = timelineHeight > 0 ? timelineHeight : 16;
 
   return (
-    <div
-      className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
-      style={{ bottom: `calc(${timelineHeight}px + 1rem)` }}
-    >
+      <div
+        className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
+        style={{ bottom: bottomOffset }}
+      >
       <PanelButton
         type="button"
         title="取消裁剪"

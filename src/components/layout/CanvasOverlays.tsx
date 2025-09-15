@@ -98,15 +98,22 @@ export const CanvasOverlays: React.FC = () => {
         canUndo,
         redo: handleRedo,
         canRedo,
+        isPlaying,
+        setIsPlaying,
+        setCurrentFrameIndex,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
         timelineHeight,
     } = store;
 
-    const editingPath = useMemo(() => 
+    const editingPath = useMemo(() =>
         paths.find((p: AnyPath) => p.id === activeEditingTextPathId && p.tool === 'text') as TextData | undefined,
         [paths, activeEditingTextPathId]
     );
+
+    const overlayBottom = timelineHeight > 0 ? timelineHeight : 16;
+    const handlePlayPause = () => setIsPlaying(p => !p);
+    const handleRewind = () => { setIsPlaying(false); setCurrentFrameIndex(0); };
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);
@@ -171,9 +178,9 @@ export const CanvasOverlays: React.FC = () => {
             </div>
 
             {tool === 'selection' && !croppingState && selectedPathIds.length > 0 && (
-                <div 
+                <div
                     className="absolute left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ease-in-out"
-                    style={{ bottom: `calc(${timelineHeight}px + 1rem)` }}
+                    style={{ bottom: overlayBottom }}
                 >
                     <SelectionToolbar
                         selectionMode={selectionMode} setSelectionMode={store.setSelectionMode}
@@ -213,18 +220,28 @@ export const CanvasOverlays: React.FC = () => {
 
             {contextMenu?.isOpen && (<ContextMenu isOpen={contextMenu.isOpen} position={{ x: contextMenu.x, y: contextMenu.y }} actions={contextMenuActions} onClose={() => setContextMenu(null)} />)}
 
-            <div
-                className="absolute left-4 z-30 flex items-center gap-2"
-                style={{
-                    bottom: `calc(${timelineHeight}px + 1rem)`,
-                    transition: 'bottom 300ms ease-in-out'
-                }}
-            >
+                <div
+                    className="absolute left-4 z-30 flex items-center gap-2"
+                    style={{
+                        bottom: overlayBottom,
+                        transition: 'bottom 300ms ease-in-out'
+                    }}
+                >
                 <PanelButton
                     onClick={() => setIsTimelineCollapsed(prev => !prev)}
                     title={isTimelineCollapsed ? t('expandTimeline') : t('collapseTimeline')}
                 >
                     <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
+                </PanelButton>
+                <PanelButton onClick={handleRewind} title={t('rewind')} className="text-[var(--text-secondary)]">
+                    {ICONS.REWIND}
+                </PanelButton>
+                <PanelButton
+                    onClick={handlePlayPause}
+                    title={isPlaying ? t('pause') : t('play')}
+                    className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                >
+                    {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
                 </PanelButton>
                 <PanelButton
                     onClick={handleUndo}

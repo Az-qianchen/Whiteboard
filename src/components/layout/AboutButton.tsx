@@ -13,13 +13,14 @@ const links = [
 ];
 
 export const AboutButton: React.FC = () => {
-  const { timelineHeight } = useAppContext();
+    const { timelineHeight } = useAppContext();
+    const bottomOffset = timelineHeight > 0 ? timelineHeight : 16;
 
   return (
-    <div 
-      className="absolute right-4 z-30 transition-all duration-300 ease-in-out"
-      style={{ bottom: `calc(${timelineHeight}px + 1rem)` }}
-    >
+      <div
+        className="absolute right-4 z-30 transition-all duration-300 ease-in-out"
+        style={{ bottom: bottomOffset }}
+      >
         <Popover className="relative">
           <Popover.Button
             as={PanelButton}
