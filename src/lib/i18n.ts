@@ -190,9 +190,22 @@ const resources = {
 
 const storedLang = localStorage.getItem('whiteboard_lang') as Lang | null;
 
+/**
+ * 检测系统语言
+ */
+const detectSystemLang = (): Lang | null => {
+  if (typeof navigator === 'undefined') {
+    return null;
+  }
+  const lang = navigator.language.split('-')[0] as Lang;
+  return ['en', 'zh'].includes(lang) ? lang : null;
+};
+
+const systemLang = detectSystemLang();
+
 void i18n.use(initReactI18next).init({
   resources,
-  lng: storedLang ?? 'en',
+  lng: storedLang ?? systemLang ?? 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });
