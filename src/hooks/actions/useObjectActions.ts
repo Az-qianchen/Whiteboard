@@ -8,7 +8,7 @@ import type { AppActionsProps } from '../useAppActions';
 import { importSvg } from '../../lib/import';
 import { removeBackground, adjustHsv, type HsvAdjustment } from '../../lib/image';
 
-type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
+type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'trim';
 
 /**
  * 封装对象变换和组织相关操作的 Hook。

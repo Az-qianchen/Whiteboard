@@ -200,6 +200,7 @@ export const ICONS = {
   BOOLEAN_SUBTRACT: <SquaresSubtract className="h-5 w-5" />,
   BOOLEAN_INTERSECT: <SquaresIntersect className="h-5 w-5" />,
   BOOLEAN_EXCLUDE: <SquaresExclude className="h-5 w-5" />,
+  BOOLEAN_TRIM: <Scissors className="h-5 w-5" />,
   ONION_SKIN: <Layers2 className="h-5 w-5" />,
   RESET_PREFERENCES: <RotateCcw className="h-5 w-5" />,
 };

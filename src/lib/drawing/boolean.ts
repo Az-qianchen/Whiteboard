@@ -97,7 +97,7 @@ function paperToVectorPath(paperPath: paper.Path, baseProps: Omit<VectorPathData
  */
 export function performBooleanOperation(
   paths: AnyPath[],
-  operation: 'unite' | 'subtract' | 'intersect' | 'exclude'
+  operation: 'unite' | 'subtract' | 'intersect' | 'exclude' | 'trim'
 ): AnyPath[] | null {
   const project = new paper.Project(document.createElement('canvas'));
   
@@ -108,14 +108,49 @@ export function performBooleanOperation(
   }
 
   const paperPaths = vectorPaths.map(p => vectorToPaperPath(p));
-  
+
+  if (operation === 'trim') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { anchors, tool, id, isClosed, ...baseProps } = vectorPaths[0];
+
+    // 使用 divide 操作让后续路径的轮廓切割第一条路径
+    let currentPaths: paper.Path[] = [paperPaths[0]];
+    for (let i = 1; i < paperPaths.length; i++) {
+      const divider = paperPaths[i];
+      const nextPaths: paper.Path[] = [];
+      currentPaths.forEach(p => {
+        const group = p.divide(divider);
+        group.children.forEach(child => {
+          if (child instanceof paper.Path && !child.isEmpty()) {
+            nextPaths.push(child);
+          }
+        });
+      });
+      currentPaths = nextPaths;
+    }
+
+    if (currentPaths.length === 0) {
+      project.remove();
+      return null;
+    }
+
+    const newVectorPaths = currentPaths.map((p, i) => {
+      const newPath = paperToVectorPath(p, baseProps);
+      newPath.id = `${Date.now()}-boolean-${i}`;
+      return newPath;
+    });
+
+    project.remove();
+    return newVectorPaths;
+  }
+
   let resultPathItem: paper.PathItem | null = paperPaths[0];
 
   for (let i = 1; i < paperPaths.length; i++) {
     if (!resultPathItem) break;
     resultPathItem = resultPathItem[operation](paperPaths[i]);
   }
-  
+
   if (!resultPathItem || resultPathItem.isEmpty()) {
     project.remove();
     return null;
@@ -123,7 +158,7 @@ export function performBooleanOperation(
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { anchors, tool, id, isClosed, ...baseProps } = vectorPaths[0];
-  
+
   const simplePaths: paper.Path[] = [];
   if (resultPathItem instanceof paper.CompoundPath) {
       resultPathItem.children.forEach(child => {
@@ -140,7 +175,7 @@ export function performBooleanOperation(
     newPath.id = `${Date.now()}-boolean-${i}`;
     return newPath;
   });
-  
+
   project.remove();
   return newVectorPaths;
 }

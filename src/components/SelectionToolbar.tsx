@@ -12,7 +12,7 @@ import { Slider, SwitchControl } from './side-toolbar';
 import { TraceImagePopover } from './TraceImagePopover';
 import type { TraceOptions } from '../types';
 
-type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
+type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'trim';
 
 interface SelectionToolbarProps {
   selectionMode: SelectionMode;
@@ -54,6 +54,7 @@ const BOOLEAN_BUTTONS: { name: BooleanOperation, title: string, icon: JSX.Elemen
     { name: 'subtract', title: '减去', icon: ICONS.BOOLEAN_SUBTRACT },
     { name: 'intersect', title: '相交', icon: ICONS.BOOLEAN_INTERSECT },
     { name: 'exclude', title: '排除', icon: ICONS.BOOLEAN_EXCLUDE },
+    { name: 'trim', title: '修剪', icon: ICONS.BOOLEAN_TRIM },
 ];
 
 export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ 
