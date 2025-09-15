@@ -180,14 +180,17 @@ export const MainLayout: React.FC = () => {
                 <MainMenuPanel />
 
                 <main className="flex-grow h-full relative flex flex-col min-w-0">
-                    <PanelButton
-                        onClick={() => setIsMainMenuCollapsed(prev => !prev)}
-                        className="absolute top-4 left-4 z-30"
-                        title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
-                    >
-                        <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
-                    </PanelButton>
-                    
+                    <div className="absolute top-4 left-4 z-30">
+                        <PanelButton
+                            onClick={() => setIsMainMenuCollapsed(prev => !prev)}
+                            title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
+                            variant="unstyled"
+                            className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                        >
+                            <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
+                        </PanelButton>
+                    </div>
+
                     <SideToolbarPanel />
 
                     <CanvasOverlays />
