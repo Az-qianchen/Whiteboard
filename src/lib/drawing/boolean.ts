@@ -115,14 +115,8 @@ export function performBooleanOperation(
 
   let resultPathItem: paper.PathItem | paper.Group | null;
   if (operation === 'divide') {
-    resultPathItem = paperPaths[0].divide(paperPaths[1], { trace: false });
-    if (resultPathItem instanceof paper.CompoundPath) {
-      resultPathItem.children.forEach(child => {
-        if (child instanceof paper.Path) {
-          child.closed = true;
-        }
-      });
-    }
+    // 使用默认 trace 以保留裁切路径的曲线，从而生成准确的分割边缘
+    resultPathItem = paperPaths[0].divide(paperPaths[1]);
   } else {
     resultPathItem = paperPaths[0];
     for (let i = 1; i < paperPaths.length; i++) {
