@@ -8,7 +8,7 @@ import type { AppActionsProps } from '../useAppActions';
 import { importSvg } from '../../lib/import';
 import { removeBackground, adjustHsv, type HsvAdjustment } from '../../lib/image';
 
-type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude';
+type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'divide';
 
 /**
  * 封装对象变换和组织相关操作的 Hook。
@@ -191,6 +191,10 @@ export const useObjectActions = ({
    */
   const handleBooleanOperation = useCallback((operation: BooleanOperation) => {
       if (selectedPathIds.length < 2) return;
+      if (operation === 'divide' && selectedPathIds.length !== 2) {
+          console.warn('修剪操作需要且仅能选中两个图形。');
+          return;
+      }
 
       const selectedPaths = [...paths].filter(p => selectedPathIds.includes(p.id));
       const newPaths = performBooleanOperation(selectedPaths, operation);
