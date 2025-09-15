@@ -26,7 +26,7 @@ export interface ViewTransformState {
   setViewTransform: (updater: (prev: ViewTransform) => ViewTransform) => void;
   setLastPointerPosition: (p: Point | null) => void;
 
-  handleWheel: (e: React.WheelEvent<HTMLDivElement>) => void;
+  handleWheel: (e: WheelEvent) => void;
   handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
   handleTouchStart: (e: React.PointerEvent<SVGSVGElement>) => void;
   handleTouchMove: (e: React.PointerEvent<SVGSVGElement>) => void;

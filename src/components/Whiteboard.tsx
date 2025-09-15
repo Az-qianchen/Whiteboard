@@ -42,7 +42,7 @@ interface WhiteboardProps {
   onPointerMove: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerLeave: (e: React.PointerEvent<SVGSVGElement>) => void;
-  onWheel: (e: React.WheelEvent<HTMLDivElement>) => void;
+  onWheel: (e: WheelEvent) => void;
   onContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
   viewTransform: { scale: number, translateX: number, translateY: number };
   cursor: string;
@@ -109,6 +109,16 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       setRc(rough.svg(svgRef.current));
     }
   }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handle = (e: WheelEvent) => onWheel(e);
+    el.addEventListener('wheel', handle, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handle);
+    };
+  }, [onWheel]);
 
   /**
    * 处理指针在 SVG 画布上移动的事件。
@@ -177,7 +187,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     <div
       ref={containerRef}
       className="w-full h-full bg-transparent overflow-hidden touch-none overscroll-none"
-      onWheel={onWheel}
       style={{ cursor }}
       onContextMenu={onContextMenu}
     >
