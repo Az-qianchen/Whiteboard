@@ -2,20 +2,26 @@
  * 本文件包含了 useSelection hook 中处理 pointerUp 事件的复杂逻辑。
  */
 // FIX: Removed 'React' from type import as it's not used and can cause errors.
-import type { MutableRefObject } from 'react';
-import type { Point, DragState, AnyPath, BBox } from '../../types';
+import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
+import type {
+  Point,
+  DragState,
+  AnyPath,
+  BBox,
+  SelectionPathState,
+} from '../../types';
 import { getMarqueeRect } from '../../lib/drawing';
 import { isPathIntersectingMarquee, isPathIntersectingLasso } from '../../lib/hit-testing';
 
 interface HandlePointerUpProps {
   e: React.PointerEvent<SVGSVGElement>;
   dragState: DragState;
-  setDragState: (state: DragState) => void;
+  setDragState: Dispatch<SetStateAction<DragState>>;
   marquee: { start: Point; end: Point } | null;
-  setMarquee: (marquee: { start: Point; end: Point } | null) => void;
+  setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
   lassoPath: Point[] | null;
-  setLassoPath: (path: Point[] | null) => void;
-  pathState: any;
+  setLassoPath: Dispatch<SetStateAction<Point[] | null>>;
+  pathState: SelectionPathState;
   isClosingPath: MutableRefObject<{ pathId: string; anchorIndex: number } | null>;
   pushCropHistory?: (rect: BBox) => void;
 }
