@@ -11,13 +11,10 @@ import { useAppContext } from '../context/AppContext';
 
 
 const useGlobalEventHandlers = () => {
-  // FIX: Destructure all properties directly from the store returned by useAppContext.
-  // The original code had incorrect destructuring assumptions causing multiple errors.
   const {
     selectedPathIds, setSelectedPathIds,
     currentPenPath, handleCancelPenPath, handleFinishPenPath,
     currentLinePath, handleCancelLinePath, handleFinishLinePath,
-    // FIX: Replaced `handleUndo` and `handleRedo` with aliased `undo: handleUndo` and `redo: handleRedo` to match properties from the context.
     undo: handleUndo, redo: handleRedo, handleDeleteSelected, setPaths,
     beginCoalescing, endCoalescing,
     tool, selectionMode, handleSetTool: setTool, setSelectionMode,
@@ -32,7 +29,6 @@ const useGlobalEventHandlers = () => {
     cancelCrop,
   } = useAppContext();
 
-  // FIX: Destructure drawingShape and cancelDrawingShape from the drawingInteraction object.
   const { drawingShape, cancelDrawingShape } = drawingInteraction;
 
   const nudgeTimeoutRef = useRef<number | null>(null);

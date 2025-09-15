@@ -14,7 +14,6 @@ import type {
   SelectionToolbarState,
   SelectionViewTransform,
 } from '../types';
-// FIX: Correct the import path to point to the index file within the directory, avoiding the empty 'selection-logic.ts' file.
 import { handlePointerDownLogic, handlePointerMoveLogic, handlePointerUpLogic } from './selection-logic/index';
 
 // 定义 Hook 将接收的 props

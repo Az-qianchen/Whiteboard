@@ -109,7 +109,6 @@ export const usePointerInteraction = ({
     }
     if (isPanning) {
       if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
-        // FIX: Corrected method name to releasePointerCapture and completed the function.
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
       setIsPanning(false);
