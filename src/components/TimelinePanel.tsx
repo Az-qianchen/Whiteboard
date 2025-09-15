@@ -1,6 +1,6 @@
 /**
  * 本文件定义了应用底部的时间线面板。
- * 它提供了动画播放控制和关键帧编辑的界面。
+ * 它提供了关键帧编辑的界面。
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
@@ -66,18 +66,12 @@ const FrameThumbnail: React.FC<{ frame: Frame }> = React.memo(({ frame }) => {
 export const TimelinePanel: React.FC = () => {
     const {
         isTimelineCollapsed, frames, currentFrameIndex, setCurrentFrameIndex,
-        fps, setFps, isPlaying, setIsPlaying, addFrame, copyFrame, deleteFrame, reorderFrames,
-        isOnionSkinEnabled, setIsOnionSkinEnabled,
-        onionSkinPrevFrames, setOnionSkinPrevFrames,
-        onionSkinNextFrames, setOnionSkinNextFrames,
-        onionSkinOpacity, setOnionSkinOpacity,
+        isPlaying, addFrame, copyFrame, deleteFrame, reorderFrames,
     } = useAppContext();
 
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dropIndicator, setDropIndicator] = useState<{ index: number; side: 'left' | 'right' } | null>(null);
 
-    const handlePlayPause = () => setIsPlaying(p => !p);
-    const handleRewind = () => { setIsPlaying(false); setCurrentFrameIndex(0); };
     const handleFrameClick = (index: number) => { if (!isPlaying) setCurrentFrameIndex(index); };
 
     const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -138,80 +132,13 @@ export const TimelinePanel: React.FC = () => {
             className="w-full max-w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"
-            enterTo="opacity-100 max-h-48"
+            enterTo="opacity-100 max-h-24"
             leave="transition-[max-height,opacity] duration-300 ease-in-out"
-            leaveFrom="opacity-100 max-h-48"
+            leaveFrom="opacity-100 max-h-24"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-48 w-full max-w-full flex flex-col gap-3">
-                <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                          <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
-                              {ICONS.REWIND}
-                          </PanelButton>
-                          <PanelButton
-                              onClick={handlePlayPause}
-                              title={isPlaying ? '暂停' : '播放'}
-                              className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
-                          >
-                              {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
-                          </PanelButton>
-                      </div>
-                    <div className="flex items-center gap-2">
-                         <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
-                         <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
-                           <input
-                             id="fps-input" type="number" min="1" max="60" step="1"
-                             value={fps} onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
-                             className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                           />
-                         </div>
-                    </div>
-                      <div className="flex items-center gap-2">
-                          <PanelButton
-                              onClick={() => setIsOnionSkinEnabled(p => !p)}
-                              title="洋葱皮"
-                              className={isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
-                          >
-                              {ICONS.ONION_SKIN}
-                          </PanelButton>
-                          <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
-                                <input
-                                    id="onion-opacity-input" type="number" min="0" max="100" step="1"
-                                    value={Math.round(onionSkinOpacity * 100)}
-                                    onChange={(e) => setOnionSkinOpacity(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) / 100)}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
-                                 <span className="text-xs text-[var(--text-secondary)]">%</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
-                                <input
-                                    id="prev-frames-input" type="number" min="0" max="10" step="1"
-                                    value={onionSkinPrevFrames} onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
-                                <input
-                                    id="next-frames-input" type="number" min="0" max="10" step="1"
-                                    value={onionSkinNextFrames} onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
+            <div className="p-3 w-full max-w-full">
+                <div className="grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0 h-16">
                       <div className="flex flex-col gap-2 h-full">
                           <PanelButton onClick={addFrame} title="添加新帧" className="flex-1 !h-auto">
                               {ICONS.PLUS}
@@ -223,9 +150,9 @@ export const TimelinePanel: React.FC = () => {
                     <div className="h-full w-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
                         <div className="flex items-center gap-2 h-full">
                             {frames.map((frame, index) => (
-                                <div 
+                                <div
                                     key={index}
-                                    className="relative group flex-shrink-0 w-24 h-full"
+                                    className="relative group flex-shrink-0 w-16 h-full"
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
@@ -254,7 +181,7 @@ export const TimelinePanel: React.FC = () => {
                                     )}
                                     {dropIndicator && dropIndicator.index === index && (
                                         <div className="absolute top-0 bottom-0 w-1 bg-[var(--accent-primary)] rounded-full pointer-events-none"
-                                            style={{ [dropIndicator.side]: '-2px' }} 
+                                            style={{ [dropIndicator.side]: '-2px' }}
                                         />
                                     )}
                                 </div>
