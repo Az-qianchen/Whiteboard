@@ -5,7 +5,7 @@
 import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { SideToolbar } from '../SideToolbar';
-import { ICONS } from '../../constants';
+import { ICONS, CONTROL_BUTTON_CLASS } from '../../constants';
 import PanelButton from '@/components/PanelButton';
 
 /**
@@ -21,7 +21,7 @@ export const SideToolbarPanel: React.FC = () => {
             <PanelButton
                 onClick={() => setIsSideToolbarCollapsed(prev => !prev)}
                 variant="unstyled"
-                className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                className={CONTROL_BUTTON_CLASS}
                 title={isSideToolbarCollapsed ? '展开工具栏' : '折叠工具栏'}
             >
                 <div className={`transition-transform duration-300 ${isSideToolbarCollapsed ? '' : 'rotate-180'}`}>{ICONS.CHEVRON_LEFT}</div>

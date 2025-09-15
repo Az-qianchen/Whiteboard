@@ -39,6 +39,9 @@ export const COLORS = [
   '#d6336c', // oc-pink-6
 ];
 
+export const CONTROL_BUTTON_CLASS =
+  'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
+
 // RoughJS 的默认参数
 export const DEFAULT_ROUGHNESS = 2.5;
 export const DEFAULT_BOWING = 1;

@@ -8,7 +8,7 @@ import { useAppContext } from '../context/AppContext';
 import useGlobalEventHandlers from '../hooks/useGlobalEventHandlers';
 import { Whiteboard } from './Whiteboard';
 import { LayersProvider } from '../lib/layers-context';
-import { ICONS } from '../constants';
+import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import type { MaterialData, AnyPath } from '../types';
 
@@ -185,7 +185,7 @@ export const MainLayout: React.FC = () => {
                             onClick={() => setIsMainMenuCollapsed(prev => !prev)}
                             title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
                             variant="unstyled"
-                            className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                            className={CONTROL_BUTTON_CLASS}
                         >
                             <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
                         </PanelButton>
