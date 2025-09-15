@@ -112,11 +112,12 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           type="button"
           title={mode.title}
           onClick={() => setSelectionMode(mode.name as SelectionMode)}
-          className={
+          variant="unstyled"
+          className={`flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors ${
             selectionMode === mode.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-          }
+          }`}
         >
           {mode.icon}
         </PanelButton>
@@ -127,7 +128,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             <Popover.Button
               as={PanelButton}
               title={t('simplifyPath')}
-              className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+              variant="unstyled"
+              className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
             >
               {ICONS.SIMPLIFY_PATH}
             </Popover.Button>
@@ -149,16 +151,17 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
       {canRemoveBackground && (
         <div className="relative">
-          <button
+          <PanelButton
             title={t('removeBackground')}
             onClick={() => {
               if (removeBgOpen) cancelRemoveBackground();
               setRemoveBgOpen(o => !o);
             }}
-            className="p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+            variant="unstyled"
+            className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
           >
             {ICONS.REMOVE_BG}
-          </button>
+          </PanelButton>
           {removeBgOpen && (
             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
               <RemoveBgPanel
@@ -176,7 +179,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
              <Popover.Button
                   as={PanelButton}
                   title={t('alignDistribute')}
-                  className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                  variant="unstyled"
+                  className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                 >
                   {ICONS.ALIGN_DISTRIBUTE}
             </Popover.Button>
@@ -192,7 +196,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                              onClick={() => onAlign(btn.name as Alignment)}
                              title={btn.title}
                              disabled={!canAlignOrDistribute}
-                             className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                             variant="unstyled"
+                             className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                            >
                              {btn.icon}
                            </PanelButton>
@@ -259,7 +264,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             <Popover.Button
                 as={PanelButton}
                 title={t('booleanOps')}
-                className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                variant="unstyled"
+                className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
             >
                 {ICONS.BOOLEAN_UNION}
             </Popover.Button>
@@ -272,7 +278,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                                     key={btn.name}
                                     onClick={() => { onBooleanOperation(btn.name); close(); }}
                                     title={btn.title}
-                                    className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+                                    variant="unstyled"
+                                    className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
                                 >
                                     {btn.icon}
                                 </PanelButton>
@@ -288,7 +295,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         <PanelButton
           onClick={onMask}
           title={t('useTopAsMask')}
-          className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          variant="unstyled"
+          className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.MASK}
         </PanelButton>

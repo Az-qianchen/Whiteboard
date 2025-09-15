@@ -36,7 +36,8 @@ export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace })
           <Popover.Button
             as={PanelButton}
             title={t('traceImage')}
-            className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+            variant="unstyled"
+            className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
           >
             {ICONS.TRACE_IMAGE}
           </Popover.Button>
