@@ -10,6 +10,7 @@ interface ColorControlProps {
     beginCoalescing: () => void;
     endCoalescing: () => void;
     disabled?: boolean;
+    className?: string;
 }
 
 export const ColorControl: React.FC<ColorControlProps> = React.memo(({
@@ -18,7 +19,8 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
     setColor,
     beginCoalescing,
     endCoalescing,
-    disabled = false
+    disabled = false,
+    className = ''
 }) => {
     const isTransparent = color === 'transparent' || (color.includes('rgba') && color.endsWith('0)')) || (color.includes('hsla') && color.endsWith('0)'));
     const checkerboardStyle = {
@@ -28,7 +30,7 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
     };
 
     return (
-        <div className={`flex flex-col items-center w-14 transition-opacity ${disabled ? 'opacity-50' : ''}`} title={label}>
+        <div className={`flex flex-col items-center w-14 transition-opacity ${disabled ? 'opacity-50' : ''} ${className}`} title={label}>
             <FloatingColorPicker
                 color={color}
                 onChange={setColor}
@@ -42,7 +44,7 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
                         ref={ref as any}
                         onClick={onClick}
                         disabled={disabled}
-                        className="h-8 w-8 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
                         style={{
                             backgroundColor: color,
                             ...(isTransparent && checkerboardStyle)

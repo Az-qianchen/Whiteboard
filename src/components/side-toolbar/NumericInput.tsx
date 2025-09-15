@@ -69,9 +69,9 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
   const handleWheel = useWheelCoalescer(beginCoalescing, endCoalescing);
 
   return (
-    <div className="flex flex-col items-center w-16" title={label}>
+    <div className="flex flex-col items-center w-14" title={label}>
       <div
-        className="flex items-center bg-black/20 rounded-md h-9 px-2 w-full cursor-ns-resize"
+        className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-full cursor-ns-resize"
         onWheel={(e) => handleWheel(e, handleWheelUpdate)}
       >
         <input
@@ -94,10 +94,10 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
               e.currentTarget.blur();
             }
           }}
-          className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)]"
+          className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)]"
           aria-label={label}
         />
-        <span className="text-sm text-[var(--text-secondary)]">{unit}</span>
+        <span className="text-xs text-[var(--text-secondary)]">{unit}</span>
       </div>
     </div>
   );

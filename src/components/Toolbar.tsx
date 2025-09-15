@@ -61,7 +61,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={t.title}
           onClick={() => setTool(t.name)}
           variant="unstyled"
-          className={`flex items-center justify-center h-10 w-10 rounded-lg transition-colors ${
+          className={`flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors ${
             tool === t.name
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -78,7 +78,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           as={PanelButton}
           variant="unstyled"
           title="网格设置"
-          className="flex items-center justify-center h-10 w-10 rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.GRID}
         </Popover.Button>
@@ -106,7 +106,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </div>
 
               <label htmlFor="grid-size" className="text-sm font-medium justify-self-start">网格大小</label>
-              <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-24 justify-self-end">
+              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-size"
                   type="number"
@@ -115,14 +115,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   step="5"
                   value={gridSize}
                   onChange={(e) => setGridSize(Math.max(5, Number(e.target.value)))}
-                  className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                   disabled={!isGridVisible}
                 />
-                <span className="text-sm text-[var(--text-secondary)]">px</span>
+                <span className="text-xs text-[var(--text-secondary)]">px</span>
               </div>
 
               <label htmlFor="grid-subdivisions" className="text-sm font-medium justify-self-start">细分</label>
-              <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-24 justify-self-end">
+              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-subdivisions"
                   type="number"
@@ -131,13 +131,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   step="1"
                   value={gridSubdivisions}
                   onChange={(e) => setGridSubdivisions(Math.max(2, Number(e.target.value)))}
-                  className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                   disabled={!isGridVisible}
                 />
               </div>
 
               <label htmlFor="grid-opacity" className="text-sm font-medium justify-self-start">透明度</label>
-              <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-24 justify-self-end">
+              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-opacity"
                   type="number"
@@ -146,10 +146,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   step="1"
                   value={Math.round(gridOpacity * 100)}
                   onChange={(e) => setGridOpacity(Math.max(0, Math.min(100, Number(e.target.value))) / 100)}
-                  className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                   disabled={!isGridVisible}
                 />
-                <span className="text-sm text-[var(--text-secondary)]">%</span>
+                <span className="text-xs text-[var(--text-secondary)]">%</span>
               </div>
             </div>
           </Popover.Panel>

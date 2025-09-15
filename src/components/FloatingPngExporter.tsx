@@ -132,7 +132,7 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                     <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">PNG 导出选项</h3>
                     <div className="grid grid-cols-2 items-center gap-2">
                         <label htmlFor="png-scale" className="text-sm font-medium text-[var(--text-primary)]">比例</label>
-                        <div className="flex items-center bg-black/20 rounded-md h-8 px-2">
+                        <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px]">
                             <input
                                 id="png-scale"
                                 type="number"
@@ -141,9 +141,9 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                                 step="0.1"
                                 value={pngExportOptions.scale}
                                 onChange={e => setPngExportOptions(prev => ({ ...prev, scale: Math.max(0.1, parseFloat(e.target.value)) || 1 }))}
-                                className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                             />
-                            <span className="text-sm text-[var(--text-secondary)]">x</span>
+                            <span className="text-xs text-[var(--text-secondary)]">x</span>
                         </div>
                     </div>
                     <SwitchControl label="透明背景" enabled={pngExportOptions.transparentBg} setEnabled={val => setPngExportOptions(prev => ({ ...prev, transparentBg: val }))} />

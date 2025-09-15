@@ -159,11 +159,11 @@ export const TimelinePanel: React.FC = () => {
                       </div>
                     <div className="flex items-center gap-2">
                          <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
-                         <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-20">
+                         <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
                            <input
                              id="fps-input" type="number" min="1" max="60" step="1"
                              value={fps} onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
-                             className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                             className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                            />
                          </div>
                     </div>
@@ -178,33 +178,33 @@ export const TimelinePanel: React.FC = () => {
                           <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-20">
+                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
                                 <input
                                     id="onion-opacity-input" type="number" min="0" max="100" step="1"
                                     value={Math.round(onionSkinOpacity * 100)}
                                     onChange={(e) => setOnionSkinOpacity(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) / 100)}
-                                    className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                                 />
-                                 <span className="text-sm text-[var(--text-secondary)]">%</span>
+                                 <span className="text-xs text-[var(--text-secondary)]">%</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-16">
+                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
                                 <input
                                     id="prev-frames-input" type="number" min="0" max="10" step="1"
                                     value={onionSkinPrevFrames} onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                                 />
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-8 px-2 w-16">
+                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
                                 <input
                                     id="next-frames-input" type="number" min="0" max="10" step="1"
                                     value={onionSkinNextFrames} onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
                                 />
                                 </div>
                             </div>

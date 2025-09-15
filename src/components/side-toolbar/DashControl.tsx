@@ -42,38 +42,38 @@ export const DashControl: React.FC<DashControlProps> = React.memo((props) => {
                             <div className={`space-y-3 transition-opacity ${!dashGap.isDashed ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="grid grid-cols-2 items-center gap-2">
                                     <label htmlFor="dash-length-input" className="text-sm font-medium text-[var(--text-primary)]">虚线长度</label>
-                                    <div className="flex items-center bg-black/20 rounded-md h-8 px-2 cursor-ns-resize" onWheel={dashGap.handleDashWheel} title="使用滚轮调节">
-                                        <input 
+                                    <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] cursor-ns-resize" onWheel={dashGap.handleDashWheel} title="使用滚轮调节">
+                                        <input
                                             id="dash-length-input"
-                                            type="text" 
-                                            inputMode="numeric" 
-                                            pattern="[0-9]*" 
-                                            value={dashGap.localDash} 
-                                            onChange={(e) => dashGap.setLocalDash(e.target.value.replace(/[^0-9]/g, ''))} 
-                                            onBlur={dashGap.handleCommit} 
-                                            onKeyDown={(e) => { if (e.key === 'Enter') { dashGap.handleCommit(); (e.currentTarget as HTMLInputElement).blur(); }}} 
-                                            className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)]" 
-                                            aria-label="虚线长度" 
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={dashGap.localDash}
+                                            onChange={(e) => dashGap.setLocalDash(e.target.value.replace(/[^0-9]/g, ''))}
+                                            onBlur={dashGap.handleCommit}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') { dashGap.handleCommit(); (e.currentTarget as HTMLInputElement).blur(); }}}
+                                            className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)]"
+                                            aria-label="虚线长度"
                                         />
-                                        <span className="text-sm text-[var(--text-secondary)]">px</span>
+                                        <span className="text-xs text-[var(--text-secondary)]">px</span>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 items-center gap-2">
                                     <label htmlFor="dash-gap-input" className="text-sm font-medium text-[var(--text-primary)]">虚线间隔</label>
-                                    <div className="flex items-center bg-black/20 rounded-md h-8 px-2 cursor-ns-resize" onWheel={dashGap.handleGapWheel} title="使用滚轮调节">
-                                        <input 
+                                    <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] cursor-ns-resize" onWheel={dashGap.handleGapWheel} title="使用滚轮调节">
+                                        <input
                                             id="dash-gap-input"
-                                            type="text" 
-                                            inputMode="numeric" 
-                                            pattern="[0-9]*" 
-                                            value={dashGap.localGap} 
-                                            onChange={(e) => dashGap.setLocalGap(e.target.value.replace(/[^0-9]/g, ''))} 
-                                            onBlur={dashGap.handleCommit} 
-                                            onKeyDown={(e) => { if (e.key === 'Enter') { dashGap.handleCommit(); (e.currentTarget as HTMLInputElement).blur(); }}} 
-                                            className="w-full bg-transparent text-sm text-center outline-none text-[var(--text-primary)]" 
-                                            aria-label="虚线间隔" 
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={dashGap.localGap}
+                                            onChange={(e) => dashGap.setLocalGap(e.target.value.replace(/[^0-9]/g, ''))}
+                                            onBlur={dashGap.handleCommit}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') { dashGap.handleCommit(); (e.currentTarget as HTMLInputElement).blur(); }}}
+                                            className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)]"
+                                            aria-label="虚线间隔"
                                         />
-                                        <span className="text-sm text-[var(--text-secondary)]">px</span>
+                                        <span className="text-xs text-[var(--text-secondary)]">px</span>
                                     </div>
                                 </div>
                             </div>

@@ -111,7 +111,9 @@ textarea {
   -moz-user-select: auto;
   -ms-user-select: auto;
   user-select: auto;
+  font-size: 85%;
 }
+
 
 body.light-bg-canvas {
   --grid-line: rgba(0, 0, 0, 0.15);
