@@ -143,7 +143,7 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-40"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-40 flex flex-col gap-3">
+            <div className="p-3 flex flex-col gap-3">
                 <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                           <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
@@ -212,7 +212,7 @@ export const TimelinePanel: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 min-h-0">
-                      <div className="flex flex-col gap-2 h-full">
+                      <div className="flex flex-col gap-2 h-20">
                           <PanelButton onClick={addFrame} title="添加新帧" className="flex-1 !h-auto">
                               {ICONS.PLUS}
                           </PanelButton>
@@ -220,12 +220,12 @@ export const TimelinePanel: React.FC = () => {
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
-                    <div className="h-full rounded-lg p-2 overflow-x-auto overflow-y-hidden timeline-frames-container w-fit" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
-                        <div className="flex items-center gap-2 h-full">
+                    <div className="rounded-lg px-2 overflow-x-auto overflow-y-hidden timeline-frames-container w-fit" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                        <div className="flex items-center gap-2">
                             {frames.map((frame, index) => (
                                 <div
                                     key={index}
-                                    className="relative group flex-shrink-0 w-20 h-full"
+                                    className="relative group flex-shrink-0 w-20 aspect-square"
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
