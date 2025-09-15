@@ -438,10 +438,7 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
             } else if (path.tool === 'polygon') {
                 vectorPath = polygonToVectorPath(path as PolygonData);
             } else {
-                 // FIX: This `else` block is unreachable because the `case` statement covers all possible tool types.
-                 // The original code `...path` caused a "Spread types may only be created from object types" error
-                 // because TypeScript correctly inferred `path` as `never` here.
-                 // Replacing it with a `throw` makes the logic explicit and safe, resolving the type error.
+                 // Unreachable: all tool types are handled above; throw for safety.
                  throw new Error(`Unreachable code: unexpected tool '${(path as AnyPath).tool}' in flipPath`);
             }
             
