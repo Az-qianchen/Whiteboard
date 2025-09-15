@@ -12,7 +12,7 @@ import { registerSW } from 'virtual:pwa-register';
 
 // 阻止浏览器默认手势（捏合缩放、双指滑动回退等）
 const preventDefault = (e: Event) => e.preventDefault();
-['gesturestart', 'gesturechange', 'gestureend', 'touchstart', 'touchmove'].forEach(evt => {
+['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
   window.addEventListener(evt, preventDefault, { passive: false });
 });
 
