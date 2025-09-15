@@ -14,7 +14,7 @@ type PathState = {
  * @param pathState - 包含根路径及其设置器的对象。
  * @returns 返回隔离模式的状态和操作函数。
  */
-// FIX: Remove the restrictive `PathState` type annotation to allow the full type from `usePaths` to be inferred.
+// Use a broad type so the full type from `usePaths` can be inferred.
 export const useGroupIsolation = (pathState: any) => {
   const [groupIsolationPath, setGroupIsolationPath] = useState<AnyPath[]>([]);
 

@@ -94,8 +94,7 @@ export const useToolbarState = (
           return { ...path, ...finalProps, tool: 'group', children: updatedChildren };
       }
       
-      // FIX: Cast the return type to AnyPath to resolve a complex TypeScript inference issue
-      // where the spread operator on a union type results in a type that's too wide.
+      // Cast the return type to AnyPath to avoid union type widening from the spread operator.
       return { ...path, ...finalProps } as AnyPath;
     };
 

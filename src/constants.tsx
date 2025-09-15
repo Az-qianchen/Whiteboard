@@ -23,7 +23,6 @@ import {
   Sparkles, Languages, GripVertical,
   Blend,Slash,MoveRight,
   Play, Pause, Rewind, ChevronUp, Wand2,SquaresExclude,SquaresIntersect,SquaresSubtract,SquaresUnite,
-  // FIX: `RectangleDashed` is not a valid icon in `lucide-react`. Replaced with `SquareDashed`.
   SquareDashed,
   RotateCcw,
 } from 'lucide-react';

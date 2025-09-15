@@ -1,7 +1,6 @@
 /**
  * 本文件包含了 useSelection hook 中处理 pointerMove 事件的复杂逻辑。
  */
-// FIX: Removed 'React' from type import as it's not used and can cause errors.
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import type {
   Point,
@@ -17,7 +16,6 @@ import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePat
 import { isPointHittingPath } from '../../lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
-// FIX: Define HIT_RADIUS as it was missing in this file.
 const HIT_RADIUS = 10;
 
 // Coalesce frequent move-updates into a single render per frame to improve
@@ -54,7 +52,6 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
     const { selectionMode } = toolbarState;
     const { viewTransform: vt } = viewTransform;
 
-    // FIX: Pass a value instead of a function to setLassoPath, as its type signature expects a value.
     if (lassoPath) { setLassoPath([...(lassoPath ?? []), movePoint]); return; }
     if (dragState) {
         if (dragState.type === 'crop') {
@@ -110,8 +107,7 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 const snappedMovePoint = snapToGrid(movePoint);
                 setPaths(recursivelyUpdatePaths(paths, (p: AnyPath) => {
                     if (p.id === pathId && p.tool === 'arc') {
-                        const newPoints = [...(p as any).points]; newPoints[pointIndex] = snappedMovePoint; 
-                        // FIX: Cast `newPoints` to the correct tuple type to satisfy ArcData.
+                        const newPoints = [...(p as any).points]; newPoints[pointIndex] = snappedMovePoint;
                         return { ...p, points: newPoints as [Point, Point, Point] };
                     } return null;
                 })); return;
