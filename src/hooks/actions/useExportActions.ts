@@ -4,7 +4,7 @@
 import { useCallback } from 'react';
 import { pathsToSvgString, pathsToPngBlob } from '../../lib/export';
 import { fileSave } from 'browser-fs-access';
-import type { AppActionsProps } from '../useAppActions';
+import type { AppActionsProps } from './useAppActions';
 import type { FrameData, AnimationExportOptions, ImageData } from '../../types';
 import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '../../lib/drawing';
 import JSZip from 'jszip';

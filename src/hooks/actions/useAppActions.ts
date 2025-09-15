@@ -8,7 +8,7 @@ import { useExportActions } from './useExportActions';
 import { useFileActions } from './useFileActions';
 import { useLibraryActions } from './useLibraryActions';
 import { useObjectActions } from './useObjectActions';
-import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, AnimationExportOptions } from '../types';
+import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, AnimationExportOptions } from '../../types';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 
 // The props type is a combination of all props needed by the sub-hooks.
