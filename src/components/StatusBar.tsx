@@ -6,6 +6,7 @@
 import React from 'react';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
+import { useTranslation } from 'react-i18next';
 
 interface StatusBarProps {
   zoomLevel: number;
@@ -34,14 +35,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   isStatusBarCollapsed,
   setIsStatusBarCollapsed,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="w-full bg-[var(--ui-element-bg)] rounded-lg p-2 text-[var(--text-primary)] text-sm">
       <div className="flex items-center justify-between h-8 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap">
-        <span>画布</span>
+        <span>{t('canvas')}</span>
         <PanelButton
           variant="unstyled"
           onClick={() => setIsStatusBarCollapsed(prev => !prev)}
-          title={isStatusBarCollapsed ? '展开信息' : '折叠信息'}
+          title={isStatusBarCollapsed ? t('expandInfo') : t('collapseInfo')}
           className="p-1 rounded-md flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
         >
           <div className={`transition-transform duration-300 ease-in-out ${isStatusBarCollapsed ? 'rotate-180' : ''}`}>
@@ -63,8 +65,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           <div className="pb-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
             <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
               <div className="flex justify-between">
-                <span>元素: {elementCount}</span>
-                <span>缩放: {Math.round(zoomLevel * 100)}%</span>
+                <span>{t('elements')}: {elementCount}</span>
+                <span>{t('zoom')}: {Math.round(zoomLevel * 100)}%</span>
               </div>
               <div className="flex justify-between">
                 <span>W: {canvasWidth}</span>
@@ -75,10 +77,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
           {selectionInfo && (
             <div className="pt-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-              <span>选区</span>
+              <span>{t('selection')}</span>
               <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
                 <div className="flex justify-between">
-                  <span>元素: {selectionInfo.count ?? 1}</span>
+                  <span>{t('elements')}: {selectionInfo.count ?? 1}</span>
                   {selectionInfo.rotation !== undefined && (
                     <span>R: {selectionInfo.rotation}°</span>
                   )}

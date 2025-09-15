@@ -62,39 +62,23 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
 
   const { t } = useTranslation();
 
-  const legacyMenuActions = [
-    { label: '打开...', handler: onOpen, icon: ICONS.OPEN, disabled: false },
-    { label: '保存', handler: onSave, icon: ICONS.SAVE, disabled: false },
-    { label: '另存为...', handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
-    { label: '导入...', handler: onImport, icon: ICONS.IMPORT, disabled: false },
-    { label: '---' },
-    { label: '背景', isColorPicker: true }, // Special item for color picker
-    { label: '---' },
-    { label: '导出为 SVG...', handler: onExportSvg, icon: ICONS.COPY_SVG, disabled: !canExport },
-    { label: '导出为 PNG...', isPngExporter: true }, // Special item for PNG exporter
-    { label: '导出动画...', isAnimationExporter: true },
-    { label: '---' },
-    { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
-    { label: '清空画布', handler: onClear, icon: ICONS.CLEAR, isDanger: true, disabled: !canClear },
-  ];
-
   // New menu items: moved canvas clear to Layers panel; add Clear Data
   const menuActions = [
-    { label: '打开…', handler: onOpen, icon: ICONS.OPEN, disabled: false },
-    { label: '保存', handler: onSave, icon: ICONS.SAVE, disabled: false },
-    { label: '另存为…', handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
-    { label: '导入…', handler: onImport, icon: ICONS.IMPORT, disabled: false },
+    { label: t('open'), handler: onOpen, icon: ICONS.OPEN, disabled: false },
+    { label: t('save'), handler: onSave, icon: ICONS.SAVE, disabled: false },
+    { label: t('saveAs'), handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
+    { label: t('import'), handler: onImport, icon: ICONS.IMPORT, disabled: false },
     { label: '---' },
-    { label: '背景颜色…', isColorPicker: true },
+    { label: t('backgroundColor'), isColorPicker: true },
     { label: '---' },
-    { label: '导出为 SVG…', handler: onExportSvg, icon: ICONS.COPY_SVG, disabled: !canExport },
-    { label: '导出为 PNG…', isPngExporter: true },
-    { label: '导出动画…', isAnimationExporter: true },
+    { label: t('exportSvg'), handler: onExportSvg, icon: ICONS.COPY_SVG, disabled: !canExport },
+    { label: t('exportPng'), isPngExporter: true },
+    { label: t('exportAnimation'), isAnimationExporter: true },
     { label: '---' },
     { isLanguageSelector: true },
     { label: '---' },
-    { label: '重置偏好设置', handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
-    { label: '清空数据', handler: onClearAllData, icon: ICONS.CLEAR, isDanger: true, disabled: !canClearAllData },
+    { label: t('resetPreferences'), handler: onResetPreferences, icon: ICONS.RESET_PREFERENCES, isDanger: false, disabled: false },
+    { label: t('clearData'), handler: onClearAllData, icon: ICONS.CLEAR, isDanger: true, disabled: !canClearAllData },
   ];
 
   const checkerboardStyle = {
@@ -103,8 +87,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
   };
   
   const tabs = [
-    { name: '菜单', icon: ICONS.MENU },
-    { name: '图层', icon: ICONS.LAYERS },
+    { name: t('menu'), icon: ICONS.MENU },
+    { name: t('layers'), icon: ICONS.LAYERS },
   ];
 
   return (
@@ -163,7 +147,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                         className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
                         <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.BACKGROUND_COLOR}</div>
-                        <span className="flex-grow">画布背景...</span>
+                        <span className="flex-grow">{t('canvasBackground')}</span>
                         <div
                           className="w-5 h-5 rounded-sm ring-1 ring-inset ring-white/20"
                           style={{

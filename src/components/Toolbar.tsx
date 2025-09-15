@@ -8,6 +8,7 @@ import { Popover, Transition, Switch } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import type { Tool } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface ToolbarProps {
   tool: Tool;
@@ -22,18 +23,6 @@ interface ToolbarProps {
   setGridOpacity: (opacity: number) => void;
 }
 
-const TOOLS: { name: Tool; title: string; icon: JSX.Element }[] = [
-  { name: 'selection', title: '选择 (V)', icon: ICONS.SELECTION },
-  { name: 'pen', title: '钢笔 (P)', icon: ICONS.PEN },
-  { name: 'brush', title: '画笔 (B)', icon: ICONS.BRUSH },
-  { name: 'polygon', title: '多边形', icon: ICONS.POLYGON },
-  { name: 'rectangle', title: '矩形 (R)', icon: ICONS.RECTANGLE },
-  { name: 'ellipse', title: '椭圆 (O)', icon: ICONS.ELLIPSE },
-  { name: 'line', title: '线条 (L)', icon: ICONS.LINE },
-  { name: 'arc', title: '圆弧 (A)', icon: ICONS.ARC },
-  { name: 'text', title: '文字 (T)', icon: ICONS.TEXT },
-  { name: 'frame', title: '画框 (F)', icon: ICONS.FRAME },
-];
 
 /**
  * 应用顶部的工具栏组件。
@@ -52,9 +41,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   gridOpacity,
   setGridOpacity,
 }) => {
+  const { t } = useTranslation();
+
+  const tools: { name: Tool; title: string; icon: JSX.Element }[] = [
+    { name: 'selection', title: t('toolSelect'), icon: ICONS.SELECTION },
+    { name: 'pen', title: t('toolPen'), icon: ICONS.PEN },
+    { name: 'brush', title: t('toolBrush'), icon: ICONS.BRUSH },
+    { name: 'polygon', title: t('toolPolygon'), icon: ICONS.POLYGON },
+    { name: 'rectangle', title: t('toolRectangle'), icon: ICONS.RECTANGLE },
+    { name: 'ellipse', title: t('toolEllipse'), icon: ICONS.ELLIPSE },
+    { name: 'line', title: t('toolLine'), icon: ICONS.LINE },
+    { name: 'arc', title: t('toolArc'), icon: ICONS.ARC },
+    { name: 'text', title: t('toolText'), icon: ICONS.TEXT },
+    { name: 'frame', title: t('toolFrame'), icon: ICONS.FRAME },
+  ];
+
   return (
     <div className="flex flex-wrap items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]">
-      {TOOLS.map((t) => (
+      {tools.map((t) => (
         <PanelButton
           key={t.name}
           type="button"
@@ -77,7 +81,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
-          title="网格设置"
+          title={t('gridSettings')}
           className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
         >
           {ICONS.GRID}
@@ -93,7 +97,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Popover.Panel className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-3">
             <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-2 items-center">
-              <label htmlFor="grid-toggle" className="text-sm font-medium justify-self-start">显示网格</label>
+              <label htmlFor="grid-toggle" className="text-sm font-medium justify-self-start">{t('showGrid')}</label>
               <div className="justify-self-end">
                 <Switch
                   id="grid-toggle"
@@ -105,7 +109,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </Switch>
               </div>
 
-              <label htmlFor="grid-size" className="text-sm font-medium justify-self-start">网格大小</label>
+              <label htmlFor="grid-size" className="text-sm font-medium justify-self-start">{t('gridSize')}</label>
               <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-size"
@@ -121,7 +125,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <span className="text-xs text-[var(--text-secondary)]">px</span>
               </div>
 
-              <label htmlFor="grid-subdivisions" className="text-sm font-medium justify-self-start">细分</label>
+              <label htmlFor="grid-subdivisions" className="text-sm font-medium justify-self-start">{t('subdivisions')}</label>
               <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-subdivisions"
@@ -136,7 +140,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 />
               </div>
 
-              <label htmlFor="grid-opacity" className="text-sm font-medium justify-self-start">透明度</label>
+              <label htmlFor="grid-opacity" className="text-sm font-medium justify-self-start">{t('opacity')}</label>
               <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
                 <input
                   id="grid-opacity"

@@ -3,6 +3,7 @@
  */
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition } from '@headlessui/react';
+import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import { Slider } from './side-toolbar';
@@ -16,6 +17,7 @@ interface TraceImagePopoverProps {
  * 提供矢量化参数调节并执行转换的组件。
  */
 export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace }) => {
+  const { t } = useTranslation();
   const [ltres, setLtres] = useState(1);
   const [qtres, setQtres] = useState(1);
   const [pathomit, setPathomit] = useState(8);
@@ -33,7 +35,7 @@ export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace })
         <>
           <Popover.Button
             as={PanelButton}
-            title="将图片转换为矢量图"
+            title={t('traceImage')}
             className="text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
           >
             {ICONS.TRACE_IMAGE}
@@ -49,20 +51,20 @@ export const TraceImagePopover: React.FC<TraceImagePopoverProps> = ({ onTrace })
           >
             <Popover.Panel className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
               <div className="space-y-3">
-                <Slider label="颜色数量" value={colors} setValue={setColors} min={2} max={32} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
+                <Slider label={t('colorsCount')} value={colors} setValue={setColors} min={2} max={32} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <Slider label="直线阈值" value={ltres} setValue={setLtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}}
+                <Slider label={t('lineThreshold')} value={ltres} setValue={setLtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <Slider label="曲线阈值" value={qtres} setValue={setQtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}}
+                <Slider label={t('curveThreshold')} value={qtres} setValue={setQtres} min={0} max={10} step={0.5} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
-                <Slider label="路径忽略" value={pathomit} setValue={setPathomit} min={0} max={50} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
+                <Slider label={t('pathOmit')} value={pathomit} setValue={setPathomit} min={0} max={50} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}}
                 />
                 <PanelButton
                   type="button"
                   onClick={() => handleTrace(close)}
                   className="w-full mt-2 h-9 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90 border-0 shadow-none"
                 >
-                  矢量化
+                  {t('vectorize')}
                 </PanelButton>
               </div>
             </Popover.Panel>
