@@ -2,6 +2,7 @@
  * 本文件定义了整个应用中使用的所有 TypeScript 类型和接口。
  * 这有助于确保代码的类型安全和可读性，定义了如点、路径、工具等核心数据结构。
  */
+import type { Dispatch, SetStateAction } from 'react';
 
 export interface Point {
   x: number;
@@ -328,3 +329,27 @@ type CropDragState = {
 
 // Union of all possible drag states
 export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
+
+export interface SelectionPathState {
+  paths: AnyPath[];
+  setPaths: Dispatch<SetStateAction<AnyPath[]>>;
+  selectedPathIds: string[];
+  setSelectedPathIds: Dispatch<SetStateAction<string[]>>;
+  beginCoalescing: () => void;
+  endCoalescing: () => void;
+}
+
+export interface SelectionToolbarState {
+  selectionMode: SelectionMode;
+}
+
+export interface CanvasViewTransform {
+  scale: number;
+  translateX: number;
+  translateY: number;
+}
+
+export interface SelectionViewTransform {
+  viewTransform: CanvasViewTransform;
+  getPointerPosition: (e: { clientX: number; clientY: number }, svg: SVGSVGElement) => Point;
+}

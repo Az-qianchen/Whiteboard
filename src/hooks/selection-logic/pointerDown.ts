@@ -2,8 +2,19 @@
  * 本文件包含了 useSelection hook 中处理 pointerDown 事件的复杂逻辑。
  */
 // FIX: Removed 'React' from type import as it's not used and can cause errors.
-import type { MutableRefObject } from 'react';
-import type { Point, DragState, AnyPath, VectorPathData, ResizeHandlePosition, ImageData, BBox, GroupData, ArcData } from '../../types';
+import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
+import type {
+  Point,
+  DragState,
+  AnyPath,
+  VectorPathData,
+  ResizeHandlePosition,
+  ImageData,
+  BBox,
+  SelectionPathState,
+  SelectionToolbarState,
+  SelectionViewTransform,
+} from '../../types';
 import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '../../lib/drawing';
 import { isPointHittingPath, findDeepestHitPath } from '../../lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
@@ -17,7 +28,16 @@ const HIT_RADIUS = 10; // 点击命中控制点的半径
  * @param clickedPath - 在指针位置下被击中的路径，如果存在的话。
  * @param props - 包含状态和设置器的对象。
  */
-const handlePointerDownForMove = (point: Point, e: React.PointerEvent<SVGSVGElement>, clickedPath: AnyPath | null, props: any) => {
+const handlePointerDownForMove = (
+  point: Point,
+  e: React.PointerEvent<SVGSVGElement>,
+  clickedPath: AnyPath | null,
+  props: {
+    pathState: SelectionPathState;
+    setDragState: Dispatch<SetStateAction<DragState>>;
+    setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
+  }
+) => {
     const { pathState, setDragState, setMarquee } = props;
     const { paths, selectedPathIds, setSelectedPathIds, beginCoalescing } = pathState;
 
@@ -62,7 +82,16 @@ const handlePointerDownForMove = (point: Point, e: React.PointerEvent<SVGSVGElem
  * @param clickedPath - 在指针位置下被击中的路径，如果存在的话。
  * @param props - 包含状态和设置器的对象。
  */
-const handlePointerDownForEdit = (point: Point, e: React.PointerEvent<SVGSVGElement>, clickedPath: AnyPath | null, props: any) => {
+const handlePointerDownForEdit = (
+  point: Point,
+  e: React.PointerEvent<SVGSVGElement>,
+  clickedPath: AnyPath | null,
+  props: {
+    pathState: SelectionPathState;
+    viewTransform: SelectionViewTransform;
+    setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
+  }
+) => {
     const { pathState, viewTransform, setMarquee } = props;
     const { paths, setPaths, setSelectedPathIds } = pathState;
     const { viewTransform: vt } = viewTransform;
@@ -115,20 +144,27 @@ const handlePointerDownForEdit = (point: Point, e: React.PointerEvent<SVGSVGElem
  * @param e - React 指针事件。
  * @param props - 包含状态和设置器的对象。
  */
-const handlePointerDownForLasso = (point: Point, e: React.PointerEvent<SVGSVGElement>, props: any) => {
-    if (!e.shiftKey) props.pathState.setSelectedPathIds([]);
-    props.setLassoPath([point]);
+const handlePointerDownForLasso = (
+  point: Point,
+  e: React.PointerEvent<SVGSVGElement>,
+  props: {
+    pathState: SelectionPathState;
+    setLassoPath: Dispatch<SetStateAction<Point[] | null>>;
+  }
+) => {
+  if (!e.shiftKey) props.pathState.setSelectedPathIds([]);
+  props.setLassoPath([point]);
 };
 
 interface HandlePointerDownProps {
   e: React.PointerEvent<SVGSVGElement>;
   point: Point;
-  setDragState: (state: DragState) => void;
-  setMarquee: (marquee: { start: Point; end: Point } | null) => void;
-  setLassoPath: (path: Point[] | null) => void;
-  pathState: any;
-  toolbarState: any;
-  viewTransform: any;
+  setDragState: Dispatch<SetStateAction<DragState>>;
+  setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
+  setLassoPath: Dispatch<SetStateAction<Point[] | null>>;
+  pathState: SelectionPathState;
+  toolbarState: SelectionToolbarState;
+  viewTransform: SelectionViewTransform;
   onDoubleClick: (path: AnyPath) => void;
   lastClickRef: MutableRefObject<{ time: number; pathId: string | null }>;
   croppingState: { pathId: string; originalPath: ImageData } | null;

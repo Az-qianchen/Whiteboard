@@ -2,8 +2,17 @@
  * 本文件包含了 useSelection hook 中处理 pointerMove 事件的复杂逻辑。
  */
 // FIX: Removed 'React' from type import as it's not used and can cause errors.
-import type { MutableRefObject } from 'react';
-import type { Point, DragState, AnyPath, RectangleData } from '../../types';
+import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
+import type {
+  Point,
+  DragState,
+  AnyPath,
+  RectangleData,
+  BBox,
+  SelectionPathState,
+  SelectionToolbarState,
+  SelectionViewTransform,
+} from '../../types';
 import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist } from '../../lib/drawing';
 import { isPointHittingPath } from '../../lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
@@ -22,17 +31,17 @@ interface HandlePointerMoveProps {
   movePoint: Point;
   dragState: DragState;
   marquee: { start: Point; end: Point } | null;
-  setMarquee: (marquee: { start: Point; end: Point } | null) => void;
+  setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
   lassoPath: Point[] | null;
-  setLassoPath: (path: Point[] | null) => void;
-  pathState: any;
-  toolbarState: any;
-  viewTransform: any;
+  setLassoPath: Dispatch<SetStateAction<Point[] | null>>;
+  pathState: SelectionPathState;
+  toolbarState: SelectionToolbarState;
+  viewTransform: SelectionViewTransform;
   setIsHoveringMovable: (hovering: boolean) => void;
   setIsHoveringEditable: (hovering: boolean) => void;
   isClosingPath: MutableRefObject<{ pathId: string; anchorIndex: number } | null>;
   snapToGrid: (point: Point) => Point;
-  setCurrentCropRect: (rect: any) => void;
+  setCurrentCropRect: Dispatch<SetStateAction<BBox | null>>;
 }
 
 /**

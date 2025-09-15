@@ -4,15 +4,24 @@
  * 该 Hook 协调状态管理，并将复杂的事件处理逻辑委托给 `selection-logic.ts`。
  */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import type { Point, DragState, AnyPath, ImageData, BBox } from '../types';
+import type {
+  Point,
+  DragState,
+  AnyPath,
+  ImageData,
+  BBox,
+  SelectionPathState,
+  SelectionToolbarState,
+  SelectionViewTransform,
+} from '../types';
 // FIX: Correct the import path to point to the index file within the directory, avoiding the empty 'selection-logic.ts' file.
 import { handlePointerDownLogic, handlePointerMoveLogic, handlePointerUpLogic } from './selection-logic/index';
 
 // 定义 Hook 将接收的 props
 interface SelectionInteractionProps {
-  pathState: any; // from usePaths
-  toolbarState: any; // from useToolbarState
-  viewTransform: any; // from useViewTransform
+  pathState: SelectionPathState; // from usePaths
+  toolbarState: SelectionToolbarState; // from useToolbarState
+  viewTransform: SelectionViewTransform; // from useViewTransform
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
