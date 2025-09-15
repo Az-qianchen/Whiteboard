@@ -5,8 +5,8 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUiStore } from '@/context/uiStore';
-import { usePaths } from './usePaths';
-import { useToolbarState } from './useToolbarState';
+import { usePathsStore } from './usePathsStore';
+import { useToolsStore } from './useToolsStore';
 import { useViewTransform } from './useViewTransform';
 import { useDrawing } from './useDrawing';
 import { useSelection } from './useSelection';
@@ -125,7 +125,7 @@ export const useAppStore = () => {
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
 
-  const pathState = usePaths();
+  const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
 
   // --- Memoized Setters for State Properties ---
@@ -234,7 +234,7 @@ export const useAppStore = () => {
   const { activePaths, activePathState } = groupIsolation;
 
   const viewTransform = useViewTransform();
-  const toolbarState = useToolbarState(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
+  const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
