@@ -11,7 +11,7 @@ import { useViewTransform } from './useViewTransform';
 import { useDrawing } from './useDrawing';
 import { useSelection } from './useSelection';
 import { usePointerInteraction } from './usePointerInteraction';
-import { useAppActions } from './useAppActions';
+import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';

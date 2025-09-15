@@ -7,7 +7,7 @@ import * as idb from '../../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import { fileOpen, fileSave } from 'browser-fs-access';
 import { importSvg } from '../../lib/import';
-import type { AppActionsProps } from '../useAppActions';
+import type { AppActionsProps } from './useAppActions';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
 

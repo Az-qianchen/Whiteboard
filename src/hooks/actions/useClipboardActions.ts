@@ -7,7 +7,7 @@ import type { AnyPath, WhiteboardData, Point, Tool } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
 import { importSvg } from '@/lib/import';
 import { importExcalidraw } from '@/lib/importExcalidraw';
-import type { AppActionsProps } from '../useAppActions';
+import type { AppActionsProps } from './useAppActions';
 
 /**
  * 封装剪贴板相关操作的 Hook。
