@@ -6,7 +6,7 @@ vi.mock('@/lib/drawing/convert', () => ({
   polygonToVectorPath: () => ({}),
 }));
 
-import { resizePath } from '@/lib/drawing/transform';
+import { resizePath } from '@/lib/drawing/transform/resize';
 import { getPathBoundingBox } from '@/lib/drawing/bbox';
 import { rotatePoint } from '@/lib/drawing/geom';
 import type { ImageData } from '@/types';

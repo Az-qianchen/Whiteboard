@@ -13,10 +13,21 @@ import { useSelection } from './useSelection';
 import { usePointerInteraction } from './usePointerInteraction';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
-import { getLocalStorageItem } from '../lib/utils';
-import * as idb from '../lib/indexedDB';
+import { getLocalStorageItem } from '@/lib/utils';
+import * as idb from '@/lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
+import type {
+  WhiteboardData,
+  Tool,
+  AnyPath,
+  StyleClipboardData,
+  MaterialData,
+  TextData,
+  PngExportOptions,
+  ImageData,
+  BBox,
+  Frame,
+} from '@/types';
 import { measureText, rotatePoint } from '@/lib/drawing';
 
 type ConfirmationDialogState = {

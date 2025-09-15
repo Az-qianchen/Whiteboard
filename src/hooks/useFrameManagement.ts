@@ -6,7 +6,7 @@ import {
   useCanRedo,
   useBeginCoalescing,
   useEndCoalescing,
-} from '@/context/pathsStore';
+} from '@/hooks/usePathsStore';
 
 /**
  * Frame management hook backed by Zustand store.

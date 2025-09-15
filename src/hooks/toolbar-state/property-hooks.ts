@@ -2,7 +2,7 @@
  * Toolbar drawing properties mapped to Zustand store selectors.
  * This replaces the previous localStorage + useState approach.
  */
-import { useToolbarStore } from '@/context/toolbarStore';
+import { useToolbarStore } from '@/hooks/useToolbarStore';
 import type { EndpointStyle } from '@/types';
 
 export const useDrawingColor = () => {

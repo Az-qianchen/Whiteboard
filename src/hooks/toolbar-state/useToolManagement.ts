@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import type { Tool, SelectionMode } from '@/types';
 import { getLocalStorageItem } from '@/lib/utils';
-import { useToolStore } from '@/context/toolStore';
+import { useToolStore } from '@/hooks/useToolsStore';
 
 /**
  * 管理工具和选择模式状态的 Hook。

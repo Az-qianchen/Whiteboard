@@ -4,7 +4,7 @@
  * 用于在整个应用中分发和访问由 useAppStore 管理的状态。
  */
 import React, { createContext, useContext } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
+import { useAppStore } from '@/hooks/useAppStore';
 
 // useAppStore 的返回类型是我们上下文的值类型
 type AppContextType = ReturnType<typeof useAppStore>;
