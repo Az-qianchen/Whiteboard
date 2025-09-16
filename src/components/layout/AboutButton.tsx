@@ -22,7 +22,7 @@ export const AboutButton: React.FC = () => {
   return (
     <div 
       className="absolute right-4 z-30 transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(var(--timeline-panel-height, 12rem) + 1rem)' }}
     >
         <Popover className="relative">
           <Popover.Button

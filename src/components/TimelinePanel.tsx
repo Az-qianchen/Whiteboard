@@ -2,7 +2,7 @@
  * 本文件定义了应用底部的时间线面板。
  * 它提供了动画播放控制和关键帧编辑的界面。
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
@@ -81,8 +81,49 @@ export const TimelinePanel: React.FC = () => {
         onionSkinOpacity, setOnionSkinOpacity,
     } = useAppContext();
 
+    const panelRef = useRef<HTMLDivElement | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dropIndicator, setDropIndicator] = useState<{ index: number; side: 'left' | 'right' } | null>(null);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const element = panelRef.current;
+        if (!element) {
+            return;
+        }
+
+        const root = document.documentElement;
+        const setTimelineHeightVar = (height: number) => {
+            if (height > 0) {
+                root.style.setProperty('--timeline-panel-height', `${height}px`);
+            }
+        };
+
+        const updateHeight = () => {
+            const { height } = element.getBoundingClientRect();
+            setTimelineHeightVar(height);
+        };
+
+        updateHeight();
+
+        if (typeof ResizeObserver === 'undefined') {
+            return;
+        }
+
+        const observer = new ResizeObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.target === element) {
+                    setTimelineHeightVar(entry.contentRect.height);
+                }
+            });
+        });
+
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [isTimelineCollapsed]);
 
     const handlePlayPause = () => setIsPlaying(p => !p);
     const handleRewind = () => { setIsPlaying(false); setCurrentFrameIndex(0); };
@@ -151,7 +192,7 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-40"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="px-2.5 pt-2 pb-1.5 w-full max-w-full flex flex-col">
+            <div ref={panelRef} className="px-2.5 pt-2 pb-1.5 w-full max-w-full flex flex-col">
                 <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
                           <PanelButton
