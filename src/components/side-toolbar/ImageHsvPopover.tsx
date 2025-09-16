@@ -1,4 +1,5 @@
 import React, { Fragment, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS } from '@/constants';
 import PanelButton from '@/components/PanelButton';
@@ -14,6 +15,11 @@ export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ onAdjust, begi
   const [h, setH] = useState(0);
   const [s, setS] = useState(0);
   const [v, setV] = useState(0);
+  const { t } = useTranslation();
+  const title = t('sideToolbar.imageHsv.title');
+  const hueLabel = t('sideToolbar.imageHsv.hue');
+  const saturationLabel = t('sideToolbar.imageHsv.saturation');
+  const valueLabel = t('sideToolbar.imageHsv.value');
 
   const handleChange = (nh: number, ns: number, nv: number) => {
     onAdjust({ h: nh, s: ns, v: nv });
@@ -55,36 +61,36 @@ export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ onAdjust, begi
   const valBg = `linear-gradient(to right, hsl(${baseHue},${baseS}%,0%), hsl(${baseHue},${baseS}%,50%), hsl(${baseHue},${baseS}%,100%))`;
 
   return (
-    <div className="flex flex-col items-center w-14" title="HSV 调整">
+    <div className="flex flex-col items-center w-14" title={title}>
       <Popover className="relative">
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
           className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
-          title="HSV 调整"
+          title={title}
         >
           {ICONS.HSV}
         </Popover.Button>
         <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
           <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">HSV 调整</h3>
+              <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">{title}</h3>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--text-primary)]">色相</label>
+                <label className="text-sm font-medium text-[var(--text-primary)]">{hueLabel}</label>
                 <div className="relative h-4 cursor-pointer" onPointerDown={createSliderHandler(p => { const val = Math.round(p * 360) - 180; setH(val); handleChange(val, s, v); })}>
                   <div className="w-full h-2 rounded-lg absolute top-1/2 -translate-y-1/2" style={{ background: hueBg }} />
                   <div className="absolute w-4 h-4 -translate-y-1/2 -translate-x-1/2 top-1/2 rounded-full bg-white shadow-md ring-1 ring-white/20" style={{ left: `${hPos}%` }} />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--text-primary)]">饱和度</label>
+                <label className="text-sm font-medium text-[var(--text-primary)]">{saturationLabel}</label>
                 <div className="relative h-4 cursor-pointer" onPointerDown={createSliderHandler(p => { const val = Math.round(p * 200) - 100; setS(val); handleChange(h, val, v); })}>
                   <div className="w-full h-2 rounded-lg absolute top-1/2 -translate-y-1/2" style={{ background: satBg }} />
                   <div className="absolute w-4 h-4 -translate-y-1/2 -translate-x-1/2 top-1/2 rounded-full shadow-md ring-1 ring-white/20" style={{ left: `${sPos}%`, backgroundColor: `hsl(${baseHue}, ${sPos}%, ${baseV}%)` }} />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--text-primary)]">明度</label>
+                <label className="text-sm font-medium text-[var(--text-primary)]">{valueLabel}</label>
                 <div className="relative h-4 cursor-pointer" onPointerDown={createSliderHandler(p => { const val = Math.round(p * 200) - 100; setV(val); handleChange(h, s, val); })}>
                   <div className="w-full h-2 rounded-lg absolute top-1/2 -translate-y-1/2" style={{ background: valBg }} />
                   <div className="absolute w-4 h-4 -translate-y-1/2 -translate-x-1/2 top-1/2 rounded-full shadow-md ring-1 ring-white/20" style={{ left: `${vPos}%`, backgroundColor: `hsl(${baseHue}, ${baseS}%, ${vPos}%)` }} />

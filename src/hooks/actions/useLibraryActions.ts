@@ -2,6 +2,7 @@
  * 本文件定义了一个自定义 Hook，用于封装样式和素材库操作。
  */
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fileOpen, fileSave } from 'browser-fs-access';
 import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, TextData, Point, GroupData, ArcData } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
@@ -16,6 +17,7 @@ export const useLibraryActions = ({
   paths, selectedPathIds, styleClipboard, setStyleClipboard, styleLibrary, setStyleLibrary, materialLibrary, setMaterialLibrary,
   showConfirmation, pathState, toolbarState, getPointerPosition,
 }: AppActionsProps) => {
+  const { t } = useTranslation();
 
   /**
    * 从选中的单个图形复制样式。
@@ -250,27 +252,27 @@ export const useLibraryActions = ({
             setStyleLibrary(data.styles);
             setMaterialLibrary(data.materials);
         } else {
-            alert("Invalid library file.");
+            alert(t('sideToolbar.styleLibraryPanel.invalidFile'));
         }
     } catch (err) {
         if ((err as Error).name === 'AbortError') return;
         console.error("Error opening library:", err);
     }
-  }, [setStyleLibrary, setMaterialLibrary]);
+  }, [setStyleLibrary, setMaterialLibrary, t]);
 
   /**
    * 清空样式和素材库。
    */
   const handleClearLibrary = useCallback(() => {
     showConfirmation(
-      '清空图库',
-      '确定要清空样式和素材库吗？此操作无法撤销。',
+      t('sideToolbar.styleLibraryPanel.confirmClearTitle'),
+      t('sideToolbar.styleLibraryPanel.confirmClearMessage'),
       () => {
         setStyleLibrary(() => []);
         setMaterialLibrary(() => []);
       }
     );
-  }, [showConfirmation, setStyleLibrary, setMaterialLibrary]);
+  }, [showConfirmation, setStyleLibrary, setMaterialLibrary, t]);
 
   return { handleCopyStyle, handlePasteStyle, handleAddStyle, handleApplyStyle, handleAddMaterial, handleApplyMaterial, handleSaveLibrary, handleLoadLibrary, handleClearLibrary };
 };

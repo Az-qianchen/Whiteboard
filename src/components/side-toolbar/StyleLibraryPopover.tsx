@@ -6,6 +6,7 @@ import type { AnyPath, StyleClipboardData, RectangleData, MaterialData } from '@
 import { renderPathNode, pathsToSvgString } from '@/lib/export';
 import { Tab, Popover, Transition } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
+import { useTranslation } from 'react-i18next';
 
 
 const StyleSwatch: React.FC<{ style: StyleClipboardData }> = React.memo(({ style }) => {
@@ -53,6 +54,7 @@ const StyleSwatch: React.FC<{ style: StyleClipboardData }> = React.memo(({ style
 
 
 const MaterialSwatch: React.FC<{ material: MaterialData }> = React.memo(({ material }) => {
+    const { t } = useTranslation();
     const [svgString, setSvgString] = useState<string | null>(null);
 
     useEffect(() => {
@@ -75,9 +77,9 @@ const MaterialSwatch: React.FC<{ material: MaterialData }> = React.memo(({ mater
 
     return (
         <div className="w-full h-full bg-[var(--ui-element-bg)] rounded-md p-1 flex items-center justify-center pointer-events-none">
-            <img 
-                src={`data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`} 
-                alt="Material preview"
+            <img
+                src={`data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`}
+                alt={t('sideToolbar.styleLibraryPanel.materialPreview')}
                 className="max-w-full max-h-full"
             />
         </div>
@@ -123,6 +125,20 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
   onClearLibrary,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
+  const tabKeys = ['styles', 'materials'] as const;
+  const tabItems = tabKeys.map((tab) => ({ key: tab, label: t(`sideToolbar.styleLibraryPanel.tabs.${tab}`) }));
+  const optionsTitle = t('sideToolbar.styleLibraryPanel.optionsTitle');
+  const loadLabel = t('sideToolbar.styleLibraryPanel.load');
+  const saveLabel = t('sideToolbar.styleLibraryPanel.save');
+  const clearLabel = t('sideToolbar.styleLibraryPanel.clear');
+  const closeLabel = t('sideToolbar.styleLibraryPanel.close');
+  const addStyleLabel = t('sideToolbar.styleLibraryPanel.addStyle');
+  const applyStyleLabel = t('sideToolbar.styleLibraryPanel.applyStyle');
+  const deleteStyleLabel = t('sideToolbar.styleLibraryPanel.deleteStyle');
+  const addMaterialLabel = t('sideToolbar.styleLibraryPanel.addMaterial');
+  const dragMaterialLabel = t('sideToolbar.styleLibraryPanel.dragMaterial');
+  const deleteMaterialLabel = t('sideToolbar.styleLibraryPanel.deleteMaterial');
 
   const handleDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // If the click is on a button or an interactive child, don't start a drag.
@@ -176,8 +192,6 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
     return null;
   }
   
-  const tabs = ['样式', '素材'];
-
   return (
     <div
       ref={panelRef}
@@ -195,8 +209,8 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
 
           <div>
             <Tab.List className="flex space-x-1 rounded-lg bg-[var(--ui-element-bg)] p-1">
-                {tabs.map(tab => (
-                  <Tab as={Fragment} key={tab}>
+                {tabItems.map(({ key, label }) => (
+                  <Tab as={Fragment} key={key}>
                     {({ selected }) => (
                       <PanelButton
                         variant="unstyled"
@@ -206,7 +220,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
                         }`}
                       >
-                        {tab}
+                        {label}
                       </PanelButton>
                     )}
                   </Tab>
@@ -220,7 +234,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                   as={PanelButton}
                   variant="unstyled"
                   className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
-                  title="素材库选项"
+                  title={optionsTitle}
                 >
                   {ICONS.MORE_VERTICAL}
                 </Popover.Button>
@@ -234,7 +248,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]"
                           >
                             <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.OPEN}</div>
-                            <span>加载...</span>
+                            <span>{loadLabel}</span>
                           </PanelButton>
                           <PanelButton
                             variant="unstyled"
@@ -242,7 +256,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]"
                           >
                             <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{ICONS.SAVE}</div>
-                            <span>保存...</span>
+                            <span>{saveLabel}</span>
                           </PanelButton>
                           <div className="h-px my-1 bg-[var(--ui-separator)]" />
                           <PanelButton
@@ -254,7 +268,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                             className="w-full flex items-center gap-3 p-2 rounded-md text-left text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
                           >
                             <div className="w-4 h-4 flex-shrink-0">{ICONS.TRASH}</div>
-                            <span>清空图库</span>
+                            <span>{clearLabel}</span>
                           </PanelButton>
                       </div>
                     )}
@@ -266,7 +280,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                 variant="unstyled"
                 onClick={onClose}
                 className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
-                title="关闭面板"
+                title={closeLabel}
               >
                  {ICONS.X}
               </PanelButton>
@@ -282,7 +296,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                         onClick={onAddStyle}
                         disabled={!canAddStyle}
                         className="w-full aspect-square rounded-md flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="从选区添加样式"
+                        title={addStyleLabel}
                     >
                         {ICONS.PLUS}
                     </PanelButton>
@@ -291,7 +305,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                               <PanelButton
                                 variant="unstyled"
                                 onClick={() => onApplyStyle(style)}
-                                title="应用样式"
+                                title={applyStyleLabel}
                                 className="w-full aspect-square rounded-md flex items-center justify-center"
                               >
                                 <div className="w-full h-full transition-transform transform group-hover:scale-110">
@@ -302,7 +316,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                                 variant="unstyled"
                                 onClick={() => handleDeleteStyle(index)}
                                 className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="删除样式"
+                                title={deleteStyleLabel}
                               >
                                {ICONS.TRASH}
                               </PanelButton>
@@ -319,7 +333,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                         onClick={onAddMaterial}
                         disabled={!canAddMaterial}
                         className="w-full aspect-square rounded-md flex items-center justify-center bg-[var(--ui-element-bg)] hover:bg-[var(--ui-element-bg-active)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="从选区添加素材"
+                        title={addMaterialLabel}
                     >
                         {ICONS.PLUS}
                     </PanelButton>
@@ -329,7 +343,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                                 variant="unstyled"
                                 draggable
                                 onDragStart={(e) => handleDragStartMaterial(e, material)}
-                                title="拖拽素材"
+                                title={dragMaterialLabel}
                                 className="w-full aspect-square rounded-md flex items-center justify-center"
                               >
                                 <div className="w-full h-full transition-transform transform group-hover:scale-110">
@@ -340,7 +354,7 @@ export const StyleLibraryPopover: React.FC<StyleLibraryPanelProps> = ({
                                 variant="unstyled"
                                 onClick={() => handleDeleteMaterial(index)}
                                 className="absolute top-0 right-0 -mt-1 -mr-1 h-5 w-5 p-1 bg-[var(--danger-text)] rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="删除素材"
+                                title={deleteMaterialLabel}
                               >
                                {ICONS.TRASH}
                               </PanelButton>

@@ -109,16 +109,16 @@ const ENDPOINT_ICONS = {
   ),
 };
 
-export const ENDPOINT_STYLES: { name: EndpointStyle; title: string; icon: JSX.Element }[] = [
-  { name: 'none', title: '无', icon: ENDPOINT_ICONS.NONE },
-  { name: 'arrow', title: '箭头', icon: ENDPOINT_ICONS.ARROW },
-  { name: 'reverse_arrow', title: '分叉', icon: ENDPOINT_ICONS.REVERSE_ARROW },
-  { name: 'dot', title: '倒三角', icon: ENDPOINT_ICONS.DOT },
-  { name: 'triangle', title: '三角', icon: ENDPOINT_ICONS.TRIANGLE },
-  { name: 'square', title: '方块', icon: ENDPOINT_ICONS.SQUARE },
-  { name: 'circle', title: '圆', icon: ENDPOINT_ICONS.CIRCLE },
-  { name: 'diamond', title: '菱形', icon: ENDPOINT_ICONS.DIAMOND },
-  { name: 'bar', title: '竖线', icon: ENDPOINT_ICONS.BAR },
+export const ENDPOINT_STYLES: { name: EndpointStyle; titleKey: string; icon: JSX.Element }[] = [
+  { name: 'none', titleKey: 'sideToolbar.strokeStyle.options.none', icon: ENDPOINT_ICONS.NONE },
+  { name: 'arrow', titleKey: 'sideToolbar.strokeStyle.options.arrow', icon: ENDPOINT_ICONS.ARROW },
+  { name: 'reverse_arrow', titleKey: 'sideToolbar.strokeStyle.options.reverse_arrow', icon: ENDPOINT_ICONS.REVERSE_ARROW },
+  { name: 'dot', titleKey: 'sideToolbar.strokeStyle.options.dot', icon: ENDPOINT_ICONS.DOT },
+  { name: 'triangle', titleKey: 'sideToolbar.strokeStyle.options.triangle', icon: ENDPOINT_ICONS.TRIANGLE },
+  { name: 'square', titleKey: 'sideToolbar.strokeStyle.options.square', icon: ENDPOINT_ICONS.SQUARE },
+  { name: 'circle', titleKey: 'sideToolbar.strokeStyle.options.circle', icon: ENDPOINT_ICONS.CIRCLE },
+  { name: 'diamond', titleKey: 'sideToolbar.strokeStyle.options.diamond', icon: ENDPOINT_ICONS.DIAMOND },
+  { name: 'bar', titleKey: 'sideToolbar.strokeStyle.options.bar', icon: ENDPOINT_ICONS.BAR },
 ];
 
 

@@ -5,6 +5,7 @@
  */
 
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Tool, AnyPath, VectorPathData, TextData } from '../types';
 import type { HsvAdjustment } from '@/lib/image';
 import { ICONS } from '../constants';
@@ -117,6 +118,17 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     onAdjustImageHsv,
   } = props;
 
+  const { t } = useTranslation();
+  const opacityLabel = t('opacity');
+  const sidesLabel = t('sideToolbar.sides');
+  const borderRadiusLabel = t('sideToolbar.borderRadius');
+  const strokeWidthLabel = t('sideToolbar.strokeWidth');
+  const strokeColorLabel = t('sideToolbar.strokeColor');
+  const textColorLabel = t('sideToolbar.textColor');
+  const fillColorLabel = t('sideToolbar.fillColor');
+  const framePropertiesLabel = t('sideToolbar.frameProperties');
+  const styleLibraryLabel = t('sideToolbar.styleLibrary');
+
   const isTextMode = useMemo(() => {
     return tool === 'text' || firstSelectedPath?.tool === 'text';
   }, [tool, firstSelectedPath]);
@@ -146,7 +158,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   return (
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 flex flex-col items-center gap-2 text-[var(--text-primary)]">
       {isFrameSelected ? (
-        <div className="text-center text-sm text-[var(--text-secondary)]">画框属性</div>
+        <div className="text-center text-sm text-[var(--text-secondary)]">{framePropertiesLabel}</div>
       ) : isTextMode ? (
         <TextProperties
           text={text}
@@ -163,7 +175,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       ) : (
         <>
           <NumericInput
-            label="透明度"
+            label={opacityLabel}
             value={opacity}
             setValue={setOpacity}
             min={0}
@@ -176,7 +188,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
           />
           {sides !== null && (
             <NumericInput
-              label="边数"
+              label={sidesLabel}
               value={sides}
               setValue={setSides}
               min={3}
@@ -189,7 +201,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
           )}
           {borderRadius !== null && (
             <NumericInput
-              label="圆角"
+              label={borderRadiusLabel}
               value={borderRadius}
               setValue={setBorderRadius}
               min={0}
@@ -201,7 +213,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
             />
           )}
           <NumericInput
-            label="宽度"
+            label={strokeWidthLabel}
             value={strokeWidth}
             setValue={setStrokeWidth}
             min={0}
@@ -217,7 +229,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       {!isFrameSelected && (
         <>
           <ColorControl
-            label={isTextMode ? "文字颜色" : "描边色"}
+            label={isTextMode ? textColorLabel : strokeColorLabel}
             color={color}
             setColor={setColor}
             beginCoalescing={beginCoalescing}
@@ -227,7 +239,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
           {!isTextMode && (
             <>
               <ColorControl
-                label="背景色"
+                label={fillColorLabel}
                 color={fill}
                 setColor={setFill}
                 beginCoalescing={beginCoalescing}
@@ -265,7 +277,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
       <div className="h-px w-full bg-[var(--ui-separator)] my-1"></div>
       
-      <div className="flex flex-col items-center w-14" title="样式库">
+      <div className="flex flex-col items-center w-14" title={styleLibraryLabel}>
         <PanelButton
           variant="unstyled"
           onClick={onToggleStyleLibrary}
@@ -274,7 +286,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
               ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
               : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
           }`}
-          title="样式库"
+          title={styleLibraryLabel}
         >
           {ICONS.STYLE_LIBRARY}
         </PanelButton>

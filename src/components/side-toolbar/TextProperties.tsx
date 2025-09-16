@@ -3,6 +3,7 @@
  * 它包含字体大小和文本对齐的控件。
  */
 import React, { useLayoutEffect, useRef, Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS } from '@/constants';
 import { NumericInput } from './NumericInput';
@@ -22,20 +23,20 @@ interface TextPropertiesProps {
   endCoalescing: () => void;
 }
 
-const ALIGN_OPTIONS: { name: 'left' | 'center' | 'right'; title: string; icon: JSX.Element }[] = [
-  { name: 'left', title: '左对齐', icon: ICONS.ALIGN_LEFT },
-  { name: 'center', title: '居中对齐', icon: ICONS.ALIGN_HORIZONTAL_CENTER },
-  { name: 'right', title: '右对齐', icon: ICONS.ALIGN_RIGHT },
+const ALIGN_OPTIONS: { name: 'left' | 'center' | 'right'; icon: JSX.Element }[] = [
+  { name: 'left', icon: ICONS.ALIGN_LEFT },
+  { name: 'center', icon: ICONS.ALIGN_HORIZONTAL_CENTER },
+  { name: 'right', icon: ICONS.ALIGN_RIGHT },
 ];
 
 const FONT_OPTIONS = [
-    { name: 'Excalifont', label: '手绘' },
-    { name: 'Xiaolai SC', label: '小赖' },
-    { name: 'Kalam', label: '书法' },
-    { name: 'Lora', label: '衬线' },
-    { name: 'Noto Sans SC', label: '无衬线 (中)' },
-    { name: 'Roboto Mono', label: '等宽' },
-];
+    { name: 'Excalifont' },
+    { name: 'Xiaolai SC' },
+    { name: 'Kalam' },
+    { name: 'Lora' },
+    { name: 'Noto Sans SC' },
+    { name: 'Roboto Mono' },
+] as const;
 
 /**
  * 一个 React 组件，提供用于修改文本属性的 UI 控件。
@@ -54,6 +55,12 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
   endCoalescing,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { t } = useTranslation();
+  const placeholder = t('sideToolbar.textProperties.placeholder');
+  const fontSizeLabel = t('sideToolbar.textProperties.fontSize');
+  const alignmentLabel = t('sideToolbar.textProperties.alignment');
+  const fontLabel = (name: typeof FONT_OPTIONS[number]['name']) => t(`sideToolbar.textProperties.fontOptions.${name}`);
+  const alignLabel = (name: 'left' | 'center' | 'right') => t(`sideToolbar.textProperties.align.${name}`);
 
   // Auto-resize textarea
   useLayoutEffect(() => {
@@ -66,7 +73,12 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
   };
-  
+
+  const currentFontLabel = (() => {
+    const option = FONT_OPTIONS.find(font => font.name === fontFamily);
+    return option ? fontLabel(option.name) : fontFamily;
+  })();
+
   return (
     <div className="w-full flex flex-col items-center gap-4">
        <textarea
@@ -77,7 +89,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
         onBlur={endCoalescing}
         className="w-full p-2 bg-black/20 rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] resize-none"
         rows={1}
-        placeholder="文本"
+        placeholder={placeholder}
       />
 
         <Popover className="relative w-full">
@@ -86,7 +98,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
             variant="unstyled"
             className={`${PANEL_CLASSES.inputWrapper} w-full justify-between text-sm text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]`}
           >
-              <span style={{fontFamily: fontFamily}}>{FONT_OPTIONS.find(f => f.name === fontFamily)?.label ?? fontFamily}</span>
+              <span style={{fontFamily: fontFamily}}>{currentFontLabel}</span>
               <div className="w-4 h-4 text-[var(--text-secondary)]">{ICONS.CHEVRON_DOWN}</div>
           </Popover.Button>
         <Transition
@@ -109,7 +121,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
                                 className={`w-full text-left p-2 rounded-md text-sm ${fontFamily === font.name ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'}`}
                                 style={{ fontFamily: font.name }}
                             >
-                                {font.label}
+                                {fontLabel(font.name)}
                             </PanelButton>
                         ))}
                     </div>
@@ -119,7 +131,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
       </Popover>
 
       <NumericInput
-        label="字号"
+        label={fontSizeLabel}
         value={fontSize}
         setValue={setFontSize}
         min={1}
@@ -129,14 +141,14 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
         beginCoalescing={beginCoalescing}
         endCoalescing={endCoalescing}
       />
-      
-      <div className="flex flex-col items-center w-full" title="对齐">
+
+      <div className="flex flex-col items-center w-full" title={alignmentLabel}>
         <div className={`${PANEL_CLASSES.segmentGroup} w-full`}>
             {ALIGN_OPTIONS.map(opt => (
               <PanelButton
                 variant="unstyled"
                 key={opt.name}
-                title={opt.title}
+                title={alignLabel(opt.name)}
                 onClick={() => setTextAlign(opt.name)}
                 className={`flex-1 flex justify-center items-center h-8 rounded-sm transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] ${textAlign === opt.name ? 'bg-[var(--accent-bg)] !text-[var(--accent-primary)]' : ''}`}
               >

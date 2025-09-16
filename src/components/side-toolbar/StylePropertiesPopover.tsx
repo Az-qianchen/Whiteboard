@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS } from '@/constants';
 import PanelButton from '@/components/PanelButton';
@@ -41,15 +42,29 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
         disableMultiStrokeFill, setDisableMultiStrokeFill,
         beginCoalescing, endCoalescing
     } = props;
-    
+
+    const { t } = useTranslation();
+    const title = t('sideToolbar.styleProperties.title');
+    const sketchyLabel = t('sideToolbar.styleProperties.sketchy');
+    const roughnessLabel = t('sideToolbar.styleProperties.roughness');
+    const bowingLabel = t('sideToolbar.styleProperties.bowing');
+    const curveTightnessLabel = t('sideToolbar.styleProperties.curveTightness');
+    const curveStepsLabel = t('sideToolbar.styleProperties.curveStepCount');
+    const preserveVerticesLabel = t('sideToolbar.styleProperties.preserveVertices');
+    const disableMultiStrokeLabel = t('sideToolbar.styleProperties.disableMultiStroke');
+    const fillWeightLabel = t('sideToolbar.styleProperties.fillWeight');
+    const hachureAngleLabel = t('sideToolbar.styleProperties.hachureAngle');
+    const hachureGapLabel = t('sideToolbar.styleProperties.hachureGap');
+    const disableMultiFillLabel = t('sideToolbar.styleProperties.disableMultiStrokeFill');
+
     return (
-        <div className="flex flex-col items-center w-14" title="样式属性">
+        <div className="flex flex-col items-center w-14" title={title}>
             <Popover className="relative">
                 <Popover.Button
                     as={PanelButton}
                     variant="unstyled"
                     className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
-                    title="样式属性"
+                    title={title}
                 >
                     {ICONS.PROPERTIES}
                 </Popover.Button>
@@ -57,24 +72,87 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
                     <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
                         <div className="flex flex-col gap-4">
                             <div className="space-y-4">
-                                <SwitchControl label="手绘风格" enabled={isRough} setEnabled={setIsRough} />
+                                <SwitchControl label={sketchyLabel} enabled={isRough} setEnabled={setIsRough} />
                                 <div className="space-y-4 transition-opacity">
-                                    <Slider label="粗糙度" value={roughness} setValue={setRoughness} min={0} max={5} step={0.5} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                    <Slider label="弯曲度" value={bowing} setValue={setBowing} min={0} max={10} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                    <Slider label="平滑度" value={curveTightness} setValue={setCurveTightness} min={-2} max={2} step={0.25} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                    <Slider label="曲线步数" value={curveStepCount} setValue={setCurveStepCount} min={1} max={30} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                    <SwitchControl label="禁用端点随机" enabled={preserveVertices} setEnabled={setPreserveVertices} />
-                                    <SwitchControl label="禁用多重描边" enabled={disableMultiStroke} setEnabled={setDisableMultiStroke} />
+                                    <Slider
+                                        label={roughnessLabel}
+                                        value={roughness}
+                                        setValue={setRoughness}
+                                        min={0}
+                                        max={5}
+                                        step={0.5}
+                                        onInteractionStart={beginCoalescing}
+                                        onInteractionEnd={endCoalescing}
+                                    />
+                                    <Slider
+                                        label={bowingLabel}
+                                        value={bowing}
+                                        setValue={setBowing}
+                                        min={0}
+                                        max={10}
+                                        step={1}
+                                        onInteractionStart={beginCoalescing}
+                                        onInteractionEnd={endCoalescing}
+                                    />
+                                    <Slider
+                                        label={curveTightnessLabel}
+                                        value={curveTightness}
+                                        setValue={setCurveTightness}
+                                        min={-2}
+                                        max={2}
+                                        step={0.25}
+                                        onInteractionStart={beginCoalescing}
+                                        onInteractionEnd={endCoalescing}
+                                    />
+                                    <Slider
+                                        label={curveStepsLabel}
+                                        value={curveStepCount}
+                                        setValue={setCurveStepCount}
+                                        min={1}
+                                        max={30}
+                                        step={1}
+                                        onInteractionStart={beginCoalescing}
+                                        onInteractionEnd={endCoalescing}
+                                    />
+                                    <SwitchControl label={preserveVerticesLabel} enabled={preserveVertices} setEnabled={setPreserveVertices} />
+                                    <SwitchControl label={disableMultiStrokeLabel} enabled={disableMultiStroke} setEnabled={setDisableMultiStroke} />
                                 </div>
                             </div>
-                            
+
                             <div className="h-px bg-[var(--ui-separator)]" />
 
                             <div className="space-y-4">
-                                <Slider label="填充权重" value={fillWeight} setValue={setFillWeight} min={0.1} max={5} step={0.1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                <Slider label="影线角度" value={hachureAngle} setValue={setHachureAngle} min={-90} max={90} step={15} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                <Slider label="影线间距" value={hachureGap} setValue={setHachureGap} min={0.5} max={20} step={0.5} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
-                                <SwitchControl label="禁用多重填充" enabled={disableMultiStrokeFill} setEnabled={setDisableMultiStrokeFill} />
+                                <Slider
+                                    label={fillWeightLabel}
+                                    value={fillWeight}
+                                    setValue={setFillWeight}
+                                    min={0.1}
+                                    max={5}
+                                    step={0.1}
+                                    onInteractionStart={beginCoalescing}
+                                    onInteractionEnd={endCoalescing}
+                                />
+                                <Slider
+                                    label={hachureAngleLabel}
+                                    value={hachureAngle}
+                                    setValue={setHachureAngle}
+                                    min={-90}
+                                    max={90}
+                                    step={15}
+                                    onInteractionStart={beginCoalescing}
+                                    onInteractionEnd={endCoalescing}
+                                />
+                                <Slider
+                                    label={hachureGapLabel}
+                                    value={hachureGap}
+                                    setValue={setHachureGap}
+                                    min={0.5}
+                                    max={20}
+                                    step={0.5}
+                                    onInteractionStart={beginCoalescing}
+                                    onInteractionEnd={endCoalescing}
+                                />
+                                <SwitchControl label={disableMultiFillLabel} enabled={disableMultiStrokeFill} setEnabled={setDisableMultiStrokeFill} />
                             </div>
                         </div>
                     </Popover.Panel>
