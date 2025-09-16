@@ -10,6 +10,12 @@
   - `types.ts` 共享 TypeScript 类型；`constants.tsx` UI/常量。
 - 导入别名：根相对导入请使用 `@/`（见 `vite.config.ts`）。
 
+## 目录特定指引
+- `src/` —— 前端源码的通用规范详见 `src/AGENTS.md`，其下各子目录另有针对性约束。
+- `public/` —— 静态资产放置说明详见 `public/AGENTS.md`。
+- `plugins/` —— 构建/运行时插件开发要求见 `plugins/AGENTS.md`。
+- `tests/` —— 自动化测试的约定收录在 `tests/AGENTS.md`。
+
 ## 构建、测试与开发命令
 - `npm run dev` —— 启动 Vite 开发服务器（支持 HMR）。
 - `npm run build` —— 生产构建输出到 `dist/`。
