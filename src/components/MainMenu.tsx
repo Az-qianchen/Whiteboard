@@ -124,7 +124,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
           ))}
         </Tab.List>
 
-        <Tab.Panels className="flex-grow min-h-0 overflow-hidden">
+        <Tab.Panels className="flex-grow min-h-0">
           <Tab.Panel className="flex flex-col gap-1 h-full focus:outline-none overflow-y-auto layers-panel-list pr-1">
             {menuActions.map((action, index) => {
               if (action.label === '---') {
