@@ -33,6 +33,7 @@ interface MainMenuProps {
   setBackgroundColor: (color: string) => void;
   activeFileName: string | null;
   hasUnsavedChanges: boolean;
+  isDocumentUncreated: boolean;
   onResetPreferences: () => void;
   // StatusBar Props
   zoomLevel: number;
@@ -53,7 +54,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
     backgroundColor, setBackgroundColor,
-    activeFileName, hasUnsavedChanges,
+    activeFileName, hasUnsavedChanges, isDocumentUncreated,
     onResetPreferences,
     zoomLevel,
     selectionInfo, elementCount, canvasWidth, canvasHeight,
@@ -73,10 +74,16 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     isAnimationExporter?: boolean;
     isLanguageSelector?: boolean;
     isDanger?: boolean;
-    status?: { label: string; tone: 'warning' | 'success' };
+    status?: { label: string; tone: 'warning' | 'success' | 'inactive' };
   };
 
   // New menu items: moved canvas clear to Layers panel; add Clear Data
+  const saveStatus = isDocumentUncreated
+    ? { label: t('documentStatusUncreated'), tone: 'inactive' as const }
+    : hasUnsavedChanges
+      ? { label: t('documentStatusUnsaved'), tone: 'warning' as const }
+      : { label: t('documentStatusSaved'), tone: 'success' as const };
+
   const menuActions: MenuAction[] = [
     { label: t('open'), handler: onOpen, icon: ICONS.OPEN, disabled: false },
     {
@@ -84,10 +91,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
       handler: onSave,
       icon: ICONS.SAVE,
       disabled: false,
-      status: {
-        label: hasUnsavedChanges ? t('documentStatusUnsaved') : t('documentStatusSaved'),
-        tone: hasUnsavedChanges ? 'warning' : 'success',
-      },
+      status: saveStatus,
     },
     { label: t('saveAs'), handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
     { label: t('import'), handler: onImport, icon: ICONS.IMPORT, disabled: false },
@@ -241,44 +245,47 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                   }
 
               const isDisabled = Boolean(action.disabled);
-              return (
-                <PanelButton
-                  variant="unstyled"
-                  key={action.label}
-                  onClick={() => {
-                    if (!isDisabled && action.handler) {
-                      action.handler();
-                    }
-                  }}
-                  disabled={isDisabled}
-                  className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    action.isDanger
-                      ? 'text-[var(--danger-text)] hover:bg-[var(--danger-bg)] focus:bg-[var(--danger-bg)]'
-                      : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)]'
-                  } focus-visible:ring-2 ring-[var(--accent-primary)]`}
-                >
-                  <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{action.icon}</div>
-                  <span className="flex-grow">{action.label}</span>
+              const statusTone = action.status?.tone;
+              const statusTextClass = statusTone === 'warning'
+                ? 'text-[var(--danger-text)]'
+                : statusTone === 'success'
+                  ? 'text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)]';
+              const statusDotClass = statusTone === 'warning'
+                ? 'bg-[var(--danger-text)]'
+                : statusTone === 'success'
+                  ? 'bg-[var(--accent-primary)]'
+                  : 'bg-[var(--text-secondary)]';
+            return (
+              <PanelButton
+                variant="unstyled"
+                key={action.label}
+                onClick={() => {
+                  if (!isDisabled && action.handler) {
+                    action.handler();
+                  }
+                }}
+                disabled={isDisabled}
+                className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  action.isDanger
+                    ? 'text-[var(--danger-text)] hover:bg-[var(--danger-bg)] focus:bg-[var(--danger-bg)]'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)]'
+                } focus-visible:ring-2 ring-[var(--accent-primary)]`}
+              >
+                <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{action.icon}</div>
+                <span className="flex-grow">{action.label}</span>
                   {action.status && (
                     <span
-                      className={`flex items-center gap-1 text-xs font-medium ${
-                        action.status.tone === 'warning'
-                          ? 'text-[var(--danger-text)]'
-                          : 'text-[var(--accent-primary)]'
-                      }`}
+                      className={`flex items-center gap-1 text-xs font-medium ${statusTextClass}`}
                     >
                       <span
                         aria-hidden="true"
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          action.status.tone === 'warning'
-                            ? 'bg-[var(--danger-text)]'
-                            : 'bg-[var(--accent-primary)]'
-                        }`}
+                        className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
                       />
                       {action.status.label}
                     </span>
                   )}
-                </PanelButton>
+              </PanelButton>
               );
             })}
           </Tab.Panel>
