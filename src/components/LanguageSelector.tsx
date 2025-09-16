@@ -31,7 +31,7 @@ const LanguageSelector: React.FC = () => {
       <Popover.Button
         as={PanelButton}
         variant="unstyled"
-        className="w-full flex items-center gap-3 p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
+        className="w-full flex items-center gap-3 p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-panel-bg)]"
       >
         <div className="w-4 h-4 flex items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
         <span className="flex-grow">{t('language')}</span>
