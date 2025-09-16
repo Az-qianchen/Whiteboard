@@ -133,11 +133,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                   </Switch>
                 </Switch.Group>
 
-                <div className="flex flex-col gap-2">
-                  <label htmlFor={thresholdId} className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
-                    {t('threshold')}
-                    <span className="text-xs text-[var(--text-secondary)]">{threshold}</span>
-                  </label>
+                <label
+                  htmlFor={thresholdId}
+                  className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]"
+                >
+                  <span className="whitespace-nowrap">{t('threshold')}</span>
                   <input
                     id={thresholdId}
                     type="range"
@@ -146,10 +146,9 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                     step={1}
                     value={threshold}
                     onChange={(e) => setThreshold(Number(e.target.value))}
-                    className="w-44 themed-slider"
+                    className="w-36 sm:w-48 flex-shrink-0 themed-slider"
                   />
-                  <p className="text-xs text-[var(--text-secondary)]">{t('clickImageToSelectArea')}</p>
-                </div>
+                </label>
               </div>
 
               <div className="flex items-center gap-2">
