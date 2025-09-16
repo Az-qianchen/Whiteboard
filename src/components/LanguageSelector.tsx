@@ -41,7 +41,7 @@ const LanguageSelector: React.FC = () => {
         as={PanelButton}
         variant="unstyled"
         ref={buttonRef}
-        className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
+        className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-sm text-left text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] ring-[var(--accent-primary)] focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
       >
         <div className="w-4 h-4 flex items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
         <span className="flex-grow">{t('language')}</span>
