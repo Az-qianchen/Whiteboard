@@ -225,8 +225,8 @@ export const TimelinePanel: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-[auto_1fr] items-start gap-1.5 min-h-0 min-w-0">
-                      <div className="flex flex-col gap-1.5 py-1">
+                <div className="mt-1 grid grid-cols-[auto_1fr] items-stretch gap-1.5 min-h-0 min-w-0">
+                      <div className="flex h-full flex-col gap-1.5 py-1">
                           <PanelButton
                               onClick={addFrame}
                               title="添加新帧"
@@ -239,7 +239,7 @@ export const TimelinePanel: React.FC = () => {
                               onClick={() => copyFrame(currentFrameIndex)}
                               title="复制当前帧"
                               variant="unstyled"
-                              className={getTimelineButtonClasses()}
+                              className={`${getTimelineButtonClasses()} mt-auto`}
                           >
                               {ICONS.COPY}
                           </PanelButton>
