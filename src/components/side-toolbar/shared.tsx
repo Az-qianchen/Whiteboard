@@ -2,6 +2,7 @@ import React from 'react';
 import { Switch } from '@headlessui/react';
 import { FloatingColorPicker } from '../FloatingColorPicker';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from '../panelStyles';
 
 interface SwitchControlProps {
   label: string;
@@ -10,8 +11,8 @@ interface SwitchControlProps {
 }
 
 export const SwitchControl: React.FC<SwitchControlProps> = React.memo(({ label, enabled, setEnabled }) => (
-  <div className="flex items-center justify-between">
-    <label htmlFor={label} className="text-sm font-medium text-[var(--text-primary)]">{label}</label>
+  <div className={`${PANEL_CLASSES.control} justify-between`}>
+    <label htmlFor={label} className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{label}</label>
     <Switch
       id={label}
       checked={enabled}
@@ -45,10 +46,10 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
 
   return (
     <div className="grid grid-cols-[auto,1fr] items-center gap-x-4">
-      <label className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap" htmlFor={label}>{label}</label>
+      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap`} htmlFor={label}>{label}</label>
       <div className="w-full">
-        <input 
-          type="range" 
+        <input
+          type="range"
           id={label} 
           min={min} 
           max={max} 
@@ -72,8 +73,8 @@ export const EndpointGrid = <T extends string>({ label, options, value, onChange
   onChange: (value: T) => void;
 }) => (
   <div className="flex flex-col gap-2">
-    <label className="text-sm font-medium text-[var(--text-primary)]">{label}</label>
-    <div className="grid grid-cols-3 gap-1 bg-black/20 rounded-md p-1">
+    <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{label}</label>
+    <div className={`${PANEL_CLASSES.segmentGrid} grid-cols-3`}>
       {options.map(opt => (
         <PanelButton
           variant="unstyled"
@@ -99,8 +100,8 @@ interface SegmentedControlProps<T extends string> {
 
 export const PopoverSegmentedControl = <T extends string>({ label, options, value, onChange, disabled = false }: SegmentedControlProps<T>) => (
   <div className="flex flex-col gap-2">
-    <label className="text-sm font-medium text-[var(--text-primary)]">{label}</label>
-    <div className={`flex items-center bg-black/20 rounded-md p-1 w-full ${disabled ? 'cursor-not-allowed' : ''}`}>
+    <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{label}</label>
+    <div className={`${PANEL_CLASSES.segmentGroup} w-full ${disabled ? 'cursor-not-allowed' : ''}`}>
       {options.map(opt => (
         <PanelButton
           variant="unstyled"
@@ -125,7 +126,7 @@ export const PopoverColorControl: React.FC<{ label: string, color: string, setCo
     };
     return (
         <div className="grid grid-cols-[auto,1fr] items-center gap-x-4">
-            <label className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">{label}</label>
+            <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap`}>{label}</label>
             <FloatingColorPicker
                 color={color}
                 onChange={setColor}

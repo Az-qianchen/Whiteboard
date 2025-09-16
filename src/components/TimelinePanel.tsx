@@ -8,6 +8,7 @@ import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
 import { pathsToSvgString } from '../lib/export';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
 /**
@@ -144,68 +145,95 @@ export const TimelinePanel: React.FC = () => {
             leaveTo="opacity-0 max-h-0"
         >
             <div className="p-3 h-48 w-full max-w-full flex flex-col">
-                <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                          <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
-                              {ICONS.REWIND}
-                          </PanelButton>
-                          <PanelButton
-                              onClick={handlePlayPause}
-                              title={isPlaying ? '暂停' : '播放'}
-                              className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
-                          >
-                              {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
-                          </PanelButton>
-                      </div>
-                    <div className="flex items-center gap-2">
-                         <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
-                         <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
-                           <input
-                             id="fps-input" type="number" min="1" max="60" step="1"
-                             value={fps} onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
-                             className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                           />
-                         </div>
+                <div className={PANEL_CLASSES.controlsRow}>
+                    <div className={PANEL_CLASSES.control}>
+                        <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
+                            {ICONS.REWIND}
+                        </PanelButton>
+                        <PanelButton
+                            onClick={handlePlayPause}
+                            title={isPlaying ? '暂停' : '播放'}
+                            className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                        >
+                            {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
+                        </PanelButton>
                     </div>
-                      <div className="flex items-center gap-2">
-                          <PanelButton
-                              onClick={() => setIsOnionSkinEnabled(p => !p)}
-                              title="洋葱皮"
-                              className={isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
-                          >
-                              {ICONS.ONION_SKIN}
-                          </PanelButton>
-                          <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
-                                <input
-                                    id="onion-opacity-input" type="number" min="0" max="100" step="1"
-                                    value={Math.round(onionSkinOpacity * 100)}
-                                    onChange={(e) => setOnionSkinOpacity(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) / 100)}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
-                                 <span className="text-xs text-[var(--text-secondary)]">%</span>
+                    <div className={PANEL_CLASSES.control}>
+                        <label htmlFor="fps-input" className={PANEL_CLASSES.label}>FPS</label>
+                        <div className={PANEL_CLASSES.inputWrapper}>
+                            <input
+                                id="fps-input"
+                                type="number"
+                                min="1"
+                                max="60"
+                                step="1"
+                                value={fps}
+                                onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
+                                className={`${PANEL_CLASSES.input} hide-spinners`}
+                            />
+                        </div>
+                    </div>
+                    <div className={PANEL_CLASSES.control}>
+                        <PanelButton
+                            onClick={() => setIsOnionSkinEnabled(p => !p)}
+                            title="洋葱皮"
+                            className={isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                        >
+                            {ICONS.ONION_SKIN}
+                        </PanelButton>
+                        <div
+                            className={`${PANEL_CLASSES.controlsRow} transition-opacity ${
+                                isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                            }`}
+                        >
+                            <div className={PANEL_CLASSES.control}>
+                                <label htmlFor="onion-opacity-input" className={PANEL_CLASSES.label}>透明度</label>
+                                <div className={PANEL_CLASSES.inputWrapper}>
+                                    <input
+                                        id="onion-opacity-input"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={Math.round(onionSkinOpacity * 100)}
+                                        onChange={(e) =>
+                                            setOnionSkinOpacity(
+                                                Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) / 100
+                                            )
+                                        }
+                                        className={`${PANEL_CLASSES.input} hide-spinners`}
+                                    />
+                                    <span className={PANEL_CLASSES.inputSuffix}>%</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
-                                <input
-                                    id="prev-frames-input" type="number" min="0" max="10" step="1"
-                                    value={onionSkinPrevFrames} onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
+                            <div className={PANEL_CLASSES.control}>
+                                <label htmlFor="prev-frames-input" className={PANEL_CLASSES.label}>之前</label>
+                                <div className={PANEL_CLASSES.inputWrapper}>
+                                    <input
+                                        id="prev-frames-input"
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="1"
+                                        value={onionSkinPrevFrames}
+                                        onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
+                                        className={`${PANEL_CLASSES.input} hide-spinners`}
+                                    />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
-                                <input
-                                    id="next-frames-input" type="number" min="0" max="10" step="1"
-                                    value={onionSkinNextFrames} onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
+                            <div className={PANEL_CLASSES.control}>
+                                <label htmlFor="next-frames-input" className={PANEL_CLASSES.label}>之后</label>
+                                <div className={PANEL_CLASSES.inputWrapper}>
+                                    <input
+                                        id="next-frames-input"
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="1"
+                                        value={onionSkinNextFrames}
+                                        onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
+                                        className={`${PANEL_CLASSES.input} hide-spinners`}
+                                    />
                                 </div>
                             </div>
                         </div>

@@ -114,6 +114,68 @@ textarea {
   font-size: 85%;
 }
 
+@layer components {
+  .panel-section {
+    @apply flex flex-col gap-4;
+  }
+
+  .panel-section-title {
+    @apply text-sm font-semibold text-center;
+    color: var(--text-primary);
+  }
+
+  .panel-controls {
+    @apply flex flex-wrap items-center gap-4;
+  }
+
+  .panel-control {
+    @apply flex items-center gap-2;
+  }
+
+  .panel-label {
+    @apply text-sm font-medium;
+    color: var(--text-secondary);
+  }
+
+  .panel-input-wrapper {
+    @apply flex items-center gap-2 rounded-md px-3 h-9 transition-colors;
+    width: 4.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  .panel-input-wrapper:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(var(--oc-blue-6-rgb), 0.2);
+  }
+
+  .panel-input {
+    @apply w-full bg-transparent text-sm text-center outline-none;
+    color: var(--text-primary);
+  }
+
+  .panel-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .panel-input-suffix {
+    @apply text-xs;
+    color: var(--text-secondary);
+  }
+
+  .panel-segmented {
+    @apply flex rounded-md p-1 gap-1;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .panel-segmented-grid {
+    @apply grid rounded-md p-1 gap-1;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+}
+
 
 body.light-bg-canvas {
   --grid-line: rgba(0, 0, 0, 0.15);

@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { HSLA, parseColor, hslaToHslaString, hslaToHex } from '../lib/color';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 
 // 预设颜色数组
 const PRESET_COLORS = [
@@ -188,30 +189,30 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
         </div>
         
         <div className="flex items-center justify-between gap-2 pt-1">
-           <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-[100px]">
+           <div className={`${PANEL_CLASSES.inputWrapper} w-28`}>
              <input
                type="text"
                value={hexInput}
                onChange={handleHexInputChange}
                onBlur={handleHexInputCommit}
-               onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur() }}
-               className="w-full text-xs font-mono bg-transparent text-[var(--text-primary)] focus:outline-none"
+               onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
+               className={`${PANEL_CLASSES.input} font-mono text-left`}
                aria-label="Hex color value"
              />
            </div>
-           
-           <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-[70px]">
+
+           <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
                <input
                  type="number"
                  min="0"
                  max="100"
                  value={Math.round(hsla.a * 100)}
                  onChange={handleAlphaInputChange}
-                 onBlur={(e) => { if (e.target.value === '') handleHslaChange({a: 1})}}
-                 className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                 onBlur={(e) => { if (e.target.value === '') handleHslaChange({ a: 1 }); }}
+                 className={`${PANEL_CLASSES.input} hide-spinners`}
                  aria-label="Alpha percentage"
                />
-               <span className="text-xs text-[var(--text-secondary)]">%</span>
+               <span className={PANEL_CLASSES.inputSuffix}>%</span>
            </div>
            
             {'EyeDropper' in window && (

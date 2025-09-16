@@ -9,6 +9,7 @@ import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import type { Tool } from '../types';
 import { useTranslation } from 'react-i18next';
+import { PANEL_CLASSES } from './panelStyles';
 
 interface ToolbarProps {
   tool: Tool;
@@ -97,7 +98,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Popover.Panel className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-3">
             <div className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-2 items-center">
-              <label htmlFor="grid-toggle" className="text-sm font-medium justify-self-start">{t('showGrid')}</label>
+              <label htmlFor="grid-toggle" className={`${PANEL_CLASSES.label} text-[var(--text-primary)] justify-self-start`}>{t('showGrid')}</label>
               <div className="justify-self-end">
                 <Switch
                   id="grid-toggle"
@@ -109,8 +110,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </Switch>
               </div>
 
-              <label htmlFor="grid-size" className="text-sm font-medium justify-self-start">{t('gridSize')}</label>
-              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
+              <label htmlFor="grid-size" className={`${PANEL_CLASSES.label} text-[var(--text-primary)] justify-self-start`}>{t('gridSize')}</label>
+              <div className={`${PANEL_CLASSES.inputWrapper} w-20 justify-self-end`}>
                 <input
                   id="grid-size"
                   type="number"
@@ -119,14 +120,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   step="5"
                   value={gridSize}
                   onChange={(e) => setGridSize(Math.max(5, Number(e.target.value)))}
-                  className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  className={`${PANEL_CLASSES.input} hide-spinners`}
                   disabled={!isGridVisible}
                 />
-                <span className="text-xs text-[var(--text-secondary)]">px</span>
+                <span className={PANEL_CLASSES.inputSuffix}>px</span>
               </div>
 
-              <label htmlFor="grid-subdivisions" className="text-sm font-medium justify-self-start">{t('subdivisions')}</label>
-              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
+              <label htmlFor="grid-subdivisions" className={`${PANEL_CLASSES.label} text-[var(--text-primary)] justify-self-start`}>{t('subdivisions')}</label>
+              <div className={`${PANEL_CLASSES.inputWrapper} w-20 justify-self-end`}>
                 <input
                   id="grid-subdivisions"
                   type="number"
@@ -135,13 +136,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   step="1"
                   value={gridSubdivisions}
                   onChange={(e) => setGridSubdivisions(Math.max(2, Number(e.target.value)))}
-                  className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  className={`${PANEL_CLASSES.input} hide-spinners`}
                   disabled={!isGridVisible}
                 />
               </div>
 
-              <label htmlFor="grid-opacity" className="text-sm font-medium justify-self-start">{t('opacity')}</label>
-              <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-20 justify-self-end">
+              <label htmlFor="grid-opacity" className={`${PANEL_CLASSES.label} text-[var(--text-primary)] justify-self-start`}>{t('opacity')}</label>
+              <div className={`${PANEL_CLASSES.inputWrapper} w-20 justify-self-end`}>
                 <input
                   id="grid-opacity"
                   type="number"
@@ -150,10 +151,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   step="1"
                   value={Math.round(gridOpacity * 100)}
                   onChange={(e) => setGridOpacity(Math.max(0, Math.min(100, Number(e.target.value))) / 100)}
-                  className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                  className={`${PANEL_CLASSES.input} hide-spinners`}
                   disabled={!isGridVisible}
                 />
-                <span className="text-xs text-[var(--text-secondary)]">%</span>
+                <span className={PANEL_CLASSES.inputSuffix}>%</span>
               </div>
             </div>
           </Popover.Panel>
