@@ -150,7 +150,7 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-40"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-2.5 h-40 w-full max-w-full flex flex-col">
+            <div className="px-2.5 pt-2 pb-1.5 w-full max-w-full flex flex-col">
                 <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
                           <PanelButton
@@ -225,8 +225,8 @@ export const TimelinePanel: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-1.5 min-h-0 min-w-0">
-                      <div className="flex flex-col gap-1.5 h-full">
+                <div className="grid grid-cols-[auto_1fr] items-start gap-1.5 min-h-0 min-w-0">
+                      <div className="flex flex-col gap-1.5 py-1">
                           <PanelButton
                               onClick={addFrame}
                               title="添加新帧"
@@ -244,8 +244,8 @@ export const TimelinePanel: React.FC = () => {
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
-                    <div className="h-full w-full rounded-lg p-1.5 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
-                        <div className="flex items-center gap-1.5 h-full">
+                    <div className="w-full rounded-lg px-1.5 py-1 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                        <div className="flex items-center gap-1.5">
                             {frames.map((frame, index) => (
                                 <div
                                     key={index}
