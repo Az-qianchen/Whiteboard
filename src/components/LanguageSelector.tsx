@@ -49,7 +49,7 @@ const LanguageSelector: React.FC = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Popover.Panel className="absolute right-0 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
+        <Popover.Panel className="absolute right-0 mt-2 w-full max-h-48 overflow-y-auto overflow-x-visible bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
           {({ close }) => (
             <div className="flex flex-col gap-1">
               {supportedLangs.map((l) => (
