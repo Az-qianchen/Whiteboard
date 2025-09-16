@@ -111,7 +111,7 @@ const getInitialAppState = (): AppState => ({
   confirmationDialog: null,
   croppingState: null,
   currentCropRect: null,
-  hasUnsavedChanges: false,
+  hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
 });
 
@@ -463,7 +463,10 @@ export const useAppStore = () => {
   useEffect(() => {
     setAppState(prev => {
       if (prev.lastSavedDocumentSignature === null) {
-        return { ...prev, lastSavedDocumentSignature: currentDocumentSignature, hasUnsavedChanges: false };
+        if (!prev.hasUnsavedChanges) {
+          return { ...prev, hasUnsavedChanges: true };
+        }
+        return prev;
       }
       const hasChanges = prev.lastSavedDocumentSignature !== currentDocumentSignature;
       if (hasChanges !== prev.hasUnsavedChanges) {

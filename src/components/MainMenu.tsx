@@ -124,20 +124,6 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
             <span className="truncate" title={activeFileName ?? t('untitled')}>
               {activeFileName ?? t('untitled')}
             </span>
-            <span
-              aria-live="polite"
-              className={`flex items-center gap-1 whitespace-nowrap font-medium ${
-                hasUnsavedChanges ? 'text-[var(--danger-text)]' : 'text-[var(--accent-primary)]'
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 rounded-full ${
-                  hasUnsavedChanges ? 'bg-[var(--danger-text)]' : 'bg-[var(--accent-primary)]'
-                }`}
-              />
-              {hasUnsavedChanges ? t('documentStatusUnsaved') : t('documentStatusSaved')}
-            </span>
           </div>
         </div>
       </div>
