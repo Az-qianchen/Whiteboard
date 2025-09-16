@@ -64,13 +64,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
     }
   };
 
-  const handleResetRemove = () => {
-    onCancelRemoveBg();
-    if (selectedTool === 'removeBackground') {
-      onBeginRemoveBg({ threshold, contiguous });
-    }
-  };
-
   const toolButtonClass = 'px-3 h-9 text-sm font-medium rounded-md transition-colors';
   const removalActionButtonClass = 'flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors';
 
@@ -79,7 +72,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       className="absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-[min(920px,calc(100vw-2rem))] px-2"
       style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)] transition-all duration-300 ease-in-out">
+      <div className="flex flex-wrap items-center gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)] transition-all duration-300 ease-in-out">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex bg-[var(--ui-element-bg)] rounded-lg p-1">
             <button
@@ -151,16 +144,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                 </label>
               </div>
 
-              <div className="flex items-center gap-2">
-                <PanelButton
-                  type="button"
-                  variant="unstyled"
-                  onClick={handleResetRemove}
-                  className={`${removalActionButtonClass} bg-[var(--ui-element-bg)] text-[var(--text-primary)] hover:bg-[var(--ui-element-bg-hover)]`}
-                >
-                  {React.cloneElement(ICONS.X, { className: 'h-4 w-4' })}
-                  <span>{t('cancel')}</span>
-                </PanelButton>
+              <div className="flex items-center">
                 <PanelButton
                   type="button"
                   variant="unstyled"
