@@ -38,7 +38,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   const { t } = useTranslation();
   return (
     <div className="w-full bg-[var(--ui-element-bg)] rounded-lg p-2 text-[var(--text-primary)] text-sm">
-      <div className="flex items-center justify-between h-8 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap">
+      <div className="flex items-center justify-between h-8 text-xs text-[var(--text-secondary)] whitespace-nowrap">
         <span>{t('canvas')}</span>
         <PanelButton
           variant="unstyled"
@@ -62,8 +62,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             isStatusBarCollapsed ? 'pt-0 opacity-0' : 'pt-2 opacity-100'
           }`}
         >
-          <div className="pb-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-            <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
+          <div className="pb-2 text-xs text-[var(--text-secondary)] whitespace-nowrap overflow-hidden">
+            <div className="text-center bg-black/20 rounded-md p-2 space-y-1">
               <div className="flex justify-between">
                 <span>{t('elements')}: {elementCount}</span>
                 <span>{t('zoom')}: {Math.round(zoomLevel * 100)}%</span>
@@ -76,9 +76,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </div>
 
           {selectionInfo && (
-            <div className="pt-2 text-xs text-[var(--text-secondary)] font-mono whitespace-nowrap overflow-hidden">
-              <span>{t('selection')}</span>
-              <div className="mt-2 text-center bg-black/20 rounded-md p-2 space-y-1">
+            <div className="pt-2 text-xs text-[var(--text-secondary)] whitespace-nowrap overflow-hidden">
+              <span className="block mb-1">{t('selection')}</span>
+              <div className="text-center bg-black/20 rounded-md p-2 space-y-1">
                 <div className="flex justify-between">
                   <span>{t('elements')}: {selectionInfo.count ?? 1}</span>
                   {selectionInfo.rotation !== undefined && (
