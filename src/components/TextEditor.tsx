@@ -4,7 +4,8 @@
  * HTML textarea，以提供无缝的在画布上编辑体验。
  */
 
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useLayoutEffect, useRef, useEffect, useMemo, useState } from 'react';
+import { getFontMetrics } from '@/lib/drawing';
 import type { TextData } from '../types';
 
 interface TextEditorProps {
@@ -21,6 +22,11 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onCommit,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [draftText, setDraftText] = useState(path.text);
+
+  useEffect(() => {
+    setDraftText(path.text);
+  }, [path.id, path.text]);
 
   // 自动调整 textarea 高度以适应内容
   const adjustHeight = () => {
@@ -34,7 +40,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   // 在挂载和文本更新时调整高度
   useLayoutEffect(() => {
     adjustHeight();
-  }, [path.text, viewTransform.scale]);
+  }, [draftText, viewTransform.scale, computedLineHeight, path.fontSize, path.fontFamily]);
 
   // 在挂载时聚焦并选中文本
   useEffect(() => {
@@ -46,7 +52,9 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   
   // 处理文本输入
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onUpdate(e.target.value);
+    const { value } = e.target;
+    setDraftText(value);
+    onUpdate(value);
   };
   
   // 处理键盘事件
@@ -62,22 +70,52 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   };
 
   const { scale, translateX, translateY } = viewTransform;
-  
+
   const family = path.fontFamily || 'Excalifont';
   // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
   const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
+
+  const metrics = useMemo(() => getFontMetrics(family), [family]);
+  const computedLineHeight = path.lineHeight ?? (metrics.lineHeightRatio * path.fontSize);
+  const lineHeightRatio = computedLineHeight > 0 ? computedLineHeight / path.fontSize : metrics.lineHeightRatio;
+  const paddingRight = Math.max(8, scale * 2);
+  const scaledMinHeight = computedLineHeight * scale;
+  const scaledWidth = Math.max(path.width, computedLineHeight) * scale;
+
+  const transform = useMemo(() => {
+    const rotation = path.rotation ?? 0;
+    const scaleX = path.scaleX ?? 1;
+    const scaleY = path.scaleY ?? 1;
+    if (rotation === 0 && scaleX === 1 && scaleY === 1) {
+      return '';
+    }
+
+    const centerOffsetX = (path.width / 2) * scale;
+    const centerOffsetY = (path.height / 2) * scale;
+    const segments = [`translate(${centerOffsetX}px, ${centerOffsetY}px)`];
+    if (rotation !== 0) {
+      segments.push(`rotate(${(rotation * 180) / Math.PI}deg)`);
+    }
+    if (scaleX !== 1 || scaleY !== 1) {
+      segments.push(`scale(${scaleX}, ${scaleY})`);
+    }
+    segments.push(`translate(${-centerOffsetX}px, ${-centerOffsetY}px)`);
+    return segments.join(' ');
+  }, [path.rotation, path.scaleX, path.scaleY, path.width, path.height, scale]);
 
   // 将 SVG 坐标转换为屏幕坐标并应用样式
   const style: React.CSSProperties = {
     position: 'fixed',
     top: `${(path.y * scale) + translateY}px`,
     left: `${(path.x * scale) + translateX}px`,
-    // 为宽度增加一点填充，以容纳光标
-    minWidth: `${path.width * scale + 10}px`, 
+    width: `${scaledWidth}px`,
+    minWidth: `${scaledWidth}px`,
+    minHeight: `${scaledMinHeight}px`,
     fontFamily: familyWithQuotes,
     fontSize: `${path.fontSize * scale}px`,
-    lineHeight: 1.25,
+    lineHeight: lineHeightRatio,
     color: path.color,
+    caretColor: path.color,
     textAlign: path.textAlign,
     background: 'transparent',
     border: 'none',
@@ -85,7 +123,10 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     resize: 'none',
     overflow: 'hidden',
     padding: 0,
+    paddingRight: `${paddingRight}px`,
     margin: 0,
+    transformOrigin: 'top left',
+    transform: transform,
     // 将其置于所有画布元素之上
     zIndex: 100,
   };
@@ -93,7 +134,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   return (
     <textarea
       ref={textareaRef}
-      value={path.text}
+      value={draftText}
       onChange={handleChange}
       onBlur={onCommit}
       onKeyDown={handleKeyDown}

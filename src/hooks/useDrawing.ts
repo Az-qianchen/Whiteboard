@@ -4,8 +4,9 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, TextData, FrameData } from '../types';
-import { snapAngle, dist, measureText } from '../lib/drawing';
+import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData } from '../types';
+import { snapAngle, dist, createTextShape } from '../lib/drawing';
+import type { CreateTextShapeInput } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
 
@@ -17,6 +18,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  setEditingTextPathId: (id: string | null) => void;
 }
 
 /**
@@ -31,6 +33,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  setEditingTextPathId,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -156,28 +159,26 @@ export const useDrawing = ({
       }
       case 'text': {
         const defaultText = text || '文本';
-        const { width, height } = measureText(defaultText, fontSize, fontFamily);
-
-        const newText: TextData = {
+        const baseTextProps = {
             id,
-            tool: 'text',
             text: defaultText,
             x: snappedPoint.x,
             y: snappedPoint.y,
-            width,
-            height,
             fontFamily,
             fontSize,
             textAlign,
             ...sharedProps,
-            // Text specific overrides
             fill: 'transparent',
             fillStyle: 'solid',
             strokeWidth: 0,
-        };
+        } satisfies CreateTextShapeInput;
+
+        const newText = createTextShape(baseTextProps);
         setPaths((prev: AnyPath[]) => [...prev, newText]);
         toolbarState.setTool('selection');
         pathState.setSelectedPathIds([id]);
+        setEditingTextPathId(id);
+        pathState.beginCoalescing();
         break;
       }
       case 'arc': {

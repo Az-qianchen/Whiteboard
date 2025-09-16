@@ -206,6 +206,10 @@ export interface TextData extends ShapeBase {
   y: number;
   width: number;
   height: number;
+  /** 基线到文本顶部的距离（像素）。 */
+  baseline?: number;
+  /** 行高（像素）。用于准确的包围盒与编辑器排版。 */
+  lineHeight?: number;
 }
 
 export interface ArcData extends ShapeBase {
