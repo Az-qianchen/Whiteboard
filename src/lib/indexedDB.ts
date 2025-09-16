@@ -36,7 +36,7 @@ export async function get<T>(key: IDBValidKey): Promise<T | undefined> {
   });
 }
 
-export async function set(key: IDBValidKey, value: any): Promise<void> {
+export async function set<T>(key: IDBValidKey, value: T): Promise<void> {
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('keyval', 'readwrite');
