@@ -174,8 +174,8 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const { width, height } = measureText(newText, p.fontSize, p.fontFamily);
-                return { text: newText, width, height };
+                const measurement = measureText(newText, p.fontSize, p.fontFamily);
+                return { text: newText, ...measurement };
             }
             return {};
         });
@@ -188,8 +188,8 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const { width, height } = measureText(p.text, p.fontSize, newFamily);
-                return { fontFamily: newFamily, width, height };
+                const measurement = measureText(p.text, p.fontSize, newFamily);
+                return { fontFamily: newFamily, ...measurement };
             }
             return {};
         });
@@ -202,8 +202,8 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const { width, height } = measureText(p.text, newSize, p.fontFamily);
-                return { fontSize: newSize, width, height };
+                const measurement = measureText(p.text, newSize, p.fontFamily);
+                return { fontSize: newSize, ...measurement };
             }
             return {};
         });

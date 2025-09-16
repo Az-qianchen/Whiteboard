@@ -3,7 +3,7 @@
  * 它整合了所有独立的状态管理 Hooks（如 usePaths, useToolbarState 等），
  * 并为整个应用提供一个统一的状态和操作接口。
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useUiStore } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
@@ -124,6 +124,8 @@ export const useAppStore = () => {
   }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
+  const pendingTextUpdate = useRef<{ pathId: string; text: string } | null>(null);
+  const textUpdateFrame = useRef<number | null>(null);
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -233,6 +235,24 @@ export const useAppStore = () => {
   const groupIsolation = useGroupIsolation(pathState);
   const { activePaths, activePathState } = groupIsolation;
 
+  const flushPendingTextUpdate = useCallback(() => {
+    const update = pendingTextUpdate.current;
+    if (!update) return;
+
+    pendingTextUpdate.current = null;
+    textUpdateFrame.current = null;
+    const { pathId, text } = update;
+
+    activePathState.setPaths((prev: AnyPath[]) => prev.map(p => {
+      if (p.id === pathId && p.tool === 'text') {
+        const textPath = p as TextData;
+        const measurement = measureText(text, textPath.fontSize, textPath.fontFamily);
+        return { ...p, text, ...measurement };
+      }
+      return p;
+    }));
+  }, [activePathState]);
+
   const viewTransform = useViewTransform();
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   
@@ -269,9 +289,33 @@ export const useAppStore = () => {
   }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
 
   const handleTextChange = useCallback((pathId: string, newText: string) => {
-      activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
-  }, [activePathState]);
-  const handleTextEditCommit = useCallback(() => { pathState.endCoalescing(); setEditingTextPathId(null); }, [pathState, setEditingTextPathId]);
+    pendingTextUpdate.current = { pathId, text: newText };
+    if (textUpdateFrame.current != null) {
+      return;
+    }
+    textUpdateFrame.current = requestAnimationFrame(() => {
+      flushPendingTextUpdate();
+    });
+  }, [flushPendingTextUpdate]);
+
+  const handleTextEditCommit = useCallback(() => {
+    if (textUpdateFrame.current != null) {
+      cancelAnimationFrame(textUpdateFrame.current);
+      textUpdateFrame.current = null;
+    }
+    flushPendingTextUpdate();
+    pathState.endCoalescing();
+    setEditingTextPathId(null);
+  }, [flushPendingTextUpdate, pathState, setEditingTextPathId]);
+
+  useEffect(() => {
+    return () => {
+      if (textUpdateFrame.current != null) {
+        cancelAnimationFrame(textUpdateFrame.current);
+        textUpdateFrame.current = null;
+      }
+    };
+  }, []);
   
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
@@ -391,7 +435,7 @@ export const useAppStore = () => {
       }
   }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState, setEditingTextPathId });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   

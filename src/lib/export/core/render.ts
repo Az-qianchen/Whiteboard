@@ -7,6 +7,7 @@ import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
 import { sampleArc } from '@/lib/drawing/arc';
+import { getLineHeightMultiplier, measureText } from '@/lib/drawing';
 import { createEffectsFilter } from './effects';
 
 /**
@@ -43,14 +44,18 @@ function renderText(data: TextData): SVGElement {
     textEl.setAttribute('x', String(x));
 
     const lines = data.text.split('\n');
-    const lineHeight = data.fontSize * 1.25;
+    const needsMetrics = data.lineHeight == null || data.baseline == null;
+    const metrics = needsMetrics ? measureText(data.text, data.fontSize, fontFamily) : undefined;
+    const fallbackLineHeight = data.fontSize * getLineHeightMultiplier(fontFamily);
+    const baseline = data.baseline ?? metrics?.baseline ?? data.fontSize * 0.8;
+    const lineHeight = data.lineHeight ?? metrics?.lineHeight ?? fallbackLineHeight;
 
     lines.forEach((line, index) => {
         const tspan = document.createElementNS(svgNS, 'tspan');
         tspan.textContent = line;
         tspan.setAttribute('x', String(x));
         // 使用 dy 实现换行。第一行需要特殊处理以进行垂直对齐。
-        const dy = index === 0 ? `${data.fontSize * 0.8}px` : `${lineHeight}px`; // 0.8 是基线的经验值
+        const dy = index === 0 ? `${baseline}px` : `${lineHeight}px`;
         tspan.setAttribute('dy', dy);
         textEl.appendChild(tspan);
     });

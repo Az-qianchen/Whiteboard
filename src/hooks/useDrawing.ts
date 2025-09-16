@@ -17,6 +17,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  setEditingTextPathId: (id: string | null) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  setEditingTextPathId,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -156,7 +158,7 @@ export const useDrawing = ({
       }
       case 'text': {
         const defaultText = text || '文本';
-        const { width, height } = measureText(defaultText, fontSize, fontFamily);
+        const { width, height, lineHeight, baseline } = measureText(defaultText, fontSize, fontFamily);
 
         const newText: TextData = {
             id,
@@ -166,6 +168,8 @@ export const useDrawing = ({
             y: snappedPoint.y,
             width,
             height,
+            lineHeight,
+            baseline,
             fontFamily,
             fontSize,
             textAlign,
@@ -178,6 +182,8 @@ export const useDrawing = ({
         setPaths((prev: AnyPath[]) => [...prev, newText]);
         toolbarState.setTool('selection');
         pathState.setSelectedPathIds([id]);
+        setEditingTextPathId(id);
+        pathState.beginCoalescing();
         break;
       }
       case 'arc': {

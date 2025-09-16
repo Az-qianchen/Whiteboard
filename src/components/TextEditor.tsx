@@ -4,7 +4,8 @@
  * HTML textarea，以提供无缝的在画布上编辑体验。
  */
 
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useLayoutEffect, useRef, useEffect, useMemo } from 'react';
+import { getLineHeightMultiplier } from '@/lib/drawing';
 import type { TextData } from '../types';
 
 interface TextEditorProps {
@@ -34,7 +35,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   // 在挂载和文本更新时调整高度
   useLayoutEffect(() => {
     adjustHeight();
-  }, [path.text, viewTransform.scale]);
+  }, [path.text, viewTransform.scale, path.lineHeight, path.fontSize]);
 
   // 在挂载时聚焦并选中文本
   useEffect(() => {
@@ -62,10 +63,34 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   };
 
   const { scale, translateX, translateY } = viewTransform;
-  
+
   const family = path.fontFamily || 'Excalifont';
   // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
   const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
+
+  const computedLineHeight = path.lineHeight ?? (path.fontSize * getLineHeightMultiplier(family));
+  const lineHeightRatio = computedLineHeight > 0 ? computedLineHeight / path.fontSize : 1.25;
+
+  const transform = useMemo(() => {
+    const rotation = path.rotation ?? 0;
+    const scaleX = path.scaleX ?? 1;
+    const scaleY = path.scaleY ?? 1;
+    if (rotation === 0 && scaleX === 1 && scaleY === 1) {
+      return '';
+    }
+
+    const centerOffsetX = (path.width / 2) * scale;
+    const centerOffsetY = (path.height / 2) * scale;
+    const segments = [`translate(${centerOffsetX}px, ${centerOffsetY}px)`];
+    if (rotation !== 0) {
+      segments.push(`rotate(${(rotation * 180) / Math.PI}deg)`);
+    }
+    if (scaleX !== 1 || scaleY !== 1) {
+      segments.push(`scale(${scaleX}, ${scaleY})`);
+    }
+    segments.push(`translate(${-centerOffsetX}px, ${-centerOffsetY}px)`);
+    return segments.join(' ');
+  }, [path.rotation, path.scaleX, path.scaleY, path.width, path.height, scale]);
 
   // 将 SVG 坐标转换为屏幕坐标并应用样式
   const style: React.CSSProperties = {
@@ -73,10 +98,10 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     top: `${(path.y * scale) + translateY}px`,
     left: `${(path.x * scale) + translateX}px`,
     // 为宽度增加一点填充，以容纳光标
-    minWidth: `${path.width * scale + 10}px`, 
+    minWidth: `${path.width * scale + 10}px`,
     fontFamily: familyWithQuotes,
     fontSize: `${path.fontSize * scale}px`,
-    lineHeight: 1.25,
+    lineHeight: lineHeightRatio,
     color: path.color,
     textAlign: path.textAlign,
     background: 'transparent',
@@ -86,6 +111,8 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     overflow: 'hidden',
     padding: 0,
     margin: 0,
+    transformOrigin: 'top left',
+    transform: transform,
     // 将其置于所有画布元素之上
     zIndex: 100,
   };
