@@ -193,7 +193,8 @@ const CropControls: React.FC<{
     croppingState: { pathId: string; originalPath: ImageData; };
     currentCropRect: BBox;
     scale: number;
-}> = React.memo(({ croppingState, currentCropRect, scale }) => {
+    disabled?: boolean;
+}> = React.memo(({ croppingState, currentCropRect, scale, disabled = false }) => {
     const o = croppingState.originalPath;
     const c = currentCropRect;
 
@@ -237,8 +238,10 @@ const CropControls: React.FC<{
     const cornerStrokeWidth = 3 / scale;
     const cornerLineLength = Math.min(15 / scale, c.width/3, c.height/3);
 
+    const containerClass = disabled ? 'pointer-events-none opacity-70' : 'pointer-events-auto';
+
     return (
-        <g transform={transform} className={`pointer-events-auto ${disabled ? 'pointer-events-none opacity-70' : ''}`}>
+        <g transform={transform} className={containerClass}>
             <rect
                 x={c.x} y={c.y} width={c.width} height={c.height}
                 fill="none" stroke="rgba(255, 255, 255, 0.5)"
