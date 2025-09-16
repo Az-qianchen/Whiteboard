@@ -7,7 +7,6 @@ const ctx = canvas.getContext('2d')!;
 
 const DEFAULT_LINE_HEIGHT_RATIO = 1.25;
 const FALLBACK_ASCENT_RATIO = 0.8;
-const FALLBACK_DESCENT_RATIO = 0.2;
 
 const LINE_HEIGHT_OVERRIDES: Record<string, number> = {
   excalifont: 1.25,
@@ -55,12 +54,6 @@ export function measureText(text: string, fontSize: number, fontFamily: string):
   const lineCount = Math.max(lines.length, 1);
 
   let maxWidth = 0;
-  let maxAscent = 0;
-  let maxDescent = 0;
-
-  const fallbackAscent = fontSize * FALLBACK_ASCENT_RATIO;
-  const fallbackDescent = fontSize * FALLBACK_DESCENT_RATIO;
-
   for (const rawLine of lines) {
     const line = rawLine.length > 0 ? rawLine : 'M';
     const metrics = ctx.measureText(line);
@@ -69,26 +62,11 @@ export function measureText(text: string, fontSize: number, fontFamily: string):
     if (measuredWidth > maxWidth) {
       maxWidth = measuredWidth;
     }
-
-    const ascent = metrics.actualBoundingBoxAscent ?? fallbackAscent;
-    if (ascent > maxAscent) {
-      maxAscent = ascent;
-    }
-    const descent = metrics.actualBoundingBoxDescent ?? fallbackDescent;
-    if (descent > maxDescent) {
-      maxDescent = descent;
-    }
   }
-
-  if (maxAscent === 0) maxAscent = fallbackAscent;
-  if (maxDescent === 0) maxDescent = fallbackDescent;
-
-  const baseHeight = maxAscent + maxDescent;
   const lineHeightMultiplier = getLineHeightMultiplier(family);
-  const lineHeight = baseHeight * lineHeightMultiplier;
-  const leading = Math.max(lineHeight - baseHeight, 0);
-  const baseline = maxAscent + leading / 2;
-  const height = baseHeight + leading + (lineCount - 1) * lineHeight;
+  const lineHeight = fontSize * lineHeightMultiplier;
+  const baseline = fontSize * FALLBACK_ASCENT_RATIO;
+  const height = lineCount * lineHeight;
 
   return {
     width: maxWidth,

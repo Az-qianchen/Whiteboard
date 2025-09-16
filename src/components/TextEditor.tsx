@@ -4,7 +4,7 @@
  * HTML textarea，以提供无缝的在画布上编辑体验。
  */
 
-import React, { useLayoutEffect, useRef, useEffect, useMemo } from 'react';
+import React, { useLayoutEffect, useRef, useEffect, useMemo, useState } from 'react';
 import { getLineHeightMultiplier } from '@/lib/drawing';
 import type { TextData } from '../types';
 
@@ -22,6 +22,11 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onCommit,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [draftText, setDraftText] = useState(path.text);
+
+  useEffect(() => {
+    setDraftText(path.text);
+  }, [path.id, path.text]);
 
   // 自动调整 textarea 高度以适应内容
   const adjustHeight = () => {
@@ -35,7 +40,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   // 在挂载和文本更新时调整高度
   useLayoutEffect(() => {
     adjustHeight();
-  }, [path.text, viewTransform.scale, path.lineHeight, path.fontSize]);
+  }, [draftText, viewTransform.scale, path.lineHeight, path.fontSize]);
 
   // 在挂载时聚焦并选中文本
   useEffect(() => {
@@ -47,7 +52,9 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   
   // 处理文本输入
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onUpdate(e.target.value);
+    const { value } = e.target;
+    setDraftText(value);
+    onUpdate(value);
   };
   
   // 处理键盘事件
@@ -120,7 +127,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   return (
     <textarea
       ref={textareaRef}
-      value={path.text}
+      value={draftText}
       onChange={handleChange}
       onBlur={onCommit}
       onKeyDown={handleKeyDown}
