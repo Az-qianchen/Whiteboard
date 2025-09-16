@@ -31,6 +31,8 @@ export const MainMenuPanel: React.FC = () => {
         backgroundColor,
         setBackgroundColor,
         activeFileName,
+        hasUnsavedChanges,
+        lastSavedDocumentSignature,
         viewTransform,
         isStatusBarCollapsed,
         setIsStatusBarCollapsed,
@@ -90,6 +92,8 @@ export const MainMenuPanel: React.FC = () => {
     const canvasBbox = useMemo(() => paths.length > 0 ? getPathsBoundingBox(paths, true) : null, [paths]);
     const canvasWidth = useMemo(() => canvasBbox ? Math.round(canvasBbox.width) : 0, [canvasBbox]);
     const canvasHeight = useMemo(() => canvasBbox ? Math.round(canvasBbox.height) : 0, [canvasBbox]);
+
+    const isDocumentUncreated = lastSavedDocumentSignature === null;
 
 
     /**
@@ -154,6 +158,8 @@ export const MainMenuPanel: React.FC = () => {
                     backgroundColor={backgroundColor}
                     setBackgroundColor={setBackgroundColor}
                     activeFileName={activeFileName}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    isDocumentUncreated={isDocumentUncreated}
                     onResetPreferences={handleResetPreferences}
                     zoomLevel={viewTransform.scale}
                     selectionInfo={selectionInfo}
