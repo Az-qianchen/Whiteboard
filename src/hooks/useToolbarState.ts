@@ -3,7 +3,7 @@ import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorP
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
-import { measureText } from '../lib/drawing';
+import { updateTextShapeMetrics } from '../lib/drawing';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 
 /**
@@ -87,6 +87,11 @@ export const useToolbarState = (
           delete (finalProps as any).textAlign;
           delete (finalProps as any).fontSize;
           delete (finalProps as any).fontFamily;
+          delete (finalProps as any).text;
+          delete (finalProps as any).width;
+          delete (finalProps as any).height;
+          delete (finalProps as any).baseline;
+          delete (finalProps as any).lineHeight;
       }
       
       if (path.tool === 'group') {
@@ -174,8 +179,9 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const measurement = measureText(newText, p.fontSize, p.fontFamily);
-                return { text: newText, ...measurement };
+                const updated = updateTextShapeMetrics(p as TextData, { text: newText });
+                const { text, width, height, baseline, lineHeight } = updated;
+                return { text, width, height, baseline, lineHeight };
             }
             return {};
         });
@@ -188,8 +194,9 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const measurement = measureText(p.text, p.fontSize, newFamily);
-                return { fontFamily: newFamily, ...measurement };
+                const updated = updateTextShapeMetrics(p as TextData, { fontFamily: newFamily });
+                const { fontFamily: nextFamily, width, height, baseline, lineHeight } = updated;
+                return { fontFamily: nextFamily, width, height, baseline, lineHeight };
             }
             return {};
         });
@@ -202,8 +209,9 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const measurement = measureText(p.text, newSize, p.fontFamily);
-                return { fontSize: newSize, ...measurement };
+                const updated = updateTextShapeMetrics(p as TextData, { fontSize: newSize });
+                const { fontSize: nextSize, width, height, baseline, lineHeight } = updated;
+                return { fontSize: nextSize, width, height, baseline, lineHeight };
             }
             return {};
         });

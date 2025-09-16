@@ -17,7 +17,7 @@ import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
-import { measureText, rotatePoint } from '@/lib/drawing';
+import { updateTextShapeMetrics, rotatePoint } from '@/lib/drawing';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -245,9 +245,7 @@ export const useAppStore = () => {
 
     activePathState.setPaths((prev: AnyPath[]) => prev.map(p => {
       if (p.id === pathId && p.tool === 'text') {
-        const textPath = p as TextData;
-        const measurement = measureText(text, textPath.fontSize, textPath.fontFamily);
-        return { ...p, text, ...measurement };
+        return updateTextShapeMetrics(p as TextData, { text });
       }
       return p;
     }));

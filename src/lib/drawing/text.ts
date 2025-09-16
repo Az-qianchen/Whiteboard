@@ -1,12 +1,18 @@
 /**
- * 本文件包含了与文本测量和处理相关的函数。
+ * 文本工具相关的排版测量与辅助方法。
+ * 负责根据字体和字号计算真实的行高、基线以及文本包围盒尺寸，
+ * 以确保 SVG 渲染与 HTML 覆盖编辑器之间的视觉一致性。
  */
 
-const canvas = document.createElement('canvas');
-const ctx = canvas.getContext('2d')!;
+import type { TextData } from '@/types';
+
+const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+const ctx = canvas ? canvas.getContext('2d') : null;
 
 const DEFAULT_LINE_HEIGHT_RATIO = 1.25;
 const FALLBACK_ASCENT_RATIO = 0.8;
+const FALLBACK_DESCENT_RATIO = 0.2;
+const METRIC_SAMPLE_TEXT = 'Mgyp';
 
 const LINE_HEIGHT_OVERRIDES: Record<string, number> = {
   excalifont: 1.25,
@@ -17,10 +23,87 @@ const LINE_HEIGHT_OVERRIDES: Record<string, number> = {
   'roboto mono': 1.2,
 };
 
+const createFallbackMetrics = () => {
+  const leading = Math.max(0, DEFAULT_LINE_HEIGHT_RATIO - (FALLBACK_ASCENT_RATIO + FALLBACK_DESCENT_RATIO));
+  return {
+    baselineRatio: FALLBACK_ASCENT_RATIO + leading / 2,
+    lineHeightRatio: DEFAULT_LINE_HEIGHT_RATIO,
+    ascentRatio: FALLBACK_ASCENT_RATIO,
+    descentRatio: FALLBACK_DESCENT_RATIO,
+    leadingRatio: leading,
+  } satisfies FontMetrics;
+};
+
+const FALLBACK_FONT_METRICS = createFallbackMetrics();
+
 const sanitizeFontFamily = (fontFamily: string): string => {
   const primary = fontFamily.split(',')[0] ?? fontFamily;
   return primary.trim().replace(/^['"]|['"]$/g, '');
 };
+
+const wrapFontFamily = (fontFamily: string): string => {
+  return fontFamily.includes(' ') ? `'${fontFamily}'` : fontFamily;
+};
+
+const getFontKey = (fontFamily: string): string => sanitizeFontFamily(fontFamily).toLowerCase();
+
+export interface FontMetrics {
+  /** 基线到行框顶部的距离与字号的比值。 */
+  baselineRatio: number;
+  /** 单行文本的高度与字号的比值。 */
+  lineHeightRatio: number;
+  /** 字形实际上升部（不含额外行距）与字号的比值。 */
+  ascentRatio: number;
+  /** 字形实际下降部（不含额外行距）与字号的比值。 */
+  descentRatio: number;
+  /** 顶部与底部额外行距（leading）的总比值。 */
+  leadingRatio: number;
+}
+
+const fontMetricsCache = new Map<string, FontMetrics>();
+
+const computeFontMetrics = (fontFamily: string): FontMetrics => {
+  const key = getFontKey(fontFamily);
+  if (fontMetricsCache.has(key)) {
+    return fontMetricsCache.get(key)!;
+  }
+
+  if (!ctx) {
+    fontMetricsCache.set(key, FALLBACK_FONT_METRICS);
+    return FALLBACK_FONT_METRICS;
+  }
+
+  const size = 100;
+  const sanitizedFamily = sanitizeFontFamily(fontFamily);
+  ctx.font = `${size}px ${wrapFontFamily(sanitizedFamily)}`;
+
+  const measurement = ctx.measureText(METRIC_SAMPLE_TEXT);
+  const rawAscent = measurement.actualBoundingBoxAscent ?? measurement.fontBoundingBoxAscent ?? size * FALLBACK_ASCENT_RATIO;
+  const rawDescent = measurement.actualBoundingBoxDescent ?? measurement.fontBoundingBoxDescent ?? size * FALLBACK_DESCENT_RATIO;
+  const measuredLineHeight = rawAscent + rawDescent;
+
+  const overrideRatio = LINE_HEIGHT_OVERRIDES[key] ?? DEFAULT_LINE_HEIGHT_RATIO;
+  const overrideLineHeight = overrideRatio * size;
+  const lineHeight = Math.max(measuredLineHeight, overrideLineHeight);
+  const leading = Math.max(0, lineHeight - measuredLineHeight);
+
+  const baseline = rawAscent + leading / 2;
+
+  const metrics: FontMetrics = {
+    baselineRatio: baseline / size,
+    lineHeightRatio: lineHeight / size,
+    ascentRatio: rawAscent / size,
+    descentRatio: rawDescent / size,
+    leadingRatio: leading / size,
+  };
+
+  fontMetricsCache.set(key, metrics);
+  return metrics;
+};
+
+export const getFontMetrics = (fontFamily: string): FontMetrics => computeFontMetrics(fontFamily);
+
+export const getLineHeightMultiplier = (fontFamily: string): number => getFontMetrics(fontFamily).lineHeightRatio;
 
 export interface TextMeasurement {
   width: number;
@@ -29,49 +112,78 @@ export interface TextMeasurement {
   lineHeight: number;
 }
 
-/**
- * 获取某个字体的行高倍数配置。
- * 行高会影响包围盒高度与编辑器内文本的排版。
- */
-export const getLineHeightMultiplier = (fontFamily: string): number => {
-  const key = sanitizeFontFamily(fontFamily).toLowerCase();
-  return LINE_HEIGHT_OVERRIDES[key] ?? DEFAULT_LINE_HEIGHT_RATIO;
+const approximateWidth = (text: string, fontSize: number) => {
+  const averageWidthFactor = 0.55;
+  return text.length * fontSize * averageWidthFactor;
 };
 
-/**
- * 使用 2D 画布上下文测量给定文本的尺寸与排版指标。
- * @param text - 要测量的文本字符串。
- * @param fontSize - 字体大小（像素）。
- * @param fontFamily - 字体系列。
- * @returns 包含宽度、高度、基线与行高的对象。
- */
-export function measureText(text: string, fontSize: number, fontFamily: string): TextMeasurement {
-  const family = sanitizeFontFamily(fontFamily);
-  const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
-  ctx.font = `${fontSize}px ${familyWithQuotes}`;
+export const measureText = (text: string, fontSize: number, fontFamily: string): TextMeasurement => {
+  const sanitizedFamily = sanitizeFontFamily(fontFamily);
+  const metrics = getFontMetrics(sanitizedFamily);
+  const lineHeight = metrics.lineHeightRatio * fontSize;
+  const baseline = metrics.baselineRatio * fontSize;
 
   const lines = text.split('\n');
   const lineCount = Math.max(lines.length, 1);
 
   let maxWidth = 0;
-  for (const rawLine of lines) {
-    const line = rawLine.length > 0 ? rawLine : 'M';
-    const metrics = ctx.measureText(line);
-    const boundingWidth = (metrics.actualBoundingBoxLeft ?? 0) + (metrics.actualBoundingBoxRight ?? 0);
-    const measuredWidth = Math.max(metrics.width, boundingWidth);
-    if (measuredWidth > maxWidth) {
-      maxWidth = measuredWidth;
+  if (ctx) {
+    ctx.font = `${fontSize}px ${wrapFontFamily(sanitizedFamily)}`;
+    for (const rawLine of lines) {
+      const line = rawLine.length > 0 ? rawLine : ' ';
+      const measurement = ctx.measureText(line);
+      const left = measurement.actualBoundingBoxLeft ?? 0;
+      const right = measurement.actualBoundingBoxRight ?? measurement.width;
+      const measuredWidth = Math.max(measurement.width, left + right);
+      if (measuredWidth > maxWidth) {
+        maxWidth = measuredWidth;
+      }
     }
+  } else {
+    maxWidth = lines.reduce((acc, current) => {
+      const candidate = approximateWidth(current, fontSize);
+      return candidate > acc ? candidate : acc;
+    }, 0);
   }
-  const lineHeightMultiplier = getLineHeightMultiplier(family);
-  const lineHeight = fontSize * lineHeightMultiplier;
-  const baseline = fontSize * FALLBACK_ASCENT_RATIO;
-  const height = lineCount * lineHeight;
 
   return {
     width: maxWidth,
-    height,
+    height: lineCount * lineHeight,
     baseline,
     lineHeight,
   };
-}
+};
+
+export type CreateTextShapeInput = Omit<TextData, 'tool' | 'width' | 'height' | 'baseline' | 'lineHeight'>;
+
+export const createTextShape = (input: CreateTextShapeInput): TextData => {
+  const measurement = measureText(input.text, input.fontSize, input.fontFamily);
+  return {
+    ...input,
+    tool: 'text',
+    width: measurement.width,
+    height: measurement.height,
+    baseline: measurement.baseline,
+    lineHeight: measurement.lineHeight,
+  };
+};
+
+export const updateTextShapeMetrics = (
+  shape: TextData,
+  overrides: Partial<Pick<TextData, 'text' | 'fontSize' | 'fontFamily'>> = {},
+): TextData => {
+  const nextText = overrides.text ?? shape.text;
+  const nextFontSize = overrides.fontSize ?? shape.fontSize;
+  const nextFontFamily = overrides.fontFamily ?? shape.fontFamily;
+  const measurement = measureText(nextText, nextFontSize, nextFontFamily);
+
+  return {
+    ...shape,
+    ...overrides,
+    width: measurement.width,
+    height: measurement.height,
+    baseline: measurement.baseline,
+    lineHeight: measurement.lineHeight,
+  };
+};
+

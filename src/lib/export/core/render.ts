@@ -7,7 +7,7 @@ import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
 import { sampleArc } from '@/lib/drawing/arc';
-import { getLineHeightMultiplier, measureText } from '@/lib/drawing';
+import { getFontMetrics, measureText } from '@/lib/drawing';
 import { createEffectsFilter } from './effects';
 
 /**
@@ -46,9 +46,9 @@ function renderText(data: TextData): SVGElement {
     const lines = data.text.split('\n');
     const needsMetrics = data.lineHeight == null || data.baseline == null;
     const metrics = needsMetrics ? measureText(data.text, data.fontSize, fontFamily) : undefined;
-    const fallbackLineHeight = data.fontSize * getLineHeightMultiplier(fontFamily);
-    const baseline = data.baseline ?? metrics?.baseline ?? data.fontSize * 0.8;
-    const lineHeight = data.lineHeight ?? metrics?.lineHeight ?? fallbackLineHeight;
+    const fontMetrics = getFontMetrics(fontFamily);
+    const baseline = data.baseline ?? metrics?.baseline ?? fontMetrics.baselineRatio * data.fontSize;
+    const lineHeight = data.lineHeight ?? metrics?.lineHeight ?? fontMetrics.lineHeightRatio * data.fontSize;
 
     lines.forEach((line, index) => {
         const tspan = document.createElementNS(svgNS, 'tspan');

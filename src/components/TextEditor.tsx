@@ -5,7 +5,7 @@
  */
 
 import React, { useLayoutEffect, useRef, useEffect, useMemo, useState } from 'react';
-import { getLineHeightMultiplier } from '@/lib/drawing';
+import { getFontMetrics } from '@/lib/drawing';
 import type { TextData } from '../types';
 
 interface TextEditorProps {
@@ -40,7 +40,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   // 在挂载和文本更新时调整高度
   useLayoutEffect(() => {
     adjustHeight();
-  }, [draftText, viewTransform.scale, path.lineHeight, path.fontSize]);
+  }, [draftText, viewTransform.scale, computedLineHeight, path.fontSize, path.fontFamily]);
 
   // 在挂载时聚焦并选中文本
   useEffect(() => {
@@ -75,8 +75,12 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
   const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
 
-  const computedLineHeight = path.lineHeight ?? (path.fontSize * getLineHeightMultiplier(family));
-  const lineHeightRatio = computedLineHeight > 0 ? computedLineHeight / path.fontSize : 1.25;
+  const metrics = useMemo(() => getFontMetrics(family), [family]);
+  const computedLineHeight = path.lineHeight ?? (metrics.lineHeightRatio * path.fontSize);
+  const lineHeightRatio = computedLineHeight > 0 ? computedLineHeight / path.fontSize : metrics.lineHeightRatio;
+  const paddingRight = Math.max(8, scale * 2);
+  const scaledMinHeight = computedLineHeight * scale;
+  const scaledWidth = Math.max(path.width, computedLineHeight) * scale;
 
   const transform = useMemo(() => {
     const rotation = path.rotation ?? 0;
@@ -104,12 +108,14 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     position: 'fixed',
     top: `${(path.y * scale) + translateY}px`,
     left: `${(path.x * scale) + translateX}px`,
-    // 为宽度增加一点填充，以容纳光标
-    minWidth: `${path.width * scale + 10}px`,
+    width: `${scaledWidth}px`,
+    minWidth: `${scaledWidth}px`,
+    minHeight: `${scaledMinHeight}px`,
     fontFamily: familyWithQuotes,
     fontSize: `${path.fontSize * scale}px`,
     lineHeight: lineHeightRatio,
     color: path.color,
+    caretColor: path.color,
     textAlign: path.textAlign,
     background: 'transparent',
     border: 'none',
@@ -117,6 +123,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     resize: 'none',
     overflow: 'hidden',
     padding: 0,
+    paddingRight: `${paddingRight}px`,
     margin: 0,
     transformOrigin: 'top left',
     transform: transform,
