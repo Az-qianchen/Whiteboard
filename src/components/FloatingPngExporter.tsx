@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { Transition, Switch } from '@headlessui/react';
 import type { PngExportOptions } from '../types';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 
 interface FloatingPngExporterProps {
     children: (props: { ref: React.RefObject<any>, onClick: () => void }) => React.ReactNode;
@@ -18,8 +19,8 @@ interface FloatingPngExporterProps {
 }
 
 const SwitchControl: React.FC<{ label: string; enabled: boolean; setEnabled: (enabled: boolean) => void; }> = ({ label, enabled, setEnabled }) => (
-    <div className="flex items-center justify-between">
-        <label htmlFor={label} className="text-sm font-medium text-[var(--text-primary)]">{label}</label>
+    <div className={`${PANEL_CLASSES.control} justify-between`}>
+        <label htmlFor={label} className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{label}</label>
         <Switch
             id={label}
             checked={enabled}
@@ -128,11 +129,11 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                 className="fixed z-50 w-56 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4"
                 style={{ left: position.x, top: position.y }}
             >
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">PNG 导出选项</h3>
-                    <div className="grid grid-cols-2 items-center gap-2">
-                        <label htmlFor="png-scale" className="text-sm font-medium text-[var(--text-primary)]">比例</label>
-                        <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px]">
+                <div className={PANEL_CLASSES.section}>
+                    <h3 className={PANEL_CLASSES.sectionTitle}>PNG 导出选项</h3>
+                    <div className="grid grid-cols-2 items-center gap-3">
+                        <label htmlFor="png-scale" className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>比例</label>
+                        <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
                             <input
                                 id="png-scale"
                                 type="number"
@@ -141,9 +142,9 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                                 step="0.1"
                                 value={pngExportOptions.scale}
                                 onChange={e => setPngExportOptions(prev => ({ ...prev, scale: Math.max(0.1, parseFloat(e.target.value)) || 1 }))}
-                                className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                className={`${PANEL_CLASSES.input} hide-spinners`}
                             />
-                            <span className="text-xs text-[var(--text-secondary)]">x</span>
+                            <span className={PANEL_CLASSES.inputSuffix}>x</span>
                         </div>
                     </div>
                     <SwitchControl label="透明背景" enabled={pngExportOptions.transparentBg} setEnabled={val => setPngExportOptions(prev => ({ ...prev, transparentBg: val }))} />

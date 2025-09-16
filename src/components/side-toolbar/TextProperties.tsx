@@ -7,6 +7,7 @@ import { Popover, Transition } from '@headlessui/react';
 import { ICONS } from '@/constants';
 import { NumericInput } from './NumericInput';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from '../panelStyles';
 
 interface TextPropertiesProps {
   text: string;
@@ -83,7 +84,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
           <Popover.Button
             as={PanelButton}
             variant="unstyled"
-            className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]"
+            className={`${PANEL_CLASSES.inputWrapper} w-full justify-between text-sm text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]`}
           >
               <span style={{fontFamily: fontFamily}}>{FONT_OPTIONS.find(f => f.name === fontFamily)?.label ?? fontFamily}</span>
               <div className="w-4 h-4 text-[var(--text-secondary)]">{ICONS.CHEVRON_DOWN}</div>
@@ -130,7 +131,7 @@ export const TextProperties: React.FC<TextPropertiesProps> = ({
       />
       
       <div className="flex flex-col items-center w-full" title="对齐">
-        <div className="flex bg-black/20 rounded-md p-1 w-full">
+        <div className={`${PANEL_CLASSES.segmentGroup} w-full`}>
             {ALIGN_OPTIONS.map(opt => (
               <PanelButton
                 variant="unstyled"

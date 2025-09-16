@@ -8,6 +8,7 @@ import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
 import { pathsToSvgString } from '../lib/export';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
 const timelineButtonBaseClasses = 'flex items-center justify-center h-8 w-8 rounded-md transition-colors';
