@@ -162,6 +162,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       <svg
         ref={svgRef}
         className="w-full h-full touch-none"
+        data-whiteboard-root="true"
         onPointerDown={onPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={onPointerUp}
@@ -169,7 +170,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       >
         <Grid isGridVisible={isGridVisible} gridSize={gridSize} viewTransform={viewTransform} gridSubdivisions={gridSubdivisions} gridOpacity={gridOpacity} />
         
-        <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
+        <g
+          data-whiteboard-content="true"
+          style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}
+        >
           
           <PathsRenderer paths={backgroundPaths} rc={rc} isBackground />
           <PathsRenderer paths={onionSkinPaths} rc={rc} />

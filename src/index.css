@@ -201,7 +201,12 @@ input[type='range'].themed-slider::-moz-range-thumb {
 }
 
 .marching-ants {
-  stroke: var(--text-primary);
+  stroke: var(--accent-primary);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-dasharray: 4 2;
-  animation: marching-ants 0.5s linear infinite;
+  fill: var(--accent-primary);
+  fill-opacity: 0.12;
+  animation: marching-ants 0.6s linear infinite;
 }

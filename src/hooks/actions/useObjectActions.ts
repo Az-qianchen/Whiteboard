@@ -263,6 +263,7 @@ export const useObjectActions = ({
     newSrc?: string;
     targetId?: string;
     svg?: SVGSVGElement;
+    overlayRoot?: SVGGraphicsElement;
     previousCursor?: string;
   } | null>(null);
 
@@ -276,8 +277,13 @@ export const useObjectActions = ({
     if (!croppingState || croppingState.pathId !== imagePath.id) return;
     if (activeCropTool !== 'removeBackground') return;
 
-    const svg = (document.querySelector('svg.touch-none') || document.querySelector('svg')) as SVGSVGElement | null;
+    const svg = (
+      document.querySelector('svg[data-whiteboard-root="true"]') ||
+      document.querySelector('svg.touch-none') ||
+      document.querySelector('svg')
+    ) as SVGSVGElement | null;
     if (!svg) return;
+    const contentGroup = svg.querySelector('g[data-whiteboard-content="true"]') as SVGGElement | null;
 
     const previousCursor = removeBgRef.current?.previousCursor ?? svg.style.cursor;
 
@@ -289,6 +295,7 @@ export const useObjectActions = ({
     removeBgRef.current = {
       targetId: imagePath.id,
       svg,
+      overlayRoot: (contentGroup ?? svg) as SVGGraphicsElement,
       previousCursor,
     };
     svg.style.cursor = 'crosshair';
@@ -359,14 +366,35 @@ export const useObjectActions = ({
           rect.setAttribute('y', String(sy));
           rect.setAttribute('width', String(sw));
           rect.setAttribute('height', String(sh));
-          rect.setAttribute('fill', 'none');
-          rect.setAttribute('stroke-width', '1');
           rect.setAttribute('class', 'marching-ants');
           rect.setAttribute('vector-effect', 'non-scaling-stroke');
           rect.setAttribute('pointer-events', 'none');
-          svg.appendChild(rect);
+          const overlayRoot = (svg.querySelector('g[data-whiteboard-content="true"]') as SVGGElement | null) ?? svg;
+          const rotation = imgData.rotation ?? 0;
+          const scaleX = imgData.scaleX ?? 1;
+          const scaleY = imgData.scaleY ?? 1;
+          if (rotation || scaleX !== 1 || scaleY !== 1) {
+            const cx = imgData.x + imgData.width / 2;
+            const cy = imgData.y + imgData.height / 2;
+            const transforms = [`translate(${cx} ${cy})`];
+            if (rotation) {
+              transforms.push(`rotate(${(rotation * 180) / Math.PI})`);
+            }
+            if (scaleX !== 1 || scaleY !== 1) {
+              transforms.push(`scale(${scaleX} ${scaleY})`);
+            }
+            transforms.push(`translate(${-cx} ${-cy})`);
+            rect.setAttribute('transform', transforms.join(' '));
+          }
+          rect.setAttribute('stroke', 'var(--accent-primary)');
+          rect.setAttribute('stroke-width', '1.5');
+          rect.setAttribute('stroke-opacity', '0.95');
+          rect.setAttribute('fill', 'var(--accent-primary)');
+          rect.setAttribute('fill-opacity', '0.12');
+          overlayRoot.appendChild(rect);
           if (removeBgRef.current) {
             removeBgRef.current.overlay = rect;
+            removeBgRef.current.overlayRoot = overlayRoot;
           }
         }
       } catch (error) {
