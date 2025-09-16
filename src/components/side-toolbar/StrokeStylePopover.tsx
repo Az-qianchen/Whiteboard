@@ -1,4 +1,5 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS, ENDPOINT_STYLES } from '@/constants';
 import type { EndpointStyle } from '@/types';
@@ -22,7 +23,7 @@ interface EndpointPopoverProps {
 
 
 export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props) => {
-    const { 
+    const {
         strokeLineCapStart, setStrokeLineCapStart,
         strokeLineCapEnd, setStrokeLineCapEnd,
         endpointSize, setEndpointSize,
@@ -30,6 +31,14 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
         beginCoalescing, endCoalescing,
         strokeWidth,
     } = props;
+
+    const { t } = useTranslation();
+    const title = t('sideToolbar.strokeStyle.title');
+    const startMarkerLabel = t('sideToolbar.strokeStyle.startMarker');
+    const endMarkerLabel = t('sideToolbar.strokeStyle.endMarker');
+    const fillLabel = t('sideToolbar.strokeStyle.fill');
+    const sizeLabel = t('sideToolbar.strokeStyle.size');
+    const markerOptions = useMemo(() => ENDPOINT_STYLES.map(({ titleKey, ...rest }) => ({ ...rest, title: t(titleKey) })), [t]);
 
     const isMarker = (style: EndpointStyle) => ENDPOINT_STYLES.some(s => s.name === style && s.name !== 'none');
 
@@ -48,14 +57,14 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
     };
 
     return (
-        <div className={`flex flex-col items-center w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title="端点样式">
+        <div className={`flex flex-col items-center w-14 transition-opacity ${strokeWidth === 0 ? 'opacity-50' : ''}`} title={title}>
             <Popover className="relative">
                 <Popover.Button
                     as={PanelButton}
                     variant="unstyled"
                     disabled={strokeWidth === 0}
                     className="p-2 h-9 w-9 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed"
-                    title="端点样式"
+                    title={title}
                 >
                     {ICONS.ENDPOINT_SETTINGS}
                 </Popover.Button>
@@ -63,32 +72,32 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
                     <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
                         <div className="flex flex-col gap-4">
                             <EndpointGrid
-                                label="起点标记"
-                                options={ENDPOINT_STYLES}
+                                label={startMarkerLabel}
+                                options={markerOptions}
                                 value={startMarkerValue}
                                 onChange={handleStartMarkerChange}
                             />
                             <EndpointGrid
-                                label="终点标记"
-                                options={ENDPOINT_STYLES}
+                                label={endMarkerLabel}
+                                options={markerOptions}
                                 value={endMarkerValue}
                                 onChange={handleEndMarkerChange}
                             />
                             <div className={`transition-opacity ${!isFillControlEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <SwitchControl
-                                    label="端点填充"
+                                    label={fillLabel}
                                     enabled={endpointFill === 'solid'}
                                     setEnabled={(enabled) => setEndpointFill(enabled ? 'solid' : 'hollow')}
                                 />
                             </div>
                             <div className="h-px my-1 bg-[var(--ui-separator)]" />
                             <Slider
-                                label="端点尺寸"
+                                label={sizeLabel}
                                 value={endpointSize ?? 1}
                                 setValue={setEndpointSize}
                                 min={0.5} max={10} step={0.1}
                                 onInteractionStart={beginCoalescing}
-                                onInteractionEnd={endCoalescing} 
+                                onInteractionEnd={endCoalescing}
                             />
                         </div>
                     </Popover.Panel>

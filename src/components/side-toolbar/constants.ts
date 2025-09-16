@@ -36,16 +36,16 @@ export const FILL_STYLE_ICONS = {
 };
 
 export const FILL_STYLES = [
-    { name: 'solid', title: '实心', icon: FILL_STYLE_ICONS.solid },
-    { name: 'hachure', title: '平行', icon: FILL_STYLE_ICONS.hachure },
-    { name: 'cross-hatch', title: '十字', icon: FILL_STYLE_ICONS['cross-hatch'] },
-    { name: 'dots', title: '圆点', icon: FILL_STYLE_ICONS.dots },
-    { name: 'dashed', title: '虚线', icon: FILL_STYLE_ICONS.dashed },
-    { name: 'zigzag', title: '涂鸦', icon: FILL_STYLE_ICONS.zigzag },
-    { name: 'zigzag-line', title: '锯齿', icon: FILL_STYLE_ICONS['zigzag-line'] },
-];
+  { name: 'solid', titleKey: 'sideToolbar.fillStyle.options.solid', icon: FILL_STYLE_ICONS.solid },
+  { name: 'hachure', titleKey: 'sideToolbar.fillStyle.options.hachure', icon: FILL_STYLE_ICONS.hachure },
+  { name: 'cross-hatch', titleKey: 'sideToolbar.fillStyle.options.cross-hatch', icon: FILL_STYLE_ICONS['cross-hatch'] },
+  { name: 'dots', titleKey: 'sideToolbar.fillStyle.options.dots', icon: FILL_STYLE_ICONS.dots },
+  { name: 'dashed', titleKey: 'sideToolbar.fillStyle.options.dashed', icon: FILL_STYLE_ICONS.dashed },
+  { name: 'zigzag', titleKey: 'sideToolbar.fillStyle.options.zigzag', icon: FILL_STYLE_ICONS.zigzag },
+  { name: 'zigzag-line', titleKey: 'sideToolbar.fillStyle.options.zigzag-line', icon: FILL_STYLE_ICONS['zigzag-line'] },
+] as const;
 
-export const ENDPOINT_FILL_STYLES: { name: 'hollow' | 'solid', title: string, icon: JSX.Element }[] = [
-    { name: 'hollow', title: '空心', icon: ICONS.ENDPOINT_FILL_HOLLOW },
-    { name: 'solid', title: '实心', icon: ICONS.ENDPOINT_FILL_SOLID },
+export const ENDPOINT_FILL_STYLES: { name: 'hollow' | 'solid'; titleKey: string; icon: JSX.Element }[] = [
+  { name: 'hollow', titleKey: 'sideToolbar.strokeStyle.fillOptions.hollow', icon: ICONS.ENDPOINT_FILL_HOLLOW },
+  { name: 'solid', titleKey: 'sideToolbar.strokeStyle.fillOptions.solid', icon: ICONS.ENDPOINT_FILL_SOLID },
 ];

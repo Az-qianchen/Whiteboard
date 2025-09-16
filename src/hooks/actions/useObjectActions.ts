@@ -2,6 +2,7 @@
  * 本文件定义了一个自定义 Hook，用于封装画布上对象的变换和组织操作。
  */
 import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '@/lib/drawing';
 import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TextData, TraceOptions } from '@/types';
 import type { AppActionsProps } from './useAppActions';
@@ -22,6 +23,7 @@ export const useObjectActions = ({
   toolbarState,
   getPointerPosition,
 }: AppActionsProps) => {
+  const { t } = useTranslation();
 
   /**
    * 沿指定轴翻转选中的图形。
@@ -402,13 +404,13 @@ export const useObjectActions = ({
 
     const tracedPaths = importSvg(svgString);
     if (tracedPaths.length === 0) {
-        alert("图片矢量化未能生成任何路径。");
+        alert(t('traceImageNoPath'));
         return;
     }
 
     const tracedBbox = getPathsBoundingBox(tracedPaths, false);
     if (!tracedBbox || tracedBbox.width === 0 || tracedBbox.height === 0) {
-         alert("无法确定矢量化后图片的尺寸。");
+         alert(t('traceImageNoSize'));
          return;
     }
 
@@ -427,7 +429,7 @@ export const useObjectActions = ({
 
     const newGroup: GroupData = {
         id: `${Date.now()}-traced-group`,
-        name: 'Traced Image',
+        name: t('tracedImageGroupName'),
         tool: 'group',
         children: finalPaths,
         color: '#000000',
@@ -447,7 +449,7 @@ export const useObjectActions = ({
     pathState.setPaths((prev: AnyPath[]) => prev.map(p => p.id === imagePathData.id ? newGroup : p));
     pathState.setSelectedPathIds([newGroup.id]);
 
-  }, [paths, selectedPathIds, pathState]);
+  }, [paths, selectedPathIds, pathState, t]);
   
   return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, beginRemoveBackground, applyRemoveBackground, cancelRemoveBackground, handleAdjustImageHsv };
 };
