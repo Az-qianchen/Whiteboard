@@ -198,7 +198,7 @@ export const useAppStore = () => {
 
   const canClear = useMemo(() => paths.length > 0, [paths]);
   const canClearAllData = useMemo(
-    () => frames.some(f => (f.paths ?? []).length > 0),
+    () => frames.length > 1 || frames.some(f => (f.paths ?? []).length > 0),
     [frames]
   );
   const handleClear = useCallback(() => {
@@ -221,16 +221,14 @@ export const useAppStore = () => {
       '清空数据',
       '确定要清空所有动画帧中的数据吗？此操作无法撤销。',
       () => {
-        const emptyFrames = (frames.length > 0
-          ? frames.map(() => ({ paths: [] } as Frame))
-          : [{ paths: [] } as Frame]);
-        // Keep current frame index stable (clamped in handleLoadFile)
-        pathState.handleLoadFile(emptyFrames, pathState.currentFrameIndex);
+        const resetFrames = [{ paths: [] } as Frame];
+        // Reset the timeline to a single empty frame so no leftover thumbnails remain
+        pathState.handleLoadFile(resetFrames, 0);
         setSelectedPathIds([]);
       },
       '清空'
     );
-  }, [canClearAllData, frames, pathState, showConfirmation, setSelectedPathIds]);
+  }, [canClearAllData, pathState, showConfirmation, setSelectedPathIds]);
   
   const groupIsolation = useGroupIsolation(pathState);
   const { activePaths, activePathState } = groupIsolation;
