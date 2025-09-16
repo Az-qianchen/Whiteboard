@@ -110,7 +110,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
               {({ selected }) => (
                 <PanelButton
                   variant="unstyled"
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out ring-offset-2 ring-offset-[var(--ui-panel-bg)] ring-[var(--accent-primary)] ${
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium leading-5 transition-colors duration-150 ease-in-out ring-offset-2 ring-offset-[var(--ui-panel-bg)] ring-[var(--accent-primary)] ${
                     selected
                       ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
