@@ -16,7 +16,11 @@ export const CropToolbar: React.FC = () => {
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(var(--timeline-panel-height, 12rem) + 1rem)' }}
+      style={{
+        bottom: isTimelineCollapsed
+          ? '1rem'
+          : 'calc(var(--timeline-panel-height, 12rem) + var(--timeline-floating-gap, 0.25rem))'
+      }}
     >
       <PanelButton
         type="button"
