@@ -191,6 +191,7 @@ export const CanvasOverlays: React.FC = () => {
                 onBeginRemoveBg={beginRemoveBackground}
                 onApplyRemoveBg={applyRemoveBackground}
                 onCancelRemoveBg={cancelRemoveBackground}
+                imageSrc={croppingState.originalPath.src}
               />
             )}
 

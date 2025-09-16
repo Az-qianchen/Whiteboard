@@ -17,6 +17,7 @@ interface CropToolbarProps {
   onBeginRemoveBg: (opts: { threshold: number; contiguous: boolean }) => void;
   onApplyRemoveBg: () => void;
   onCancelRemoveBg: () => void;
+  imageSrc?: string;
 }
 
 /**
@@ -28,6 +29,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   onBeginRemoveBg,
   onApplyRemoveBg,
   onCancelRemoveBg,
+  imageSrc,
 }) => {
   const { confirmCrop, cancelCrop, isTimelineCollapsed } = useAppContext();
   const { t } = useTranslation();
@@ -41,7 +43,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
     if (selectedTool === 'removeBackground') {
       onBeginRemoveBg({ threshold, contiguous });
     }
-  }, [selectedTool, threshold, contiguous, onBeginRemoveBg]);
+  }, [selectedTool, threshold, contiguous, onBeginRemoveBg, imageSrc]);
 
   useEffect(() => () => {
     onCancelRemoveBg();

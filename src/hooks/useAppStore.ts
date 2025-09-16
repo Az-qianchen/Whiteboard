@@ -16,7 +16,7 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame, CropSessionState } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
 
 type ConfirmationDialogState = {
@@ -61,7 +61,7 @@ interface AppState {
   activeFileName: string | null;
   isLoading: boolean;
   confirmationDialog: ConfirmationDialogState | null;
-  croppingState: { pathId: string; originalPath: ImageData } | null;
+  croppingState: CropSessionState | null;
   currentCropRect: BBox | null;
   activeCropTool: 'crop' | 'removeBackground' | null;
 }
@@ -363,25 +363,66 @@ export const useAppStore = () => {
     if (appState.croppingState) {
       if (cropHistory.past.length > 0) {
         undoCropRect();
-      } else {
-        cancelCrop();
-        pathState.undo();
+        return;
       }
-    } else {
+
+      const { removalHistory, pathId, originalPath } = appState.croppingState;
+      if (removalHistory.length > 0) {
+        const previousSrc = removalHistory[removalHistory.length - 1];
+        const currentSrc = originalPath.src;
+        pathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'image') ? { ...p, src: previousSrc } : p));
+        setCroppingState(prev => {
+          if (!prev || prev.pathId !== pathId) return prev;
+          const nextHistory = prev.removalHistory.slice(0, -1);
+          return {
+            ...prev,
+            originalPath: { ...prev.originalPath, src: previousSrc },
+            removalHistory: nextHistory,
+            removalFuture: [...prev.removalFuture, currentSrc],
+          };
+        });
+        return;
+      }
+
+      cancelCrop();
       pathState.undo();
+      return;
     }
-  }, [appState.croppingState, cropHistory.past.length, undoCropRect, cancelCrop, pathState]);
+
+    pathState.undo();
+  }, [appState.croppingState, cropHistory.past.length, undoCropRect, pathState, setCroppingState, cancelCrop]);
 
   const handleRedo = useCallback(() => {
-    if (appState.croppingState && cropHistory.future.length > 0) {
-      redoCropRect();
-    } else {
-      pathState.redo();
-    }
-  }, [appState.croppingState, cropHistory.future.length, redoCropRect, pathState]);
+    if (appState.croppingState) {
+      if (cropHistory.future.length > 0) {
+        redoCropRect();
+        return;
+      }
 
-  const canUndo = pathState.canUndo || (appState.croppingState !== null && cropHistory.past.length > 0);
-  const canRedo = pathState.canRedo || (appState.croppingState !== null && cropHistory.future.length > 0);
+      const { removalFuture, pathId, originalPath } = appState.croppingState;
+      if (removalFuture.length > 0) {
+        const nextSrc = removalFuture[removalFuture.length - 1];
+        const currentSrc = originalPath.src;
+        pathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'image') ? { ...p, src: nextSrc } : p));
+        setCroppingState(prev => {
+          if (!prev || prev.pathId !== pathId) return prev;
+          const nextFuture = prev.removalFuture.slice(0, -1);
+          return {
+            ...prev,
+            originalPath: { ...prev.originalPath, src: nextSrc },
+            removalHistory: [...prev.removalHistory, currentSrc],
+            removalFuture: nextFuture,
+          };
+        });
+        return;
+      }
+    }
+
+    pathState.redo();
+  }, [appState.croppingState, cropHistory.future.length, redoCropRect, pathState, setCroppingState]);
+
+  const canUndo = pathState.canUndo || (appState.croppingState !== null && (cropHistory.past.length > 0 || appState.croppingState.removalHistory.length > 0));
+  const canRedo = pathState.canRedo || (appState.croppingState !== null && (cropHistory.future.length > 0 || appState.croppingState.removalFuture.length > 0));
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
@@ -389,7 +430,7 @@ export const useAppStore = () => {
       else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           pathState.beginCoalescing();
-          setCroppingState({ pathId: path.id, originalPath: path as ImageData });
+          setCroppingState({ pathId: path.id, originalPath: path as ImageData, removalHistory: [], removalFuture: [] });
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);

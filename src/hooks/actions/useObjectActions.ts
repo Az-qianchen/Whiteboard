@@ -425,9 +425,12 @@ export const useObjectActions = ({
     if (setCroppingState) {
       setCroppingState(prev => {
         if (!prev || prev.pathId !== info.targetId) return prev;
+        const history = prev.removalHistory ?? [];
         return {
           ...prev,
           originalPath: { ...prev.originalPath, src: info.newSrc! },
+          removalHistory: [...history, prev.originalPath.src],
+          removalFuture: [],
         };
       });
     }
