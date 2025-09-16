@@ -1,7 +1,7 @@
 /**
  * 语言选择器组件
  */
-import React, { Fragment } from 'react';
+import React, { Fragment, useCallback, useRef } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { useTranslation } from 'react-i18next';
 import { ICONS } from '@/constants';
@@ -13,6 +13,14 @@ import i18n, { supportedLangs, type Lang } from '@/lib/i18n';
  */
 const LanguageSelector: React.FC = () => {
   const { t } = useTranslation();
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  /**
+   * 移除触发按钮焦点，确保下次点击依旧显示聚焦效果
+   */
+  const releaseFocus = useCallback(() => {
+    buttonRef.current?.blur();
+  }, []);
 
   /**
    * 处理语言切换
@@ -21,6 +29,7 @@ const LanguageSelector: React.FC = () => {
     void i18n.changeLanguage(newLang);
     localStorage.setItem('whiteboard_lang', newLang);
     close();
+    releaseFocus();
   };
 
   const currentLang = i18n.language as Lang;
@@ -31,7 +40,8 @@ const LanguageSelector: React.FC = () => {
       <Popover.Button
         as={PanelButton}
         variant="unstyled"
-        className="w-full flex items-center gap-3 p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-panel-bg)]"
+        ref={buttonRef}
+        className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
       >
         <div className="w-4 h-4 flex items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
         <span className="flex-grow">{t('language')}</span>
@@ -48,6 +58,7 @@ const LanguageSelector: React.FC = () => {
         leave="transition ease-in duration-75"
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
+        afterLeave={releaseFocus}
       >
         <Popover.Panel className="absolute right-0 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-30 p-1">
           {({ close }) => (
