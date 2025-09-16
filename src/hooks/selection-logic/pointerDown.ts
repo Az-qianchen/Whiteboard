@@ -168,6 +168,7 @@ interface HandlePointerDownProps {
   lastClickRef: MutableRefObject<{ time: number; pathId: string | null }>;
   croppingState: { pathId: string; originalPath: ImageData } | null;
   currentCropRect: BBox | null;
+  activeCropTool: 'crop' | 'removeBackground' | null;
 }
 
 /**
@@ -175,7 +176,7 @@ interface HandlePointerDownProps {
  * @param props - 包含事件对象、状态和设置器的对象。
  */
 export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
-    const { e, point, setDragState, pathState, toolbarState, viewTransform, onDoubleClick, lastClickRef, croppingState, currentCropRect } = props;
+    const { e, point, setDragState, pathState, toolbarState, viewTransform, onDoubleClick, lastClickRef, croppingState, currentCropRect, activeCropTool } = props;
     const { paths, setPaths, selectedPathIds, beginCoalescing, endCoalescing, setSelectedPathIds } = pathState;
     const { selectionMode } = toolbarState;
     const { viewTransform: vt } = viewTransform;
@@ -188,7 +189,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
     // If in cropping mode, only allow interaction with crop handles for the correct image.
     // Prevent all other canvas interactions.
     if (croppingState) {
-        if (currentCropRect && pathId === croppingState.pathId && handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
+        if (activeCropTool === 'crop' && currentCropRect && pathId === croppingState.pathId && handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
             beginCoalescing();
             setDragState({
                 type: 'crop',

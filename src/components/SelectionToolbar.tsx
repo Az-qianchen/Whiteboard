@@ -8,7 +8,7 @@ import { Popover, Transition, RadioGroup } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
-import { Slider, SwitchControl } from './side-toolbar';
+import { Slider } from './side-toolbar';
 import { TraceImagePopover } from './TraceImagePopover';
 import type { TraceOptions } from '../types';
 import { useTranslation } from 'react-i18next';
@@ -29,10 +29,6 @@ interface SelectionToolbarProps {
   onMask: () => void;
   isTraceable: boolean;
   onTraceImage: (options: TraceOptions) => void;
-  canRemoveBackground: boolean;
-  beginRemoveBackground: (opts: { threshold: number; contiguous: boolean }) => void;
-  applyRemoveBackground: () => void;
-  cancelRemoveBackground: () => void;
 }
 
 
@@ -50,16 +46,11 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   onMask,
   isTraceable,
   onTraceImage,
-  canRemoveBackground,
-  beginRemoveBackground,
-  applyRemoveBackground,
-  cancelRemoveBackground,
 }) => {
   const { t } = useTranslation();
   const [simplifyValue, setSimplifyValue] = useState(0);
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('edges');
   const [distributeSpacing, setDistributeSpacing] = useState<string>('');
-  const [removeBgOpen, setRemoveBgOpen] = useState(false);
 
   const modes = [
     { name: 'move', title: t('modeMove'), icon: ICONS.MOVE },
@@ -149,31 +140,6 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
-      {canRemoveBackground && (
-        <div className="relative">
-          <PanelButton
-            title={t('removeBackground')}
-            onClick={() => {
-              if (removeBgOpen) cancelRemoveBackground();
-              setRemoveBgOpen(o => !o);
-            }}
-            variant="unstyled"
-            className="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-opacity-75 text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
-          >
-            {ICONS.REMOVE_BG}
-          </PanelButton>
-          {removeBgOpen && (
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4">
-              <RemoveBgPanel
-                onBegin={beginRemoveBackground}
-                onApply={() => { applyRemoveBackground(); setRemoveBgOpen(false); }}
-                onCancel={() => { cancelRemoveBackground(); setRemoveBgOpen(false); }}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
       {canAlignOrDistribute && (
           <Popover className="relative">
              <Popover.Button
@@ -302,37 +268,6 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         </PanelButton>
       )}
 
-    </div>
-  );
-};
-
-const RemoveBgPanel: React.FC<{
-  onBegin: (opts: { threshold: number; contiguous: boolean }) => void;
-  onApply: () => void;
-  onCancel: () => void;
-}> = ({ onBegin, onApply, onCancel }) => {
-  const [threshold, setThreshold] = useState(10);
-  const [contiguous, setContiguous] = useState(true);
-  const { t } = useTranslation();
-
-  React.useEffect(() => {
-    onBegin({ threshold, contiguous });
-  }, [onBegin, threshold, contiguous]);
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">{t('removeBackground')}</h3>
-      <SwitchControl label={t('contiguous')} enabled={contiguous} setEnabled={setContiguous} />
-      <Slider label={t('threshold')} value={threshold} setValue={setThreshold} min={0} max={255} step={1} onInteractionStart={() => {}} onInteractionEnd={() => {}} />
-      <p className="text-xs text-[var(--text-secondary)] text-center">{t('clickImageToSelectArea')}</p>
-      <div className="flex gap-2">
-        <button onClick={onApply} className="flex-1 h-8 rounded-md bg-[var(--accent-bg)] text-[var(--accent-primary)] text-sm">
-          {t('remove')}
-        </button>
-        <button onClick={onCancel} className="flex-1 h-8 rounded-md bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)] text-sm">
-          {t('cancel')}
-        </button>
-      </div>
     </div>
   );
 };

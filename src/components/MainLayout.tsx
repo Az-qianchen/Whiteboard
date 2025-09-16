@@ -57,6 +57,7 @@ export const MainLayout: React.FC = () => {
         editingTextPathId,
         croppingState,
         currentCropRect,
+        activeCropTool,
         // Drop handler props
         getPointerPosition,
         handleApplyMaterial,
@@ -231,6 +232,7 @@ export const MainLayout: React.FC = () => {
                             editingTextPathId={editingTextPathId}
                             croppingState={croppingState}
                             currentCropRect={currentCropRect}
+                            activeCropTool={activeCropTool}
                         />
                     </div>
                     <TimelinePanel />

@@ -63,6 +63,7 @@ interface AppState {
   confirmationDialog: ConfirmationDialogState | null;
   croppingState: { pathId: string; originalPath: ImageData } | null;
   currentCropRect: BBox | null;
+  activeCropTool: 'crop' | 'removeBackground' | null;
 }
 
 // --- Initial State Loaders ---
@@ -108,6 +109,7 @@ const getInitialAppState = (): AppState => ({
   confirmationDialog: null,
   croppingState: null,
   currentCropRect: null,
+  activeCropTool: null,
 });
 
 
@@ -160,6 +162,7 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
+  const setActiveCropTool = useCallback((val: AppState['activeCropTool'] | ((prev: AppState['activeCropTool']) => AppState['activeCropTool'])) => setAppState(s => ({ ...s, activeCropTool: typeof val === 'function' ? val(s.activeCropTool) : val })), []);
 
   const pushCropHistory = useCallback((rect: BBox) => {
     setCropHistory(h => ({ past: [...h.past, rect], future: [] }));
@@ -341,18 +344,20 @@ export const useAppStore = () => {
       setCroppingState(null);
       setCurrentCropRect(null);
       setCropHistory({ past: [], future: [] });
+      setActiveCropTool(null);
       pathState.endCoalescing();
     };
 
     void performCrop();
-  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
+  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect, setActiveCropTool]);
 
   const cancelCrop = useCallback(() => {
     setCroppingState(null);
     setCurrentCropRect(null);
     setCropHistory({ past: [], future: [] });
+    setActiveCropTool(null);
     pathState.endCoalescing();
-  }, [setCroppingState, setCurrentCropRect, pathState]);
+  }, [setCroppingState, setCurrentCropRect, setActiveCropTool, pathState]);
 
   const handleUndo = useCallback(() => {
     if (appState.croppingState) {
@@ -388,11 +393,12 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);
+          setActiveCropTool('crop');
       }
-  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect]);
+  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, setActiveCropTool]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
-  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory });
+  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, activeCropTool: appState.activeCropTool, setCurrentCropRect, pushCropHistory });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   
   const handleSetTool = useCallback((newTool: Tool) => {
@@ -435,14 +441,23 @@ export const useAppStore = () => {
     });
   }, []);
 
-  const appActions = useAppActions({ 
-    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds, 
+  const appActions = useAppActions({
+    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds,
     pathState: { ...activePathState, handleLoadFile: pathState.handleLoadFile },
     toolbarState, viewTransform, getPointerPosition: viewTransform.getPointerPosition, ...appState,
     setActiveFileHandle, setActiveFileName, setBackgroundColor, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
+    setCroppingState, setActiveCropTool,
     frames, fps: uiState.fps, setFps,
   });
+  const { cancelRemoveBackground } = appActions;
+
+  useEffect(() => {
+    if (!appState.croppingState && appState.activeCropTool !== null) {
+      setActiveCropTool(null);
+      cancelRemoveBackground();
+    }
+  }, [appState.croppingState, appState.activeCropTool, cancelRemoveBackground, setActiveCropTool]);
   
   useEffect(() => {
     const loadLastFile = async () => {
@@ -524,7 +539,7 @@ export const useAppStore = () => {
     setPngExportOptions, setIsStyleLibraryOpen, setStyleLibraryPosition, setIsTimelineCollapsed,
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
-    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect,
+    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, setActiveCropTool,
     confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,

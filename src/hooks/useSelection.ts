@@ -27,6 +27,7 @@ interface SelectionInteractionProps {
   onDoubleClick: (path: AnyPath) => void;
   croppingState: { pathId: string, originalPath: ImageData } | null;
   currentCropRect: BBox | null;
+  activeCropTool: 'crop' | 'removeBackground' | null;
   setCurrentCropRect: React.Dispatch<React.SetStateAction<BBox | null>>;
   pushCropHistory: (rect: BBox) => void;
 }
@@ -45,6 +46,7 @@ export const useSelection = ({
   onDoubleClick,
   croppingState,
   currentCropRect,
+  activeCropTool,
   setCurrentCropRect,
   pushCropHistory,
 }: SelectionInteractionProps) => {
@@ -99,6 +101,7 @@ export const useSelection = ({
       e, point, setDragState, setMarquee, setLassoPath,
       pathState, toolbarState, viewTransform,
       onDoubleClick, lastClickRef, croppingState,
+      activeCropTool,
       currentCropRect,
     });
   };
