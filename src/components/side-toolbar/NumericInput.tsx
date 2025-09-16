@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWheelCoalescer } from '@/hooks/side-toolbar/useWheelCoalescer';
+import { PANEL_CLASSES } from '../panelStyles';
 
 interface NumericInputProps {
   label: string;
@@ -71,7 +72,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
   return (
     <div className="flex flex-col items-center w-14" title={label}>
       <div
-        className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-full cursor-ns-resize"
+        className={`${PANEL_CLASSES.inputWrapper} w-full cursor-ns-resize`}
         onWheel={(e) => handleWheel(e, handleWheelUpdate)}
       >
         <input
@@ -94,10 +95,10 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
               e.currentTarget.blur();
             }
           }}
-          className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)]"
+          className={PANEL_CLASSES.input}
           aria-label={label}
         />
-        <span className="text-xs text-[var(--text-secondary)]">{unit}</span>
+        <span className={PANEL_CLASSES.inputSuffix}>{unit}</span>
       </div>
     </div>
   );

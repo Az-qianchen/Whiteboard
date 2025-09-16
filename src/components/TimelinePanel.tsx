@@ -8,6 +8,7 @@ import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
 import { pathsToSvgString } from '../lib/export';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
 const timelineButtonBaseClasses = 'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors';
@@ -202,24 +203,34 @@ export const TimelinePanel: React.FC = () => {
                                  <span className="text-xs text-[var(--text-secondary)]">%</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
-                                <input
-                                    id="prev-frames-input" type="number" min="0" max="10" step="1"
-                                    value={onionSkinPrevFrames} onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
+                            <div className={PANEL_CLASSES.control}>
+                                <label htmlFor="prev-frames-input" className={PANEL_CLASSES.label}>之前</label>
+                                <div className={PANEL_CLASSES.inputWrapper}>
+                                    <input
+                                        id="prev-frames-input"
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="1"
+                                        value={onionSkinPrevFrames}
+                                        onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
+                                        className={`${PANEL_CLASSES.input} hide-spinners`}
+                                    />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-14">
-                                <input
-                                    id="next-frames-input" type="number" min="0" max="10" step="1"
-                                    value={onionSkinNextFrames} onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
-                                />
+                            <div className={PANEL_CLASSES.control}>
+                                <label htmlFor="next-frames-input" className={PANEL_CLASSES.label}>之后</label>
+                                <div className={PANEL_CLASSES.inputWrapper}>
+                                    <input
+                                        id="next-frames-input"
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="1"
+                                        value={onionSkinNextFrames}
+                                        onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
+                                        className={`${PANEL_CLASSES.input} hide-spinners`}
+                                    />
                                 </div>
                             </div>
                         </div>

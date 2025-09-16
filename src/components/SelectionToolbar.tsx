@@ -6,6 +6,7 @@
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, RadioGroup } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider, SwitchControl } from './side-toolbar';
@@ -208,7 +209,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     <div className="h-px bg-[var(--ui-separator)]" />
 
                     <div>
-                      <label className="text-sm font-semibold text-[var(--text-primary)]">{t('distribute')}</label>
+                      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] font-semibold`}>{t('distribute')}</label>
                       <div className="flex items-center gap-2 mt-2">
                         <PanelButton
                           variant="unstyled"
@@ -230,25 +231,25 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                       <div className="grid grid-cols-2 gap-4 mt-3">
                          <div>
                             <RadioGroup value={distributeMode} onChange={setDistributeMode}>
-                              <RadioGroup.Label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">{t('evenSpacing')}</RadioGroup.Label>
-                              <div className="flex bg-[var(--ui-element-bg)] rounded-md p-1">
+                              <RadioGroup.Label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] font-semibold mb-1 block`}>{t('evenSpacing')}</RadioGroup.Label>
+                              <div className={PANEL_CLASSES.segmentGroup}>
                                 <RadioGroup.Option value="edges" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>{t('edges')}</RadioGroup.Option>
                                 <RadioGroup.Option value="centers" className={({checked}) => `flex-1 text-center text-sm py-1 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}>{t('centers')}</RadioGroup.Option>
                               </div>
                             </RadioGroup>
                          </div>
                          <div>
-                            <label htmlFor="dist-spacing" className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">{t('fixedSpacing')}</label>
-                             <div className="flex items-center bg-[var(--ui-element-bg)] rounded-md h-[30px] px-[7px]">
+                            <label htmlFor="dist-spacing" className={`${PANEL_CLASSES.label} text-[var(--text-primary)] font-semibold mb-1 block`}>{t('fixedSpacing')}</label>
+                             <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
                               <input
                                 id="dist-spacing"
                                 type="number"
                                 placeholder={t('auto')}
                                 value={distributeSpacing}
                                 onChange={(e) => setDistributeSpacing(e.target.value)}
-                                className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                className={`${PANEL_CLASSES.input} hide-spinners`}
                               />
-                              <span className="text-xs text-[var(--text-secondary)]">px</span>
+                              <span className={PANEL_CLASSES.inputSuffix}>px</span>
                             </div>
                          </div>
                       </div>

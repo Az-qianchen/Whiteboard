@@ -6,6 +6,7 @@ import { Popover, Transition } from '@headlessui/react';
 import { useTranslation } from 'react-i18next';
 import { ICONS } from '@/constants';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 import i18n, { supportedLangs, type Lang } from '@/lib/i18n';
 
 /**
@@ -31,7 +32,7 @@ const LanguageSelector: React.FC = () => {
       <Popover.Button
         as={PanelButton}
         variant="unstyled"
-        className="w-full flex items-center gap-3 p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
+        className={`w-full ${PANEL_CLASSES.inputWrapper} justify-between text-sm text-left text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]`}
       >
         <div className="w-4 h-4 flex items-center justify-center text-[var(--text-secondary)]">{ICONS.LANGUAGE}</div>
         <span className="flex-grow">{t('language')}</span>

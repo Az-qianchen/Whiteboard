@@ -9,6 +9,7 @@ import type { AnimationExportOptions, FrameData } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from './panelStyles';
 
 interface FloatingAnimationExporterProps {
     children: (props: { ref: React.RefObject<any>, onClick: () => void }) => React.ReactNode;
@@ -107,17 +108,17 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
     const exporterElement = (
         <Transition show={isOpen} as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
             <div ref={panelRef} className="fixed z-50 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4" style={{ left: position.x, top: position.y }}>
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">导出动画</h3>
-                    
+                <div className={PANEL_CLASSES.section}>
+                    <h3 className={PANEL_CLASSES.sectionTitle}>导出动画</h3>
+
                     <div>
-                        <label className="text-sm font-medium text-[var(--text-primary)]">导出区域</label>
+                        <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>导出区域</label>
                         <Popover className="relative mt-1">
                             <Popover.Button
                                 as={PanelButton}
                                 variant="unstyled"
                                 disabled={allFrameShapes.length === 0}
-                                className="w-full flex items-center justify-between p-2 h-9 rounded-md bg-black/20 text-sm text-left text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50"
+                                className={`${PANEL_CLASSES.inputWrapper} w-full justify-between text-sm text-left text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:opacity-50`}
                             >
                                 <span className="truncate">{getFrameLabel(clipToFrameId)}</span>
                                 <div className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0">{ICONS.CHEVRON_DOWN}</div>
@@ -159,8 +160,8 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                     </div>
 
                     <RadioGroup value={format} onChange={setFormat}>
-                        <RadioGroup.Label className="text-sm font-medium">格式</RadioGroup.Label>
-                        <div className="flex gap-2 mt-1">
+                        <RadioGroup.Label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>格式</RadioGroup.Label>
+                        <div className={`${PANEL_CLASSES.controlsRow} mt-1`}>
                             <RadioGroup.Option value="sequence" as={Fragment}>
                                 {({ checked }) => (
                                   <PanelButton
@@ -184,10 +185,18 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                         </div>
                     </RadioGroup>
 
-                    <div className={`grid grid-cols-2 items-center gap-2 transition-opacity ${format !== 'spritesheet' ? 'opacity-50 pointer-events-none' : ''}`}>
-                        <label htmlFor="spritesheet-cols" className="text-sm font-medium text-[var(--text-primary)]">列数</label>
-                        <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px]">
-                            <input id="spritesheet-cols" type="number" min="1" step="1" value={columns} onChange={e => setColumns(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners" />
+                    <div className={`grid grid-cols-2 items-center gap-3 transition-opacity ${format !== 'spritesheet' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <label htmlFor="spritesheet-cols" className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>列数</label>
+                        <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
+                            <input
+                                id="spritesheet-cols"
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={columns}
+                                onChange={e => setColumns(Math.max(1, parseInt(e.target.value) || 1))}
+                                className={`${PANEL_CLASSES.input} hide-spinners`}
+                            />
                         </div>
                     </div>
                     
