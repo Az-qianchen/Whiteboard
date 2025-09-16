@@ -7,6 +7,7 @@ import * as idb from '@/lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import { fileOpen, fileSave } from 'browser-fs-access';
 import { importSvg } from '@/lib/import';
+import { createDocumentSignature } from '@/lib/document';
 import type { AppActionsProps } from './useAppActions';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
@@ -28,6 +29,7 @@ export const useFileActions = ({
   setBackgroundColor,
   pathState,
   toolbarState,
+  markDocumentSaved,
 }: AppActionsProps) => {
   const importFileRef = useRef<HTMLInputElement>(null);
 
@@ -60,6 +62,7 @@ export const useFileActions = ({
                 setActiveFileName(fileHandle.name);
                 await idb.del('last-active-file-handle');
             }
+            markDocumentSaved(createDocumentSignature(frames, backgroundColor, fps));
         }
     } catch (err) {
         if ((err as Error).name === 'AbortError') {
@@ -68,7 +71,7 @@ export const useFileActions = ({
         }
         console.error("Error saving file as:", err);
     }
-  }, [frames, backgroundColor, fps, activeFileName, setActiveFileHandle, setActiveFileName]);
+  }, [frames, backgroundColor, fps, activeFileName, setActiveFileHandle, setActiveFileName, markDocumentSaved]);
 
   /**
    * 保存当前文件。
@@ -88,6 +91,7 @@ export const useFileActions = ({
             const data: WhiteboardData = { type: 'whiteboard/shapes', version: 3, frames, backgroundColor, fps };
             await writable.write(JSON.stringify(data, null, 2));
             await writable.close();
+            markDocumentSaved(createDocumentSignature(frames, backgroundColor, fps));
         } catch (err) {
             console.error("Error saving file, falling back to 'Save As':", err);
             // 如果出现任何错误（例如权限被撤销），则回退到“另存为”
@@ -96,7 +100,7 @@ export const useFileActions = ({
     } else {
         await handleSaveAs();
     }
-  }, [activeFileHandle, frames, backgroundColor, fps, handleSaveAs]);
+  }, [activeFileHandle, frames, backgroundColor, fps, handleSaveAs, markDocumentSaved]);
 
   /**
    * 打开一个文件。
@@ -115,10 +119,12 @@ export const useFileActions = ({
 
         if (data?.type === 'whiteboard/shapes' && (data.frames || data.paths)) {
             const framesToLoad = data.frames || [{ paths: data.paths ?? [] }];
+            const nextBackgroundColor = data.backgroundColor ?? '#212529';
+            const nextFps = data.fps ?? fps;
             pathState.handleLoadFile(framesToLoad);
-            setBackgroundColor(data.backgroundColor ?? '#212529');
-            if (setFps) setFps(data.fps ?? 12);
-            
+            setBackgroundColor(nextBackgroundColor);
+            if (setFps) setFps(nextFps);
+
             if ('handle' in file) {
                 const handle = (file as unknown as FileWithHandle).handle;
                 setActiveFileHandle(handle);
@@ -129,6 +135,7 @@ export const useFileActions = ({
                 setActiveFileName(file.name);
                 await idb.del('last-active-file-handle');
             }
+            markDocumentSaved(createDocumentSignature(framesToLoad, nextBackgroundColor, nextFps));
         } else {
             alert("Invalid whiteboard file.");
         }
@@ -137,7 +144,7 @@ export const useFileActions = ({
         console.error("Error opening file:", err);
         alert("Failed to open file.");
     }
-  }, [pathState, setBackgroundColor, setFps, setActiveFileHandle, setActiveFileName]);
+  }, [pathState, setBackgroundColor, setFps, setActiveFileHandle, setActiveFileName, fps, markDocumentSaved]);
 
   /**
    * 触发文件导入对话框。

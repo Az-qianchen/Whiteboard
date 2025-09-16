@@ -31,6 +31,7 @@ export const MainMenuPanel: React.FC = () => {
         backgroundColor,
         setBackgroundColor,
         activeFileName,
+        hasUnsavedChanges,
         viewTransform,
         isStatusBarCollapsed,
         setIsStatusBarCollapsed,
@@ -154,6 +155,7 @@ export const MainMenuPanel: React.FC = () => {
                     backgroundColor={backgroundColor}
                     setBackgroundColor={setBackgroundColor}
                     activeFileName={activeFileName}
+                    hasUnsavedChanges={hasUnsavedChanges}
                     onResetPreferences={handleResetPreferences}
                     zoomLevel={viewTransform.scale}
                     selectionInfo={selectionInfo}

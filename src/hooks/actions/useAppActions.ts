@@ -52,6 +52,7 @@ export interface AppActionsProps {
   setMaterialLibrary: React.Dispatch<React.SetStateAction<MaterialData[]>>;
   pngExportOptions: PngExportOptions;
   showConfirmation: (title: string, message: string, onConfirm: () => void) => void;
+  markDocumentSaved: (signature: string) => void;
 }
 
 /**

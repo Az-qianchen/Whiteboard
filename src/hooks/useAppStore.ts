@@ -3,7 +3,7 @@
  * 它整合了所有独立的状态管理 Hooks（如 usePaths, useToolbarState 等），
  * 并为整个应用提供一个统一的状态和操作接口。
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useUiStore } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
@@ -18,6 +18,7 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
+import { createDocumentSignature } from '@/lib/document';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -63,6 +64,8 @@ interface AppState {
   confirmationDialog: ConfirmationDialogState | null;
   croppingState: { pathId: string; originalPath: ImageData } | null;
   currentCropRect: BBox | null;
+  hasUnsavedChanges: boolean;
+  lastSavedDocumentSignature: string | null;
 }
 
 // --- Initial State Loaders ---
@@ -108,6 +111,8 @@ const getInitialAppState = (): AppState => ({
   confirmationDialog: null,
   croppingState: null,
   currentCropRect: null,
+  hasUnsavedChanges: false,
+  lastSavedDocumentSignature: null,
 });
 
 
@@ -118,6 +123,7 @@ const getInitialAppState = (): AppState => ({
 export const useAppStore = () => {
   // UI slice migrated to Zustand; keep API stable by bridging setUiState
   const uiState = useUiStore();
+  const initialFpsRef = useRef(uiState.fps);
   const setUiState = useCallback((updater: (s: UiState) => UiState) => {
     // Replace entire UI slice with updater result to mirror previous React setState pattern
     useUiStore.setState(updater as (prev: UiState) => UiState, true);
@@ -127,6 +133,11 @@ export const useAppStore = () => {
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
+
+  const currentDocumentSignature = useMemo(
+    () => createDocumentSignature(frames, uiState.backgroundColor, uiState.fps),
+    [frames, uiState.backgroundColor, uiState.fps]
+  );
 
   // --- Memoized Setters for State Properties ---
   const setIsGridVisible = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isGridVisible: typeof val === 'function' ? val(s.isGridVisible) : val })), []);
@@ -160,6 +171,10 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
+
+  const markDocumentSaved = useCallback((signature: string) => {
+    setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
+  }, []);
 
   const pushCropHistory = useCallback((rect: BBox) => {
     setCropHistory(h => ({ past: [...h.past, rect], future: [] }));
@@ -435,14 +450,28 @@ export const useAppStore = () => {
     });
   }, []);
 
-  const appActions = useAppActions({ 
-    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds, 
+  const appActions = useAppActions({
+    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds,
     pathState: { ...activePathState, handleLoadFile: pathState.handleLoadFile },
     toolbarState, viewTransform, getPointerPosition: viewTransform.getPointerPosition, ...appState,
     setActiveFileHandle, setActiveFileName, setBackgroundColor, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
     frames, fps: uiState.fps, setFps,
+    markDocumentSaved,
   });
+
+  useEffect(() => {
+    setAppState(prev => {
+      if (prev.lastSavedDocumentSignature === null) {
+        return { ...prev, lastSavedDocumentSignature: currentDocumentSignature, hasUnsavedChanges: false };
+      }
+      const hasChanges = prev.lastSavedDocumentSignature !== currentDocumentSignature;
+      if (hasChanges !== prev.hasUnsavedChanges) {
+        return { ...prev, hasUnsavedChanges: hasChanges };
+      }
+      return prev;
+    });
+  }, [currentDocumentSignature]);
   
   useEffect(() => {
     const loadLastFile = async () => {
@@ -471,12 +500,15 @@ export const useAppStore = () => {
         const data: WhiteboardData = JSON.parse(contents);
         if (data?.type === 'whiteboard/shapes' && (data.frames || data.paths)) {
           const framesToLoad = data.frames || [{ paths: data.paths ?? [] }];
+          const nextBackground = data.backgroundColor ?? '#212529';
+          const nextFps = data.fps ?? initialFpsRef.current;
           pathState.handleLoadFile(framesToLoad);
-          setBackgroundColor(data.backgroundColor ?? '#212529');
+          setBackgroundColor(nextBackground);
           if (setFps && data.fps) setFps(data.fps);
 
           setActiveFileHandle(handle);
           setActiveFileName(handle.name);
+          markDocumentSaved(createDocumentSignature(framesToLoad, nextBackground, nextFps));
         }
       } catch (error) {
         console.error("Failed to load last session:", error);
@@ -487,7 +519,7 @@ export const useAppStore = () => {
       }
     };
     loadLastFile();
-  }, [pathState.handleLoadFile, setActiveFileHandle, setActiveFileName, setBackgroundColor, setIsLoading, setFps]);
+  }, [pathState.handleLoadFile, setActiveFileHandle, setActiveFileName, setBackgroundColor, setIsLoading, setFps, markDocumentSaved, initialFpsRef]);
 
   useEffect(() => {
     if (!uiState.isPlaying || frames.length === 0) return;

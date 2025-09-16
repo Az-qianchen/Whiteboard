@@ -1,5 +1,5 @@
 /** 主菜单组件，包含基本操作面板 */
-import React, { Fragment, useState } from 'react';
+import React, { Fragment } from 'react';
 import { Popover, Transition, Tab } from '@headlessui/react';
 import { Paintbrush } from 'lucide-react';
 import { ICONS } from '../constants';
@@ -32,6 +32,7 @@ interface MainMenuProps {
   backgroundColor: string;
   setBackgroundColor: (color: string) => void;
   activeFileName: string | null;
+  hasUnsavedChanges: boolean;
   onResetPreferences: () => void;
   // StatusBar Props
   zoomLevel: number;
@@ -52,7 +53,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
     backgroundColor, setBackgroundColor,
-    activeFileName,
+    activeFileName, hasUnsavedChanges,
     onResetPreferences,
     zoomLevel,
     selectionInfo, elementCount, canvasWidth, canvasHeight,
@@ -62,10 +63,32 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
 
   const { t } = useTranslation();
 
+  type MenuAction = {
+    label?: string;
+    handler?: () => void;
+    icon?: React.ReactNode;
+    disabled?: boolean;
+    isColorPicker?: boolean;
+    isPngExporter?: boolean;
+    isAnimationExporter?: boolean;
+    isLanguageSelector?: boolean;
+    isDanger?: boolean;
+    status?: { label: string; tone: 'warning' | 'success' };
+  };
+
   // New menu items: moved canvas clear to Layers panel; add Clear Data
-  const menuActions = [
+  const menuActions: MenuAction[] = [
     { label: t('open'), handler: onOpen, icon: ICONS.OPEN, disabled: false },
-    { label: t('save'), handler: onSave, icon: ICONS.SAVE, disabled: false },
+    {
+      label: t('save'),
+      handler: onSave,
+      icon: ICONS.SAVE,
+      disabled: false,
+      status: {
+        label: hasUnsavedChanges ? t('documentStatusUnsaved') : t('documentStatusSaved'),
+        tone: hasUnsavedChanges ? 'warning' : 'success',
+      },
+    },
     { label: t('saveAs'), handler: onSaveAs, icon: ICONS.SAVE, disabled: false },
     { label: t('import'), handler: onImport, icon: ICONS.IMPORT, disabled: false },
     { label: '---' },
@@ -97,9 +120,25 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
         <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
         <div>
           <h1 className="text-base font-bold text-[var(--text-primary)]">{t('appTitle')}</h1>
-          <p className="text-xs text-[var(--text-secondary)] truncate" title={activeFileName ?? t('untitled')}>
-            {activeFileName ?? t('untitled')}
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)] min-w-0">
+            <span className="truncate" title={activeFileName ?? t('untitled')}>
+              {activeFileName ?? t('untitled')}
+            </span>
+            <span
+              aria-live="polite"
+              className={`flex items-center gap-1 whitespace-nowrap font-medium ${
+                hasUnsavedChanges ? 'text-[var(--danger-text)]' : 'text-[var(--accent-primary)]'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 rounded-full ${
+                  hasUnsavedChanges ? 'bg-[var(--danger-text)]' : 'bg-[var(--accent-primary)]'
+                }`}
+              />
+              {hasUnsavedChanges ? t('documentStatusUnsaved') : t('documentStatusSaved')}
+            </span>
+          </div>
         </div>
       </div>
       
@@ -215,20 +254,44 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                     return <LanguageSelector key="language-selector" />;
                   }
 
+              const isDisabled = Boolean(action.disabled);
               return (
                 <PanelButton
                   variant="unstyled"
                   key={action.label}
-                  onClick={() => !(action as any).disabled && (action as any).handler()}
-                  disabled={(action as any).disabled}
+                  onClick={() => {
+                    if (!isDisabled && action.handler) {
+                      action.handler();
+                    }
+                  }}
+                  disabled={isDisabled}
                   className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    (action as any).isDanger
+                    action.isDanger
                       ? 'text-[var(--danger-text)] hover:bg-[var(--danger-bg)] focus:bg-[var(--danger-bg)]'
                       : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)]'
                   } focus-visible:ring-2 ring-[var(--accent-primary)]`}
                 >
-                  <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{(action as any).icon}</div>
+                  <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{action.icon}</div>
                   <span className="flex-grow">{action.label}</span>
+                  {action.status && (
+                    <span
+                      className={`flex items-center gap-1 text-xs font-medium ${
+                        action.status.tone === 'warning'
+                          ? 'text-[var(--danger-text)]'
+                          : 'text-[var(--accent-primary)]'
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          action.status.tone === 'warning'
+                            ? 'bg-[var(--danger-text)]'
+                            : 'bg-[var(--accent-primary)]'
+                        }`}
+                      />
+                      {action.status.label}
+                    </span>
+                  )}
                 </PanelButton>
               );
             })}
