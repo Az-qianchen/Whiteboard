@@ -11,6 +11,13 @@ import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
+const timelineButtonBaseClasses = 'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors';
+const timelineButtonInactiveClasses = 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
+const timelineButtonActiveClasses = 'bg-[var(--accent-bg)] text-[var(--accent-primary)]';
+
+const getTimelineButtonClasses = (isActive = false) =>
+    `${timelineButtonBaseClasses} ${isActive ? timelineButtonActiveClasses : timelineButtonInactiveClasses}`;
+
 /**
  * 渲染单个帧缩略图的组件。
  */
@@ -145,65 +152,55 @@ export const TimelinePanel: React.FC = () => {
             leaveTo="opacity-0 max-h-0"
         >
             <div className="p-3 h-48 w-full max-w-full flex flex-col">
-                <div className={PANEL_CLASSES.controlsRow}>
-                    <div className={PANEL_CLASSES.control}>
-                        <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
-                            {ICONS.REWIND}
-                        </PanelButton>
-                        <PanelButton
-                            onClick={handlePlayPause}
-                            title={isPlaying ? '暂停' : '播放'}
-                            className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
-                        >
-                            {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
-                        </PanelButton>
+                <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                          <PanelButton
+                              onClick={handleRewind}
+                              title="回到开头"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses()}
+                          >
+                              {ICONS.REWIND}
+                          </PanelButton>
+                          <PanelButton
+                              onClick={handlePlayPause}
+                              title={isPlaying ? '暂停' : '播放'}
+                              variant="unstyled"
+                              className={getTimelineButtonClasses(isPlaying)}
+                          >
+                              {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
+                          </PanelButton>
+                      </div>
+                    <div className="flex items-center gap-2">
+                         <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
+                         <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
+                           <input
+                             id="fps-input" type="number" min="1" max="60" step="1"
+                             value={fps} onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
+                             className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                           />
+                         </div>
                     </div>
-                    <div className={PANEL_CLASSES.control}>
-                        <label htmlFor="fps-input" className={PANEL_CLASSES.label}>FPS</label>
-                        <div className={PANEL_CLASSES.inputWrapper}>
-                            <input
-                                id="fps-input"
-                                type="number"
-                                min="1"
-                                max="60"
-                                step="1"
-                                value={fps}
-                                onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
-                                className={`${PANEL_CLASSES.input} hide-spinners`}
-                            />
-                        </div>
-                    </div>
-                    <div className={PANEL_CLASSES.control}>
-                        <PanelButton
-                            onClick={() => setIsOnionSkinEnabled(p => !p)}
-                            title="洋葱皮"
-                            className={isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
-                        >
-                            {ICONS.ONION_SKIN}
-                        </PanelButton>
-                        <div
-                            className={`${PANEL_CLASSES.controlsRow} transition-opacity ${
-                                isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                            }`}
-                        >
-                            <div className={PANEL_CLASSES.control}>
-                                <label htmlFor="onion-opacity-input" className={PANEL_CLASSES.label}>透明度</label>
-                                <div className={PANEL_CLASSES.inputWrapper}>
-                                    <input
-                                        id="onion-opacity-input"
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        step="1"
-                                        value={Math.round(onionSkinOpacity * 100)}
-                                        onChange={(e) =>
-                                            setOnionSkinOpacity(
-                                                Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) / 100
-                                            )
-                                        }
-                                        className={`${PANEL_CLASSES.input} hide-spinners`}
-                                    />
-                                    <span className={PANEL_CLASSES.inputSuffix}>%</span>
+                      <div className="flex items-center gap-2">
+                          <PanelButton
+                              onClick={() => setIsOnionSkinEnabled(p => !p)}
+                              title="洋葱皮"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses(isOnionSkinEnabled)}
+                          >
+                              {ICONS.ONION_SKIN}
+                          </PanelButton>
+                          <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
+                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
+                                <input
+                                    id="onion-opacity-input" type="number" min="0" max="100" step="1"
+                                    value={Math.round(onionSkinOpacity * 100)}
+                                    onChange={(e) => setOnionSkinOpacity(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) / 100)}
+                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                />
+                                 <span className="text-xs text-[var(--text-secondary)]">%</span>
                                 </div>
                             </div>
                             <div className={PANEL_CLASSES.control}>
@@ -241,10 +238,20 @@ export const TimelinePanel: React.FC = () => {
                 </div>
                 <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
                       <div className="flex flex-col gap-2 h-full">
-                          <PanelButton onClick={addFrame} title="添加新帧" className="flex-1 !h-auto">
+                          <PanelButton
+                              onClick={addFrame}
+                              title="添加新帧"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses()}
+                          >
                               {ICONS.PLUS}
                           </PanelButton>
-                          <PanelButton onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className="flex-1 !h-auto">
+                          <PanelButton
+                              onClick={() => copyFrame(currentFrameIndex)}
+                              title="复制当前帧"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses()}
+                          >
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
