@@ -259,7 +259,15 @@ export const useObjectActions = ({
     overlay?: SVGRectElement;
     newSrc?: string;
     targetId?: string;
+    previousCursor?: string | null;
   } | null>(null);
+
+  const restoreSvgCursor = (cursor?: string | null) => {
+    const svg = document.querySelector('svg') as SVGSVGElement | null;
+    if (svg) {
+      svg.style.cursor = cursor ?? '';
+    }
+  };
 
   /**
    * 开始抠图模式，等待用户在图像上点击选区。
@@ -274,11 +282,17 @@ export const useObjectActions = ({
       document.removeEventListener('click', removeBgRef.current.handler);
     }
     removeBgRef.current?.overlay?.remove();
-    removeBgRef.current = { targetId: imagePath.id };
+    const svgElement = document.querySelector('svg') as SVGSVGElement | null;
+    const previousCursor = removeBgRef.current?.previousCursor ?? svgElement?.style.cursor ?? '';
+    removeBgRef.current = { targetId: imagePath.id, previousCursor };
+    if (svgElement) {
+      svgElement.style.cursor = 'crosshair';
+    }
 
     const handler = async (e: MouseEvent) => {
-      removeBgRef.current = removeBgRef.current ?? { targetId: imagePath.id };
-      removeBgRef.current.handler = undefined;
+      const info = removeBgRef.current;
+      if (!info) return;
+      info.handler = undefined;
 
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -291,7 +305,12 @@ export const useObjectActions = ({
       if (!ctx) { return; }
       ctx.drawImage(img, 0, 0);
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const svg = document.querySelector('svg') as SVGSVGElement;
+      const svg = document.querySelector('svg') as SVGSVGElement | null;
+      if (!svg) {
+        restoreSvgCursor(info.previousCursor);
+        removeBgRef.current = null;
+        return;
+      }
       const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
       const imgData = imagePath as ImageData;
       const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
@@ -299,7 +318,7 @@ export const useObjectActions = ({
       const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
       ctx.putImageData(newData, 0, 0);
       const newSrc = canvas.toDataURL();
-      removeBgRef.current = { ...removeBgRef.current, newSrc };
+      info.newSrc = newSrc;
 
       if (region) {
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -317,7 +336,7 @@ export const useObjectActions = ({
         rect.setAttribute('vector-effect', 'non-scaling-stroke');
         rect.setAttribute('pointer-events', 'none');
         svg.appendChild(rect);
-        removeBgRef.current.overlay = rect;
+        info.overlay = rect;
       }
     };
 
@@ -333,7 +352,16 @@ export const useObjectActions = ({
    */
   const applyRemoveBackground = useCallback(() => {
     const info = removeBgRef.current;
-    if (!info?.newSrc || !info.targetId) return;
+    if (!info) return;
+    if (info.handler) {
+      document.removeEventListener('click', info.handler);
+    }
+    restoreSvgCursor(info.previousCursor);
+    if (!info.newSrc || !info.targetId) {
+      info.overlay?.remove();
+      removeBgRef.current = null;
+      return;
+    }
     pathState.beginCoalescing();
     pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, src: info.newSrc! } : p));
     pathState.endCoalescing();
@@ -351,6 +379,7 @@ export const useObjectActions = ({
       document.removeEventListener('click', info.handler);
     }
     info.overlay?.remove();
+    restoreSvgCursor(info.previousCursor);
     removeBgRef.current = null;
   }, []);
 
