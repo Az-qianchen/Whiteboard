@@ -225,7 +225,7 @@ export const TimelinePanel: React.FC = () => {
                             {frames.map((frame, index) => (
                                 <div
                                     key={index}
-                                    className="relative group flex-shrink-0 w-[5.1rem] h-[85%]"
+                                    className="relative group flex-shrink-0 w-[5.1rem] h-[5.1rem]"
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
