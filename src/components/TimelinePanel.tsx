@@ -10,6 +10,13 @@ import { pathsToSvgString } from '../lib/export';
 import PanelButton from '@/components/PanelButton';
 import type { Frame } from '../types';
 
+const timelineButtonBaseClasses = 'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors';
+const timelineButtonInactiveClasses = 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
+const timelineButtonActiveClasses = 'bg-[var(--accent-bg)] text-[var(--accent-primary)]';
+
+const getTimelineButtonClasses = (isActive = false) =>
+    `${timelineButtonBaseClasses} ${isActive ? timelineButtonActiveClasses : timelineButtonInactiveClasses}`;
+
 /**
  * 渲染单个帧缩略图的组件。
  */
@@ -146,13 +153,19 @@ export const TimelinePanel: React.FC = () => {
             <div className="p-3 h-48 w-full max-w-full flex flex-col">
                 <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                          <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
+                          <PanelButton
+                              onClick={handleRewind}
+                              title="回到开头"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses()}
+                          >
                               {ICONS.REWIND}
                           </PanelButton>
                           <PanelButton
                               onClick={handlePlayPause}
                               title={isPlaying ? '暂停' : '播放'}
-                              className={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                              variant="unstyled"
+                              className={getTimelineButtonClasses(isPlaying)}
                           >
                               {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
                           </PanelButton>
@@ -171,7 +184,8 @@ export const TimelinePanel: React.FC = () => {
                           <PanelButton
                               onClick={() => setIsOnionSkinEnabled(p => !p)}
                               title="洋葱皮"
-                              className={isOnionSkinEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}
+                              variant="unstyled"
+                              className={getTimelineButtonClasses(isOnionSkinEnabled)}
                           >
                               {ICONS.ONION_SKIN}
                           </PanelButton>
@@ -213,10 +227,20 @@ export const TimelinePanel: React.FC = () => {
                 </div>
                 <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
                       <div className="flex flex-col gap-2 h-full">
-                          <PanelButton onClick={addFrame} title="添加新帧" className="flex-1 !h-auto">
+                          <PanelButton
+                              onClick={addFrame}
+                              title="添加新帧"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses()}
+                          >
                               {ICONS.PLUS}
                           </PanelButton>
-                          <PanelButton onClick={() => copyFrame(currentFrameIndex)} title="复制当前帧" className="flex-1 !h-auto">
+                          <PanelButton
+                              onClick={() => copyFrame(currentFrameIndex)}
+                              title="复制当前帧"
+                              variant="unstyled"
+                              className={getTimelineButtonClasses()}
+                          >
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
