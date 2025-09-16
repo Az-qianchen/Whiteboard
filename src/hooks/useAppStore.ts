@@ -43,6 +43,7 @@ interface UiState {
   isStyleLibraryOpen: boolean;
   styleLibraryPosition: { x: number; y: number };
   isTimelineCollapsed: boolean;
+  timelineHeight: number;
   fps: number;
   isPlaying: boolean;
   isOnionSkinEnabled: boolean;
@@ -87,6 +88,7 @@ const getInitialUiState = (): UiState => {
     isStyleLibraryOpen: false,
     styleLibraryPosition: { x: 0, y: 0 },
     isTimelineCollapsed: getLocalStorageItem('whiteboard_isTimelineCollapsed', true),
+    timelineHeight: 0,
     fps: getLocalStorageItem('whiteboard_fps', 12),
     isPlaying: false,
     isOnionSkinEnabled: getLocalStorageItem('whiteboard_isOnionSkinEnabled', false),
@@ -142,6 +144,7 @@ export const useAppStore = () => {
   const setIsStyleLibraryOpen = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isStyleLibraryOpen: typeof val === 'function' ? val(s.isStyleLibraryOpen) : val })), []);
   const setStyleLibraryPosition = useCallback((val: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => setUiState(s => ({ ...s, styleLibraryPosition: typeof val === 'function' ? val(s.styleLibraryPosition) : val })), []);
   const setIsTimelineCollapsed = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isTimelineCollapsed: typeof val === 'function' ? val(s.isTimelineCollapsed) : val })), []);
+  const setTimelineHeight = useCallback((val: number | ((prev: number) => number)) => setUiState(s => ({ ...s, timelineHeight: typeof val === 'function' ? val(s.timelineHeight) : val })), []);
   const setFps = useCallback((val: number | ((prev: number) => number)) => setUiState(s => ({ ...s, fps: typeof val === 'function' ? val(s.fps) : val })), []);
   const setIsPlaying = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isPlaying: typeof val === 'function' ? val(s.isPlaying) : val })), []);
   const setIsOnionSkinEnabled = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isOnionSkinEnabled: typeof val === 'function' ? val(s.isOnionSkinEnabled) : val })), []);
@@ -507,7 +510,7 @@ export const useAppStore = () => {
 
   useEffect(() => {
     for (const [key, value] of Object.entries(uiState)) {
-      if (!['isPlaying', 'styleLibraryPosition', 'isStyleLibraryOpen'].includes(key)) {
+      if (!['isPlaying', 'styleLibraryPosition', 'isStyleLibraryOpen', 'timelineHeight'].includes(key)) {
         localStorage.setItem(`whiteboard_${key}`, JSON.stringify(value));
       }
     }
@@ -522,6 +525,7 @@ export const useAppStore = () => {
     setIsGridVisible, setGridSize, setGridSubdivisions, setGridOpacity, setBackgroundColor,
     setIsStatusBarCollapsed, setIsSideToolbarCollapsed, setIsMainMenuCollapsed, setMainMenuWidth,
     setPngExportOptions, setIsStyleLibraryOpen, setStyleLibraryPosition, setIsTimelineCollapsed,
+    setTimelineHeight,
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect,
