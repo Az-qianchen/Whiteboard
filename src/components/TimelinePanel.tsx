@@ -143,7 +143,7 @@ export const TimelinePanel: React.FC = () => {
             leaveFrom="opacity-100 max-h-48"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-2 h-48 w-full max-w-full flex flex-col gap-3">
+            <div className="p-2 h-48 w-full max-w-full flex flex-col">
                 <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                           <PanelButton onClick={handleRewind} title="回到开头" className="text-[var(--text-secondary)]">
@@ -225,7 +225,7 @@ export const TimelinePanel: React.FC = () => {
                             {frames.map((frame, index) => (
                                 <div
                                     key={index}
-                                    className="relative group flex-shrink-0 w-[82px] h-[85%]"
+                                    className="relative group flex-shrink-0 w-18 h-full"
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
