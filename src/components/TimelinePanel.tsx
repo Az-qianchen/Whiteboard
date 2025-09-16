@@ -11,7 +11,7 @@ import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
-const timelineButtonBaseClasses = 'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors';
+const timelineButtonBaseClasses = 'flex items-center justify-center h-8 w-8 rounded-md transition-colors';
 const timelineButtonInactiveClasses = 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
 const timelineButtonActiveClasses = 'bg-[var(--accent-bg)] text-[var(--accent-primary)]';
 
@@ -146,14 +146,14 @@ export const TimelinePanel: React.FC = () => {
             className="w-full max-w-full flex-shrink-0 bg-[var(--ui-panel-bg)] border-t border-[var(--ui-panel-border)] overflow-hidden z-20"
             enter="transition-[max-height,opacity] duration-300 ease-in-out"
             enterFrom="opacity-0 max-h-0"
-            enterTo="opacity-100 max-h-48"
+            enterTo="opacity-100 max-h-40"
             leave="transition-[max-height,opacity] duration-300 ease-in-out"
-            leaveFrom="opacity-100 max-h-48"
+            leaveFrom="opacity-100 max-h-40"
             leaveTo="opacity-0 max-h-0"
         >
-            <div className="p-3 h-48 w-full max-w-full flex flex-col">
-                <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
+            <div className="px-2.5 pt-2 pb-1.5 w-full max-w-full flex flex-col">
+                <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
                           <PanelButton
                               onClick={handleRewind}
                               title="回到开头"
@@ -171,9 +171,9 @@ export const TimelinePanel: React.FC = () => {
                               {isPlaying ? ICONS.PAUSE : ICONS.PLAY}
                           </PanelButton>
                       </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                          <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
-                         <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
+                         <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
                            <input
                              id="fps-input" type="number" min="1" max="60" step="1"
                              value={fps} onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
@@ -181,7 +181,7 @@ export const TimelinePanel: React.FC = () => {
                            />
                          </div>
                     </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                           <PanelButton
                               onClick={() => setIsOnionSkinEnabled(p => !p)}
                               title="洋葱皮"
@@ -190,10 +190,10 @@ export const TimelinePanel: React.FC = () => {
                           >
                               {ICONS.ONION_SKIN}
                           </PanelButton>
-                          <div className={`flex items-center gap-4 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="flex items-center gap-2">
+                          <div className={`flex items-center gap-2 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                            <div className="flex items-center gap-1.5">
                                 <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[30px] px-[7px] w-16">
+                                <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-16">
                                 <input
                                     id="onion-opacity-input" type="number" min="0" max="100" step="1"
                                     value={Math.round(onionSkinOpacity * 100)}
@@ -203,41 +203,31 @@ export const TimelinePanel: React.FC = () => {
                                  <span className="text-xs text-[var(--text-secondary)]">%</span>
                                 </div>
                             </div>
-                            <div className={PANEL_CLASSES.control}>
-                                <label htmlFor="prev-frames-input" className={PANEL_CLASSES.label}>之前</label>
-                                <div className={PANEL_CLASSES.inputWrapper}>
-                                    <input
-                                        id="prev-frames-input"
-                                        type="number"
-                                        min="0"
-                                        max="10"
-                                        step="1"
-                                        value={onionSkinPrevFrames}
-                                        onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                        className={`${PANEL_CLASSES.input} hide-spinners`}
-                                    />
+                            <div className="flex items-center gap-1.5">
+                                <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
+                                <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
+                                <input
+                                    id="prev-frames-input" type="number" min="0" max="10" step="1"
+                                    value={onionSkinPrevFrames} onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                />
                                 </div>
                             </div>
-                            <div className={PANEL_CLASSES.control}>
-                                <label htmlFor="next-frames-input" className={PANEL_CLASSES.label}>之后</label>
-                                <div className={PANEL_CLASSES.inputWrapper}>
-                                    <input
-                                        id="next-frames-input"
-                                        type="number"
-                                        min="0"
-                                        max="10"
-                                        step="1"
-                                        value={onionSkinNextFrames}
-                                        onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
-                                        className={`${PANEL_CLASSES.input} hide-spinners`}
-                                    />
+                            <div className="flex items-center gap-1.5">
+                                <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
+                                <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
+                                <input
+                                    id="next-frames-input" type="number" min="0" max="10" step="1"
+                                    value={onionSkinNextFrames} onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-full bg-transparent text-xs text-center outline-none text-[var(--text-primary)] hide-spinners"
+                                />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="flex-grow grid grid-cols-[auto_1fr] items-center gap-2 min-h-0 min-w-0">
-                      <div className="flex flex-col gap-2 h-full">
+                <div className="mt-1 grid grid-cols-[auto_1fr] items-stretch gap-1.5 min-h-0 min-w-0">
+                      <div className="flex h-full flex-col gap-1.5 py-1">
                           <PanelButton
                               onClick={addFrame}
                               title="添加新帧"
@@ -250,17 +240,17 @@ export const TimelinePanel: React.FC = () => {
                               onClick={() => copyFrame(currentFrameIndex)}
                               title="复制当前帧"
                               variant="unstyled"
-                              className={getTimelineButtonClasses()}
+                              className={`${getTimelineButtonClasses()} mt-auto`}
                           >
                               {ICONS.COPY}
                           </PanelButton>
                       </div>
-                    <div className="h-full w-full rounded-lg p-2 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
-                        <div className="flex items-center gap-2 h-full">
+                    <div className="w-full rounded-lg px-1.5 py-1 overflow-x-auto overflow-y-hidden min-w-0 timeline-frames-container" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                        <div className="flex items-center gap-1.5">
                             {frames.map((frame, index) => (
                                 <div
                                     key={index}
-                                    className="relative group flex-shrink-0 w-[5.1rem] h-[5.1rem]"
+                                    className="relative group flex-shrink-0 w-[4.5rem] h-[4.5rem]"
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
