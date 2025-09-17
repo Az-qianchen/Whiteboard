@@ -157,9 +157,9 @@ export const LayersPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div 
+      <div
         ref={listRef}
-        className="flex-grow overflow-y-auto layers-panel-list pr-1 pt-1 space-y-1"
+        className="flex flex-col flex-grow overflow-y-auto layers-panel-list pr-1 pt-1 gap-1"
         onDragOver={handleContainerDragOver}
         onDrop={handleDrop}
       >
