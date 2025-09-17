@@ -138,8 +138,9 @@ textarea {
   }
 
   .panel-input-wrapper {
-    @apply flex items-center gap-2 rounded-md px-3 h-9 transition-colors;
-    width: 4.5rem;
+    @apply flex items-center gap-1.5 rounded-md px-2.5 h-8 transition-colors;
+    width: 100%;
+    min-width: 3.5rem;
     background-color: rgba(0, 0, 0, 0.2);
     border: 1px solid transparent;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
@@ -151,8 +152,10 @@ textarea {
   }
 
   .panel-input {
-    @apply w-full bg-transparent text-sm text-center outline-none;
+    @apply w-full bg-transparent text-center outline-none;
     color: var(--text-primary);
+    font-size: 0.75rem;
+    line-height: 1rem;
   }
 
   .panel-input:disabled {
@@ -161,8 +164,8 @@ textarea {
   }
 
   .panel-input-suffix {
-    @apply text-xs;
     color: var(--text-secondary);
+    font-size: 0.7rem;
   }
 
   .panel-segmented {
