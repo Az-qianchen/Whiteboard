@@ -5,7 +5,7 @@
 import React from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { SideToolbar } from '../SideToolbar';
-import { ICONS, CONTROL_BUTTON_CLASS } from '@/constants';
+import { ICONS, CONTROL_BUTTON_CLASS, TIMELINE_PANEL_HEIGHT_VAR } from '@/constants';
 import PanelButton from '@/components/PanelButton';
 
 /**
@@ -13,7 +13,7 @@ import PanelButton from '@/components/PanelButton';
  */
 export const SideToolbarPanel: React.FC = () => {
     const store = useAppContext();
-    const { isSideToolbarCollapsed, setIsSideToolbarCollapsed, handleToggleStyleLibrary, isTimelineCollapsed, handleAdjustImageHsv } = store;
+    const { isSideToolbarCollapsed, setIsSideToolbarCollapsed, handleToggleStyleLibrary, handleAdjustImageHsv } = store;
     
     return (
         <>
@@ -31,7 +31,7 @@ export const SideToolbarPanel: React.FC = () => {
             <div 
                 className={`absolute right-4 z-20 transition-all duration-300 ease-in-out`}
                 style={{
-                    top: isTimelineCollapsed ? '50%' : 'calc(50% - 6rem)',
+                    top: `calc(50% - (${TIMELINE_PANEL_HEIGHT_VAR}) / 2)`,
                     transform: `translateY(-50%) ${isSideToolbarCollapsed ? 'translateX(calc(100% + 1rem))' : 'translateX(0)'}`,
                 }}
             >
