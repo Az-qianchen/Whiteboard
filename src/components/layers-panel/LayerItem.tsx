@@ -109,7 +109,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
       <div
         onClick={isEditing ? undefined : handleLayerClick}
         style={style}
-        className={`group flex items-center gap-2 px-2 py-1 rounded-md transition-colors cursor-grab select-none ${bgClass} ${isLocked ? 'opacity-60' : ''} ${isDropTarget && dropTarget.position === 'inside' ? 'ring-2 ring-inset ring-[var(--accent-primary)]' : ''}`}
+        className={`group flex h-7 items-center gap-2 pr-2 rounded-md transition-colors cursor-grab select-none ${bgClass} ${isLocked ? 'opacity-60' : ''} ${isDropTarget && dropTarget.position === 'inside' ? 'ring-2 ring-inset ring-[var(--accent-primary)]' : ''}`}
         draggable={!isLocked && !isEditing}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
