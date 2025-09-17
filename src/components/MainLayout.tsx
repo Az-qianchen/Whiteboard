@@ -8,8 +8,7 @@ import { useAppContext } from '../context/AppContext';
 import useGlobalEventHandlers from '../hooks/useGlobalEventHandlers';
 import { Whiteboard } from './Whiteboard';
 import { LayersProvider } from '../lib/layers-context';
-import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
-import PanelButton from '@/components/PanelButton';
+import { ICONS } from '../constants';
 import type { MaterialData, AnyPath } from '../types';
 
 // Import new layout components
@@ -17,6 +16,7 @@ import { MainMenuPanel } from './layout/MainMenuPanel';
 import { SideToolbarPanel } from './layout/SideToolbarPanel';
 import { CanvasOverlays } from './layout/CanvasOverlays';
 import { TimelinePanel } from './TimelinePanel';
+import { CollapseToggleButton } from './layout/CollapseToggleButton';
 
 export const MainLayout: React.FC = () => {
     const store = useAppContext();
@@ -181,14 +181,14 @@ export const MainLayout: React.FC = () => {
 
                 <main className="flex-grow h-full relative flex flex-col min-w-0">
                     <div className="absolute top-4 left-4 z-30">
-                        <PanelButton
-                            onClick={() => setIsMainMenuCollapsed(prev => !prev)}
-                            title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
-                            variant="unstyled"
-                            className={CONTROL_BUTTON_CLASS}
-                        >
-                            <div className={`transition-transform duration-300 ${isMainMenuCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_LEFT}</div>
-                        </PanelButton>
+                        <CollapseToggleButton
+                            isCollapsed={isMainMenuCollapsed}
+                            onToggle={() => setIsMainMenuCollapsed(prev => !prev)}
+                            collapsedLabel="展开菜单"
+                            expandedLabel="折叠菜单"
+                            icon={ICONS.CHEVRON_LEFT}
+                            rotateWhen="collapsed"
+                        />
                     </div>
 
                     <SideToolbarPanel />

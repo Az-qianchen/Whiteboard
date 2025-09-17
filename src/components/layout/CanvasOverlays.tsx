@@ -16,6 +16,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { CollapseToggleButton } from './CollapseToggleButton';
 import type { AnyPath, TextData, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -220,14 +221,14 @@ export const CanvasOverlays: React.FC = () => {
                     transition: 'bottom 300ms ease-in-out'
                 }}
             >
-                <PanelButton
-                    onClick={() => setIsTimelineCollapsed(prev => !prev)}
-                    title={isTimelineCollapsed ? t('expandTimeline') : t('collapseTimeline')}
-                    variant="unstyled"
-                    className={CONTROL_BUTTON_CLASS}
-                >
-                    <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
-                </PanelButton>
+                <CollapseToggleButton
+                    isCollapsed={isTimelineCollapsed}
+                    onToggle={() => setIsTimelineCollapsed(prev => !prev)}
+                    collapsedLabel={t('expandTimeline')}
+                    expandedLabel={t('collapseTimeline')}
+                    icon={ICONS.CHEVRON_UP}
+                    rotateWhen="expanded"
+                />
                 <PanelButton
                     onClick={handleUndo}
                     disabled={!canUndo}
