@@ -37,6 +37,23 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   const [contiguous, setContiguous] = useState(true);
   const thresholdId = useId();
 
+  const clampThreshold = (value: number) => Math.min(255, Math.max(0, value));
+
+  const handleThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    if (value === '') {
+      setThreshold(0);
+      return;
+    }
+
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      return;
+    }
+
+    setThreshold(clampThreshold(numericValue));
+  };
+
   const selectedTool: CropTool = useMemo(() => activeTool ?? 'crop', [activeTool]);
 
   useEffect(() => {
@@ -73,7 +90,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
     >
       <div
-        className="inline-flex w-fit max-w-[min(920px,calc(100vw-2rem))] flex-wrap items-center gap-3 sm:gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl px-3 py-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
+        className="inline-flex w-fit max-w-[min(920px,calc(100vw-2rem))] flex-nowrap items-center gap-3 sm:gap-4 overflow-x-auto bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl px-3 py-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
       >
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex bg-[var(--ui-element-bg)] rounded-lg p-1">
@@ -130,18 +147,18 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
                 <label
                   htmlFor={thresholdId}
-                  className="flex flex-col gap-2 text-sm font-medium text-[var(--text-primary)] sm:flex-row sm:items-center sm:gap-3"
+                  className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]"
                 >
                   <span className="whitespace-nowrap">{t('threshold')}</span>
                   <input
                     id={thresholdId}
-                    type="range"
+                    type="number"
                     min={0}
                     max={255}
                     step={1}
                     value={threshold}
-                    onChange={(e) => setThreshold(Number(e.target.value))}
-                    className="themed-slider min-w-[7rem] flex-1 sm:min-w-[9rem] sm:flex-none sm:w-48"
+                    onChange={handleThresholdChange}
+                    className="h-9 w-16 rounded-md border border-[var(--ui-separator)] bg-[var(--ui-element-bg)] px-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
                   />
                 </label>
               </div>
@@ -150,7 +167,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                 type="button"
                 variant="unstyled"
                 onClick={handleApplyRemove}
-                className={`${removalActionButtonClass} mt-2 flex-shrink-0 bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:bg-[var(--accent-bg)] hover:opacity-90 sm:mt-0`}
+                className={`${removalActionButtonClass} flex-shrink-0 bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:bg-[var(--accent-bg)] hover:opacity-90`}
               >
                 {React.cloneElement(ICONS.REMOVE_BG, { className: 'h-4 w-4' })}
                 <span>{t('remove')}</span>
@@ -159,7 +176,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-shrink-0 items-center gap-2">
           <PanelButton
             type="button"
             title={t('cancelCrop')}
