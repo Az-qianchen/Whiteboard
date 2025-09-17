@@ -69,11 +69,13 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-[min(920px,calc(100vw-2rem))] px-2"
+      className="absolute left-1/2 -translate-x-1/2 z-30 px-2"
       style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
     >
-      <div className="flex flex-wrap items-center gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)] transition-all duration-300 ease-in-out">
-        <div className="flex flex-wrap items-center gap-4">
+      <div
+        className="inline-flex w-fit max-w-[min(920px,calc(100vw-2rem))] flex-wrap items-center gap-3 sm:gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl px-3 py-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
+      >
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex bg-[var(--ui-element-bg)] rounded-lg p-1">
             <button
               type="button"
@@ -102,8 +104,8 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           </div>
 
           {selectedTool === 'removeBackground' && (
-            <div className="flex flex-wrap items-center gap-4 border-l border-[var(--ui-separator)] pl-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 sm:border-l sm:border-[var(--ui-separator)] sm:pl-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <Switch.Group as="div" className="flex items-center gap-2">
                   <Switch.Label className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
                     {t('contiguous')}
@@ -128,7 +130,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
                 <label
                   htmlFor={thresholdId}
-                  className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]"
+                  className="flex flex-col gap-2 text-sm font-medium text-[var(--text-primary)] sm:flex-row sm:items-center sm:gap-3"
                 >
                   <span className="whitespace-nowrap">{t('threshold')}</span>
                   <input
@@ -139,22 +141,20 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                     step={1}
                     value={threshold}
                     onChange={(e) => setThreshold(Number(e.target.value))}
-                    className="w-36 sm:w-48 flex-shrink-0 themed-slider"
+                    className="themed-slider min-w-[7rem] flex-1 sm:min-w-[9rem] sm:flex-none sm:w-48"
                   />
                 </label>
               </div>
 
-              <div className="flex items-center">
-                <PanelButton
-                  type="button"
-                  variant="unstyled"
-                  onClick={handleApplyRemove}
-                  className={`${removalActionButtonClass} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:bg-[var(--accent-bg)] hover:opacity-90`}
-                >
-                  {React.cloneElement(ICONS.REMOVE_BG, { className: 'h-4 w-4' })}
-                  <span>{t('remove')}</span>
-                </PanelButton>
-              </div>
+              <PanelButton
+                type="button"
+                variant="unstyled"
+                onClick={handleApplyRemove}
+                className={`${removalActionButtonClass} mt-2 flex-shrink-0 bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:bg-[var(--accent-bg)] hover:opacity-90 sm:mt-0`}
+              >
+                {React.cloneElement(ICONS.REMOVE_BG, { className: 'h-4 w-4' })}
+                <span>{t('remove')}</span>
+              </PanelButton>
             </div>
           )}
         </div>
