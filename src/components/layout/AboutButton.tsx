@@ -7,6 +7,7 @@ import { Popover, Transition } from '@headlessui/react';
 import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
 import { CONTROL_BUTTON_CLASS } from '@/constants';
+import { getTimelineOverlayBottomOffset } from './timelinePositioning';
 
 const links = [
   { name: 'vtracer - PNG转矢量工具', href: 'https://www.visioncortex.org/vtracer/' },
@@ -20,9 +21,9 @@ export const AboutButton: React.FC = () => {
   const { isTimelineCollapsed } = useAppContext();
 
   return (
-    <div 
+    <div
       className="absolute right-4 z-30 transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+      style={{ bottom: getTimelineOverlayBottomOffset(isTimelineCollapsed) }}
     >
         <Popover className="relative">
           <Popover.Button
