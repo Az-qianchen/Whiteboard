@@ -57,6 +57,7 @@ export const MainLayout: React.FC = () => {
         editingTextPathId,
         croppingState,
         currentCropRect,
+        croppingTool,
         // Drop handler props
         getPointerPosition,
         handleApplyMaterial,
@@ -132,6 +133,9 @@ export const MainLayout: React.FC = () => {
         if (isPanning) return 'grabbing';
         if (selectionInteraction.dragState?.type === 'move' || selectionInteraction.dragState?.type === 'rotate') return 'grabbing';
         if (selectionInteraction.dragState?.type === 'crop') return (selectionInteraction.dragState as any).cursor || 'crosshair';
+        if (croppingState) {
+            return croppingTool === 'magic-wand' ? 'crosshair' : 'default';
+        }
         switch (tool) {
             case 'selection':
                 if (selectionMode === 'lasso') return 'crosshair';
@@ -141,7 +145,7 @@ export const MainLayout: React.FC = () => {
             case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': case 'text': return 'crosshair';
             default: return 'default';
         }
-    }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable]);
+    }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, croppingTool]);
 
     /**
      * 处理画布上的拖放事件，用于素材和文件导入。
@@ -231,6 +235,7 @@ export const MainLayout: React.FC = () => {
                             editingTextPathId={editingTextPathId}
                             croppingState={croppingState}
                             currentCropRect={currentCropRect}
+                            croppingTool={croppingTool}
                         />
                     </div>
                     <TimelinePanel />

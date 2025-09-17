@@ -7,7 +7,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '@/types';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox, CroppingTool } from '@/types';
 import { getPointerPosition } from '@/lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
@@ -51,6 +51,7 @@ interface WhiteboardProps {
   editingTextPathId: string | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
+  croppingTool: CroppingTool;
 }
 
 /**
@@ -89,6 +90,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   editingTextPathId,
   croppingState,
   currentCropRect,
+  croppingTool,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
@@ -196,6 +198,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             hoveredPoint={currentPointerPos}
             croppingState={croppingState}
             currentCropRect={currentCropRect}
+            croppingTool={croppingTool}
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />

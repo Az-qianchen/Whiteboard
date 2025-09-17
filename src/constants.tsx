@@ -192,6 +192,7 @@ export const ICONS = {
   X: <X className="h-4 w-4" />,
   GRIP: <GripVertical className="h-4 w-4" />,
   MASK: <Blend className="h-5 w-5" />,
+  CROP: <SquareDashed className="h-5 w-5" />,
   REMOVE_BG: <Eraser className="h-5 w-5" />,
   PLAY: <Play className="h-5 w-5" />,
   PAUSE: <Pause className="h-5 w-5" />,
