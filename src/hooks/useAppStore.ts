@@ -16,7 +16,7 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame, CroppingTool } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
 import { createDocumentSignature } from '@/lib/document';
 
@@ -64,6 +64,7 @@ interface AppState {
   confirmationDialog: ConfirmationDialogState | null;
   croppingState: { pathId: string; originalPath: ImageData } | null;
   currentCropRect: BBox | null;
+  croppingTool: CroppingTool;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -111,6 +112,7 @@ const getInitialAppState = (): AppState => ({
   confirmationDialog: null,
   croppingState: null,
   currentCropRect: null,
+  croppingTool: 'crop',
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
 });
@@ -171,6 +173,7 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
+  const setCroppingTool = useCallback((val: CroppingTool | ((prev: CroppingTool) => CroppingTool)) => setAppState(s => ({ ...s, croppingTool: typeof val === 'function' ? val(s.croppingTool) : val })), []);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
@@ -360,14 +363,16 @@ export const useAppStore = () => {
     };
 
     void performCrop();
-  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
+    setCroppingTool('crop');
+  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect, setCroppingTool]);
 
   const cancelCrop = useCallback(() => {
     setCroppingState(null);
     setCurrentCropRect(null);
     setCropHistory({ past: [], future: [] });
     pathState.endCoalescing();
-  }, [setCroppingState, setCurrentCropRect, pathState]);
+    setCroppingTool('crop');
+  }, [setCroppingState, setCurrentCropRect, pathState, setCroppingTool]);
 
   const handleUndo = useCallback(() => {
     if (appState.croppingState) {
@@ -403,11 +408,12 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);
+          setCroppingTool('crop');
       }
-  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect]);
+  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, setCroppingTool]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
-  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory });
+  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, croppingTool: appState.croppingTool });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   
   const handleSetTool = useCallback((newTool: Tool) => {
@@ -459,6 +465,15 @@ export const useAppStore = () => {
     frames, fps: uiState.fps, setFps,
     markDocumentSaved,
   });
+
+  const { cancelRemoveBackground: cancelMattingPreview } = appActions;
+
+  useEffect(() => {
+    if (!appState.croppingState) {
+      setCroppingTool(prev => (prev === 'crop' ? prev : 'crop'));
+      cancelMattingPreview();
+    }
+  }, [appState.croppingState, setCroppingTool, cancelMattingPreview]);
 
   useEffect(() => {
     setAppState(prev => {
@@ -559,7 +574,7 @@ export const useAppStore = () => {
     setPngExportOptions, setIsStyleLibraryOpen, setStyleLibraryPosition, setIsTimelineCollapsed,
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
-    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect,
+    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, setCroppingTool,
     confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,

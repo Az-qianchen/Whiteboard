@@ -259,11 +259,21 @@ input[type='range'].themed-slider::-moz-range-thumb {
 
 @keyframes marching-ants {
   from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: 8; }
+  to { stroke-dashoffset: 16; }
 }
 
 .marching-ants {
-  stroke: var(--text-primary);
-  stroke-dasharray: 4 2;
+  fill: none;
+  stroke-dasharray: 8 8;
   animation: marching-ants 0.5s linear infinite;
+}
+
+.marching-ants--light {
+  stroke: rgba(255, 255, 255, 0.9);
+}
+
+.marching-ants--dark {
+  stroke: rgba(0, 0, 0, 0.9);
+  animation-direction: reverse;
+  stroke-dashoffset: 8;
 }

@@ -24,6 +24,11 @@ export interface MattingOptions {
   contiguous?: boolean;
 }
 
+export interface MattingContour {
+  inner: boolean;
+  points: { x: number; y: number }[];
+}
+
 /**
  * 调整 ImageData 的 HSV 值。
  * @param imageData 原始图像数据
@@ -59,12 +64,16 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
 export function removeBackground(
   imageData: ImageData,
   options: MattingOptions
-): { image: ImageData; region: { x: number; y: number; width: number; height: number } | null } {
+): {
+  image: ImageData;
+  region: { x: number; y: number; width: number; height: number } | null;
+  contours: MattingContour[] | null;
+} {
   const { x, y, threshold = 10, contiguous = true } = options;
   const { width, height } = imageData;
   const src = new Uint8Array(imageData.data);
   if (x < 0 || y < 0 || x >= width || y >= height) {
-    return { image: new ImageData(new Uint8ClampedArray(src), width, height), region: null };
+    return { image: new ImageData(new Uint8ClampedArray(src), width, height), region: null, contours: null };
   }
 
   let mask: { data: Uint8Array; width: number; height: number; bounds: { minX: number; minY: number; maxX: number; maxY: number } } | null;
@@ -106,7 +115,7 @@ export function removeBackground(
   }
 
   if (!mask) {
-    return { image: new ImageData(new Uint8ClampedArray(src), width, height), region: null };
+    return { image: new ImageData(new Uint8ClampedArray(src), width, height), region: null, contours: null };
   }
 
   const result = new Uint8ClampedArray(src);
@@ -120,7 +129,21 @@ export function removeBackground(
     ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
     : null;
 
-  return { image: new ImageData(result, width, height), region };
+  let contours: MattingContour[] | null = null;
+  try {
+    const traced = MagicWand.traceContours(mask);
+    const simplified = MagicWand.simplifyContours(traced, 0, 30);
+    if (simplified && simplified.length > 0) {
+      contours = simplified.map((c: any) => ({
+        inner: Boolean(c.inner),
+        points: (c.points ?? []).map((p: any) => ({ x: p.x, y: p.y })),
+      }));
+    }
+  } catch (err) {
+    console.warn('Failed to trace matting contours', err);
+  }
+
+  return { image: new ImageData(result, width, height), region, contours };
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -330,6 +330,8 @@ type CropDragState = {
 // Union of all possible drag states
 export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
 
+export type CroppingTool = 'crop' | 'magic-wand';
+
 export interface SelectionPathState {
   paths: AnyPath[];
   setPaths: Dispatch<SetStateAction<AnyPath[]>>;

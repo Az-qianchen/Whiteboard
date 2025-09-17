@@ -13,6 +13,7 @@ import type {
   SelectionPathState,
   SelectionToolbarState,
   SelectionViewTransform,
+  CroppingTool,
 } from '../types';
 import { handlePointerDownLogic, handlePointerMoveLogic, handlePointerUpLogic } from './selection-logic/index';
 
@@ -29,6 +30,7 @@ interface SelectionInteractionProps {
   currentCropRect: BBox | null;
   setCurrentCropRect: React.Dispatch<React.SetStateAction<BBox | null>>;
   pushCropHistory: (rect: BBox) => void;
+  croppingTool: CroppingTool;
 }
 
 /**
@@ -47,6 +49,7 @@ export const useSelection = ({
   currentCropRect,
   setCurrentCropRect,
   pushCropHistory,
+  croppingTool,
 }: SelectionInteractionProps) => {
   const [dragState, setDragState] = useState<DragState>(null);
   const [marquee, setMarquee] = useState<{ start: Point; end: Point } | null>(null);
@@ -100,6 +103,7 @@ export const useSelection = ({
       pathState, toolbarState, viewTransform,
       onDoubleClick, lastClickRef, croppingState,
       currentCropRect,
+      croppingTool,
     });
   };
 

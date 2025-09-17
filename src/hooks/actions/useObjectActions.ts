@@ -258,7 +258,7 @@ export const useObjectActions = ({
    */
   const removeBgRef = useRef<{
     handler?: (e: MouseEvent) => void;
-    overlay?: SVGRectElement;
+    overlayGroup?: SVGGElement;
     newSrc?: string;
     targetId?: string;
   } | null>(null);
@@ -271,63 +271,126 @@ export const useObjectActions = ({
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
 
-    // 若已有挂起的抠图操作，先清理
     if (removeBgRef.current?.handler) {
       document.removeEventListener('click', removeBgRef.current.handler);
     }
-    removeBgRef.current?.overlay?.remove();
+    removeBgRef.current?.overlayGroup?.remove();
     removeBgRef.current = { targetId: imagePath.id };
 
-    const handler = async (e: MouseEvent) => {
-      removeBgRef.current = removeBgRef.current ?? { targetId: imagePath.id };
-      removeBgRef.current.handler = undefined;
+    const registerHandler = () => {
+      const handler = async (e: MouseEvent) => {
+        if (!removeBgRef.current) {
+          removeBgRef.current = { targetId: imagePath.id };
+        }
 
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = (imagePath as ImageData).src;
-      await new Promise(resolve => { img.onload = resolve; });
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { return; }
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const svg = document.querySelector('svg') as SVGSVGElement;
-      const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
-      const imgData = imagePath as ImageData;
-      const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
-      const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
-      const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
-      ctx.putImageData(newData, 0, 0);
-      const newSrc = canvas.toDataURL();
-      removeBgRef.current = { ...removeBgRef.current, newSrc };
+        const svg = document.querySelector('svg') as SVGSVGElement | null;
+        if (!svg) return;
 
-      if (region) {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        const sx = imgData.x + (region.x / img.width) * imgData.width;
-        const sy = imgData.y + (region.y / img.height) * imgData.height;
-        const sw = (region.width / img.width) * imgData.width;
-        const sh = (region.height / img.height) * imgData.height;
-        rect.setAttribute('x', String(sx));
-        rect.setAttribute('y', String(sy));
-        rect.setAttribute('width', String(sw));
-        rect.setAttribute('height', String(sh));
-        rect.setAttribute('fill', 'none');
-        rect.setAttribute('stroke-width', '1');
-        rect.setAttribute('class', 'marching-ants');
-        rect.setAttribute('vector-effect', 'non-scaling-stroke');
-        rect.setAttribute('pointer-events', 'none');
-        svg.appendChild(rect);
-        removeBgRef.current.overlay = rect;
-      }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = (imagePath as ImageData).src;
+        await new Promise(resolve => { img.onload = resolve; });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+        const imgData = imagePath as ImageData;
+        const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
+        const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
+
+        const { image: newData, contours } = removeBackground(data, {
+          x: localX,
+          y: localY,
+          threshold: opts.threshold,
+          contiguous: opts.contiguous,
+        });
+
+        ctx.putImageData(newData, 0, 0);
+        const newSrc = canvas.toDataURL();
+
+        removeBgRef.current?.overlayGroup?.remove();
+        removeBgRef.current = { ...removeBgRef.current, newSrc, overlayGroup: undefined };
+
+        if (contours && contours.length > 0) {
+          const ns = 'http://www.w3.org/2000/svg';
+          const group = document.createElementNS(ns, 'g');
+          group.setAttribute('pointer-events', 'none');
+          group.classList.add('marching-ants-group');
+
+          const rotation = imgData.rotation ?? 0;
+          if (rotation) {
+            const cx = imgData.x + imgData.width / 2;
+            const cy = imgData.y + imgData.height / 2;
+            const angle = rotation * (180 / Math.PI);
+            group.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
+          }
+
+          const scaleX = imgData.width / img.width;
+          const scaleY = imgData.height / img.height;
+
+          const buildPath = (pts: { x: number; y: number }[]) => {
+            if (!pts || pts.length === 0) return '';
+            let d = '';
+            pts.forEach((pt, index) => {
+              const px = imgData.x + pt.x * scaleX;
+              const py = imgData.y + pt.y * scaleY;
+              d += `${index === 0 ? 'M' : 'L'}${px} ${py} `;
+            });
+            return `${d.trim()} Z`;
+          };
+
+          contours.forEach(contour => {
+            const d = buildPath(contour.points);
+            if (!d) return;
+
+            const dark = document.createElementNS(ns, 'path');
+            dark.setAttribute('d', d);
+            dark.setAttribute('fill', 'none');
+            dark.setAttribute('class', 'marching-ants marching-ants--dark');
+            dark.setAttribute('stroke-width', '1');
+            dark.setAttribute('vector-effect', 'non-scaling-stroke');
+            group.appendChild(dark);
+
+            const light = document.createElementNS(ns, 'path');
+            light.setAttribute('d', d);
+            light.setAttribute('fill', 'none');
+            light.setAttribute('class', 'marching-ants marching-ants--light');
+            light.setAttribute('stroke-width', '1');
+            light.setAttribute('vector-effect', 'non-scaling-stroke');
+            group.appendChild(light);
+          });
+
+          if (group.childNodes.length > 0) {
+            svg.appendChild(group);
+            removeBgRef.current = { ...removeBgRef.current, overlayGroup: group, newSrc };
+          }
+        }
+
+        if (removeBgRef.current) {
+          removeBgRef.current.handler = handler;
+          setTimeout(() => {
+            if (removeBgRef.current?.handler === handler) {
+              document.addEventListener('click', handler, { once: true });
+            }
+          });
+        }
+      };
+
+      removeBgRef.current = { ...removeBgRef.current, handler };
+      setTimeout(() => {
+        if (removeBgRef.current?.handler === handler) {
+          document.addEventListener('click', handler, { once: true });
+        }
+      });
     };
 
-    removeBgRef.current.handler = handler;
-    // 延迟注册以避免立即触发当前点击
-    setTimeout(() => {
-      document.addEventListener('click', handler, { once: true });
-    });
+    registerHandler();
   }, [paths, selectedPathIds, getPointerPosition]);
 
   /**
@@ -339,7 +402,7 @@ export const useObjectActions = ({
     pathState.beginCoalescing();
     pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, src: info.newSrc! } : p));
     pathState.endCoalescing();
-    info.overlay?.remove();
+    info.overlayGroup?.remove();
     removeBgRef.current = null;
   }, [pathState]);
 
@@ -352,7 +415,7 @@ export const useObjectActions = ({
     if (info.handler) {
       document.removeEventListener('click', info.handler);
     }
-    info.overlay?.remove();
+    info.overlayGroup?.remove();
     removeBgRef.current = null;
   }, []);
 

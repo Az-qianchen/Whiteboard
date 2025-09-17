@@ -193,7 +193,8 @@ const CropControls: React.FC<{
     croppingState: { pathId: string; originalPath: ImageData; };
     currentCropRect: BBox;
     scale: number;
-}> = React.memo(({ croppingState, currentCropRect, scale }) => {
+    croppingTool: CroppingTool;
+}> = React.memo(({ croppingState, currentCropRect, scale, croppingTool }) => {
     const o = croppingState.originalPath;
     const c = currentCropRect;
 
@@ -237,8 +238,10 @@ const CropControls: React.FC<{
     const cornerStrokeWidth = 3 / scale;
     const cornerLineLength = Math.min(15 / scale, c.width/3, c.height/3);
 
+    const pointerClass = croppingTool === 'magic-wand' ? 'pointer-events-none' : 'pointer-events-auto';
+
     return (
-        <g transform={transform} className="pointer-events-auto">
+        <g transform={transform} className={pointerClass}>
             <rect
                 x={c.x} y={c.y} width={c.width} height={c.height}
                 fill="none" stroke="rgba(255, 255, 255, 0.5)"
@@ -324,6 +327,7 @@ interface ControlsRendererProps {
   hoveredPoint: Point | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
+  croppingTool: CroppingTool;
 }
 
 export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
@@ -337,6 +341,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   hoveredPoint,
   croppingState,
   currentCropRect,
+  croppingTool,
 }) => {
   // Render controls for a path that is currently being drawn (pen or line)
   if (currentPenPath) {
@@ -355,7 +360,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   if (croppingState && currentCropRect && selectedPaths.length === 1 && selectedPaths[0].id === croppingState.pathId) {
     const path = selectedPaths[0];
     if (path.tool === 'image') {
-      return <CropControls croppingState={croppingState} currentCropRect={currentCropRect} scale={scale} />;
+      return <CropControls croppingState={croppingState} currentCropRect={currentCropRect} scale={scale} croppingTool={croppingTool} />;
     }
   }
 
