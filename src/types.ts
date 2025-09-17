@@ -196,13 +196,6 @@ export interface ImageData extends ShapeBase {
   borderRadius?: number;
 }
 
-export interface CropSessionState {
-  pathId: string;
-  originalPath: ImageData;
-  removalHistory: string[];
-  removalFuture: string[];
-}
-
 export interface TextData extends ShapeBase {
   tool: 'text';
   text: string;

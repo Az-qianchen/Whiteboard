@@ -51,7 +51,6 @@ interface WhiteboardProps {
   editingTextPathId: string | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
-  activeCropTool: 'crop' | 'removeBackground' | null;
 }
 
 /**
@@ -90,7 +89,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   editingTextPathId,
   croppingState,
   currentCropRect,
-  activeCropTool,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
@@ -162,7 +160,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       <svg
         ref={svgRef}
         className="w-full h-full touch-none"
-        data-whiteboard-root="true"
         onPointerDown={onPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={onPointerUp}
@@ -170,10 +167,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       >
         <Grid isGridVisible={isGridVisible} gridSize={gridSize} viewTransform={viewTransform} gridSubdivisions={gridSubdivisions} gridOpacity={gridOpacity} />
         
-        <g
-          data-whiteboard-content="true"
-          style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}
-        >
+        <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
           
           <PathsRenderer paths={backgroundPaths} rc={rc} isBackground />
           <PathsRenderer paths={onionSkinPaths} rc={rc} />
@@ -202,7 +196,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             hoveredPoint={currentPointerPos}
             croppingState={croppingState}
             currentCropRect={currentCropRect}
-            activeCropTool={activeCropTool}
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />

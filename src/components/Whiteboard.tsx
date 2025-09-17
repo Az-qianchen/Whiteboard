@@ -51,7 +51,6 @@ interface WhiteboardProps {
   editingTextPathId: string | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
-  activeCropTool: 'crop' | 'removeBackground' | null;
 }
 
 /**
@@ -90,7 +89,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   editingTextPathId,
   croppingState,
   currentCropRect,
-  activeCropTool,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -225,7 +223,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             hoveredPoint={currentPointerPos}
             croppingState={croppingState}
             currentCropRect={currentCropRect}
-            activeCropTool={activeCropTool}
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />

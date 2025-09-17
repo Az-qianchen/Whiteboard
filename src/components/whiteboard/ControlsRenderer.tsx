@@ -193,8 +193,7 @@ const CropControls: React.FC<{
     croppingState: { pathId: string; originalPath: ImageData; };
     currentCropRect: BBox;
     scale: number;
-    disabled?: boolean;
-}> = React.memo(({ croppingState, currentCropRect, scale, disabled = false }) => {
+}> = React.memo(({ croppingState, currentCropRect, scale }) => {
     const o = croppingState.originalPath;
     const c = currentCropRect;
 
@@ -238,10 +237,8 @@ const CropControls: React.FC<{
     const cornerStrokeWidth = 3 / scale;
     const cornerLineLength = Math.min(15 / scale, c.width/3, c.height/3);
 
-    const containerClass = disabled ? 'pointer-events-none opacity-70' : 'pointer-events-auto';
-
     return (
-        <g transform={transform} className={containerClass}>
+        <g transform={transform} className="pointer-events-auto">
             <rect
                 x={c.x} y={c.y} width={c.width} height={c.height}
                 fill="none" stroke="rgba(255, 255, 255, 0.5)"
@@ -254,7 +251,7 @@ const CropControls: React.FC<{
             <path d={`M ${c.x + c.width - cornerLineLength} ${c.y + c.height} L ${c.x + c.width} ${c.y + c.height} L ${c.x + c.width} ${c.y + c.height - cornerLineLength}`} fill="none" stroke={accent} strokeWidth={cornerStrokeWidth} strokeLinecap="round" strokeLinejoin="round" />
             
             {handles.map(({ pos, handle, cursor }) => (
-                <rect key={handle} x={pos.x - halfHandleSize} y={pos.y - halfHandleSize} width={handleSize} height={handleSize} fill="transparent" data-handle={handle} data-path-id={o.id} style={{ cursor }} className={disabled ? 'pointer-events-none' : 'pointer-events-all'} />
+                <rect key={handle} x={pos.x - halfHandleSize} y={pos.y - halfHandleSize} width={handleSize} height={handleSize} fill="transparent" data-handle={handle} data-path-id={o.id} style={{ cursor }} className="pointer-events-all" />
             ))}
         </g>
     );
@@ -327,7 +324,6 @@ interface ControlsRendererProps {
   hoveredPoint: Point | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
-  activeCropTool: 'crop' | 'removeBackground' | null;
 }
 
 export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
@@ -341,7 +337,6 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   hoveredPoint,
   croppingState,
   currentCropRect,
-  activeCropTool,
 }) => {
   // Render controls for a path that is currently being drawn (pen or line)
   if (currentPenPath) {
@@ -360,7 +355,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   if (croppingState && currentCropRect && selectedPaths.length === 1 && selectedPaths[0].id === croppingState.pathId) {
     const path = selectedPaths[0];
     if (path.tool === 'image') {
-      return <CropControls croppingState={croppingState} currentCropRect={currentCropRect} scale={scale} disabled={activeCropTool === 'removeBackground'} />;
+      return <CropControls croppingState={croppingState} currentCropRect={currentCropRect} scale={scale} />;
     }
   }
 

@@ -16,7 +16,7 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame, CropSessionState } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData, BBox, Frame } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
 
 type ConfirmationDialogState = {
@@ -61,9 +61,8 @@ interface AppState {
   activeFileName: string | null;
   isLoading: boolean;
   confirmationDialog: ConfirmationDialogState | null;
-  croppingState: CropSessionState | null;
+  croppingState: { pathId: string; originalPath: ImageData } | null;
   currentCropRect: BBox | null;
-  activeCropTool: 'crop' | 'removeBackground' | null;
 }
 
 // --- Initial State Loaders ---
@@ -109,7 +108,6 @@ const getInitialAppState = (): AppState => ({
   confirmationDialog: null,
   croppingState: null,
   currentCropRect: null,
-  activeCropTool: null,
 });
 
 
@@ -162,7 +160,6 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
-  const setActiveCropTool = useCallback((val: AppState['activeCropTool'] | ((prev: AppState['activeCropTool']) => AppState['activeCropTool'])) => setAppState(s => ({ ...s, activeCropTool: typeof val === 'function' ? val(s.activeCropTool) : val })), []);
 
   const pushCropHistory = useCallback((rect: BBox) => {
     setCropHistory(h => ({ past: [...h.past, rect], future: [] }));
@@ -344,85 +341,42 @@ export const useAppStore = () => {
       setCroppingState(null);
       setCurrentCropRect(null);
       setCropHistory({ past: [], future: [] });
-      setActiveCropTool(null);
       pathState.endCoalescing();
     };
 
     void performCrop();
-  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect, setActiveCropTool]);
+  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect]);
 
   const cancelCrop = useCallback(() => {
     setCroppingState(null);
     setCurrentCropRect(null);
     setCropHistory({ past: [], future: [] });
-    setActiveCropTool(null);
     pathState.endCoalescing();
-  }, [setCroppingState, setCurrentCropRect, setActiveCropTool, pathState]);
+  }, [setCroppingState, setCurrentCropRect, pathState]);
 
   const handleUndo = useCallback(() => {
     if (appState.croppingState) {
       if (cropHistory.past.length > 0) {
         undoCropRect();
-        return;
+      } else {
+        cancelCrop();
+        pathState.undo();
       }
-
-      const { removalHistory, pathId, originalPath } = appState.croppingState;
-      if (removalHistory.length > 0) {
-        const previousSrc = removalHistory[removalHistory.length - 1];
-        const currentSrc = originalPath.src;
-        pathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'image') ? { ...p, src: previousSrc } : p));
-        setCroppingState(prev => {
-          if (!prev || prev.pathId !== pathId) return prev;
-          const nextHistory = prev.removalHistory.slice(0, -1);
-          return {
-            ...prev,
-            originalPath: { ...prev.originalPath, src: previousSrc },
-            removalHistory: nextHistory,
-            removalFuture: [...prev.removalFuture, currentSrc],
-          };
-        });
-        return;
-      }
-
-      cancelCrop();
+    } else {
       pathState.undo();
-      return;
     }
-
-    pathState.undo();
-  }, [appState.croppingState, cropHistory.past.length, undoCropRect, pathState, setCroppingState, cancelCrop]);
+  }, [appState.croppingState, cropHistory.past.length, undoCropRect, cancelCrop, pathState]);
 
   const handleRedo = useCallback(() => {
-    if (appState.croppingState) {
-      if (cropHistory.future.length > 0) {
-        redoCropRect();
-        return;
-      }
-
-      const { removalFuture, pathId, originalPath } = appState.croppingState;
-      if (removalFuture.length > 0) {
-        const nextSrc = removalFuture[removalFuture.length - 1];
-        const currentSrc = originalPath.src;
-        pathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'image') ? { ...p, src: nextSrc } : p));
-        setCroppingState(prev => {
-          if (!prev || prev.pathId !== pathId) return prev;
-          const nextFuture = prev.removalFuture.slice(0, -1);
-          return {
-            ...prev,
-            originalPath: { ...prev.originalPath, src: nextSrc },
-            removalHistory: [...prev.removalHistory, currentSrc],
-            removalFuture: nextFuture,
-          };
-        });
-        return;
-      }
+    if (appState.croppingState && cropHistory.future.length > 0) {
+      redoCropRect();
+    } else {
+      pathState.redo();
     }
+  }, [appState.croppingState, cropHistory.future.length, redoCropRect, pathState]);
 
-    pathState.redo();
-  }, [appState.croppingState, cropHistory.future.length, redoCropRect, pathState, setCroppingState]);
-
-  const canUndo = pathState.canUndo || (appState.croppingState !== null && (cropHistory.past.length > 0 || appState.croppingState.removalHistory.length > 0));
-  const canRedo = pathState.canRedo || (appState.croppingState !== null && (cropHistory.future.length > 0 || appState.croppingState.removalFuture.length > 0));
+  const canUndo = pathState.canUndo || (appState.croppingState !== null && cropHistory.past.length > 0);
+  const canRedo = pathState.canRedo || (appState.croppingState !== null && cropHistory.future.length > 0);
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
@@ -430,16 +384,15 @@ export const useAppStore = () => {
       else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           pathState.beginCoalescing();
-          setCroppingState({ pathId: path.id, originalPath: path as ImageData, removalHistory: [], removalFuture: [] });
+          setCroppingState({ pathId: path.id, originalPath: path as ImageData });
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);
-          setActiveCropTool('crop');
       }
-  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, setActiveCropTool]);
+  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
-  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, activeCropTool: appState.activeCropTool, setCurrentCropRect, pushCropHistory });
+  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   
   const handleSetTool = useCallback((newTool: Tool) => {
@@ -482,23 +435,14 @@ export const useAppStore = () => {
     });
   }, []);
 
-  const appActions = useAppActions({
-    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds,
+  const appActions = useAppActions({ 
+    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds, 
     pathState: { ...activePathState, handleLoadFile: pathState.handleLoadFile },
     toolbarState, viewTransform, getPointerPosition: viewTransform.getPointerPosition, ...appState,
     setActiveFileHandle, setActiveFileName, setBackgroundColor, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
-    setCroppingState, setActiveCropTool,
     frames, fps: uiState.fps, setFps,
   });
-  const { cancelRemoveBackground } = appActions;
-
-  useEffect(() => {
-    if (!appState.croppingState && appState.activeCropTool !== null) {
-      setActiveCropTool(null);
-      cancelRemoveBackground();
-    }
-  }, [appState.croppingState, appState.activeCropTool, cancelRemoveBackground, setActiveCropTool]);
   
   useEffect(() => {
     const loadLastFile = async () => {
@@ -580,7 +524,7 @@ export const useAppStore = () => {
     setPngExportOptions, setIsStyleLibraryOpen, setStyleLibraryPosition, setIsTimelineCollapsed,
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
-    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, setActiveCropTool,
+    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect,
     confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,

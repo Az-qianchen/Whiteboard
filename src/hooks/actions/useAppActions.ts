@@ -8,8 +8,7 @@ import { useExportActions } from './useExportActions';
 import { useFileActions } from './useFileActions';
 import { useLibraryActions } from './useLibraryActions';
 import { useObjectActions } from './useObjectActions';
-import type { Dispatch, SetStateAction } from 'react';
-import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, AnimationExportOptions, ImageData, BBox, CropSessionState } from '@/types';
+import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, AnimationExportOptions } from '@/types';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 
 // The props type is a combination of all props needed by the sub-hooks.
@@ -53,11 +52,6 @@ export interface AppActionsProps {
   setMaterialLibrary: React.Dispatch<React.SetStateAction<MaterialData[]>>;
   pngExportOptions: PngExportOptions;
   showConfirmation: (title: string, message: string, onConfirm: () => void) => void;
-  croppingState?: CropSessionState | null;
-  currentCropRect?: BBox | null;
-  activeCropTool?: 'crop' | 'removeBackground' | null;
-  setCroppingState?: Dispatch<SetStateAction<CropSessionState | null>>;
-  setActiveCropTool?: Dispatch<SetStateAction<'crop' | 'removeBackground' | null>>;
 }
 
 /**
