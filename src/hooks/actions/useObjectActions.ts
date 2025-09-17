@@ -402,6 +402,9 @@ export const useObjectActions = ({
     pathState.beginCoalescing();
     pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, src: info.newSrc! } : p));
     pathState.endCoalescing();
+    if (info.handler) {
+      document.removeEventListener('click', info.handler);
+    }
     info.overlayGroup?.remove();
     removeBgRef.current = null;
   }, [pathState]);

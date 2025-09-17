@@ -2,11 +2,12 @@
  * 本文件定义了图片裁剪工具栏组件。
  * 当用户进入裁剪模式时，此工具栏会显示，提供裁剪/抠图模式切换以及确认或取消裁剪的选项。
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import PanelButton from '@/components/PanelButton';
 import { ICONS } from '@/constants';
 import { useAppContext } from '@/context/AppContext';
-import { Slider, SwitchControl } from '@/components/side-toolbar';
+import { SwitchControl } from '@/components/side-toolbar';
+import { PANEL_CLASSES } from '@/components/panelStyles';
 import { useTranslation } from 'react-i18next';
 import type { CroppingTool } from '@/types';
 
@@ -18,6 +19,7 @@ const RemoveBgControls: React.FC<{
   const { t } = useTranslation();
   const [threshold, setThreshold] = useState(10);
   const [contiguous, setContiguous] = useState(true);
+  const thresholdInputId = useId();
 
   useEffect(() => {
     onBegin({ threshold, contiguous });
@@ -35,25 +37,44 @@ const RemoveBgControls: React.FC<{
     onBegin({ threshold, contiguous });
   };
 
+  const handleThresholdChange = (value: string) => {
+    if (value === '') {
+      setThreshold(0);
+      return;
+    }
+
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return;
+    const clamped = Math.min(255, Math.max(0, Math.round(numeric)));
+    setThreshold(clamped);
+  };
+
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-      <div className="flex flex-col gap-2 min-w-[12rem]">
+    <div className="flex flex-wrap items-center gap-4">
+      <div className={`${PANEL_CLASSES.controlsRow} gap-4`}> 
         <SwitchControl label={t('contiguous')} enabled={contiguous} setEnabled={setContiguous} />
-        <Slider
-          label={t('threshold')}
-          value={threshold}
-          setValue={setThreshold}
-          min={0}
-          max={255}
-          step={1}
-          onInteractionStart={() => {}}
-          onInteractionEnd={() => {}}
-        />
+        <div className={`${PANEL_CLASSES.control} text-sm`}>
+          <label htmlFor={thresholdInputId} className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>
+            {t('threshold')}
+          </label>
+          <div className={PANEL_CLASSES.inputWrapper}>
+            <input
+              id={thresholdInputId}
+              type="number"
+              min={0}
+              max={255}
+              step={1}
+              value={threshold}
+              onChange={(event) => handleThresholdChange(event.target.value)}
+              className={`${PANEL_CLASSES.input} text-sm`}
+            />
+          </div>
+        </div>
       </div>
-      <p className="text-xs text-[var(--text-secondary)] max-w-[14rem] sm:max-w-[18rem]">
+      <p className="text-xs text-[var(--text-secondary)] max-w-[18rem] flex-1 min-w-[12rem]">
         {t('cropToolbar.instructions')}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-auto">
         <button
           type="button"
           onClick={handleApply}
