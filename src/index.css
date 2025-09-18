@@ -63,6 +63,7 @@
   --ui-element-bg-hover: var(--oc-gray-8);
   --ui-element-bg-active: var(--oc-gray-7);
   --ui-element-bg-inactive: rgba(0, 0, 0, 0.3);
+  --timeline-panel-height: 0px;
 
   /* Canvas Specific */
   --grid-line: rgba(var(--oc-gray-7-rgb), 0.5);

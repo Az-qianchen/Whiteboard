@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import PanelButton from '@/components/PanelButton';
-import { ICONS } from '@/constants';
+import { ICONS, getTimelinePanelBottomOffset } from '@/constants';
 import { useAppContext } from '@/context/AppContext';
 
 /**
@@ -15,8 +15,8 @@ export const CropToolbar: React.FC = () => {
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+      className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]"
+      style={{ bottom: getTimelinePanelBottomOffset(isTimelineCollapsed) }}
     >
       <PanelButton
         type="button"
