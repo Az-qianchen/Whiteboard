@@ -57,12 +57,12 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]"
+      className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-wrap items-start gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)]"
       style={{ bottom: timelineBottomOffset }}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm text-[var(--text-secondary)]">{t('cropMode')}</span>
-        <div className="flex items-center gap-1 bg-[var(--ui-element-bg)] rounded-lg p-1">
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-[var(--text-secondary)]">{t('cropMode')}</span>
+        <div className="flex items-center gap-1 rounded-lg bg-[var(--ui-element-bg)] p-1">
           <button
             type="button"
             className={`flex items-center gap-1 rounded-md px-3 py-1 text-sm font-medium transition-colors ${
@@ -155,7 +155,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <PanelButton
           type="button"
           title={t('cancel')}
