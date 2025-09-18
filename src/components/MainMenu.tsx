@@ -154,7 +154,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
         </Tab.List>
 
         <Tab.Panels className="flex-grow min-h-0 overflow-hidden">
-          <Tab.Panel className="flex flex-col gap-1 h-full focus:outline-none overflow-y-auto layers-panel-list pr-1">
+          <Tab.Panel className="flex flex-col gap-1 h-full focus:outline-none overflow-y-auto layers-panel-list">
             {menuActions.map((action, index) => {
               if (action.label === '---') {
                 return <div key={`sep-${index}`} className="border-b border-[var(--ui-separator)] my-2" />;
@@ -173,7 +173,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                         variant="unstyled"
                         ref={ref as any}
                         onClick={onClick}
-                        className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
+                        className="w-full h-7 flex items-center gap-2 px-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
                         <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.BACKGROUND_COLOR}</div>
                         <span className="flex-grow">{t('canvasBackground')}</span>
@@ -206,7 +206,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                         ref={ref as any}
                         onClick={onClick}
                         disabled={!canExport}
-                        className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 ring-[var(--accent-primary)]"
+                        className="w-full h-7 flex items-center gap-2 px-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 ring-[var(--accent-primary)]"
                       >
                         <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.COPY_PNG}</div>
                         <span className="flex-grow">{action.label}</span>
@@ -230,7 +230,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                           ref={ref}
                           onClick={onClick}
                           disabled={frameCount <= 1}
-                          className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
+                          className="w-full h-7 flex items-center gap-2 px-2 rounded-md text-left text-sm transition-colors text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 ring-[var(--accent-primary)]"
                         >
                           <div className="w-4 h-4 flex flex-shrink-0 items-center justify-center text-[var(--text-secondary)]">{ICONS.PLAY}</div>
                           <span className="flex-grow">{action.label}</span>
@@ -266,7 +266,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
                   }
                 }}
                 disabled={isDisabled}
-                className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full h-7 flex items-center gap-2 px-2 rounded-md text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   action.isDanger
                     ? 'text-[var(--danger-text)] hover:bg-[var(--danger-bg)] focus:bg-[var(--danger-bg)]'
                     : 'text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)] focus:bg-[var(--ui-hover-bg)]'
