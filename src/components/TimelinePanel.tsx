@@ -2,7 +2,7 @@
  * 本文件定义了应用底部的时间线面板。
  * 它提供了动画播放控制和关键帧编辑的界面。
  */
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
 import { Transition } from '@headlessui/react';
@@ -82,46 +82,75 @@ export const TimelinePanel: React.FC = () => {
     } = useAppContext();
 
     const panelRef = useRef<HTMLDivElement | null>(null);
+    const lastKnownHeightRef = useRef(0);
 
-    const updateTimelineHeight = useCallback(() => {
+    const setTimelinePanelHeight = useCallback((value: number) => {
         if (typeof document === 'undefined') return;
-        const element = panelRef.current;
-        const height = element?.getBoundingClientRect().height ?? 0;
-        document.documentElement.style.setProperty('--timeline-panel-height', `${height}px`);
+        const sanitizedValue = Number.isFinite(value) ? Math.max(0, value) : 0;
+        document.documentElement.style.setProperty('--timeline-panel-height', `${sanitizedValue}px`);
     }, []);
 
-    useEffect(() => {
-        updateTimelineHeight();
-    }, [isTimelineCollapsed, updateTimelineHeight]);
+    useLayoutEffect(() => {
+        if (typeof document === 'undefined') return;
 
-    useEffect(() => {
-        if (typeof document === 'undefined') {
-            return () => {};
+        if (isTimelineCollapsed) {
+            setTimelinePanelHeight(0);
+            return;
         }
 
         const element = panelRef.current;
-        const handleUpdate = () => updateTimelineHeight();
+        if (!element) return;
 
-        let observer: ResizeObserver | null = null;
+        const measuredHeight = element.scrollHeight || element.getBoundingClientRect().height;
+        const nextHeight = measuredHeight || lastKnownHeightRef.current;
 
-        if (element && typeof ResizeObserver !== 'undefined') {
-            observer = new ResizeObserver(handleUpdate);
+        if (nextHeight > 0) {
+            lastKnownHeightRef.current = nextHeight;
+            setTimelinePanelHeight(nextHeight);
+        }
+    }, [isTimelineCollapsed, setTimelinePanelHeight]);
+
+    useEffect(() => {
+        const element = panelRef.current;
+        if (!element) return undefined;
+
+        const handleUpdate = () => {
+            if (isTimelineCollapsed) return;
+            const height = element.getBoundingClientRect().height;
+            if (height <= 0) return;
+            lastKnownHeightRef.current = height;
+            setTimelinePanelHeight(height);
+        };
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(handleUpdate);
             observer.observe(element);
-        } else if (typeof window !== 'undefined') {
-            window.addEventListener('resize', handleUpdate);
+            if (!isTimelineCollapsed) {
+                handleUpdate();
+            }
+            return () => observer.disconnect();
         }
 
-        handleUpdate();
-
-        return () => {
-            if (observer) {
-                observer.disconnect();
-            } else if (typeof window !== 'undefined') {
-                window.removeEventListener('resize', handleUpdate);
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', handleUpdate);
+            if (!isTimelineCollapsed) {
+                handleUpdate();
             }
+            return () => window.removeEventListener('resize', handleUpdate);
+        }
+
+        if (!isTimelineCollapsed) {
+            handleUpdate();
+        }
+
+        return undefined;
+    }, [isTimelineCollapsed, setTimelinePanelHeight]);
+
+    useEffect(() => () => {
+        if (typeof document !== 'undefined') {
             document.documentElement.style.removeProperty('--timeline-panel-height');
-        };
-    }, [updateTimelineHeight]);
+        }
+    }, []);
 
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dropIndicator, setDropIndicator] = useState<{ index: number; side: 'left' | 'right' } | null>(null);

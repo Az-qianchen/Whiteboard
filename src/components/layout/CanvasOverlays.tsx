@@ -6,7 +6,7 @@ import React, { useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
-import { CONTROL_BUTTON_CLASS, TIMELINE_PANEL_BOTTOM_OFFSET } from '@/constants';
+import { CONTROL_BUTTON_CLASS, getTimelinePanelBottomOffset } from '@/constants';
 import { Toolbar } from '../Toolbar';
 import { SelectionToolbar } from '../SelectionToolbar';
 import { ContextMenu } from '../ContextMenu';
@@ -163,6 +163,11 @@ export const CanvasOverlays: React.FC = () => {
     }, [selectedPathIds.length, canGroup, canUngroup, canConvertToPath, styleClipboard, tool, selectionMode, contextMenu, handleCut, handleCopy, handlePaste, handleCopyStyle, handlePasteStyle, handleFlip, handleGroup, handleUngroup, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleCopyAsSvg, handleCopyAsPng, handleConvertToPath]);
     
 
+    const timelineBottomOffset = useMemo(
+        () => getTimelinePanelBottomOffset(isTimelineCollapsed),
+        [isTimelineCollapsed]
+    );
+
     return (
         <>
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
@@ -173,7 +178,7 @@ export const CanvasOverlays: React.FC = () => {
             {tool === 'selection' && !croppingState && selectedPathIds.length > 0 && (
                 <div
                     className="absolute left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ease-in-out"
-                    style={{ bottom: TIMELINE_PANEL_BOTTOM_OFFSET }}
+                    style={{ bottom: timelineBottomOffset }}
                 >
                     <SelectionToolbar
                         selectionMode={selectionMode} setSelectionMode={store.setSelectionMode}
@@ -216,7 +221,7 @@ export const CanvasOverlays: React.FC = () => {
             <div
                 className="absolute left-4 z-30 flex items-center gap-2"
                 style={{
-                    bottom: TIMELINE_PANEL_BOTTOM_OFFSET,
+                    bottom: timelineBottomOffset,
                     transition: 'bottom 300ms ease-in-out'
                 }}
             >
