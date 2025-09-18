@@ -496,26 +496,23 @@ export const useAppStore = () => {
         img.onerror = err => reject(err);
       });
 
+      const naturalWidth = img.naturalWidth || img.width;
+      const naturalHeight = img.naturalHeight || img.height;
+      const scaleX = naturalWidth / originalPath.width;
+      const scaleY = naturalHeight / originalPath.height;
+
+      const sourceX = (cropRect.x - originalPath.x) * scaleX;
+      const sourceY = (cropRect.y - originalPath.y) * scaleY;
+      const sourceWidth = Math.max(1, Math.round(cropRect.width * scaleX));
+      const sourceHeight = Math.max(1, Math.round(cropRect.height * scaleY));
+
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(cropRect.width);
-      canvas.height = Math.round(cropRect.height);
+      canvas.width = sourceWidth;
+      canvas.height = sourceHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const sourceX = cropRect.x - originalPath.x;
-      const sourceY = cropRect.y - originalPath.y;
-
-      ctx.drawImage(
-        img,
-        sourceX,
-        sourceY,
-        canvas.width,
-        canvas.height,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+      ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
 
       const newSrc = canvas.toDataURL();
       const rotation = originalPath.rotation ?? 0;
