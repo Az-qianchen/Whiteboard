@@ -39,17 +39,28 @@ export function resizePath(
 
   const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = originalPath;
 
-  const anchor = {
-    x: handle.includes('left') ? oldX + oldWidth : oldX,
-    y: handle.includes('top') ? oldY + oldHeight : oldY,
-  };
-
-  if (handle === 'top' || handle === 'bottom') {
-    anchor.x = localInitialPos.x < defaultCenter.x ? oldX + oldWidth : oldX;
-  }
-  if (handle === 'left' || handle === 'right') {
-    anchor.y = localInitialPos.y < defaultCenter.y ? oldY + oldHeight : oldY;
-  }
+  const anchor: Point = (() => {
+    switch (handle) {
+      case 'top-left':
+        return { x: oldX + oldWidth, y: oldY + oldHeight };
+      case 'top-right':
+        return { x: oldX, y: oldY + oldHeight };
+      case 'bottom-left':
+        return { x: oldX + oldWidth, y: oldY };
+      case 'bottom-right':
+        return { x: oldX, y: oldY };
+      case 'top':
+        return { x: oldX + oldWidth / 2, y: oldY + oldHeight };
+      case 'bottom':
+        return { x: oldX + oldWidth / 2, y: oldY };
+      case 'left':
+        return { x: oldX + oldWidth, y: oldY + oldHeight / 2 };
+      case 'right':
+        return { x: oldX, y: oldY + oldHeight / 2 };
+      default:
+        return defaultCenter;
+    }
+  })();
 
   const anchorGlobal = rotation ? rotatePoint(anchor, pivot, rotation) : anchor;
 
@@ -84,23 +95,14 @@ export function resizePath(
     }
   }
 
-  let scaleX = affectsX ? Math.abs(newWidth / baseWidth) : 1;
-  let scaleY = affectsY ? Math.abs(newHeight / baseHeight) : 1;
+  const appliesToX = affectsX || (keepAspectRatio && affectsY);
+  const appliesToY = affectsY || (keepAspectRatio && affectsX);
 
-  if (affectsX) {
-    const baseSign = Math.sign(dxInitialLocal);
-    const currentSign = Math.sign(dxLocal);
-    if (baseSign && currentSign && baseSign !== currentSign) {
-      scaleX *= -1;
-    }
-  }
-  if (affectsY) {
-    const baseSign = Math.sign(dyInitialLocal);
-    const currentSign = Math.sign(dyLocal);
-    if (baseSign && currentSign && baseSign !== currentSign) {
-      scaleY *= -1;
-    }
-  }
+  const rawScaleX = baseWidth === 0 ? 1 : newWidth / baseWidth;
+  const rawScaleY = baseHeight === 0 ? 1 : newHeight / baseHeight;
+
+  const scaleX = appliesToX ? rawScaleX : 1;
+  const scaleY = appliesToY ? rawScaleY : 1;
 
   let result = scalePath(originalPath, anchor, scaleX, scaleY);
 
