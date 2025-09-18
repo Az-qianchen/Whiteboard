@@ -154,7 +154,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
         </Tab.List>
 
         <Tab.Panels className="flex-grow min-h-0 overflow-hidden">
-          <Tab.Panel className="flex flex-col gap-1 h-full focus:outline-none overflow-y-auto layers-panel-list pr-1">
+          <Tab.Panel className="flex flex-col gap-1 h-full focus:outline-none overflow-y-auto layers-panel-list">
             {menuActions.map((action, index) => {
               if (action.label === '---') {
                 return <div key={`sep-${index}`} className="border-b border-[var(--ui-separator)] my-2" />;
