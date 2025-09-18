@@ -84,23 +84,14 @@ export function resizePath(
     }
   }
 
-  let scaleX = affectsX ? Math.abs(newWidth / baseWidth) : 1;
-  let scaleY = affectsY ? Math.abs(newHeight / baseHeight) : 1;
+  const appliesToX = affectsX || (keepAspectRatio && affectsY);
+  const appliesToY = affectsY || (keepAspectRatio && affectsX);
 
-  if (affectsX) {
-    const baseSign = Math.sign(dxInitialLocal);
-    const currentSign = Math.sign(dxLocal);
-    if (baseSign && currentSign && baseSign !== currentSign) {
-      scaleX *= -1;
-    }
-  }
-  if (affectsY) {
-    const baseSign = Math.sign(dyInitialLocal);
-    const currentSign = Math.sign(dyLocal);
-    if (baseSign && currentSign && baseSign !== currentSign) {
-      scaleY *= -1;
-    }
-  }
+  const rawScaleX = baseWidth === 0 ? 1 : newWidth / baseWidth;
+  const rawScaleY = baseHeight === 0 ? 1 : newHeight / baseHeight;
+
+  const scaleX = appliesToX ? rawScaleX : 1;
+  const scaleY = appliesToY ? rawScaleY : 1;
 
   let result = scalePath(originalPath, anchor, scaleX, scaleY);
 
