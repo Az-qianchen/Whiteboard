@@ -78,6 +78,13 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
     }
     case 'group': {
       const groupPath = path as GroupData;
+
+      if (groupPath.mask === 'clip' && groupPath.children.length > 0) {
+        const maskShape = groupPath.children[groupPath.children.length - 1];
+        const maskBbox = getPathBoundingBox(maskShape, includeStroke);
+        return maskBbox || { x: 0, y: 0, width: 0, height: 0 };
+      }
+
       const bbox = getPathsBoundingBox(groupPath.children, includeStroke);
       return bbox || { x: 0, y: 0, width: 0, height: 0 };
     }
