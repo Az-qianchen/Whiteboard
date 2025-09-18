@@ -25,13 +25,15 @@ const useGlobalEventHandlers = () => {
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
     groupIsolationPath, handleExitGroup,
-    croppingState,
+    croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
   } = useAppContext();
 
   const { drawingShape, cancelDrawingShape } = drawingInteraction;
 
   const nudgeTimeoutRef = useRef<number | null>(null);
+  const cropNudgeTimeoutRef = useRef<number | null>(null);
+  const cropHistoryPendingRef = useRef(false);
 
   // Handle keyboard shortcuts using hotkeys-js library
   useEffect(() => {
@@ -200,6 +202,13 @@ const useGlobalEventHandlers = () => {
 
   // Nudge selected items with arrow keys using a native event listener for reliability
   useEffect(() => {
+    const clamp = (value: number, min: number, max: number) => {
+      if (max < min) {
+        return min;
+      }
+      return Math.min(Math.max(value, min), max);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       const { key, shiftKey, target } = event;
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
@@ -208,6 +217,56 @@ const useGlobalEventHandlers = () => {
 
       const activeElement = target as HTMLElement;
       if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable) {
+        return;
+      }
+
+      const amount = shiftKey ? 10 : 1;
+
+      if (croppingState && currentCropRect) {
+        let dx = 0;
+        let dy = 0;
+
+        switch (key) {
+          case 'ArrowUp': dy = -amount; break;
+          case 'ArrowDown': dy = amount; break;
+          case 'ArrowLeft': dx = -amount; break;
+          case 'ArrowRight': dx = amount; break;
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          event.preventDefault();
+
+          setCurrentCropRect(prev => {
+            if (!prev || !croppingState) {
+              return prev;
+            }
+
+            const image = croppingState.originalPath;
+            const maxX = Math.max(image.x, image.x + image.width - prev.width);
+            const maxY = Math.max(image.y, image.y + image.height - prev.height);
+            const nextX = clamp(prev.x + dx, image.x, maxX);
+            const nextY = clamp(prev.y + dy, image.y, maxY);
+
+            if (nextX === prev.x && nextY === prev.y) {
+              return prev;
+            }
+
+            if (!cropHistoryPendingRef.current) {
+              pushCropHistory(prev);
+              cropHistoryPendingRef.current = true;
+            }
+
+            return { ...prev, x: nextX, y: nextY };
+          });
+
+          if (cropNudgeTimeoutRef.current) {
+            clearTimeout(cropNudgeTimeoutRef.current);
+          }
+          cropNudgeTimeoutRef.current = window.setTimeout(() => {
+            cropNudgeTimeoutRef.current = null;
+            cropHistoryPendingRef.current = false;
+          }, 500);
+        }
         return;
       }
 
@@ -220,7 +279,6 @@ const useGlobalEventHandlers = () => {
           clearTimeout(nudgeTimeoutRef.current);
         }
 
-        const amount = shiftKey ? 10 : 1;
         let dx = 0;
         let dy = 0;
 
@@ -253,8 +311,24 @@ const useGlobalEventHandlers = () => {
       if (nudgeTimeoutRef.current) {
         clearTimeout(nudgeTimeoutRef.current);
       }
+      if (cropNudgeTimeoutRef.current) {
+        clearTimeout(cropNudgeTimeoutRef.current);
+        cropNudgeTimeoutRef.current = null;
+      }
+      cropHistoryPendingRef.current = false;
     };
-  }, [tool, selectionMode, selectedPathIds, setPaths, beginCoalescing, endCoalescing]);
+  }, [
+    tool,
+    selectionMode,
+    selectedPathIds,
+    setPaths,
+    beginCoalescing,
+    endCoalescing,
+    croppingState,
+    currentCropRect,
+    setCurrentCropRect,
+    pushCropHistory,
+  ]);
 
   // Global paste handler for images and shapes
   useEffect(() => {
