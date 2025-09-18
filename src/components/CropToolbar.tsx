@@ -5,57 +5,20 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
-import { ICONS } from '@/constants';
+import { ICONS, getTimelinePanelBottomOffset } from '@/constants';
+import { useAppContext } from '@/context/AppContext';
 
-interface CropToolbarProps {
-  isTimelineCollapsed: boolean;
-  cropTool: 'crop' | 'magic-wand';
-  setCropTool: (tool: 'crop' | 'magic-wand') => void;
-  cropMagicWandOptions: { threshold: number; contiguous: boolean };
-  setCropMagicWandOptions: (value: Partial<{ threshold: number; contiguous: boolean }>) => void;
-  cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
-  applyMagicWandSelection: () => void;
-  cancelMagicWandSelection: () => void;
-  confirmCrop: () => void;
-  cancelCrop: () => void;
-}
 
 /**
  * 裁剪模式下显示的工具栏组件，提供裁剪、抠图及确认/取消裁剪等操作。
  */
-export function CropToolbar({
-  isTimelineCollapsed,
-  cropTool,
-  setCropTool,
-  cropMagicWandOptions,
-  setCropMagicWandOptions,
-  cropSelectionContours,
-  applyMagicWandSelection,
-  cancelMagicWandSelection,
-  confirmCrop,
-  cancelCrop,
-}: CropToolbarProps) {
-  const { t } = useTranslation();
-  const hasSelection = useMemo(
-    () => Boolean(cropSelectionContours && cropSelectionContours.length > 0),
-    [cropSelectionContours]
-  );
-
-  const handleThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    if (!Number.isNaN(value)) {
-      setCropMagicWandOptions({ threshold: value });
-    }
-  };
-
-  const handleContiguousToggle = () => {
-    setCropMagicWandOptions({ contiguous: !cropMagicWandOptions.contiguous });
-  };
+export const CropToolbar: React.FC = () => {
+  const { confirmCrop, cancelCrop } = useAppContext();
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col gap-3 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-4 text-[var(--text-primary)] transition-all duration-300 ease-in-out"
-      style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+      className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-2 text-[var(--text-primary)]"
+      style={{ bottom: getTimelinePanelBottomOffset() }}
     >
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm text-[var(--text-secondary)]">{t('cropMode')}</span>
