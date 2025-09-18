@@ -93,13 +93,19 @@ export const TimelinePanel: React.FC = () => {
     useLayoutEffect(() => {
         if (typeof document === 'undefined') return;
 
-        if (isTimelineCollapsed) {
-            setTimelinePanelHeight(0);
+        const element = panelRef.current;
+        if (!element) {
+            if (isTimelineCollapsed) {
+                setTimelinePanelHeight(0);
+            }
             return;
         }
 
-        const element = panelRef.current;
-        if (!element) return;
+        if (isTimelineCollapsed) {
+            const measuredHeight = element.scrollHeight || element.getBoundingClientRect().height || lastKnownHeightRef.current;
+            setTimelinePanelHeight(measuredHeight > 0 ? measuredHeight : 0);
+            return;
+        }
 
         const measuredHeight = element.scrollHeight || element.getBoundingClientRect().height;
         const nextHeight = measuredHeight || lastKnownHeightRef.current;
@@ -115,11 +121,19 @@ export const TimelinePanel: React.FC = () => {
         if (!element) return undefined;
 
         const handleUpdate = () => {
-            if (isTimelineCollapsed) return;
             const height = element.getBoundingClientRect().height;
-            if (height <= 0) return;
-            lastKnownHeightRef.current = height;
-            setTimelinePanelHeight(height);
+
+            if (height > 0) {
+                if (!isTimelineCollapsed) {
+                    lastKnownHeightRef.current = height;
+                }
+                setTimelinePanelHeight(height);
+                return;
+            }
+
+            if (isTimelineCollapsed) {
+                setTimelinePanelHeight(0);
+            }
         };
 
         if (typeof ResizeObserver !== 'undefined') {
