@@ -41,6 +41,12 @@ export const COLORS = [
 export const CONTROL_BUTTON_CLASS =
   'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
 
+export const TIMELINE_PANEL_HEIGHT_VAR = 'var(--timeline-panel-height, 0px)';
+export const TIMELINE_PANEL_BOTTOM_OFFSET = `calc(${TIMELINE_PANEL_HEIGHT_VAR} + 1rem)`;
+export const TIMELINE_PANEL_COLLAPSED_OFFSET = '1rem';
+export const getTimelinePanelBottomOffset = (isCollapsed: boolean) =>
+  isCollapsed ? TIMELINE_PANEL_COLLAPSED_OFFSET : TIMELINE_PANEL_BOTTOM_OFFSET;
+
 // RoughJS 的默认参数
 export const DEFAULT_ROUGHNESS = 2.5;
 export const DEFAULT_BOWING = 1;
