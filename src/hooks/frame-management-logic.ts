@@ -127,7 +127,7 @@ export const recursivelyReorderPaths = (paths: AnyPath[], draggedId: string, tar
           const newChildren = [...(p as GroupData).children, draggedPath!];
           currentPaths[i] = { ...p, children: newChildren };
         } else {
-          const insertIndex = position === 'above' ? i : i + 1;
+          const insertIndex = position === 'above' ? i + 1 : i;
           currentPaths.splice(insertIndex, 0, draggedPath!);
         }
         return currentPaths;
