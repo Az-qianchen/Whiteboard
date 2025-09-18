@@ -342,7 +342,7 @@ export const useAppStore = () => {
     const result = cropMagicWandResultRef.current;
     const { newSrc, imageData } = result;
 
-    pathState.setPaths(prev => prev.map(p =>
+    setActivePaths(prev => prev.map(p =>
       p.id === cropping.pathId ? { ...(p as PathImageData), src: newSrc } : p
     ));
     setCroppingState(prev => (
@@ -359,7 +359,7 @@ export const useAppStore = () => {
     }
     setCropEditedSrc(newSrc);
     clearCropSelection();
-  }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
+  }, [appState.croppingState, setActivePaths, setCroppingState, clearCropSelection]);
 
   const cancelMagicWandSelection = useCallback(() => {
     clearCropSelection();
@@ -440,6 +440,7 @@ export const useAppStore = () => {
   
   const groupIsolation = useGroupIsolation(pathState);
   const { activePaths, activePathState } = groupIsolation;
+  const { setPaths: setActivePaths } = activePathState;
 
   const viewTransform = useViewTransform();
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
@@ -541,7 +542,7 @@ export const useAppStore = () => {
       const newX = newCenter.x - newCenterLocal.x;
       const newY = newCenter.y - newCenterLocal.y;
 
-      pathState.setPaths(prev => prev.map(p =>
+      setActivePaths(prev => prev.map(p =>
         p.id === pathId
           ? { ...(p as PathImageData), src: newSrc, x: newX, y: newY, width: cropRect.width, height: cropRect.height, rotation }
           : p
@@ -557,7 +558,7 @@ export const useAppStore = () => {
     };
 
     void performCrop();
-  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect, cropEditedSrc, clearCropSelection]);
+  }, [appState.croppingState, appState.currentCropRect, setActivePaths, pathState, setCroppingState, setCurrentCropRect, cropEditedSrc, clearCropSelection]);
 
   const cancelCrop = useCallback(() => {
     clearCropSelection();

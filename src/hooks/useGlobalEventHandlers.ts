@@ -15,7 +15,7 @@ const useGlobalEventHandlers = () => {
     selectedPathIds, setSelectedPathIds,
     currentPenPath, handleCancelPenPath, handleFinishPenPath,
     currentLinePath, handleCancelLinePath, handleFinishLinePath,
-    undo: handleUndo, redo: handleRedo, handleDeleteSelected, setPaths,
+    undo: handleUndo, redo: handleRedo, handleDeleteSelected,
     beginCoalescing, endCoalescing,
     tool, selectionMode, handleSetTool: setTool, setSelectionMode,
     drawingInteraction,
@@ -24,10 +24,12 @@ const useGlobalEventHandlers = () => {
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
-    groupIsolationPath, handleExitGroup,
+    groupIsolationPath, handleExitGroup, activePathState,
     croppingState,
     cancelCrop,
   } = useAppContext();
+
+  const { setPaths: setActivePaths } = activePathState;
 
   const { drawingShape, cancelDrawingShape } = drawingInteraction;
 
@@ -211,7 +213,7 @@ const useGlobalEventHandlers = () => {
         return;
       }
 
-      if (tool === 'selection' && selectionMode === 'move' && selectedPathIds.length > 0) {
+      if (tool === 'selection' && selectionMode === 'move' && selectedPathIds.length > 0 && !croppingState) {
         event.preventDefault();
 
         if (!nudgeTimeoutRef.current) {
@@ -232,7 +234,7 @@ const useGlobalEventHandlers = () => {
         }
 
         if (dx !== 0 || dy !== 0) {
-          setPaths((currentPaths: AnyPath[]) =>
+          setActivePaths((currentPaths: AnyPath[]) =>
             currentPaths.map((p) =>
               selectedPathIds.includes(p.id) ? movePath(p, dx, dy) : p
             )
@@ -254,7 +256,7 @@ const useGlobalEventHandlers = () => {
         clearTimeout(nudgeTimeoutRef.current);
       }
     };
-  }, [tool, selectionMode, selectedPathIds, setPaths, beginCoalescing, endCoalescing]);
+  }, [tool, selectionMode, selectedPathIds, croppingState, setActivePaths, beginCoalescing, endCoalescing]);
 
   // Global paste handler for images and shapes
   useEffect(() => {
