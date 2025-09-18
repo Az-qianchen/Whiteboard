@@ -9,7 +9,7 @@ export interface ToolState {
 }
 
 export const useToolStore = create<ToolState>((set) => ({
-  tool: 'brush',
+  tool: 'selection',
   selectionMode: 'move',
   setTool: (t) => set({ tool: t }),
   setSelectionMode: (m) => set({ selectionMode: m }),
