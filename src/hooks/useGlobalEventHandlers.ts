@@ -7,6 +7,7 @@ import React, { useEffect, Dispatch, SetStateAction, useRef } from 'react';
 import hotkeys from 'hotkeys-js';
 import type { AnyPath, DrawingShape, ImageData, Point, Tool, VectorPathData, SelectionMode } from '../types';
 import { movePath } from '../lib/drawing';
+import { recursivelyUpdatePath } from '@/hooks/frame-management-logic';
 import { useAppContext } from '../context/AppContext';
 
 
@@ -290,11 +291,13 @@ const useGlobalEventHandlers = () => {
         }
 
         if (dx !== 0 || dy !== 0) {
-          setPaths((currentPaths: AnyPath[]) =>
-            currentPaths.map((p) =>
-              selectedPathIds.includes(p.id) ? movePath(p, dx, dy) : p
-            )
-          );
+          setPaths((currentPaths: AnyPath[]) => {
+            let updatedPaths = currentPaths;
+            for (const id of selectedPathIds) {
+              updatedPaths = recursivelyUpdatePath(updatedPaths, id, (path) => movePath(path, dx, dy));
+            }
+            return updatedPaths;
+          });
         }
 
         nudgeTimeoutRef.current = window.setTimeout(() => {

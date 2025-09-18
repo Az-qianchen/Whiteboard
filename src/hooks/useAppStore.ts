@@ -13,6 +13,7 @@ import { useSelection } from './useSelection';
 import { usePointerInteraction } from './usePointerInteraction';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
+import { recursivelyUpdatePath } from '@/hooks/frame-management-logic';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
@@ -342,9 +343,12 @@ export const useAppStore = () => {
     const result = cropMagicWandResultRef.current;
     const { newSrc, imageData } = result;
 
-    pathState.setPaths(prev => prev.map(p =>
-      p.id === cropping.pathId ? { ...(p as PathImageData), src: newSrc } : p
-    ));
+    pathState.setPaths(prev =>
+      recursivelyUpdatePath(prev, cropping.pathId, path => ({
+        ...(path as PathImageData),
+        src: newSrc,
+      }))
+    );
     setCroppingState(prev => (
       prev && prev.pathId === cropping.pathId
         ? { ...prev, originalPath: { ...prev.originalPath, src: newSrc } }
@@ -541,11 +545,17 @@ export const useAppStore = () => {
       const newX = newCenter.x - newCenterLocal.x;
       const newY = newCenter.y - newCenterLocal.y;
 
-      pathState.setPaths(prev => prev.map(p =>
-        p.id === pathId
-          ? { ...(p as PathImageData), src: newSrc, x: newX, y: newY, width: cropRect.width, height: cropRect.height, rotation }
-          : p
-      ));
+      pathState.setPaths(prev =>
+        recursivelyUpdatePath(prev, pathId, path => ({
+          ...(path as PathImageData),
+          src: newSrc,
+          x: newX,
+          y: newY,
+          width: cropRect.width,
+          height: cropRect.height,
+          rotation,
+        }))
+      );
 
       setCroppingState(null);
       setCurrentCropRect(null);
