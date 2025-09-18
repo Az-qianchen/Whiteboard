@@ -56,15 +56,34 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
  * @param options 抠图选项
  * @returns 处理后的图像数据及被抠除区域的边界
  */
+export interface MattingResult {
+  image: ImageData;
+  region: { x: number; y: number; width: number; height: number } | null;
+  mask:
+    | {
+        data: Uint8Array;
+        width: number;
+        height: number;
+        bounds: { minX: number; minY: number; maxX: number; maxY: number };
+      }
+    | null;
+  contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }>;
+}
+
 export function removeBackground(
   imageData: ImageData,
   options: MattingOptions
-): { image: ImageData; region: { x: number; y: number; width: number; height: number } | null } {
+): MattingResult {
   const { x, y, threshold = 10, contiguous = true } = options;
   const { width, height } = imageData;
   const src = new Uint8Array(imageData.data);
   if (x < 0 || y < 0 || x >= width || y >= height) {
-    return { image: new ImageData(new Uint8ClampedArray(src), width, height), region: null };
+    return {
+      image: new ImageData(new Uint8ClampedArray(src), width, height),
+      region: null,
+      mask: null,
+      contours: [],
+    };
   }
 
   let mask: { data: Uint8Array; width: number; height: number; bounds: { minX: number; minY: number; maxX: number; maxY: number } } | null;
@@ -106,7 +125,12 @@ export function removeBackground(
   }
 
   if (!mask) {
-    return { image: new ImageData(new Uint8ClampedArray(src), width, height), region: null };
+    return {
+      image: new ImageData(new Uint8ClampedArray(src), width, height),
+      region: null,
+      mask: null,
+      contours: [],
+    };
   }
 
   const result = new Uint8ClampedArray(src);
@@ -120,7 +144,15 @@ export function removeBackground(
     ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
     : null;
 
-  return { image: new ImageData(result, width, height), region };
+  let contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> = [];
+  try {
+    const traced = MagicWand.traceContours(mask);
+    contours = MagicWand.simplifyContours(traced, 0, 30);
+  } catch (error) {
+    console.warn('Failed to trace magic wand contours', error);
+  }
+
+  return { image: new ImageData(result, width, height), region, mask, contours };
 }
 
 function clamp(value: number, min: number, max: number): number {

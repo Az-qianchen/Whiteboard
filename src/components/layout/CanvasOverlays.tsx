@@ -95,6 +95,15 @@ export const CanvasOverlays: React.FC = () => {
         handleTextChange,
         handleTextEditCommit,
         croppingState,
+        cropTool,
+        setCropTool,
+        cropMagicWandOptions,
+        setCropMagicWandOptions,
+        cropSelectionContours,
+        applyMagicWandSelection,
+        cancelMagicWandSelection,
+        confirmCrop,
+        cancelCrop,
         undo: handleUndo,
         canUndo,
         redo: handleRedo,
@@ -197,7 +206,20 @@ export const CanvasOverlays: React.FC = () => {
                 </div>
             )}
             
-            {croppingState && <CropToolbar />}
+            {croppingState && (
+                <CropToolbar
+                    isTimelineCollapsed={isTimelineCollapsed}
+                    cropTool={cropTool}
+                    setCropTool={setCropTool}
+                    cropMagicWandOptions={cropMagicWandOptions}
+                    setCropMagicWandOptions={setCropMagicWandOptions}
+                    cropSelectionContours={cropSelectionContours}
+                    applyMagicWandSelection={applyMagicWandSelection}
+                    cancelMagicWandSelection={cancelMagicWandSelection}
+                    confirmCrop={confirmCrop}
+                    cancelCrop={cancelCrop}
+                />
+            )}
 
             {editingPath && (
                 <TextEditor

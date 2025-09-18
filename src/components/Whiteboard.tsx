@@ -19,6 +19,7 @@ import { ControlsRenderer } from './whiteboard/ControlsRenderer';
 import { Marquee } from './whiteboard/Marquee';
 import { Lasso } from './whiteboard/Lasso';
 import { CropOverlay } from './whiteboard/CropOverlay';
+import { MagicWandOverlay } from './whiteboard/MagicWandOverlay';
 
 
 interface WhiteboardProps {
@@ -51,6 +52,8 @@ interface WhiteboardProps {
   editingTextPathId: string | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
+  cropTool: 'crop' | 'magic-wand';
+  cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
 }
 
 /**
@@ -89,6 +92,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   editingTextPathId,
   croppingState,
   currentCropRect,
+  cropTool,
+  cropSelectionContours,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -211,6 +216,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           />
           
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
+          {croppingState && cropSelectionContours && cropSelectionContours.length > 0 && (
+            <MagicWandOverlay contours={cropSelectionContours} />
+          )}
 
           <ControlsRenderer
             tool={tool}
@@ -223,6 +231,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             hoveredPoint={currentPointerPos}
             croppingState={croppingState}
             currentCropRect={currentCropRect}
+            cropTool={cropTool}
           />
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />

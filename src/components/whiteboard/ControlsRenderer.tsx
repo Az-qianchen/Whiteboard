@@ -324,6 +324,7 @@ interface ControlsRendererProps {
   hoveredPoint: Point | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
+  cropTool: 'crop' | 'magic-wand';
 }
 
 export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
@@ -337,6 +338,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   hoveredPoint,
   croppingState,
   currentCropRect,
+  cropTool,
 }) => {
   // Render controls for a path that is currently being drawn (pen or line)
   if (currentPenPath) {
@@ -352,7 +354,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   }
 
   // Crop mode logic
-  if (croppingState && currentCropRect && selectedPaths.length === 1 && selectedPaths[0].id === croppingState.pathId) {
+  if (cropTool === 'crop' && croppingState && currentCropRect && selectedPaths.length === 1 && selectedPaths[0].id === croppingState.pathId) {
     const path = selectedPaths[0];
     if (path.tool === 'image') {
       return <CropControls croppingState={croppingState} currentCropRect={currentCropRect} scale={scale} />;

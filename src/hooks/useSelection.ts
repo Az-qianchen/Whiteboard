@@ -29,6 +29,8 @@ interface SelectionInteractionProps {
   currentCropRect: BBox | null;
   setCurrentCropRect: React.Dispatch<React.SetStateAction<BBox | null>>;
   pushCropHistory: (rect: BBox) => void;
+  cropTool: 'crop' | 'magic-wand';
+  onMagicWandSample: (point: Point) => void;
 }
 
 /**
@@ -47,6 +49,8 @@ export const useSelection = ({
   currentCropRect,
   setCurrentCropRect,
   pushCropHistory,
+  cropTool,
+  onMagicWandSample,
 }: SelectionInteractionProps) => {
   const [dragState, setDragState] = useState<DragState>(null);
   const [marquee, setMarquee] = useState<{ start: Point; end: Point } | null>(null);
@@ -99,7 +103,7 @@ export const useSelection = ({
       e, point, setDragState, setMarquee, setLassoPath,
       pathState, toolbarState, viewTransform,
       onDoubleClick, lastClickRef, croppingState,
-      currentCropRect,
+      currentCropRect, cropTool, onMagicWandSample,
     });
   };
 
