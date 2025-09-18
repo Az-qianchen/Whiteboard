@@ -16,6 +16,8 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { CollapseToggleButton } from './CollapseToggleButton';
+import { getTimelineOverlayBottomOffset } from './timelinePositioning';
 import type { AnyPath, TextData, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -171,9 +173,9 @@ export const CanvasOverlays: React.FC = () => {
             </div>
 
             {tool === 'selection' && !croppingState && selectedPathIds.length > 0 && (
-                <div 
+                <div
                     className="absolute left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ease-in-out"
-                    style={{ bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)' }}
+                    style={{ bottom: getTimelineOverlayBottomOffset(isTimelineCollapsed, '1rem') }}
                 >
                     <SelectionToolbar
                         selectionMode={selectionMode} setSelectionMode={store.setSelectionMode}
@@ -216,18 +218,18 @@ export const CanvasOverlays: React.FC = () => {
             <div
                 className="absolute left-4 z-30 flex items-center gap-2"
                 style={{
-                    bottom: isTimelineCollapsed ? '1rem' : 'calc(12rem + 1rem)',
+                    bottom: getTimelineOverlayBottomOffset(isTimelineCollapsed),
                     transition: 'bottom 300ms ease-in-out'
                 }}
             >
-                <PanelButton
-                    onClick={() => setIsTimelineCollapsed(prev => !prev)}
-                    title={isTimelineCollapsed ? t('expandTimeline') : t('collapseTimeline')}
-                    variant="unstyled"
-                    className={CONTROL_BUTTON_CLASS}
-                >
-                    <div className={`transition-transform duration-300 ${!isTimelineCollapsed ? 'rotate-180' : ''}`}>{ICONS.CHEVRON_UP}</div>
-                </PanelButton>
+                <CollapseToggleButton
+                    isCollapsed={isTimelineCollapsed}
+                    onToggle={() => setIsTimelineCollapsed(prev => !prev)}
+                    collapsedLabel={t('expandTimeline')}
+                    expandedLabel={t('collapseTimeline')}
+                    icon={ICONS.CHEVRON_UP}
+                    rotateWhen="expanded"
+                />
                 <PanelButton
                     onClick={handleUndo}
                     disabled={!canUndo}
