@@ -541,7 +541,7 @@ export const useAppStore = () => {
       const newX = newCenter.x - newCenterLocal.x;
       const newY = newCenter.y - newCenterLocal.y;
 
-      pathState.setPaths(prev => prev.map(p =>
+      activePathState.setPaths(prev => prev.map(p =>
         p.id === pathId
           ? { ...(p as PathImageData), src: newSrc, x: newX, y: newY, width: cropRect.width, height: cropRect.height, rotation }
           : p
@@ -557,7 +557,7 @@ export const useAppStore = () => {
     };
 
     void performCrop();
-  }, [appState.croppingState, appState.currentCropRect, pathState, setCroppingState, setCurrentCropRect, cropEditedSrc, clearCropSelection]);
+  }, [appState.croppingState, appState.currentCropRect, activePathState, pathState, setCroppingState, setCurrentCropRect, cropEditedSrc, clearCropSelection]);
 
   const cancelCrop = useCallback(() => {
     clearCropSelection();
