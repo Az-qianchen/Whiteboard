@@ -559,6 +559,57 @@ export const useAppStore = () => {
     void performCrop();
   }, [appState.croppingState, appState.currentCropRect, updateActivePaths, pathState, setCroppingState, setCurrentCropRect, cropEditedSrc, clearCropSelection]);
 
+  const nudgeCropRect = useCallback((dx: number, dy: number) => {
+    const cropping = appState.croppingState;
+    if (!cropping || appState.cropTool !== 'crop') {
+      return false;
+    }
+
+    let previousRect: BBox | null = null;
+    let didChange = false;
+
+    setCurrentCropRect(prevRect => {
+      if (!prevRect) return prevRect;
+
+      if (dx === 0 && dy === 0) {
+        return prevRect;
+      }
+
+      const { originalPath } = cropping;
+      const rotation = originalPath.rotation ?? 0;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+
+      const localDx = dx * cos + dy * sin;
+      const localDy = -dx * sin + dy * cos;
+
+      const imageLeft = originalPath.x;
+      const imageTop = originalPath.y;
+      const imageRight = imageLeft + originalPath.width;
+      const imageBottom = imageTop + originalPath.height;
+
+      const maxX = Math.max(imageLeft, imageRight - prevRect.width);
+      const maxY = Math.max(imageTop, imageBottom - prevRect.height);
+
+      const nextX = Math.min(Math.max(imageLeft, prevRect.x + localDx), maxX);
+      const nextY = Math.min(Math.max(imageTop, prevRect.y + localDy), maxY);
+
+      if (nextX === prevRect.x && nextY === prevRect.y) {
+        return prevRect;
+      }
+
+      previousRect = { ...prevRect };
+      didChange = true;
+      return { ...prevRect, x: nextX, y: nextY };
+    });
+
+    if (didChange && previousRect) {
+      setCropHistory(h => ({ past: [...h.past, previousRect as BBox], future: [] }));
+    }
+
+    return didChange;
+  }, [appState.croppingState, appState.cropTool, setCurrentCropRect, setCropHistory]);
+
   const cancelCrop = useCallback(() => {
     clearCropSelection();
     setCropEditedSrc(null);
@@ -762,7 +813,7 @@ export const useAppStore = () => {
     setPngExportOptions, setIsStyleLibraryOpen, setStyleLibraryPosition, setIsTimelineCollapsed,
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
-    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect,
+    showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, nudgeCropRect,
     setCropTool, setCropMagicWandOptions, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
     confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
