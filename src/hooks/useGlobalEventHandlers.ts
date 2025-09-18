@@ -25,6 +25,7 @@ const useGlobalEventHandlers = () => {
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
     groupIsolationPath, handleExitGroup,
+    activePathState,
     croppingState,
     cancelCrop,
   } = useAppContext();
@@ -198,6 +199,8 @@ const useGlobalEventHandlers = () => {
     cancelCrop,
   ]);
 
+  const { setPaths: updateActivePaths } = activePathState;
+
   // Nudge selected items with arrow keys using a native event listener for reliability
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -232,7 +235,7 @@ const useGlobalEventHandlers = () => {
         }
 
         if (dx !== 0 || dy !== 0) {
-          setPaths((currentPaths: AnyPath[]) =>
+          updateActivePaths((currentPaths: AnyPath[]) =>
             currentPaths.map((p) =>
               selectedPathIds.includes(p.id) ? movePath(p, dx, dy) : p
             )
@@ -254,7 +257,7 @@ const useGlobalEventHandlers = () => {
         clearTimeout(nudgeTimeoutRef.current);
       }
     };
-  }, [tool, selectionMode, selectedPathIds, setPaths, beginCoalescing, endCoalescing]);
+  }, [tool, selectionMode, selectedPathIds, updateActivePaths, beginCoalescing, endCoalescing]);
 
   // Global paste handler for images and shapes
   useEffect(() => {
