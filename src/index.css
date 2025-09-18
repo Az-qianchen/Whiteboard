@@ -146,7 +146,7 @@ textarea {
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   }
 
-  .panel-input-wrapper:focus-within {
+  .panel-input-wrapper:not(button):focus-within {
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 2px rgba(var(--oc-blue-6-rgb), 0.2);
   }
