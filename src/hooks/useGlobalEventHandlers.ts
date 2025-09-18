@@ -25,7 +25,11 @@ const useGlobalEventHandlers = () => {
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
     groupIsolationPath, handleExitGroup,
+    activePathState,
     croppingState,
+    currentCropRect,
+    cropTool,
+    nudgeCropRect,
     cancelCrop,
   } = useAppContext();
 
@@ -198,6 +202,8 @@ const useGlobalEventHandlers = () => {
     cancelCrop,
   ]);
 
+  const { setPaths: updateActivePaths } = activePathState;
+
   // Nudge selected items with arrow keys using a native event listener for reliability
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -211,6 +217,33 @@ const useGlobalEventHandlers = () => {
         return;
       }
 
+      const amount = shiftKey ? 10 : 1;
+      let dx = 0;
+      let dy = 0;
+
+      switch (key) {
+        case 'ArrowUp': dy = -amount; break;
+        case 'ArrowDown': dy = amount; break;
+        case 'ArrowLeft': dx = -amount; break;
+        case 'ArrowRight': dx = amount; break;
+      }
+
+      const isCroppingSelection =
+        cropTool === 'crop' &&
+        Boolean(croppingState && currentCropRect) &&
+        selectedPathIds.length === 1 &&
+        croppingState?.pathId === selectedPathIds[0];
+
+      if (isCroppingSelection) {
+        event.preventDefault();
+
+        if (dx !== 0 || dy !== 0) {
+          nudgeCropRect(dx, dy);
+        }
+
+        return;
+      }
+
       if (tool === 'selection' && selectionMode === 'move' && selectedPathIds.length > 0) {
         event.preventDefault();
 
@@ -220,19 +253,8 @@ const useGlobalEventHandlers = () => {
           clearTimeout(nudgeTimeoutRef.current);
         }
 
-        const amount = shiftKey ? 10 : 1;
-        let dx = 0;
-        let dy = 0;
-
-        switch (key) {
-          case 'ArrowUp': dy = -amount; break;
-          case 'ArrowDown': dy = amount; break;
-          case 'ArrowLeft': dx = -amount; break;
-          case 'ArrowRight': dx = amount; break;
-        }
-
         if (dx !== 0 || dy !== 0) {
-          setPaths((currentPaths: AnyPath[]) =>
+          updateActivePaths((currentPaths: AnyPath[]) =>
             currentPaths.map((p) =>
               selectedPathIds.includes(p.id) ? movePath(p, dx, dy) : p
             )
@@ -254,7 +276,18 @@ const useGlobalEventHandlers = () => {
         clearTimeout(nudgeTimeoutRef.current);
       }
     };
-  }, [tool, selectionMode, selectedPathIds, setPaths, beginCoalescing, endCoalescing]);
+  }, [
+    tool,
+    selectionMode,
+    selectedPathIds,
+    updateActivePaths,
+    beginCoalescing,
+    endCoalescing,
+    cropTool,
+    croppingState,
+    currentCropRect,
+    nudgeCropRect,
+  ]);
 
   // Global paste handler for images and shapes
   useEffect(() => {
