@@ -4,14 +4,14 @@ import { useToolStore } from '@/context/toolStore';
 
 // 每次测试前重置状态
 beforeEach(() => {
-  useToolStore.setState({ tool: 'brush', selectionMode: 'move' });
+  useToolStore.setState({ tool: 'selection', selectionMode: 'move' });
 });
 
 describe('useToolStore', () => {
   // 验证默认状态
-  it('default state is brush/move', () => {
+  it('default state is selection/move', () => {
     const state = useToolStore.getState();
-    expect(state.tool).toBe('brush');
+    expect(state.tool).toBe('selection');
     expect(state.selectionMode).toBe('move');
   });
 
