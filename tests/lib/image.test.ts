@@ -1,6 +1,6 @@
 // 图像处理工具测试
 
-import { adjustHsv, removeBackground } from '@/lib/image';
+import { adjustHsv, removeBackground, getOpaqueBounds } from '@/lib/image';
 import { expect, test } from 'vitest';
 
 class StubImageData {
@@ -40,4 +40,22 @@ test('魔法棒抠除连续区域', () => {
   expect(nonContiguous.image.data[3]).toBe(0); // 第一个像素
   expect(nonContiguous.image.data[11]).toBe(0); // 第三个白色也被抠除
   expect(nonContiguous.region).toEqual({ x: 0, y: 0, width: 3, height: 1 });
+});
+
+test('获取不透明区域边界', () => {
+  const pixels = new Uint8ClampedArray([
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    255, 255, 255, 200,
+    0, 0, 0, 0,
+    255, 0, 0, 255,
+    255, 0, 0, 255,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+  ]);
+  const imageData = new ImageData(pixels, 2, 4);
+  const bounds = getOpaqueBounds(imageData, 0);
+  expect(bounds).toEqual({ x: 0, y: 1, width: 2, height: 2 });
+  const emptyBounds = getOpaqueBounds(new ImageData(new Uint8ClampedArray(8), 2, 1));
+  expect(emptyBounds).toBeNull();
 });
