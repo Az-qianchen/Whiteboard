@@ -26,6 +26,7 @@ interface PointerInteractionProps {
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  onSampleStrokeColor?: (e: React.PointerEvent<SVGSVGElement>) => boolean;
 }
 
 /**
@@ -37,9 +38,15 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  onSampleStrokeColor,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
+  const altPanState = React.useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
 
   // 处理指针按下
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -48,9 +55,22 @@ export const usePointerInteraction = ({
       if (viewTransform.isPinching) return;
     }
     // Middle-mouse-button panning is always available
-    if (e.button === 1 || (e.altKey && tool !== 'selection')) {
+    if (e.button === 1) {
       e.currentTarget.setPointerCapture(e.pointerId);
       setIsPanning(true);
+      return;
+    }
+    if (e.altKey && tool !== 'selection') {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      if (e.button === 0 && onSampleStrokeColor) {
+        altPanState.current = {
+          pointerId: e.pointerId,
+          startX: e.clientX,
+          startY: e.clientY,
+        };
+      } else {
+        setIsPanning(true);
+      }
       return;
     }
     if (e.button !== 0) return;
@@ -68,6 +88,22 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchMove(e);
       if (viewTransform.isPinching) return;
     }
+    if (altPanState.current && altPanState.current.pointerId === e.pointerId) {
+      const { startX, startY } = altPanState.current;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const distanceSq = dx * dx + dy * dy;
+      const thresholdSq = 16; // ~4px movement before starting pan
+
+      if (!isPanning) {
+        if (distanceSq > thresholdSq) {
+          setIsPanning(true);
+          viewTransform.handlePanMove(e);
+        }
+        return;
+      }
+    }
+
     if (isPanning) {
       viewTransform.handlePanMove(e);
       return;
@@ -86,6 +122,20 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchEnd(e);
       if (viewTransform.isPinching) return;
     }
+    if (altPanState.current && altPanState.current.pointerId === e.pointerId) {
+      if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+
+      if (isPanning) {
+        setIsPanning(false);
+      } else {
+        onSampleStrokeColor?.(e);
+      }
+      altPanState.current = null;
+      return;
+    }
+
     if (isPanning) {
       if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -107,6 +157,14 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchEnd(e);
       if (viewTransform.isPinching) return;
     }
+    if (altPanState.current && altPanState.current.pointerId === e.pointerId) {
+      if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      altPanState.current = null;
+      return;
+    }
+
     if (isPanning) {
       if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);

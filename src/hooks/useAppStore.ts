@@ -19,6 +19,7 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
+import { findDeepestHitPath } from '@/lib/hit-testing';
 import { removeBackground } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
@@ -508,11 +509,15 @@ export const useAppStore = () => {
   }, [canClearAllData, pathState, showConfirmation, setSelectedPathIds]);
   
   const groupIsolation = useGroupIsolation(pathState);
-  const { activePaths, activePathState } = groupIsolation;
+  const { activePaths, activePathState, backgroundPaths } = groupIsolation;
 
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
+  const { setColor: setStrokeColor, firstSelectedPath } = toolbarState;
+  const { beginCoalescing, endCoalescing } = pathState;
+  const { getPointerPosition } = viewTransform;
+  const transformState = viewTransform.viewTransform;
   
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
@@ -679,7 +684,35 @@ export const useAppStore = () => {
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });
-  const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
+  const handleSampleStrokeColor = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    const svg = e.currentTarget;
+    if (!svg) {
+      return false;
+    }
+
+    const point = getPointerPosition(e, svg);
+    const scale = transformState.scale;
+    let hitPath = findDeepestHitPath(point, activePaths, scale);
+    if (!hitPath && backgroundPaths.length > 0) {
+      hitPath = findDeepestHitPath(point, backgroundPaths, scale);
+    }
+
+    if (!hitPath || !hitPath.color) {
+      return false;
+    }
+
+    if (firstSelectedPath) {
+      beginCoalescing();
+      setStrokeColor(hitPath.color);
+      endCoalescing();
+    } else {
+      setStrokeColor(hitPath.color);
+    }
+
+    return true;
+  }, [getPointerPosition, transformState, activePaths, backgroundPaths, firstSelectedPath, beginCoalescing, endCoalescing, setStrokeColor]);
+
+  const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction, onSampleStrokeColor: handleSampleStrokeColor });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
