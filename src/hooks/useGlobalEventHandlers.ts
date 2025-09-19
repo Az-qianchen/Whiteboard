@@ -31,7 +31,7 @@ const useGlobalEventHandlers = () => {
     cancelCrop,
   } = useAppContext();
 
-  const { setPaths: setActivePaths } = activePathState;
+  const { setPaths: setActivePaths, paths: activePaths } = activePathState;
 
   const { drawingShape, cancelDrawingShape } = drawingInteraction;
 
@@ -107,6 +107,32 @@ const useGlobalEventHandlers = () => {
       handleUngroup();
     });
 
+    hotkeys('command+a, ctrl+a', (event) => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isInput =
+        activeElement?.tagName === 'INPUT' ||
+        activeElement?.tagName === 'TEXTAREA' ||
+        activeElement?.isContentEditable;
+
+      if (isInput) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const unlockedIds = activePaths
+        .filter(path => path.isLocked !== true)
+        .map(path => path.id);
+
+      if (unlockedIds.length === 0) {
+        setSelectedPathIds([]);
+        return;
+      }
+
+      setSelectedPathIds(unlockedIds);
+      setTool('selection');
+    });
+
     // --- Group 2: Shortcuts that MUST fire even in input fields ---
     // We temporarily override the filter for these.
     const originalFilter = hotkeys.filter;
@@ -168,6 +194,7 @@ const useGlobalEventHandlers = () => {
       hotkeys.unbind('command+s, ctrl+s');
       hotkeys.unbind('command+g, ctrl+g');
       hotkeys.unbind('command+shift+g, ctrl+shift+g');
+      hotkeys.unbind('command+a, ctrl+a');
     };
   }, [
     selectedPathIds,
@@ -202,6 +229,7 @@ const useGlobalEventHandlers = () => {
     handleExitGroup,
     croppingState,
     cancelCrop,
+    activePaths,
   ]);
 
   // Nudge selected items with arrow keys using a native event listener for reliability

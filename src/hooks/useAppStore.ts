@@ -22,6 +22,7 @@ import { measureText, rotatePoint } from '@/lib/drawing';
 import { removeBackground } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
+
 import { createDocumentSignature } from '@/lib/document';
 
 type ConfirmationDialogState = {
@@ -427,6 +428,40 @@ export const useAppStore = () => {
     });
   }, [appState.currentCropRect, setCurrentCropRect]);
 
+  const trimTransparentEdges = useCallback(() => {
+    const cropping = appState.croppingState;
+    const cache = cropImageCacheRef.current;
+    if (!cropping || !cache) return;
+
+    const bounds = getOpaqueBounds(cache.imageData);
+    if (!bounds) return;
+
+    const scaleX = cropping.originalPath.width / cache.naturalWidth;
+    const scaleY = cropping.originalPath.height / cache.naturalHeight;
+    const newRect: BBox = {
+      x: cropping.originalPath.x + bounds.x * scaleX,
+      y: cropping.originalPath.y + bounds.y * scaleY,
+      width: bounds.width * scaleX,
+      height: bounds.height * scaleY,
+    };
+
+    const prevRect = appState.currentCropRect ?? {
+      x: cropping.originalPath.x,
+      y: cropping.originalPath.y,
+      width: cropping.originalPath.width,
+      height: cropping.originalPath.height,
+    };
+
+    const delta = Math.abs(prevRect.x - newRect.x)
+      + Math.abs(prevRect.y - newRect.y)
+      + Math.abs(prevRect.width - newRect.width)
+      + Math.abs(prevRect.height - newRect.height);
+    if (delta < 1e-6) return;
+
+    pushCropHistory(prevRect);
+    setCurrentCropRect(newRect);
+  }, [appState.croppingState, appState.currentCropRect, pushCropHistory, setCurrentCropRect]);
+
   const showConfirmation = useCallback((title: string, message: string, onConfirm: () => void | Promise<void>, confirmButtonText?: string) => {
     setConfirmationDialog({
       isOpen: true,
@@ -810,7 +845,7 @@ export const useAppStore = () => {
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
     setCropTool, setCropMagicWandOptions, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
-    confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
+    confirmCrop, trimTransparentEdges, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,
     handleResetPreferences,
