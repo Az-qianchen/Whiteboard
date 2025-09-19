@@ -314,6 +314,11 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
+  const clearManualDraftState = useCallback(() => {
+    cropManualDraftRef.current = null;
+    setAppState(s => ({ ...s, cropManualDraft: null }));
+  }, []);
+
   const setCropTool = useCallback((tool: AppState['cropTool']) => {
     if (tool !== 'magic-wand') {
       clearManualDraftState();
@@ -337,11 +342,6 @@ export const useAppStore = () => {
     cropMagicWandMaskRef.current = null;
     cropManualDraftRef.current = null;
     setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
-  }, []);
-
-  const clearManualDraftState = useCallback(() => {
-    cropManualDraftRef.current = null;
-    setAppState(s => ({ ...s, cropManualDraft: null }));
   }, []);
 
   const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
