@@ -240,18 +240,24 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
  * @param scale The current canvas zoom scale.
  * @returns The hit path, or null if no path was hit.
  */
-export function findDeepestHitPath(point: Point, paths: AnyPath[], scale: number): AnyPath | null {
+export function findDeepestHitPath(
+    point: Point,
+    paths: AnyPath[],
+    scale: number,
+    options?: { includeLocked?: boolean }
+): AnyPath | null {
+    const includeLocked = options?.includeLocked ?? false;
     // Iterate from top to bottom (visually), which is reverse order in the array.
     for (let i = paths.length - 1; i >= 0; i--) {
         const path = paths[i];
-        if (path.isLocked) continue;
+        if (path.isLocked && !includeLocked) continue;
 
         // If it's a group, recurse into its children.
         if (path.tool === 'group') {
             // If the group is collapsed, we shouldn't be able to click its children.
             if ((path as GroupData).isCollapsed) continue;
-            
-            const hitChild = findDeepestHitPath(point, (path as GroupData).children, scale);
+
+            const hitChild = findDeepestHitPath(point, (path as GroupData).children, scale, options);
             if (hitChild) {
                 return hitChild; // Return the specific child that was hit.
             }

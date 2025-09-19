@@ -692,9 +692,9 @@ export const useAppStore = () => {
 
     const point = getPointerPosition(e, svg);
     const scale = transformState.scale;
-    let hitPath = findDeepestHitPath(point, activePaths, scale);
+    let hitPath = findDeepestHitPath(point, activePaths, scale, { includeLocked: true });
     if (!hitPath && backgroundPaths.length > 0) {
-      hitPath = findDeepestHitPath(point, backgroundPaths, scale);
+      hitPath = findDeepestHitPath(point, backgroundPaths, scale, { includeLocked: true });
     }
 
     if (!hitPath || !hitPath.color) {
