@@ -25,6 +25,7 @@ import {
   Play, Pause, Rewind, ChevronUp, Wand2,SquaresExclude,SquaresIntersect,SquaresSubtract,SquaresUnite,
   SquareDashed,
   RotateCcw,
+  Crop,
 } from 'lucide-react';
 
 
@@ -198,6 +199,7 @@ export const ICONS = {
   GRIP: <GripVertical className="h-4 w-4" />,
   MASK: <Blend className="h-5 w-5" />,
   REMOVE_BG: <Eraser className="h-5 w-5" />,
+  CROP_TRIM: <Crop className="h-5 w-5" />,
   PLAY: <Play className="h-5 w-5" />,
   PAUSE: <Pause className="h-5 w-5" />,
   REWIND: <Rewind className="h-5 w-5" />,
