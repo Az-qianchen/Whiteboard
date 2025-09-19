@@ -155,6 +155,47 @@ export function removeBackground(
   return { image: new ImageData(result, width, height), region, mask, contours };
 }
 
+/**
+ * 计算图像中具有不透明像素的最小包围盒。
+ * @param imageData 原始图像数据
+ * @param alphaThreshold 透明度阈值，默认 0（大于该阈值视为不透明）
+ * @returns 不透明区域的矩形边界；若整张图像透明则返回 null
+ */
+export function getOpaqueBounds(
+  imageData: ImageData,
+  alphaThreshold = 0
+): { x: number; y: number; width: number; height: number } | null {
+  const { width, height, data } = imageData;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) {
+      const idx = (rowOffset + x) * 4 + 3;
+      if (data[idx] > alphaThreshold) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

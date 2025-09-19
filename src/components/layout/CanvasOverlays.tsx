@@ -104,6 +104,7 @@ export const CanvasOverlays: React.FC = () => {
         toggleCropSelectionInverted,
         cutMagicWandSelection,
         confirmCrop,
+        trimTransparentEdges,
         cancelCrop,
         undo: handleUndo,
         canUndo,
@@ -211,6 +212,7 @@ export const CanvasOverlays: React.FC = () => {
                     cancelMagicWandSelection={cancelMagicWandSelection}
                     toggleCropSelectionInverted={toggleCropSelectionInverted}
                     cutMagicWandSelection={cutMagicWandSelection}
+                    trimTransparentEdges={trimTransparentEdges}
                     confirmCrop={confirmCrop}
                     cancelCrop={cancelCrop}
                 />

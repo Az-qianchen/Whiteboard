@@ -8,6 +8,7 @@ import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
 import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
+import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 
 /**
  * 将 TextData 对象渲染为 SVG <g> 元素，其中包含一个 <text> 元素。
@@ -238,22 +239,9 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     }
     
     if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'text' || data.tool === 'frame')) {
-        const { x, y, width, height } = data;
-        const cx = x + width / 2;
-        const cy = y + height / 2;
-        const scaleX = data.scaleX ?? 1;
-        const scaleY = data.scaleY ?? 1;
-        if (data.rotation || scaleX !== 1 || scaleY !== 1) {
-            const angleDegrees = (data.rotation || 0) * (180 / Math.PI);
-            const transforms: string[] = [`translate(${cx} ${cy})`];
-            if (data.rotation) {
-                transforms.push(`rotate(${angleDegrees})`);
-            }
-            if (scaleX !== 1 || scaleY !== 1) {
-                transforms.push(`scale(${scaleX} ${scaleY})`);
-            }
-            transforms.push(`translate(${-cx} ${-cy})`);
-            finalElement.setAttribute('transform', transforms.join(' '));
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData);
+        if (!isIdentityMatrix(matrix)) {
+            finalElement.setAttribute('transform', matrixToString(matrix));
         }
     }
 

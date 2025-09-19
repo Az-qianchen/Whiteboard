@@ -158,6 +158,8 @@ export interface RectangleData extends ShapeBase {
   width: number;
   height: number;
   borderRadius?: number;
+  skewX?: number;
+  skewY?: number;
 }
 
 export interface FrameData extends ShapeBase {
@@ -166,6 +168,8 @@ export interface FrameData extends ShapeBase {
   y: number;
   width: number;
   height: number;
+  skewX?: number;
+  skewY?: number;
 }
 
 export interface PolygonData extends ShapeBase {
@@ -176,6 +180,8 @@ export interface PolygonData extends ShapeBase {
   height: number;
   sides: number;
   borderRadius?: number;
+  skewX?: number;
+  skewY?: number;
 }
 
 export interface EllipseData extends ShapeBase {
@@ -184,16 +190,35 @@ export interface EllipseData extends ShapeBase {
   y: number; // top-left corner of bounding box
   width: number;
   height: number;
+  skewX?: number;
+  skewY?: number;
+}
+
+export interface BinaryFileMetadata {
+  id: string;
+  mimeType: string;
+  size: number;
+  created: number;
+  lastModified: number;
+  name?: string;
+}
+
+export interface BinaryFile extends BinaryFileMetadata {
+  blob: Blob;
 }
 
 export interface ImageData extends ShapeBase {
   tool: 'image';
-  src: string; // data URL
+  fileId: string;
+  // Legacy field retained for migrations – new code should rely on fileId.
+  src?: string;
   x: number;
   y: number;
   width: number;
   height: number;
   borderRadius?: number;
+  skewX?: number;
+  skewY?: number;
 }
 
 export interface TextData extends ShapeBase {
@@ -206,6 +231,8 @@ export interface TextData extends ShapeBase {
   y: number;
   width: number;
   height: number;
+  skewX?: number;
+  skewY?: number;
 }
 
 export interface ArcData extends ShapeBase {
@@ -234,6 +261,7 @@ export interface WhiteboardData {
   frames?: Frame[]; // For new version 3
   backgroundColor?: string;
   fps?: number;
+  files?: Record<string, { dataURL: string; mimeType?: string }>; // Legacy export compatibility
 }
 
 // 用于实时手绘的临时路径类型。
@@ -294,6 +322,14 @@ type ScaleDragState = {
   initialSelectionBbox: BBox;
 };
 
+type SkewDragState = {
+  type: 'skew';
+  pathId: string;
+  handle: ResizeHandlePosition;
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData;
+  initialPointerPos: Point;
+};
+
 // A drag state for rotating multiple shapes
 type RotateDragState = {
     type: 'rotate';
@@ -328,7 +364,7 @@ type CropDragState = {
 }
 
 // Union of all possible drag states
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
 
 export interface SelectionPathState {
   paths: AnyPath[];

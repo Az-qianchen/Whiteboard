@@ -2,10 +2,11 @@
  * 本文件负责处理 SVG 导出逻辑。
  * 它使用 `roughjs` 库将内部路径数据转换为 SVG 字符串，并可选择使用 SVGO 进行优化。
  */
-import type { AnyPath, BBox, FrameData, GroupData } from '@/types';
+import type { AnyPath, BBox, FrameData, GroupData, ImageData } from '@/types';
 import rough from 'roughjs/bin/rough';
 import { getPathsBoundingBox } from '@/lib/drawing';
 import { renderPathNode } from '../core/render';
+import { getImageDataUrl } from '@/lib/imageCache';
 
 /**
  * 递归地查找并返回路径树中所有的画框对象。
@@ -87,9 +88,10 @@ export async function pathsToSvgString(paths: AnyPath[], options?: {
 
   const rc = rough.svg(svg);
 
-  const frames = getAllFrames(paths);
+  const preparedPaths = await Promise.all(paths.map(enrichImagePath));
+  const frames = getAllFrames(preparedPaths);
 
-  paths.forEach(pathData => {
+  preparedPaths.forEach(pathData => {
     const node = renderPathNode(rc, pathData);
     if (node) {
       mainGroup.appendChild(node);
@@ -150,3 +152,17 @@ export async function pathsToSvgString(paths: AnyPath[], options?: {
   // If needed later, reintroduce SVGO via a browser-compatible build and dynamic import.
   return rawSvgString;
 }
+const enrichImagePath = async (path: AnyPath): Promise<AnyPath> => {
+  if (path.tool === 'image') {
+    const image = path as ImageData;
+    if (image.src) return image;
+    const src = await getImageDataUrl(image);
+    return { ...image, src };
+  }
+  if (path.tool === 'group') {
+    const group = path as GroupData;
+    const children = await Promise.all(group.children.map(enrichImagePath));
+    return { ...group, children };
+  }
+  return path;
+};
