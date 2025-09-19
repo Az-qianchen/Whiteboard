@@ -15,8 +15,12 @@ interface CropToolbarProps {
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  cropPendingCutoutSrc: string | null;
+  cropSelectionInverted: boolean;
   applyMagicWandSelection: () => void;
   cancelMagicWandSelection: () => void;
+  toggleCropSelectionInverted: () => void;
+  cutMagicWandSelection: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
 }
@@ -31,8 +35,12 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   cropMagicWandOptions,
   setCropMagicWandOptions,
   cropSelectionContours,
+  cropPendingCutoutSrc,
+  cropSelectionInverted,
   applyMagicWandSelection,
   cancelMagicWandSelection,
+  toggleCropSelectionInverted,
+  cutMagicWandSelection,
   confirmCrop,
   cancelCrop,
 }) => {
@@ -41,6 +49,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   const hasSelection = useMemo(
     () => (cropSelectionContours?.length ?? 0) > 0,
     [cropSelectionContours]
+  );
+
+  const canCutSelection = useMemo(
+    () => hasSelection && !!cropPendingCutoutSrc,
+    [hasSelection, cropPendingCutoutSrc]
   );
 
   const timelineBottomOffset = useMemo(
@@ -155,6 +168,31 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           >
             {ICONS.CHECK}
             <span>{t('applySelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={toggleCropSelectionInverted}
+            disabled={!hasSelection}
+            aria-pressed={cropSelectionInverted}
+            className={`${textButtonBase} ${
+              cropSelectionInverted
+                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+            }`}
+          >
+            {ICONS.INVERT_SELECTION}
+            <span>{t('invertSelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={cutMagicWandSelection}
+            disabled={!canCutSelection}
+            className={`${textButtonBase} text-[var(--accent-primary)] hover:bg-[var(--ui-element-bg-hover)]`}
+          >
+            {ICONS.CUT}
+            <span>{t('cutSelection')}</span>
           </PanelButton>
           <PanelButton
             type="button"

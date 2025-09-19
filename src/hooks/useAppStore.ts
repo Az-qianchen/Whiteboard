@@ -133,6 +133,7 @@ interface AppState {
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
+  cropSelectionInverted: boolean;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -184,6 +185,7 @@ const getInitialAppState = (): AppState => ({
   cropMagicWandOptions: { threshold: 20, contiguous: true },
   cropSelectionContours: null,
   cropPendingCutoutSrc: null,
+  cropSelectionInverted: false,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
 });
@@ -210,7 +212,14 @@ export const useAppStore = () => {
     naturalHeight: number;
     imageData: ImageData;
   } | null>(null);
-  const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
+  interface MagicWandSnapshot {
+    imageData: ImageData;
+    src: string;
+    cutoutSrc: string | null;
+    bounds: { x: number; y: number; width: number; height: number } | null;
+  }
+
+  const cropMagicWandResultRef = useRef<{ removed: MagicWandSnapshot; kept: MagicWandSnapshot } | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
 
   const pathState = usePathsStore();
@@ -300,7 +309,12 @@ export const useAppStore = () => {
   const clearCropSelection = useCallback(() => {
     cropMagicWandResultRef.current = null;
     cropMagicWandSampleRef.current = null;
-    setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+    setAppState(s => ({
+      ...s,
+      cropSelectionContours: null,
+      cropPendingCutoutSrc: null,
+      cropSelectionInverted: false,
+    }));
   }, []);
 
   const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
@@ -313,28 +327,100 @@ export const useAppStore = () => {
     const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
     if (!result.mask) {
       cropMagicWandResultRef.current = null;
-      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+      setAppState(s => ({
+        ...s,
+        cropSelectionContours: null,
+        cropPendingCutoutSrc: null,
+        cropSelectionInverted: false,
+      }));
       return;
     }
 
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = cache.naturalWidth;
-    previewCanvas.height = cache.naturalHeight;
-    const previewCtx = previewCanvas.getContext('2d');
-    if (!previewCtx) {
-      console.warn('Unable to preview magic wand selection');
-      return;
-    }
-    previewCtx.putImageData(result.image, 0, 0);
-    const newSrc = previewCanvas.toDataURL();
+    const maskData = result.mask.data;
 
-    cropMagicWandResultRef.current = { imageData: result.image, newSrc };
+    const imageDataToDataUrl = (imageData: ImageData): string => {
+      const canvas = document.createElement('canvas');
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.warn('Unable to convert magic wand result to data URL');
+        return '';
+      }
+      ctx.putImageData(imageData, 0, 0);
+      return canvas.toDataURL();
+    };
+
+    const computeBounds = (invert: boolean): { x: number; y: number; width: number; height: number } | null => {
+      let minX = cache.naturalWidth;
+      let minY = cache.naturalHeight;
+      let maxX = -1;
+      let maxY = -1;
+      for (let py = 0; py < cache.naturalHeight; py++) {
+        for (let px = 0; px < cache.naturalWidth; px++) {
+          const index = py * cache.naturalWidth + px;
+          const selected = invert ? maskData[index] === 0 : maskData[index] === 1;
+          if (!selected) continue;
+          if (cache.imageData.data[index * 4 + 3] === 0) continue;
+          if (px < minX) minX = px;
+          if (py < minY) minY = py;
+          if (px > maxX) maxX = px;
+          if (py > maxY) maxY = py;
+        }
+      }
+      if (maxX < minX || maxY < minY) {
+        return null;
+      }
+      return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+    };
+
+    const createCutoutSrc = (imageData: ImageData, bounds: { x: number; y: number; width: number; height: number } | null): string | null => {
+      if (!bounds) return null;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, bounds.width);
+      canvas.height = Math.max(1, bounds.height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.warn('Unable to create cutout preview for magic wand selection');
+        return null;
+      }
+      ctx.putImageData(imageData, -bounds.x, -bounds.y);
+      return canvas.toDataURL();
+    };
+
+    const keptDataArray = new Uint8ClampedArray(cache.imageData.data);
+    for (let i = 0; i < maskData.length; i++) {
+      if (maskData[i] === 0) {
+        keptDataArray[i * 4 + 3] = 0;
+      }
+    }
+    const keptImageData = new ImageData(keptDataArray, cache.naturalWidth, cache.naturalHeight);
+
+    const removedBounds = computeBounds(true);
+    const keptBounds = computeBounds(false);
+
+    const removedSnapshot: MagicWandSnapshot = {
+      imageData: result.image,
+      src: imageDataToDataUrl(result.image),
+      cutoutSrc: createCutoutSrc(result.image, removedBounds),
+      bounds: removedBounds,
+    };
+
+    const keptSnapshot: MagicWandSnapshot = {
+      imageData: keptImageData,
+      src: imageDataToDataUrl(keptImageData),
+      cutoutSrc: createCutoutSrc(keptImageData, keptBounds),
+      bounds: keptBounds,
+    };
+
+    cropMagicWandResultRef.current = { removed: removedSnapshot, kept: keptSnapshot };
 
     const contourPaths = buildContourPaths(result.contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
     setAppState(s => ({
       ...s,
       cropSelectionContours: contourPaths,
-      cropPendingCutoutSrc: newSrc,
+      cropPendingCutoutSrc: keptSnapshot.cutoutSrc,
+      cropSelectionInverted: false,
     }));
   }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool]);
 
@@ -360,7 +446,8 @@ export const useAppStore = () => {
     const cropping = appState.croppingState;
     if (!cropping || !cropMagicWandResultRef.current) return;
     const result = cropMagicWandResultRef.current;
-    const { newSrc, imageData } = result;
+    const selection = appState.cropSelectionInverted ? result.kept : result.removed;
+    const { src: newSrc, imageData } = selection;
 
     pathState.setPaths(prev => prev.map(p =>
       p.id === cropping.pathId ? { ...(p as PathImageData), src: newSrc } : p
@@ -379,11 +466,92 @@ export const useAppStore = () => {
     }
     setCropEditedSrc(newSrc);
     clearCropSelection();
-  }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
+  }, [appState.croppingState, appState.cropSelectionInverted, pathState.setPaths, setCroppingState, clearCropSelection]);
 
   const cancelMagicWandSelection = useCallback(() => {
     clearCropSelection();
   }, [clearCropSelection]);
+
+  const toggleCropSelectionInverted = useCallback(() => {
+    const selection = cropMagicWandResultRef.current;
+    if (!selection) return;
+    setAppState(prev => {
+      const nextInverted = !prev.cropSelectionInverted;
+      return {
+        ...prev,
+        cropSelectionInverted: nextInverted,
+        cropPendingCutoutSrc: nextInverted ? selection.removed.cutoutSrc : selection.kept.cutoutSrc,
+      };
+    });
+  }, []);
+
+  const cutMagicWandSelection = useCallback(() => {
+    const cropping = appState.croppingState;
+    const selection = cropMagicWandResultRef.current;
+    const cache = cropImageCacheRef.current;
+    if (!cropping || !selection || !cache) return;
+
+    const removal = appState.cropSelectionInverted ? selection.kept : selection.removed;
+    const extracted = appState.cropSelectionInverted ? selection.removed : selection.kept;
+
+    if (!extracted.cutoutSrc || !extracted.bounds) {
+      console.warn('No cutout available for the current selection.');
+      return;
+    }
+
+    const { naturalWidth, naturalHeight } = cache;
+    const bounds = extracted.bounds;
+
+    const width = (bounds.width / naturalWidth) * cropping.originalPath.width;
+    const height = (bounds.height / naturalHeight) * cropping.originalPath.height;
+    if (!(width > 0 && height > 0)) {
+      console.warn('Cut selection has zero area, skipping.');
+      return;
+    }
+
+    const centerPixel = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2,
+    };
+    const centerWorld = mapPixelToWorldPoint(centerPixel, cropping.originalPath, naturalWidth, naturalHeight);
+    const newX = centerWorld.x - width / 2;
+    const newY = centerWorld.y - height / 2;
+
+    const newImagePath: PathImageData = {
+      ...cropping.originalPath,
+      id: `${Date.now()}-cutout`,
+      src: extracted.cutoutSrc,
+      x: newX,
+      y: newY,
+      width,
+      height,
+    };
+
+    pathState.setPaths(prev => {
+      const index = prev.findIndex(p => p.id === cropping.pathId);
+      if (index === -1) return prev;
+      const updated = [...prev];
+      const target = updated[index] as PathImageData;
+      updated[index] = { ...target, src: removal.src };
+      updated.splice(index + 1, 0, newImagePath);
+      return updated;
+    });
+
+    setCroppingState(prev => (
+      prev && prev.pathId === cropping.pathId
+        ? { ...prev, originalPath: { ...prev.originalPath, src: removal.src } }
+        : prev
+    ));
+
+    if (cropImageCacheRef.current) {
+      cropImageCacheRef.current = {
+        ...cropImageCacheRef.current,
+        imageData: removal.imageData,
+      };
+    }
+    setCropEditedSrc(removal.src);
+    clearCropSelection();
+  }, [appState.croppingState, appState.cropSelectionInverted, pathState.setPaths, setCroppingState, clearCropSelection]);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
@@ -795,6 +963,7 @@ export const useAppStore = () => {
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
     setCropTool, setCropMagicWandOptions, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
+    toggleCropSelectionInverted, cutMagicWandSelection,
     confirmCrop, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,
