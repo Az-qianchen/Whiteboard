@@ -93,6 +93,121 @@ const buildContourPaths = (
     .filter((item): item is { d: string; inner: boolean } => item !== null);
 };
 
+interface SelectionBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  width: number;
+  height: number;
+}
+
+const imageDataToDataUrl = (imageData: ImageData): string => {
+  const { width, height } = imageData;
+  if (width === 0 || height === 0) return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL();
+};
+
+const computeSelectionBounds = (
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  invertSelection: boolean
+): SelectionBounds | null => {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = y * width + x;
+      const isSelected = invertSelection ? mask[idx] === 0 : mask[idx] === 1;
+      if (!isSelected) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+};
+
+const applyMaskToImageData = (
+  source: ImageData,
+  mask: Uint8Array,
+  invertSelection: boolean
+): ImageData => {
+  const { width, height, data } = source;
+  const result = new Uint8ClampedArray(data);
+  const length = width * height;
+
+  for (let i = 0; i < length; i++) {
+    const isMasked = mask[i] === 1;
+    const shouldClear = invertSelection ? !isMasked : isMasked;
+    if (shouldClear) {
+      result[i * 4 + 3] = 0;
+    }
+  }
+
+  return new ImageData(result, width, height);
+};
+
+const extractSelectedRegionImageData = (
+  source: ImageData,
+  mask: Uint8Array,
+  invertSelection: boolean
+): { imageData: ImageData; bounds: SelectionBounds } | null => {
+  const bounds = computeSelectionBounds(mask, source.width, source.height, invertSelection);
+  if (!bounds) return null;
+
+  const { minX, minY, width, height } = bounds;
+  const extracted = new Uint8ClampedArray(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const sourceX = minX + x;
+      const sourceY = minY + y;
+      const sourceIndex = sourceY * source.width + sourceX;
+      const isSelected = invertSelection ? mask[sourceIndex] === 0 : mask[sourceIndex] === 1;
+      const destIndex = (y * width + x) * 4;
+
+      if (isSelected) {
+        const sourceOffset = sourceIndex * 4;
+        extracted[destIndex] = source.data[sourceOffset];
+        extracted[destIndex + 1] = source.data[sourceOffset + 1];
+        extracted[destIndex + 2] = source.data[sourceOffset + 2];
+        extracted[destIndex + 3] = source.data[sourceOffset + 3];
+      } else {
+        extracted[destIndex] = 0;
+        extracted[destIndex + 1] = 0;
+        extracted[destIndex + 2] = 0;
+        extracted[destIndex + 3] = 0;
+      }
+    }
+  }
+
+  return { imageData: new ImageData(extracted, width, height), bounds };
+};
+
 // --- State Type Definitions ---
 
 interface UiState {
@@ -132,6 +247,7 @@ interface AppState {
   cropTool: 'crop' | 'magic-wand';
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  cropSelectionInverted: boolean;
   cropPendingCutoutSrc: string | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
@@ -183,6 +299,7 @@ const getInitialAppState = (): AppState => ({
   cropTool: 'crop',
   cropMagicWandOptions: { threshold: 20, contiguous: true },
   cropSelectionContours: null,
+  cropSelectionInverted: false,
   cropPendingCutoutSrc: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
@@ -210,7 +327,14 @@ export const useAppStore = () => {
     naturalHeight: number;
     imageData: ImageData;
   } | null>(null);
-  const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
+  const cropMagicWandResultRef = useRef<{
+    mask: {
+      data: Uint8Array;
+      width: number;
+      height: number;
+      bounds: { minX: number; minY: number; maxX: number; maxY: number };
+    };
+  } | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
 
   const pathState = usePathsStore();
@@ -300,10 +424,15 @@ export const useAppStore = () => {
   const clearCropSelection = useCallback(() => {
     cropMagicWandResultRef.current = null;
     cropMagicWandSampleRef.current = null;
-    setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+    setAppState(s => ({
+      ...s,
+      cropSelectionContours: null,
+      cropSelectionInverted: false,
+      cropPendingCutoutSrc: null,
+    }));
   }, []);
 
-  const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
+  const performMagicWandSelection = useCallback((pixel: { x: number; y: number }, options?: { preserveInversion?: boolean }) => {
     const cropping = appState.croppingState;
     if (!cropping || appState.cropTool !== 'magic-wand') return;
     const cache = cropImageCacheRef.current;
@@ -313,7 +442,12 @@ export const useAppStore = () => {
     const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
     if (!result.mask) {
       cropMagicWandResultRef.current = null;
-      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+      setAppState(s => ({
+        ...s,
+        cropSelectionContours: null,
+        cropSelectionInverted: false,
+        cropPendingCutoutSrc: null,
+      }));
       return;
     }
 
@@ -328,12 +462,13 @@ export const useAppStore = () => {
     previewCtx.putImageData(result.image, 0, 0);
     const newSrc = previewCanvas.toDataURL();
 
-    cropMagicWandResultRef.current = { imageData: result.image, newSrc };
+    cropMagicWandResultRef.current = { mask: result.mask };
 
     const contourPaths = buildContourPaths(result.contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
     setAppState(s => ({
       ...s,
       cropSelectionContours: contourPaths,
+      cropSelectionInverted: options?.preserveInversion ? s.cropSelectionInverted : false,
       cropPendingCutoutSrc: newSrc,
     }));
   }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool]);
@@ -347,20 +482,23 @@ export const useAppStore = () => {
     const local = mapWorldPointToImagePixel(point, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
     if (!local) return;
     cropMagicWandSampleRef.current = { x: local.x, y: local.y };
-    performMagicWandSelection(local);
+    performMagicWandSelection(local, { preserveInversion: false });
   }, [appState.croppingState, appState.cropTool, performMagicWandSelection]);
 
   useEffect(() => {
     if (!cropMagicWandSampleRef.current) return;
     if (!appState.croppingState || appState.cropTool !== 'magic-wand') return;
-    performMagicWandSelection(cropMagicWandSampleRef.current);
+    performMagicWandSelection(cropMagicWandSampleRef.current, { preserveInversion: true });
   }, [appState.cropMagicWandOptions, appState.cropTool, appState.croppingState, performMagicWandSelection]);
 
   const applyMagicWandSelection = useCallback(() => {
     const cropping = appState.croppingState;
-    if (!cropping || !cropMagicWandResultRef.current) return;
-    const result = cropMagicWandResultRef.current;
-    const { newSrc, imageData } = result;
+    const cache = cropImageCacheRef.current;
+    if (!cropping || !cropMagicWandResultRef.current || !cache) return;
+
+    const { mask } = cropMagicWandResultRef.current;
+    const updatedImage = applyMaskToImageData(cache.imageData, mask.data, appState.cropSelectionInverted);
+    const newSrc = imageDataToDataUrl(updatedImage);
 
     pathState.setPaths(prev => prev.map(p =>
       p.id === cropping.pathId ? { ...(p as PathImageData), src: newSrc } : p
@@ -371,19 +509,106 @@ export const useAppStore = () => {
         : prev
     ));
 
-    if (cropImageCacheRef.current) {
-      cropImageCacheRef.current = {
-        ...cropImageCacheRef.current,
-        imageData,
-      };
-    }
+    cropImageCacheRef.current = { ...cache, imageData: updatedImage };
     setCropEditedSrc(newSrc);
     clearCropSelection();
-  }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
+  }, [appState.croppingState, appState.cropSelectionInverted, pathState.setPaths, setCroppingState, clearCropSelection]);
 
   const cancelMagicWandSelection = useCallback(() => {
     clearCropSelection();
   }, [clearCropSelection]);
+
+  const invertMagicWandSelection = useCallback(() => {
+    if (!cropMagicWandResultRef.current) return;
+    setAppState(s => ({ ...s, cropSelectionInverted: !s.cropSelectionInverted }));
+  }, []);
+
+  const cutMagicWandSelection = useCallback(() => {
+    const cropping = appState.croppingState;
+    const cache = cropImageCacheRef.current;
+    const selection = cropMagicWandResultRef.current;
+    if (!cropping || !cache || !selection) return;
+
+    const { mask } = selection;
+    const updatedImage = applyMaskToImageData(cache.imageData, mask.data, appState.cropSelectionInverted);
+    const newSrc = imageDataToDataUrl(updatedImage);
+
+    pathState.setPaths(prev => prev.map(p =>
+      p.id === cropping.pathId ? { ...(p as PathImageData), src: newSrc } : p
+    ));
+    setCroppingState(prev => (
+      prev && prev.pathId === cropping.pathId
+        ? { ...prev, originalPath: { ...prev.originalPath, src: newSrc } }
+        : prev
+    ));
+    cropImageCacheRef.current = { ...cache, imageData: updatedImage };
+    setCropEditedSrc(newSrc);
+
+    const extracted = extractSelectedRegionImageData(cache.imageData, mask.data, appState.cropSelectionInverted);
+    if (extracted) {
+      const { imageData: cutoutImage, bounds } = extracted;
+      if (bounds.width > 0 && bounds.height > 0) {
+        const cutoutSrc = imageDataToDataUrl(cutoutImage);
+        const naturalWidth = cache.naturalWidth;
+        const naturalHeight = cache.naturalHeight;
+        const scaleX = cropping.originalPath.width / naturalWidth;
+        const scaleY = cropping.originalPath.height / naturalHeight;
+
+        const localRect = {
+          x: cropping.originalPath.x + bounds.minX * scaleX,
+          y: cropping.originalPath.y + bounds.minY * scaleY,
+          width: bounds.width * scaleX,
+          height: bounds.height * scaleY,
+        };
+
+        const rotation = cropping.originalPath.rotation ?? 0;
+        const oldCenter = {
+          x: cropping.originalPath.x + cropping.originalPath.width / 2,
+          y: cropping.originalPath.y + cropping.originalPath.height / 2,
+        };
+        const newCenterLocal = { x: localRect.width / 2, y: localRect.height / 2 };
+        const offsetLocal = {
+          x: localRect.x - cropping.originalPath.x - (cropping.originalPath.width / 2 - newCenterLocal.x),
+          y: localRect.y - cropping.originalPath.y - (cropping.originalPath.height / 2 - newCenterLocal.y),
+        };
+        const rotatedOffset = rotatePoint(offsetLocal, { x: 0, y: 0 }, rotation);
+        const newCenter = { x: oldCenter.x + rotatedOffset.x, y: oldCenter.y + rotatedOffset.y };
+        const newX = newCenter.x - newCenterLocal.x;
+        const newY = newCenter.y - newCenterLocal.y;
+
+        const newPathId = `${Date.now()}-cutout`;
+        const newPath: PathImageData = {
+          ...(cropping.originalPath),
+          id: newPathId,
+          x: newX,
+          y: newY,
+          width: localRect.width,
+          height: localRect.height,
+          src: cutoutSrc,
+        };
+
+        activePathState.setPaths(prev => {
+          const index = prev.findIndex(p => p.id === cropping.pathId);
+          if (index === -1) return prev;
+          const next = [...prev];
+          next.splice(index + 1, 0, newPath);
+          return next;
+        });
+        pathState.setSelectedPathIds([newPathId]);
+      }
+    }
+
+    clearCropSelection();
+  }, [
+    appState.croppingState,
+    appState.cropSelectionInverted,
+    activePathState,
+    clearCropSelection,
+    pathState.setPaths,
+    pathState.setSelectedPathIds,
+    setCroppingState,
+    setCropEditedSrc,
+  ]);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
@@ -829,6 +1054,7 @@ export const useAppStore = () => {
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
     setCropTool, setCropMagicWandOptions, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
+    invertMagicWandSelection, cutMagicWandSelection,
     confirmCrop, trimTransparentEdges, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,

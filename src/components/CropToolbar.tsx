@@ -15,8 +15,11 @@ interface CropToolbarProps {
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  cropSelectionInverted: boolean;
   applyMagicWandSelection: () => void;
   cancelMagicWandSelection: () => void;
+  invertMagicWandSelection: () => void;
+  cutMagicWandSelection: () => void;
   trimTransparentEdges: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
@@ -32,8 +35,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   cropMagicWandOptions,
   setCropMagicWandOptions,
   cropSelectionContours,
+  cropSelectionInverted,
   applyMagicWandSelection,
   cancelMagicWandSelection,
+  invertMagicWandSelection,
+  cutMagicWandSelection,
   trimTransparentEdges,
   confirmCrop,
   cancelCrop,
@@ -151,12 +157,36 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           <PanelButton
             type="button"
             variant="unstyled"
+            onClick={invertMagicWandSelection}
+            disabled={!hasSelection}
+            aria-pressed={cropSelectionInverted}
+            className={`${textButtonBase} ${
+              cropSelectionInverted
+                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+            }`}
+          >
+            <span>{t('invertSelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
             onClick={applyMagicWandSelection}
             disabled={!hasSelection}
             className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
           >
             {ICONS.CHECK}
             <span>{t('applySelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={cutMagicWandSelection}
+            disabled={!hasSelection}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+          >
+            {ICONS.CUT}
+            <span>{t('cutSelection')}</span>
           </PanelButton>
           <PanelButton
             type="button"
