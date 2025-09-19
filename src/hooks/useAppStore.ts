@@ -211,6 +211,7 @@ export const useAppStore = () => {
     imageData: ImageData;
   } | null>(null);
   const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
+  const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -298,22 +299,21 @@ export const useAppStore = () => {
   })), []);
   const clearCropSelection = useCallback(() => {
     cropMagicWandResultRef.current = null;
+    cropMagicWandSampleRef.current = null;
     setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
   }, []);
 
-  const selectMagicWandAt = useCallback((point: Point) => {
+  const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
     const cropping = appState.croppingState;
     if (!cropping || appState.cropTool !== 'magic-wand') return;
     const cache = cropImageCacheRef.current;
     if (!cache) return;
 
-    const local = mapWorldPointToImagePixel(point, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
-    if (!local) return;
-
     const { threshold, contiguous } = appState.cropMagicWandOptions;
-    const result = removeBackground(cache.imageData, { x: local.x, y: local.y, threshold, contiguous });
+    const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
     if (!result.mask) {
-      clearCropSelection();
+      cropMagicWandResultRef.current = null;
+      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
       return;
     }
 
@@ -336,7 +336,25 @@ export const useAppStore = () => {
       cropSelectionContours: contourPaths,
       cropPendingCutoutSrc: newSrc,
     }));
-  }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool, clearCropSelection]);
+  }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool]);
+
+  const selectMagicWandAt = useCallback((point: Point) => {
+    const cropping = appState.croppingState;
+    if (!cropping || appState.cropTool !== 'magic-wand') return;
+    const cache = cropImageCacheRef.current;
+    if (!cache) return;
+
+    const local = mapWorldPointToImagePixel(point, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
+    if (!local) return;
+    cropMagicWandSampleRef.current = { x: local.x, y: local.y };
+    performMagicWandSelection(local);
+  }, [appState.croppingState, appState.cropTool, performMagicWandSelection]);
+
+  useEffect(() => {
+    if (!cropMagicWandSampleRef.current) return;
+    if (!appState.croppingState || appState.cropTool !== 'magic-wand') return;
+    performMagicWandSelection(cropMagicWandSampleRef.current);
+  }, [appState.cropMagicWandOptions, appState.cropTool, appState.croppingState, performMagicWandSelection]);
 
   const applyMagicWandSelection = useCallback(() => {
     const cropping = appState.croppingState;
