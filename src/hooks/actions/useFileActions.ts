@@ -22,6 +22,7 @@ export const useFileActions = ({
   fps,
   setFps,
   backgroundColor,
+  requestFitToContent,
   activeFileHandle,
   setActiveFileHandle,
   activeFileName,
@@ -122,6 +123,7 @@ export const useFileActions = ({
             const nextBackgroundColor = data.backgroundColor ?? '#212529';
             const nextFps = data.fps ?? fps;
             pathState.handleLoadFile(framesToLoad);
+            requestFitToContent();
             setBackgroundColor(nextBackgroundColor);
             if (setFps) setFps(nextFps);
 
@@ -144,7 +146,7 @@ export const useFileActions = ({
         console.error("Error opening file:", err);
         alert("Failed to open file.");
     }
-  }, [pathState, setBackgroundColor, setFps, setActiveFileHandle, setActiveFileName, fps, markDocumentSaved]);
+  }, [pathState, setBackgroundColor, setFps, setActiveFileHandle, setActiveFileName, fps, markDocumentSaved, requestFitToContent]);
 
   /**
    * 触发文件导入对话框。

@@ -8,6 +8,7 @@ import { useUiStore } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
 import { useViewTransform } from './useViewTransform';
+import { useViewTransformStore } from '@/context/viewTransformStore';
 import { useDrawing } from './useDrawing';
 import { useSelection } from './useSelection';
 import { usePointerInteraction } from './usePointerInteraction';
@@ -196,6 +197,7 @@ export const useAppStore = () => {
   // UI slice migrated to Zustand; keep API stable by bridging setUiState
   const uiState = useUiStore();
   const initialFpsRef = useRef(uiState.fps);
+  const initialFitRequestedRef = useRef(false);
   const setUiState = useCallback((updater: (s: UiState) => UiState) => {
     // Replace entire UI slice with updater result to mirror previous React setState pattern
     useUiStore.setState(updater as (prev: UiState) => UiState, true);
@@ -442,6 +444,7 @@ export const useAppStore = () => {
   const { activePaths, activePathState } = groupIsolation;
 
   const viewTransform = useViewTransform();
+  const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   
   const handleResetPreferences = useCallback(() => {
@@ -656,7 +659,7 @@ export const useAppStore = () => {
     toolbarState, viewTransform, getPointerPosition: viewTransform.getPointerPosition, ...appState,
     setActiveFileHandle, setActiveFileName, setBackgroundColor, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
-    frames, fps: uiState.fps, setFps,
+    frames, fps: uiState.fps, setFps, requestFitToContent,
     markDocumentSaved,
   });
 
@@ -675,6 +678,17 @@ export const useAppStore = () => {
       return prev;
     });
   }, [currentDocumentSignature]);
+
+  useEffect(() => {
+    if (initialFitRequestedRef.current || appState.isLoading) {
+      return;
+    }
+    initialFitRequestedRef.current = true;
+    const hasContent = frames.some(frame => (frame.paths?.length ?? 0) > 0);
+    if (hasContent) {
+      requestFitToContent();
+    }
+  }, [appState.isLoading, frames, requestFitToContent]);
   
   useEffect(() => {
     const loadLastFile = async () => {
@@ -706,6 +720,8 @@ export const useAppStore = () => {
           const nextBackground = data.backgroundColor ?? '#212529';
           const nextFps = data.fps ?? initialFpsRef.current;
           pathState.handleLoadFile(framesToLoad);
+          requestFitToContent();
+          initialFitRequestedRef.current = true;
           setBackgroundColor(nextBackground);
           if (setFps && data.fps) setFps(data.fps);
 
