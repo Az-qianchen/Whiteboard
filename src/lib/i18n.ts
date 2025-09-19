@@ -120,6 +120,15 @@ const resources = {
         colorControl: {
           select: 'Select {{label}}',
         },
+        gradientFill: {
+          title: 'Gradient fill',
+          enable: 'Enable',
+          angle: 'Angle',
+          start: 'Start',
+          end: 'End',
+          solidHint: 'Gradient forces solid fill style.',
+          disabled: 'Enable gradient fill to blend between two colors.',
+        },
         fillStyle: {
           title: 'Fill style',
           choose: 'Choose fill style',
@@ -343,6 +352,15 @@ const resources = {
         styleLibrary: '样式库',
         colorControl: {
           select: '选择{{label}}',
+        },
+        gradientFill: {
+          title: '渐变填充',
+          enable: '启用',
+          angle: '角度',
+          start: '起始颜色',
+          end: '结束颜色',
+          solidHint: '渐变会自动切换为实心填充样式。',
+          disabled: '启用渐变后可在此设置两种颜色的过渡。',
         },
         fillStyle: {
           title: '填充样式',

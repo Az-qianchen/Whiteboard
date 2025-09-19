@@ -29,6 +29,7 @@ export const useLibraryActions = ({
     setStyleClipboard({
         color: path.color,
         fill: path.fill,
+        fillGradient: path.fillGradient,
         fillStyle: path.fillStyle,
         strokeWidth: path.strokeWidth,
         strokeLineDash: path.strokeLineDash,
@@ -136,6 +137,7 @@ export const useLibraryActions = ({
       const newStyle: StyleClipboardData = {
           color: path.color,
           fill: path.fill,
+          fillGradient: path.fillGradient,
           fillStyle: path.fillStyle,
           strokeWidth: path.strokeWidth,
       };

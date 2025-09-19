@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '@/constants';
-import type { EndpointStyle } from '@/types';
+import type { EndpointStyle, GradientFill } from '@/types';
 
 export interface ToolbarState {
   drawingColor: string;
@@ -9,6 +9,9 @@ export interface ToolbarState {
 
   drawingFill: string;
   setDrawingFill: (v: string) => void;
+
+  drawingFillGradient: GradientFill | null;
+  setDrawingFillGradient: (v: GradientFill | null) => void;
 
   drawingFillStyle: string;
   setDrawingFillStyle: (v: string) => void;
@@ -112,6 +115,9 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingFill: 'transparent',
       setDrawingFill: (v) => set({ drawingFill: v }),
+
+      drawingFillGradient: null,
+      setDrawingFillGradient: (v) => set({ drawingFillGradient: v }),
 
       drawingFillStyle: 'hachure',
       setDrawingFillStyle: (v) => set({ drawingFillStyle: v }),

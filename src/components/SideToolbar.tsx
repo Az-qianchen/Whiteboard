@@ -6,12 +6,12 @@
 
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Tool, AnyPath, VectorPathData, TextData } from '../types';
+import type { Tool, AnyPath, VectorPathData, TextData, GradientFill } from '../types';
 import type { HsvAdjustment } from '@/lib/image';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 
-import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, TextProperties, EffectsPopover } from './side-toolbar';
+import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, TextProperties, EffectsPopover, GradientFillPopover } from './side-toolbar';
 import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
 
 interface SideToolbarProps {
@@ -20,6 +20,8 @@ interface SideToolbarProps {
   setColor: (color: string) => void;
   fill: string;
   setFill: (color: string) => void;
+  fillGradient: GradientFill | null;
+  setFillGradient: (gradient: GradientFill | null) => void;
   fillStyle: string;
   setFillStyle: (style: string) => void;
   strokeWidth: number;
@@ -106,6 +108,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     strokeWidth, setStrokeWidth,
     color, setColor,
     fill, setFill,
+    fillGradient, setFillGradient,
     fillStyle, setFillStyle,
     firstSelectedPath,
     beginCoalescing, endCoalescing,
@@ -154,6 +157,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   }, [tool, firstSelectedPath]);
 
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
+  const isGradientActive = !!fillGradient;
 
   return (
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-1.5 flex flex-col items-center gap-1.5 text-[var(--text-primary)]">
@@ -241,14 +245,26 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
               <ColorControl
                 label={fillColorLabel}
                 color={fill}
+                gradient={fillGradient}
                 setColor={setFill}
                 beginCoalescing={beginCoalescing}
                 endCoalescing={endCoalescing}
                 className="mt-2"
               />
+              <GradientFillPopover
+                fill={fill}
+                fillGradient={fillGradient}
+                setFill={setFill}
+                setFillGradient={setFillGradient}
+                fillStyle={fillStyle}
+                setFillStyle={setFillStyle}
+                beginCoalescing={beginCoalescing}
+                endCoalescing={endCoalescing}
+              />
               <FillStyleControl
                 fillStyle={fillStyle}
                 setFillStyle={setFillStyle}
+                disabled={isGradientActive}
               />
             </>
           )}

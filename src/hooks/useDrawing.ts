@@ -48,7 +48,7 @@ export const useDrawing = ({
   const { getPointerPosition } = viewTransform;
 
   const {
-    tool, color, fill, fillStyle, strokeWidth, opacity, borderRadius, sides,
+    tool, color, fill, fillGradient, fillStyle, strokeWidth, opacity, borderRadius, sides,
     strokeLineDash, strokeLineCapStart, strokeLineCapEnd, strokeLineJoin,
     endpointSize, endpointFill,
     isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
@@ -97,7 +97,7 @@ export const useDrawing = ({
     const id = Date.now().toString();
 
     const sharedProps = {
-        color, fill, fillStyle, strokeWidth, opacity, strokeLineDash,
+        color, fill, fillGradient, fillStyle, strokeWidth, opacity, strokeLineDash,
         strokeLineCapStart, strokeLineCapEnd, strokeLineJoin,
         endpointSize, endpointFill,
         isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
@@ -126,11 +126,12 @@ export const useDrawing = ({
           width: 0,
           height: 0,
           // Frames have a fixed style, not from the toolbar
-          color: '#868e96', 
+          color: '#868e96',
           fill: 'transparent',
+          fillGradient: null,
           fillStyle: 'solid',
           strokeWidth: 2,
-          isRough: false, 
+          isRough: false,
           roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 0, curveTightness: 0, curveStepCount: 9,
         };
         setDrawingShape(newShape);
@@ -172,6 +173,7 @@ export const useDrawing = ({
             ...sharedProps,
             // Text specific overrides
             fill: 'transparent',
+            fillGradient: null,
             fillStyle: 'solid',
             strokeWidth: 0,
         };

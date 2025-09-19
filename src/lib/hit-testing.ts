@@ -7,6 +7,7 @@
 import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
+import { gradientHasVisibleColor } from './gradient';
 
 /**
  * Calculates the squared distance from a point to a line segment.
@@ -120,7 +121,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 testPoint = rotatePoint(point, center, -rotation);
             }
             
-            const isFillVisible = path.fill !== 'transparent' && parseColor(path.fill).a > 0.01;
+            const isFillVisible = hasVisibleFill(path);
 
             // Check for hit on the fill area first.
             const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
@@ -147,7 +148,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 testPoint = rotatePoint(point, center, -rotation);
             }
             
-            const isFillVisible = path.fill !== 'transparent' && parseColor(path.fill).a > 0.01;
+            const isFillVisible = hasVisibleFill(path);
             const vertices = getPolygonVertices(x, y, width, height, sides);
 
             // Check for hit on fill area first.
@@ -181,7 +182,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 testPoint = rotatePoint(point, center, -rotation);
             }
 
-            const isFillVisible = path.fill !== 'transparent' && parseColor(path.fill).a > 0.01;
+            const isFillVisible = hasVisibleFill(path);
 
             // Check for hit on fill using ellipse equation
             if (isFillVisible && rx > 0 && ry > 0) {
@@ -453,3 +454,12 @@ export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): bo
     // The core logic: check if EVERY point of the shape is inside the lasso polygon for full containment.
     return pointsToCheck.every(p => isPointInPolygon(p, lassoPoints));
 }
+const hasVisibleFill = (path: AnyPath): boolean => {
+    if (path.fillGradient) {
+        return gradientHasVisibleColor(path.fillGradient);
+    }
+    if (!path.fill || path.fill === 'transparent') {
+        return false;
+    }
+    return parseColor(path.fill).a > 0.01;
+};

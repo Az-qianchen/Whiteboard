@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react';
-import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, TextData } from '../types';
+import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, TextData, GradientFill } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
 import { measureText } from '../lib/drawing';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
+import { updateGradientStopColor } from '@/lib/gradient';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -30,6 +31,7 @@ export const useToolbarState = (
   // --- 状态 Hooks ---
   const { drawingColor, setDrawingColor } = P.useDrawingColor();
   const { drawingFill, setDrawingFill } = P.useDrawingFill();
+  const { drawingFillGradient, setDrawingFillGradient } = P.useDrawingFillGradient();
   const { drawingFillStyle, setDrawingFillStyle } = P.useDrawingFillStyle();
   const { drawingStrokeWidth, setDrawingStrokeWidth } = P.useDrawingStrokeWidth();
   const { drawingOpacity, setDrawingOpacity } = P.useDrawingOpacity();
@@ -135,7 +137,39 @@ export const useToolbarState = (
     };
   };
 
-  const setFill = simpleSetter('fill', setDrawingFill);
+  const setFill = (newValue: string) => {
+    if (firstSelectedPath) {
+      updateSelectedPaths((path) => {
+        const updates: Partial<AnyPath> = { fill: newValue };
+        if (path.fillGradient) {
+          updates.fillGradient = updateGradientStopColor(path.fillGradient, 0, newValue);
+        }
+        return updates;
+      });
+    } else {
+      setDrawingFill(newValue);
+      if (drawingFillGradient) {
+        setDrawingFillGradient(updateGradientStopColor(drawingFillGradient, 0, newValue));
+      }
+    }
+  };
+
+  const setFillGradient = (gradient: GradientFill | null) => {
+    if (firstSelectedPath) {
+      updateSelectedPaths(() => {
+        const updates: Partial<AnyPath> = { fillGradient: gradient };
+        if (gradient && gradient.stops.length > 0) {
+          updates.fill = gradient.stops[0].color;
+        }
+        return updates;
+      });
+    } else {
+      setDrawingFillGradient(gradient);
+      if (gradient && gradient.stops.length > 0) {
+        setDrawingFill(gradient.stops[0].color);
+      }
+    }
+  };
   const setFillStyle = simpleSetter('fillStyle', setDrawingFillStyle);
   const setStrokeWidth = simpleSetter('strokeWidth', setDrawingStrokeWidth);
   const setStrokeLineDash = simpleSetter('strokeLineDash', setDrawingStrokeLineDash);
@@ -241,6 +275,7 @@ export const useToolbarState = (
   const color = displayValue('color', drawingColor);
   const fill = displayValue('fill', drawingFill);
   const fillStyle = displayValue('fillStyle', drawingFillStyle);
+  const fillGradient = displayValue('fillGradient', drawingFillGradient);
   const strokeWidth = displayValue('strokeWidth', drawingStrokeWidth);
   const strokeLineDash = displayValue('strokeLineDash', drawingStrokeLineDash);
   const strokeLineCapStart = displayValue('strokeLineCapStart', drawingStrokeLineCapStart);
@@ -289,6 +324,7 @@ export const useToolbarState = (
   const resetState = useCallback(() => {
     setDrawingColor(COLORS[0]);
     setDrawingFill('transparent');
+    setDrawingFillGradient(null);
     setDrawingFillStyle('hachure');
     setDrawingStrokeWidth(8);
     setDrawingOpacity(1);
@@ -322,7 +358,7 @@ export const useToolbarState = (
     setDrawingShadowColor('rgba(0,0,0,0.5)');
     setTool('brush');
   }, [
-    setDrawingColor, setDrawingFill, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
+    setDrawingColor, setDrawingFill, setDrawingFillGradient, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
     setDrawingSides, setDrawingBorderRadius, setDrawingStrokeLineDash, setDrawingStrokeLineCapStart,
     setDrawingStrokeLineCapEnd, setDrawingEndpointSize, setDrawingEndpointFill, setDrawingIsRough,
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
@@ -337,6 +373,7 @@ export const useToolbarState = (
     selectionMode, setSelectionMode,
     color, setColor,
     fill, setFill,
+    fillGradient, setFillGradient,
     fillStyle, setFillStyle,
     strokeWidth, setStrokeWidth,
     strokeLineDash, setStrokeLineDash,
@@ -374,3 +411,4 @@ export const useToolbarState = (
     resetState,
   };
 };
+

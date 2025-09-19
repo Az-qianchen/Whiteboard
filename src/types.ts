@@ -28,6 +28,7 @@ export type EndpointStyle = 'none' | 'arrow' | 'triangle' | 'dot' | 'square' | '
 export interface StyleClipboardData {
   color?: string;
   fill?: string;
+  fillGradient?: GradientFill | null;
   fillStyle?: string;
   strokeWidth?: number;
   strokeLineDash?: [number, number];
@@ -65,6 +66,20 @@ export type MaterialData = {
   shapes: AnyPath[];
 }
 
+export interface GradientStop {
+  offset: number; // 0 - 1
+  color: string;
+  opacity?: number;
+}
+
+export interface LinearGradientFill {
+  type: 'linear';
+  angle: number; // degrees
+  stops: GradientStop[];
+}
+
+export type GradientFill = LinearGradientFill;
+
 export type LibraryData = {
   type: 'whiteboard/library';
   version: 1;
@@ -101,6 +116,7 @@ interface ShapeBase {
   name?: string; // 用于图层，特别是组
   color: string;
   fill: string;
+  fillGradient?: GradientFill | null;
   fillStyle: string;
   strokeWidth: number;
   strokeLineDash?: [number, number];
