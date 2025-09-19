@@ -1,9 +1,24 @@
-import type { BBox, AnyPath, Point, VectorPathData, BrushPathData, ArcData, GroupData, TextData } from '@/types';
+import type {
+  BBox,
+  AnyPath,
+  Point,
+  VectorPathData,
+  BrushPathData,
+  ArcData,
+  GroupData,
+  TextData,
+  RectangleData,
+  ImageData,
+  PolygonData,
+  EllipseData,
+  FrameData,
+} from '@/types';
 import { rotatePoint } from './geom';
 import { samplePath } from './path';
 import { getPolygonVertices } from './polygon';
 import { sampleArc } from './arc';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '@/constants';
+import { applyMatrixToPoint, getShapeTransformMatrix } from './transform/matrix';
 
 export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true): BBox {
   let margin = 0;
@@ -92,25 +107,14 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
     case 'rectangle':
     case 'image':
     case 'text': {
-      const { x, y, width, height, rotation, scaleX = 1, scaleY = 1 } = path;
-      const cx = x + width / 2;
-      const cy = y + height / 2;
-
-      const transformPoint = (p: Point): Point => {
-        let tx = cx + (p.x - cx) * scaleX;
-        let ty = cy + (p.y - cy) * scaleY;
-        if (rotation) {
-          return rotatePoint({ x: tx, y: ty }, { x: cx, y: cy }, rotation);
-        }
-        return { x: tx, y: ty };
-      };
-
+      const { x, y, width, height } = path;
+      const matrix = getShapeTransformMatrix(path as RectangleData | ImageData | TextData | FrameData);
       const corners = [
         { x, y },
         { x: x + width, y },
         { x: x + width, y: y + height },
         { x, y: y + height },
-      ].map(transformPoint);
+      ].map(point => applyMatrixToPoint(matrix, point));
 
       const minX = Math.min(...corners.map(p => p.x));
       const minY = Math.min(...corners.map(p => p.y));
@@ -125,17 +129,9 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       };
     }
     case 'polygon': {
-      const { x, y, width, height, sides, rotation, scaleX = 1, scaleY = 1 } = path;
-      const cx = x + width / 2;
-      const cy = y + height / 2;
-      const vertices = getPolygonVertices(x, y, width, height, sides).map(p => {
-        let tx = cx + (p.x - cx) * scaleX;
-        let ty = cy + (p.y - cy) * scaleY;
-        if (rotation) {
-          return rotatePoint({ x: tx, y: ty }, { x: cx, y: cy }, rotation);
-        }
-        return { x: tx, y: ty };
-      });
+      const { x, y, width, height, sides } = path;
+      const matrix = getShapeTransformMatrix(path as PolygonData);
+      const vertices = getPolygonVertices(x, y, width, height, sides).map(point => applyMatrixToPoint(matrix, point));
 
       const minX = Math.min(...vertices.map(p => p.x));
       const minY = Math.min(...vertices.map(p => p.y));
@@ -149,36 +145,37 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
         height: (maxY - minY) + margin * 2,
       };
     }
-     case 'ellipse': {
-        const { x, y, width, height, rotation } = path;
-        const cx = x + width/2;
-        const cy = y + height/2;
+    case 'ellipse': {
+      const { x, y, width, height } = path;
+      const matrix = getShapeTransformMatrix(path as EllipseData);
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      const rx = width / 2;
+      const ry = height / 2;
 
-        if (!rotation) {
-             return {
-                x: x - margin,
-                y: y - margin,
-                width: width + margin * 2,
-                height: height + margin * 2,
-            };
-        }
+      const sampleCount = 32;
+      const points: Point[] = [];
+      for (let i = 0; i < sampleCount; i++) {
+        const angle = (i / sampleCount) * Math.PI * 2;
+        const px = cx + rx * Math.cos(angle);
+        const py = cy + ry * Math.sin(angle);
+        points.push(applyMatrixToPoint(matrix, { x: px, y: py }));
+      }
 
-        const angle = rotation;
-        const rx = width / 2;
-        const ry = height / 2;
-        
-        const cosAngle = Math.cos(angle);
-        const sinAngle = Math.sin(angle);
-        
-        const newWidth = 2 * Math.sqrt(Math.pow(rx * cosAngle, 2) + Math.pow(ry * sinAngle, 2));
-        const newHeight = 2 * Math.sqrt(Math.pow(rx * sinAngle, 2) + Math.pow(ry * cosAngle, 2));
+      const xs = points.map(p => p.x);
+      const ys = points.map(p => p.y);
 
-        return {
-            x: cx - newWidth / 2 - margin,
-            y: cy - newHeight / 2 - margin,
-            width: newWidth + margin * 2,
-            height: newHeight + margin * 2,
-        }
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs);
+      const maxY = Math.max(...ys);
+
+      return {
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
+      };
     }
     case 'pen':
     case 'line': {
