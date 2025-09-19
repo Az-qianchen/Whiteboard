@@ -73,12 +73,14 @@ const mapPixelToWorldPoint = (
   return rotatePoint(basePoint, center, rotation);
 };
 
+type MagicWandContourPath = { d: string; inner: boolean };
+
 const buildContourPaths = (
   contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }>,
   image: PathImageData,
   naturalWidth: number,
   naturalHeight: number
-): Array<{ d: string; inner: boolean }> => {
+): MagicWandContourPath[] => {
   return contours
     .map(contour => {
       if (!contour.points || contour.points.length === 0) {
@@ -90,7 +92,42 @@ const buildContourPaths = (
         .join(' ');
       return { d: `${d} Z`, inner: contour.inner };
     })
-    .filter((item): item is { d: string; inner: boolean } => item !== null);
+    .filter((item): item is MagicWandContourPath => item !== null);
+};
+
+const buildImageOutlineContour = (
+  image: PathImageData,
+  naturalWidth: number,
+  naturalHeight: number
+): MagicWandContourPath => {
+  const corners = [
+    { x: 0, y: 0 },
+    { x: naturalWidth, y: 0 },
+    { x: naturalWidth, y: naturalHeight },
+    { x: 0, y: naturalHeight },
+  ].map(pt => mapPixelToWorldPoint(pt, image, naturalWidth, naturalHeight));
+
+  const d = corners
+    .map((point, idx) => `${idx === 0 ? 'M' : 'L'}${point.x} ${point.y}`)
+    .join(' ');
+
+  return { d: `${d} Z`, inner: false };
+};
+
+const buildInvertedContourPaths = (
+  baseContours: MagicWandContourPath[],
+  image: PathImageData,
+  naturalWidth: number,
+  naturalHeight: number
+): MagicWandContourPath[] => {
+  if (baseContours.length === 0) {
+    return [];
+  }
+
+  const outline = buildImageOutlineContour(image, naturalWidth, naturalHeight);
+  const invertedContours = baseContours.map(contour => ({ ...contour, inner: !contour.inner }));
+  const hasOutline = invertedContours.some(contour => contour.d === outline.d);
+  return hasOutline ? invertedContours : [outline, ...invertedContours];
 };
 
 // --- State Type Definitions ---
@@ -131,7 +168,7 @@ interface AppState {
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
-  cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  cropSelectionContours: MagicWandContourPath[] | null;
   cropPendingCutoutSrc: string | null;
   cropSelectionInverted: boolean;
   hasUnsavedChanges: boolean;
@@ -220,6 +257,7 @@ export const useAppStore = () => {
   }
 
   const cropMagicWandResultRef = useRef<{ removed: MagicWandSnapshot; kept: MagicWandSnapshot } | null>(null);
+  const cropMagicWandContoursRef = useRef<{ normal: MagicWandContourPath[]; inverted: MagicWandContourPath[] } | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
 
   const pathState = usePathsStore();
@@ -234,6 +272,7 @@ export const useAppStore = () => {
     if (!appState.croppingState) {
       cropImageCacheRef.current = null;
       cropMagicWandResultRef.current = null;
+      cropMagicWandContoursRef.current = null;
       return;
     }
 
@@ -308,6 +347,7 @@ export const useAppStore = () => {
   })), []);
   const clearCropSelection = useCallback(() => {
     cropMagicWandResultRef.current = null;
+    cropMagicWandContoursRef.current = null;
     cropMagicWandSampleRef.current = null;
     setAppState(s => ({
       ...s,
@@ -327,6 +367,7 @@ export const useAppStore = () => {
     const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
     if (!result.mask) {
       cropMagicWandResultRef.current = null;
+      cropMagicWandContoursRef.current = null;
       setAppState(s => ({
         ...s,
         cropSelectionContours: null,
@@ -415,10 +456,25 @@ export const useAppStore = () => {
 
     cropMagicWandResultRef.current = { removed: removedSnapshot, kept: keptSnapshot };
 
-    const contourPaths = buildContourPaths(result.contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
+    const normalContourPaths = buildContourPaths(
+      result.contours,
+      cropping.originalPath,
+      cache.naturalWidth,
+      cache.naturalHeight
+    );
+    const invertedContourPaths = buildInvertedContourPaths(
+      normalContourPaths,
+      cropping.originalPath,
+      cache.naturalWidth,
+      cache.naturalHeight
+    );
+    cropMagicWandContoursRef.current = {
+      normal: normalContourPaths,
+      inverted: invertedContourPaths,
+    };
     setAppState(s => ({
       ...s,
-      cropSelectionContours: contourPaths,
+      cropSelectionContours: normalContourPaths,
       cropPendingCutoutSrc: keptSnapshot.cutoutSrc,
       cropSelectionInverted: false,
     }));
@@ -474,12 +530,14 @@ export const useAppStore = () => {
 
   const toggleCropSelectionInverted = useCallback(() => {
     const selection = cropMagicWandResultRef.current;
-    if (!selection) return;
+    const contours = cropMagicWandContoursRef.current;
+    if (!selection || !contours) return;
     setAppState(prev => {
       const nextInverted = !prev.cropSelectionInverted;
       return {
         ...prev,
         cropSelectionInverted: nextInverted,
+        cropSelectionContours: nextInverted ? contours.inverted : contours.normal,
         cropPendingCutoutSrc: nextInverted ? selection.removed.cutoutSrc : selection.kept.cutoutSrc,
       };
     });
