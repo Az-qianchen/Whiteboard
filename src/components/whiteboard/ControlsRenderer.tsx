@@ -3,7 +3,7 @@
  * 例如，它会绘制路径的锚点、控制手柄、尺寸调整手柄以及旋转手柄。
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, TextData, FrameData, BBox } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
@@ -108,7 +108,38 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
 });
 
 
-const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData, scale: number, isSelectedAlone: boolean }> = React.memo(({ path, scale, isSelectedAlone }) => {
+const DEFAULT_HANDLE_CURSORS: Record<ResizeHandlePosition, string> = {
+    'top-left': 'nwse-resize',
+    'top-right': 'nesw-resize',
+    'bottom-left': 'nesw-resize',
+    'bottom-right': 'nwse-resize',
+    top: 'ns-resize',
+    right: 'ew-resize',
+    bottom: 'ns-resize',
+    left: 'ew-resize',
+};
+
+const SKEW_HANDLE_CURSORS: Record<ResizeHandlePosition, string> = {
+    'top-left': 'nesw-resize',
+    'top-right': 'nwse-resize',
+    'bottom-left': 'nwse-resize',
+    'bottom-right': 'nesw-resize',
+    top: 'ew-resize',
+    right: 'ns-resize',
+    bottom: 'ew-resize',
+    left: 'ns-resize',
+};
+
+const getHandleCursor = (handle: ResizeHandlePosition, useSkewCursor: boolean) =>
+    useSkewCursor ? SKEW_HANDLE_CURSORS[handle] : DEFAULT_HANDLE_CURSORS[handle];
+
+const ShapeControls: React.FC<{
+    path: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData;
+    scale: number;
+    isSelectedAlone: boolean;
+    dragState: DragState | null;
+    allowSkew: boolean;
+}> = React.memo(({ path, scale, isSelectedAlone, dragState, allowSkew }) => {
     const { x, y, width, height } = path;
 
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
@@ -116,21 +147,56 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | 
     const halfHandleSize = handleSize / 2;
     const accent = 'var(--accent-primary)';
 
+    const [isSkewModifierActive, setIsSkewModifierActive] = useState(false);
+
+    useEffect(() => {
+        if (!allowSkew) {
+            setIsSkewModifierActive(false);
+            return;
+        }
+
+        const handleKeyChange = (event: KeyboardEvent) => {
+            const next = event.ctrlKey || event.metaKey;
+            setIsSkewModifierActive(prev => (prev === next ? prev : next));
+        };
+
+        const handleBlur = () => {
+            setIsSkewModifierActive(false);
+        };
+
+        window.addEventListener('keydown', handleKeyChange);
+        window.addEventListener('keyup', handleKeyChange);
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyChange);
+            window.removeEventListener('keyup', handleKeyChange);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, [allowSkew]);
+
     const transformMatrix = getShapeTransformMatrix(path);
     const transformPoint = (point: Point) => applyMatrixToPoint(transformMatrix, point);
 
-    const unrotatedHandles: { pos: Point, name: ResizeHandlePosition, cursor: string }[] = [
-        { pos: { x, y }, name: 'top-left', cursor: 'nwse-resize' },
-        { pos: { x: x + width, y }, name: 'top-right', cursor: 'nesw-resize' },
-        { pos: { x, y: y + height }, name: 'bottom-left', cursor: 'nesw-resize' },
-        { pos: { x: x + width, y: y + height }, name: 'bottom-right', cursor: 'nwse-resize' },
-        { pos: { x: x + width / 2, y }, name: 'top', cursor: 'ns-resize' },
-        { pos: { x: x + width, y: y + height / 2 }, name: 'right', cursor: 'ew-resize' },
-        { pos: { x: x + width / 2, y: y + height }, name: 'bottom', cursor: 'ns-resize' },
-        { pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' },
+    const unrotatedHandles: { pos: Point; name: ResizeHandlePosition }[] = [
+        { pos: { x, y }, name: 'top-left' },
+        { pos: { x: x + width, y }, name: 'top-right' },
+        { pos: { x, y: y + height }, name: 'bottom-left' },
+        { pos: { x: x + width, y: y + height }, name: 'bottom-right' },
+        { pos: { x: x + width / 2, y }, name: 'top' },
+        { pos: { x: x + width, y: y + height / 2 }, name: 'right' },
+        { pos: { x: x + width / 2, y: y + height }, name: 'bottom' },
+        { pos: { x, y: y + height / 2 }, name: 'left' },
     ];
 
-    const handles = unrotatedHandles.map(handle => ({ ...handle, pos: transformPoint(handle.pos) }));
+    const isSkewDragActive = allowSkew && dragState?.type === 'skew' && dragState.pathId === path.id;
+    const useSkewCursor = allowSkew && (isSkewDragActive || isSkewModifierActive);
+
+    const handles = unrotatedHandles.map(handle => ({
+        ...handle,
+        pos: transformPoint(handle.pos),
+        cursor: getHandleCursor(handle.name, useSkewCursor),
+    }));
 
     const rotationHandleOffset = 20 / scale;
     const topCenterUnrotated = { x: x + width / 2, y };
@@ -141,7 +207,22 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | 
     return (
         <g className="pointer-events-auto">
             <PathHighlight path={path} scale={scale} />
-            {handles.map(({ pos, name, cursor }) => (<rect key={name} x={pos.x - halfHandleSize} y={pos.y - halfHandleSize} width={handleSize} height={handleSize} fill={"var(--text-primary)"} stroke={accent} strokeWidth={scaledStroke(1)} data-handle={name} data-path-id={path.id} style={{ cursor }} className="pointer-events-all" />))}
+            {handles.map(({ pos, name, cursor }) => (
+                <rect
+                    key={name}
+                    x={pos.x - halfHandleSize}
+                    y={pos.y - halfHandleSize}
+                    width={handleSize}
+                    height={handleSize}
+                    fill={"var(--text-primary)"}
+                    stroke={accent}
+                    strokeWidth={scaledStroke(1)}
+                    data-handle={name}
+                    data-path-id={path.id}
+                    style={{ cursor }}
+                    className="pointer-events-all"
+                />
+            ))}
             
             <>
                 <line x1={topCenter.x} y1={topCenter.y} x2={rotationHandlePos.x} y2={rotationHandlePos.y} stroke={accent} strokeWidth={scaledStroke(1)} strokeDasharray={`${2 / scale} ${2 / scale}`} className="pointer-events-none" />
@@ -174,8 +255,8 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | 
                                 strokeWidth={1 / scale} 
                                 data-handle="border-radius" 
                                 data-path-id={path.id} 
-                                style={{ cursor: 'ew-resize' }} 
-                                className="pointer-events-all" 
+                                style={{ cursor: 'ew-resize' }}
+                                className="pointer-events-all"
                             />
                         </>
                     );
@@ -367,7 +448,16 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
             return <VectorPathControls key={path.id} data={path as VectorPathData} scale={scale} dragState={dragState} hoveredPoint={hoveredPoint} />;
           }
           if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame') {
-            return <ShapeControls key={path.id} path={path} scale={scale} isSelectedAlone={selectedPaths.length === 1} />;
+            return (
+              <ShapeControls
+                key={path.id}
+                path={path}
+                scale={scale}
+                isSelectedAlone={selectedPaths.length === 1}
+                dragState={dragState}
+                allowSkew={false}
+              />
+            );
           }
           if (path.tool === 'arc') {
             return <ArcControls key={path.id} data={path as ArcData} scale={scale} />;
@@ -384,7 +474,15 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
     if (selectedPaths.length === 1) {
         const selectedPath = selectedPaths[0];
         if ((selectedPath.tool === 'rectangle' || selectedPath.tool === 'ellipse' || selectedPath.tool === 'image' || selectedPath.tool === 'polygon' || selectedPath.tool === 'text' || selectedPath.tool === 'frame') && !selectedPath.isLocked) {
-            return <ShapeControls path={selectedPath} scale={scale} isSelectedAlone={true} />;
+            return (
+                <ShapeControls
+                    path={selectedPath}
+                    scale={scale}
+                    isSelectedAlone={true}
+                    dragState={dragState}
+                    allowSkew={true}
+                />
+            );
         }
     }
     return <MultiSelectionControls paths={selectedPaths} scale={scale} />;
