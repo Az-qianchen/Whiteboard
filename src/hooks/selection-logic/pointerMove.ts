@@ -13,6 +13,8 @@ import type {
   SelectionViewTransform,
 } from '@/types';
 import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist, skewPath } from '@/lib/drawing';
+import { getLinearHandles, updateLinearGradientHandles, updateRadialGradientHandles } from '@/lib/gradient';
+import { getGradientHandleSpace } from '@/lib/gradientHandles';
 import { isPointHittingPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
@@ -196,6 +198,51 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 const snappedMovePoint = snapToGrid(movePoint);
                 transformedShapes = [skewPath(originalPath, handle, snappedMovePoint)];
                 break;
+            }
+            case 'gradient': {
+                const { pathId, handle } = dragState;
+                const path = paths.find((p: AnyPath) => p.id === pathId);
+                if (!path || !path.fillGradient) {
+                    return;
+                }
+
+                const space = getGradientHandleSpace(path);
+                if (!space) {
+                    return;
+                }
+
+                const normalized = space.fromCanvas(movePoint);
+                if (!normalized) {
+                    return;
+                }
+
+                const gradient = path.fillGradient;
+                if (gradient.type === 'linear') {
+                    if (handle !== 'start' && handle !== 'end') {
+                        return;
+                    }
+                    const currentHandles = getLinearHandles(gradient);
+                    const updatedHandles = handle === 'start'
+                        ? [normalized, currentHandles[1]]
+                        : [currentHandles[0], normalized];
+                    const nextGradient = updateLinearGradientHandles(gradient, updatedHandles);
+
+                    setPaths(recursivelyUpdatePaths(paths, (p: AnyPath) => (
+                        p.id === pathId ? { ...p, fillGradient: nextGradient } as AnyPath : null
+                    )));
+                } else {
+                    if (handle !== 'center' && handle !== 'edge') {
+                        return;
+                    }
+                    const nextGradient = handle === 'center'
+                        ? updateRadialGradientHandles(gradient, { center: normalized })
+                        : updateRadialGradientHandles(gradient, { edge: normalized });
+
+                    setPaths(recursivelyUpdatePaths(paths, (p: AnyPath) => (
+                        p.id === pathId ? { ...p, fillGradient: nextGradient } as AnyPath : null
+                    )));
+                }
+                return;
             }
         }
         const transformedMap = new Map(transformedShapes.map(p => [p.id, p]));

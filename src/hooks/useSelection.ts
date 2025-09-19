@@ -82,7 +82,7 @@ export const useSelection = ({
     if (dragState) {
       const pathExists = (pathId: string) => paths.some((p: AnyPath) => p.id === pathId);
       let isStale = false;
-      if (['anchor', 'handleIn', 'handleOut', 'resize', 'border-radius', 'arc', 'crop'].includes(dragState.type)) {
+      if (['anchor', 'handleIn', 'handleOut', 'resize', 'border-radius', 'arc', 'crop', 'gradient'].includes(dragState.type)) {
         if (!pathExists((dragState as any).pathId)) isStale = true;
       } else if (['move', 'scale', 'rotate'].includes(dragState.type)) {
         if (!(dragState as any).pathIds.every(pathExists)) isStale = true;

@@ -7,6 +7,8 @@ import React, { useEffect, useState } from 'react';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, TextData, FrameData, BBox } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
+import { getLinearHandles } from '@/lib/gradient';
+import { getGradientHandleSpace } from '@/lib/gradientHandles';
 
 
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
@@ -357,11 +359,128 @@ const ArcControls: React.FC<{ data: ArcData; scale: number; }> = React.memo(({ d
         strokeDasharray={`${4 / scale} ${4 / scale}`}
         className="pointer-events-none"
       />
-      
+
       {/* Control Handles */}
       <circle cx={start.x} cy={start.y} r={handleRadius} fill="var(--text-primary)" stroke={accent} strokeWidth={scaledStroke(1.5)} data-handle="arc" data-path-id={data.id} data-point-index="0" style={{ cursor: 'move' }} className="pointer-events-all" />
       <circle cx={end.x} cy={end.y} r={handleRadius} fill="var(--text-primary)" stroke={accent} strokeWidth={scaledStroke(1.5)} data-handle="arc" data-path-id={data.id} data-point-index="1" style={{ cursor: 'move' }} className="pointer-events-all" />
       <circle cx={via.x} cy={via.y} r={handleRadius} fill="var(--accent-primary)" stroke="var(--text-primary)" strokeWidth={scaledStroke(1.5)} data-handle="arc" data-path-id={data.id} data-point-index="2" style={{ cursor: 'move' }} className="pointer-events-all" />
+    </g>
+  );
+});
+
+const GradientHandles: React.FC<{ path: AnyPath; scale: number }> = React.memo(({ path, scale }) => {
+  const gradient = path.fillGradient;
+  if (!gradient) return null;
+  if (path.isLocked) return null;
+
+  const space = getGradientHandleSpace(path);
+  if (!space) return null;
+
+  const accent = 'var(--accent-primary)';
+  const accentMuted = 'var(--accent-primary-muted)';
+  const accentHighlight = 'var(--accent-primary-highlight)';
+  const handleRadius = 5 / scale;
+  const connectionStroke = Math.max(0.75 / scale, 0.5);
+
+  if (gradient.type === 'linear') {
+    const [startHandle, endHandle] = getLinearHandles(gradient);
+    const startPos = space.toCanvas(startHandle);
+    const endPos = space.toCanvas(endHandle);
+    if (!startPos || !endPos) {
+      return null;
+    }
+
+    return (
+      <g className="pointer-events-auto">
+        <line
+          x1={startPos.x}
+          y1={startPos.y}
+          x2={endPos.x}
+          y2={endPos.y}
+          stroke={accentMuted}
+          strokeWidth={connectionStroke}
+          strokeDasharray={`${4 / scale} ${4 / scale}`}
+          className="pointer-events-none"
+        />
+        <circle
+          cx={startPos.x}
+          cy={startPos.y}
+          r={handleRadius}
+          fill={accentHighlight}
+          stroke="var(--text-primary)"
+          strokeWidth={Math.max(1 / scale, 0.75)}
+          data-gradient-handle="start"
+          data-path-id={path.id}
+          className="pointer-events-all cursor-move"
+        />
+        <circle
+          cx={endPos.x}
+          cy={endPos.y}
+          r={handleRadius}
+          fill="var(--text-primary)"
+          stroke={accent}
+          strokeWidth={Math.max(1 / scale, 0.75)}
+          data-gradient-handle="end"
+          data-path-id={path.id}
+          className="pointer-events-all cursor-move"
+        />
+      </g>
+    );
+  }
+
+  const centerPos = space.toCanvas(gradient.center);
+  const edgePos = space.toCanvas(gradient.edge);
+  if (!centerPos || !edgePos) {
+    return null;
+  }
+
+  const radius = Math.hypot(edgePos.x - centerPos.x, edgePos.y - centerPos.y);
+
+  return (
+    <g className="pointer-events-auto">
+      {radius > 0.0001 && (
+        <circle
+          cx={centerPos.x}
+          cy={centerPos.y}
+          r={radius}
+          fill="none"
+          stroke={accentMuted}
+          strokeWidth={Math.max(0.5 / scale, 0.4)}
+          strokeDasharray={`${4 / scale} ${4 / scale}`}
+          className="pointer-events-none"
+        />
+      )}
+      <line
+        x1={centerPos.x}
+        y1={centerPos.y}
+        x2={edgePos.x}
+        y2={edgePos.y}
+        stroke={accent}
+        strokeWidth={connectionStroke}
+        className="pointer-events-none"
+      />
+      <circle
+        cx={centerPos.x}
+        cy={centerPos.y}
+        r={handleRadius}
+        fill={accentHighlight}
+        stroke="var(--text-primary)"
+        strokeWidth={Math.max(1 / scale, 0.75)}
+        data-gradient-handle="center"
+        data-path-id={path.id}
+        className="pointer-events-all cursor-move"
+      />
+      <circle
+        cx={edgePos.x}
+        cy={edgePos.y}
+        r={handleRadius}
+        fill="var(--text-primary)"
+        stroke={accent}
+        strokeWidth={Math.max(1 / scale, 0.75)}
+        data-gradient-handle="edge"
+        data-path-id={path.id}
+        className="pointer-events-all cursor-move"
+      />
     </g>
   );
 });
@@ -473,20 +592,34 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   if (selectionMode === 'move') {
     if (selectedPaths.length === 1) {
         const selectedPath = selectedPaths[0];
+        const gradientHandles = selectedPath.fillGradient ? (
+          <GradientHandles path={selectedPath} scale={scale} />
+        ) : null;
+
         if ((selectedPath.tool === 'rectangle' || selectedPath.tool === 'ellipse' || selectedPath.tool === 'image' || selectedPath.tool === 'polygon' || selectedPath.tool === 'text' || selectedPath.tool === 'frame') && !selectedPath.isLocked) {
             return (
-                <ShapeControls
-                    path={selectedPath}
-                    scale={scale}
-                    isSelectedAlone={true}
-                    dragState={dragState}
-                    allowSkew={true}
-                />
+                <>
+                    <ShapeControls
+                        path={selectedPath}
+                        scale={scale}
+                        isSelectedAlone={true}
+                        dragState={dragState}
+                        allowSkew={true}
+                    />
+                    {gradientHandles}
+                </>
             );
         }
+
+        return (
+            <>
+                <MultiSelectionControls paths={selectedPaths} scale={scale} />
+                {gradientHandles}
+            </>
+        );
     }
     return <MultiSelectionControls paths={selectedPaths} scale={scale} />;
   }
-  
+
   return null;
 });

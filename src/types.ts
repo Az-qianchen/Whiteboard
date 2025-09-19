@@ -94,6 +94,8 @@ export interface RadialGradientFill {
 
 export type GradientFill = LinearGradientFill | RadialGradientFill;
 
+export type GradientControlHandle = 'start' | 'end' | 'center' | 'edge';
+
 export type LibraryData = {
   type: 'whiteboard/library';
   version: 1;
@@ -393,8 +395,14 @@ type CropDragState = {
     initialPointerPos: Point;
 }
 
+type GradientDragState = {
+    type: 'gradient';
+    pathId: string;
+    handle: GradientControlHandle;
+}
+
 // Union of all possible drag states
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | GradientDragState | null;
 
 export interface SelectionPathState {
   paths: AnyPath[];
