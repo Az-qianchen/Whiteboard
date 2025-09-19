@@ -21,10 +21,13 @@ export interface ViewTransformState {
     scale: number;
   } | null;
   lastPointerPosition: Point | null;
+  pendingFitToContent: boolean;
 
   setIsPanning: (v: boolean) => void;
   setViewTransform: (updater: (prev: ViewTransform) => ViewTransform) => void;
   setLastPointerPosition: (p: Point | null) => void;
+  requestFitToContent: () => void;
+  consumeFitToContent: () => void;
 
   handleWheel: (e: WheelEvent) => void;
   handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -41,6 +44,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   touchPoints: new Map(),
   initialPinch: null,
   lastPointerPosition: null,
+  pendingFitToContent: false,
 
   // 设置是否处于平移状态
   setIsPanning: (v) => set({ isPanning: v }),
@@ -48,6 +52,8 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   setViewTransform: (updater) => set((s) => ({ viewTransform: updater(s.viewTransform) })),
   // 记录最后一次指针位置
   setLastPointerPosition: (p) => set({ lastPointerPosition: p }),
+  requestFitToContent: () => set({ pendingFitToContent: true }),
+  consumeFitToContent: () => set({ pendingFitToContent: false }),
 
   // 处理滚轮缩放和平移
   handleWheel: (e) => {

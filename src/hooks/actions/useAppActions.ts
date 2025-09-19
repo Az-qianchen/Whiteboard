@@ -20,6 +20,7 @@ export interface AppActionsProps {
   setFps: (val: number | ((prev: number) => number)) => void;
   backgroundColor: string;
   selectedPathIds: string[];
+  requestFitToContent: () => void;
   pathState: {
     setPaths: (updater: React.SetStateAction<AnyPath[]>) => void;
     setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>;

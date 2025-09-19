@@ -4,12 +4,13 @@
  * 并处理画布上的所有指针事件（如鼠标按下、移动、抬起）。
  */
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useLayoutEffect } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../types';
 import { getPointerPosition } from '../lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
+import { getPathsBoundingBox } from '@/lib/drawing';
 
 // Import new sub-components
 import { Grid } from './whiteboard/Grid';
@@ -102,6 +103,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   const lastPointerPosRef = useRef<Point | null>(null);
   const rafPendingRef = useRef(false);
   const setLastPointerPosition = useViewTransformStore(s => s.setLastPointerPosition);
+  const pendingFitToContent = useViewTransformStore(s => s.pendingFitToContent);
+  const setViewTransformState = useViewTransformStore(s => s.setViewTransform);
+  const consumeFitToContent = useViewTransformStore(s => s.consumeFitToContent);
 
   useEffect(() => {
     if (svgRef.current) {
@@ -181,6 +185,49 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       //    但在拖动操作期间，这是一个可接受的折衷方案，以换取更流畅的视觉反馈。
       return paths.filter(p => p.isVisible !== false && (p.id !== editingTextPathId || isMovingEditedPath));
   }, [paths, editingTextPathId, dragState]);
+
+  useLayoutEffect(() => {
+    if (!pendingFitToContent) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (width === 0 || height === 0) return;
+
+    const pathsToFit = visiblePaths.length > 0 ? visiblePaths : paths;
+    if (!pathsToFit || pathsToFit.length === 0) {
+      consumeFitToContent();
+      return;
+    }
+
+    const bbox = getPathsBoundingBox(pathsToFit, true);
+    if (!bbox) {
+      consumeFitToContent();
+      return;
+    }
+
+    const padding = Math.min(width, height) * 0.1;
+    const availableWidth = Math.max(width - padding * 2, 1);
+    const availableHeight = Math.max(height - padding * 2, 1);
+    const targetWidth = Math.max(bbox.width, 1);
+    const targetHeight = Math.max(bbox.height, 1);
+
+    let scale = Math.min(availableWidth / targetWidth, availableHeight / targetHeight);
+    if (!isFinite(scale) || scale <= 0) {
+      scale = 1;
+    }
+    scale = Math.max(0.1, Math.min(10, scale));
+
+    const centerX = bbox.x + bbox.width / 2;
+    const centerY = bbox.y + bbox.height / 2;
+
+    const translateX = width / 2 - centerX * scale;
+    const translateY = height / 2 - centerY * scale;
+
+    setViewTransformState(() => ({ scale, translateX, translateY }));
+    consumeFitToContent();
+  }, [pendingFitToContent, visiblePaths, paths, setViewTransformState, consumeFitToContent]);
 
   return (
     <div
