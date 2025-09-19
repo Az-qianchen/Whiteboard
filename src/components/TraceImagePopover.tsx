@@ -81,11 +81,11 @@ const ParameterInput: React.FC<ParameterInputProps> = ({ label, value, setValue,
   };
 
   return (
-    <div className="space-y-1">
-      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`} htmlFor={inputId}>
+    <div className="grid grid-cols-[1fr,auto] items-center gap-x-4">
+      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap`} htmlFor={inputId}>
         {label}
       </label>
-      <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
+      <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
         <input
           id={inputId}
           type="number"
