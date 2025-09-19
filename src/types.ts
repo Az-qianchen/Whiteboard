@@ -72,13 +72,27 @@ export interface GradientStop {
   opacity?: number;
 }
 
+export interface GradientHandle {
+  x: number;
+  y: number;
+}
+
 export interface LinearGradientFill {
   type: 'linear';
   angle: number; // degrees
   stops: GradientStop[];
+  start?: GradientHandle;
+  end?: GradientHandle;
 }
 
-export type GradientFill = LinearGradientFill;
+export interface RadialGradientFill {
+  type: 'radial';
+  stops: GradientStop[];
+  center: GradientHandle;
+  edge: GradientHandle;
+}
+
+export type GradientFill = LinearGradientFill | RadialGradientFill;
 
 export type LibraryData = {
   type: 'whiteboard/library';

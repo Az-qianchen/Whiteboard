@@ -9,7 +9,7 @@ import { renderImage, renderRoughShape } from '../rough/shapes';
 import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
-import { getLinearGradientCoordinates, gradientStopColor } from '@/lib/gradient';
+import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -37,13 +37,26 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
     const existingGradient = defs.querySelector(`#${gradientId}`);
     if (existingGradient) defs.removeChild(existingGradient);
 
-    const linearGradient = document.createElementNS(SVG_NS, 'linearGradient');
-    linearGradient.setAttribute('id', gradientId);
-    const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient.angle ?? 0);
-    linearGradient.setAttribute('x1', x1.toString());
-    linearGradient.setAttribute('y1', y1.toString());
-    linearGradient.setAttribute('x2', x2.toString());
-    linearGradient.setAttribute('y2', y2.toString());
+    const gradientElement = gradient.type === 'linear'
+      ? document.createElementNS(SVG_NS, 'linearGradient')
+      : document.createElementNS(SVG_NS, 'radialGradient');
+
+    gradientElement.setAttribute('id', gradientId);
+
+    if (gradient.type === 'linear') {
+      const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient);
+      gradientElement.setAttribute('x1', x1.toString());
+      gradientElement.setAttribute('y1', y1.toString());
+      gradientElement.setAttribute('x2', x2.toString());
+      gradientElement.setAttribute('y2', y2.toString());
+    } else {
+      const { cx, cy, fx, fy, r } = getRadialGradientAttributes(gradient);
+      gradientElement.setAttribute('cx', cx.toString());
+      gradientElement.setAttribute('cy', cy.toString());
+      gradientElement.setAttribute('fx', fx.toString());
+      gradientElement.setAttribute('fy', fy.toString());
+      gradientElement.setAttribute('r', r.toString());
+    }
 
     gradient.stops.forEach((stop, index) => {
         const stopElement = document.createElementNS(SVG_NS, 'stop');
@@ -56,10 +69,10 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
         if (alpha < 1) {
             stopElement.setAttribute('stop-opacity', alpha.toString());
         }
-        linearGradient.appendChild(stopElement);
+        gradientElement.appendChild(stopElement);
     });
 
-    defs.appendChild(linearGradient);
+    defs.appendChild(gradientElement);
 
     const applyFillRecursive = (element: SVGElement) => {
         if (element.tagName === 'defs') return;
