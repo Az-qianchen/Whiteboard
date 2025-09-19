@@ -32,7 +32,15 @@ interface ExcalidrawElement {
   fontFamily?: string | number;
   textAlign?: 'left' | 'center' | 'right';
   fileId?: string;
+  closed?: boolean;
 }
+
+const VECTOR_STROKE_TYPES: ReadonlySet<string> = new Set([
+  'line',
+  'arrow',
+  'draw',
+  'freedraw',
+]);
 
 const sharedProps = (el: ExcalidrawElement) => ({
   id: `${Date.now()}-${Math.random()}`,
@@ -84,7 +92,7 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
         width: el.width,
         height: el.height,
       } as EllipseData);
-    } else if (el.type === 'line' && Array.isArray(el.points)) {
+    } else if (VECTOR_STROKE_TYPES.has(el.type) && Array.isArray(el.points)) {
       const anchors: Anchor[] = el.points.map((p) => {
         const x = el.x + p[0];
         const y = el.y + p[1];
@@ -94,7 +102,7 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
         ...sharedProps(el),
         tool: 'pen',
         anchors,
-        isClosed: false,
+        isClosed: Boolean(el.closed),
       } as VectorPathData);
     } else if (el.type === 'image' && el.fileId) {
       const file = files[el.fileId];
