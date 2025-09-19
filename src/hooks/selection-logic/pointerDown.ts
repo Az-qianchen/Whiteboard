@@ -232,7 +232,11 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                 const isSimpleShape = selected.length === 1 && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame');
 
                 if (isSimpleShape) {
-                    setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
+                    if (e.ctrlKey || e.metaKey) {
+                        setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
+                    } else {
+                        setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
+                    }
                 } else {
                     if (!bbox) { endCoalescing(); return; }
                     setDragState({ type: 'scale', pathIds: selectedPathIds, handle, originalPaths: selected, initialPointerPos: point, initialSelectionBbox: bbox });

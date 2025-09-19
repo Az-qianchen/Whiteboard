@@ -5,7 +5,8 @@
 
 import React from 'react';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, TextData, FrameData, BBox } from '@/types';
-import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, rotatePoint, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
+import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
+import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 
 
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
@@ -81,12 +82,11 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
     if (!d) return null;
 
     let transform: string | undefined;
-    if (path.rotation && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame')) {
-        const { x, y, width, height, rotation } = path;
-        const cx = x + width / 2;
-        const cy = y + height / 2;
-        const angleDegrees = rotation * (180 / Math.PI);
-        transform = `rotate(${angleDegrees} ${cx} ${cy})`;
+    if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame') {
+        const matrix = getShapeTransformMatrix(path as RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData);
+        if (!isIdentityMatrix(matrix)) {
+            transform = matrixToString(matrix);
+        }
     }
 
     const accent = 'var(--accent-primary)';
@@ -109,14 +109,15 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
 
 
 const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData, scale: number, isSelectedAlone: boolean }> = React.memo(({ path, scale, isSelectedAlone }) => {
-    const { x, y, width, height, rotation } = path;
+    const { x, y, width, height } = path;
 
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
     const handleSize = 8 / scale;
     const halfHandleSize = handleSize / 2;
     const accent = 'var(--accent-primary)';
 
-    const center = { x: x + width / 2, y: y + height / 2 };
+    const transformMatrix = getShapeTransformMatrix(path);
+    const transformPoint = (point: Point) => applyMatrixToPoint(transformMatrix, point);
 
     const unrotatedHandles: { pos: Point, name: ResizeHandlePosition, cursor: string }[] = [
         { pos: { x, y }, name: 'top-left', cursor: 'nwse-resize' },
@@ -129,18 +130,13 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | 
         { pos: { x, y: y + height / 2 }, name: 'left', cursor: 'ew-resize' },
     ];
 
-    const handles = unrotatedHandles.map(handle => {
-        if (rotation) {
-            return { ...handle, pos: rotatePoint(handle.pos, center, rotation) };
-        }
-        return handle;
-    });
-    
+    const handles = unrotatedHandles.map(handle => ({ ...handle, pos: transformPoint(handle.pos) }));
+
     const rotationHandleOffset = 20 / scale;
-    const topCenterUnrotated = { x: x + width / 2, y: y };
+    const topCenterUnrotated = { x: x + width / 2, y };
     const rotationHandlePosUnrotated = { x: topCenterUnrotated.x, y: topCenterUnrotated.y - rotationHandleOffset };
-    const topCenter = rotation ? rotatePoint(topCenterUnrotated, center, rotation) : topCenterUnrotated;
-    const rotationHandlePos = rotation ? rotatePoint(rotationHandlePosUnrotated, center, rotation) : rotationHandlePosUnrotated;
+    const topCenter = transformPoint(topCenterUnrotated);
+    const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
 
     return (
         <g className="pointer-events-auto">
@@ -157,8 +153,8 @@ const ShapeControls: React.FC<{ path: RectangleData | EllipseData | ImageData | 
                     const handleOffset = 20 / scale; 
                     const unrotatedHandlePos = { x: cornerPos.x, y: cornerPos.y - handleOffset };
                     
-                    const handlePos = rotation ? rotatePoint(unrotatedHandlePos, center, rotation) : unrotatedHandlePos;
-                    const rotatedCornerPos = rotation ? rotatePoint(cornerPos, center, rotation) : cornerPos;
+                    const handlePos = transformPoint(unrotatedHandlePos);
+                    const rotatedCornerPos = transformPoint(cornerPos);
                     
                     return (
                         <>

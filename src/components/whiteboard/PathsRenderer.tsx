@@ -7,6 +7,7 @@ import React, { useMemo } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { AnyPath, FrameData, GroupData } from '@/types';
 import { renderPathNode } from '@/lib/export';
+import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 
 /**
  * 递归地查找并返回路径树中所有的画框对象。
@@ -104,13 +105,8 @@ export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, 
         const textWidth = (textContent.length * 8) + (2 * textPadding);
         const labelWidth = textWidth;
 
-        let transform;
-        if (frameData.rotation) {
-            const cx = frameData.x + frameData.width / 2;
-            const cy = frameData.y + frameData.height / 2;
-            const angleDegrees = frameData.rotation * (180 / Math.PI);
-            transform = `rotate(${angleDegrees} ${cx} ${cy})`;
-        }
+        const matrix = getShapeTransformMatrix(frameData);
+        const transform = isIdentityMatrix(matrix) ? undefined : matrixToString(matrix);
 
         return (
           <g key={`label-${frame.id}`} transform={transform} className="pointer-events-none">
