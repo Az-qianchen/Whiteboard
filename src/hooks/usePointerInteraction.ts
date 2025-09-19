@@ -29,6 +29,17 @@ interface PointerInteractionProps {
   onSampleStrokeColor?: (e: React.PointerEvent<SVGSVGElement>) => boolean;
 }
 
+const SELECTION_HANDLE_SELECTOR =
+  '[data-handle],[data-anchor-index],[data-type="anchor"],[data-type="handleIn"],[data-type="handleOut"]';
+
+const isSelectionHandleTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(target.closest(SELECTION_HANDLE_SELECTOR));
+};
+
 /**
  * A simplified coordinator hook that dispatches pointer events to the appropriate
  * interaction hook (useDrawing or useSelection) based on the current tool.
@@ -60,7 +71,9 @@ export const usePointerInteraction = ({
       setIsPanning(true);
       return;
     }
-    if (e.altKey && tool !== 'selection') {
+    const shouldBypassAltOverride = tool === 'selection' && isSelectionHandleTarget(e.target);
+
+    if (e.altKey && !shouldBypassAltOverride) {
       e.currentTarget.setPointerCapture(e.pointerId);
       if (e.button === 0 && onSampleStrokeColor) {
         altPanState.current = {
