@@ -20,6 +20,7 @@ interface LayerItemProps {
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDragEnd: (e: React.DragEvent) => void;
+  onLayerClick: (path: AnyPath, event: React.MouseEvent) => void;
 }
 
 export const LayerItem: React.FC<LayerItemProps> = ({
@@ -33,9 +34,9 @@ export const LayerItem: React.FC<LayerItemProps> = ({
   onDragOver,
   onDrop,
   onDragEnd,
+  onLayerClick,
 }) => {
   const {
-    setSelectedPathIds,
     togglePathsProperty,
     handleDeletePaths,
     toggleGroupCollapse,
@@ -49,18 +50,6 @@ export const LayerItem: React.FC<LayerItemProps> = ({
   const isVisible = path.isVisible !== false;
   const isLocked = path.isLocked === true;
   const isDropTarget = dropTarget?.id === path.id;
-
-  const handleLayerClick = (e: React.MouseEvent) => {
-    if (e.shiftKey) {
-      setSelectedPathIds(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(path.id)) newSet.delete(path.id); else newSet.add(path.id);
-        return Array.from(newSet);
-      });
-    } else {
-      setSelectedPathIds([path.id]);
-    }
-  };
 
   const handleNameCommit = () => {
     setPathName(path.id, nameInput || capitalize(path.tool));
@@ -107,7 +96,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
         />
       )}
       <div
-        onClick={isEditing ? undefined : handleLayerClick}
+        onClick={isEditing ? undefined : (event) => onLayerClick(path, event)}
         style={style}
         className={`group flex h-7 items-center gap-2 pr-2 rounded-md transition-colors cursor-grab select-none ${bgClass} ${isLocked ? 'opacity-60' : ''} ${isDropTarget && dropTarget.position === 'inside' ? 'ring-2 ring-inset ring-[var(--accent-primary)]' : ''}`}
         draggable={!isLocked && !isEditing}

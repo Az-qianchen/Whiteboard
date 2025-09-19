@@ -3,7 +3,7 @@
  * 它负责管理图层列表的整体状态，如拖放操作，
  * 并使用 Context 获取和操作图层数据。
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import type { AnyPath, GroupData } from '@/types';
 import { ICONS } from '@/constants';
 import { useLayers } from '@/lib/layers-context';
@@ -18,6 +18,76 @@ export const LayersPanel: React.FC = () => {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'above' | 'below' | 'inside' } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const lastSelectedIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (selectedPathIds.length === 0) {
+      lastSelectedIdRef.current = null;
+    }
+  }, [selectedPathIds.length]);
+
+  const flattenedLayers = useMemo(() => {
+    const result: { path: AnyPath; level: number; groupColorIndex?: number }[] = [];
+
+    const traverse = (layers: AnyPath[], level: number, parentColorIndex?: number) => {
+      let groupSiblingIndex = 0;
+
+      [...layers].reverse().forEach(path => {
+        let currentColorIndex: number | undefined;
+
+        if (path.tool === 'group') {
+          currentColorIndex = ((parentColorIndex ?? -1) + groupSiblingIndex + 1) % 5;
+          groupSiblingIndex++;
+        } else {
+          currentColorIndex = parentColorIndex;
+        }
+
+        result.push({ path, level, groupColorIndex: currentColorIndex });
+
+        if (path.tool === 'group' && !(path as GroupData).isCollapsed && (path as GroupData).children.length > 0) {
+          traverse((path as GroupData).children, level + 1, currentColorIndex);
+        }
+      });
+    };
+
+    traverse(paths, 0);
+    return result;
+  }, [paths]);
+
+  const visiblePathIds = useMemo(() => flattenedLayers.map(item => item.path.id), [flattenedLayers]);
+
+  const handleLayerClick = useCallback((path: AnyPath, event: React.MouseEvent) => {
+    if (event.shiftKey) {
+      const anchorId = lastSelectedIdRef.current ?? selectedPathIds[selectedPathIds.length - 1] ?? path.id;
+      const anchorIndex = visiblePathIds.indexOf(anchorId);
+      const targetIndex = visiblePathIds.indexOf(path.id);
+
+      if (anchorIndex !== -1 && targetIndex !== -1) {
+        const [start, end] = anchorIndex < targetIndex ? [anchorIndex, targetIndex] : [targetIndex, anchorIndex];
+        const rangeIds = visiblePathIds.slice(start, end + 1);
+        setSelectedPathIds(rangeIds);
+      } else {
+        setSelectedPathIds([path.id]);
+      }
+
+      lastSelectedIdRef.current = path.id;
+      return;
+    }
+
+    if (event.metaKey || event.ctrlKey) {
+      setSelectedPathIds(prev => {
+        if (prev.includes(path.id)) {
+          return prev.filter(id => id !== path.id);
+        }
+        return [...prev, path.id];
+      });
+      lastSelectedIdRef.current = path.id;
+      return;
+    }
+
+    setSelectedPathIds([path.id]);
+    lastSelectedIdRef.current = path.id;
+  }, [selectedPathIds, setSelectedPathIds, visiblePathIds]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
@@ -120,41 +190,6 @@ export const LayersPanel: React.FC = () => {
     setDropTarget(null);
   };
 
-  const renderLayerTree = (layers: AnyPath[], level: number, parentColorIndex?: number): JSX.Element[] => {
-    let groupSiblingIndex = 0;
-    
-    return [...layers].reverse().map(path => {
-        let currentColorIndex: number | undefined;
-        
-        if (path.tool === 'group') {
-            currentColorIndex = ((parentColorIndex ?? -1) + groupSiblingIndex + 1) % 5;
-            groupSiblingIndex++;
-        } else {
-            currentColorIndex = parentColorIndex;
-        }
-
-        return (
-            <React.Fragment key={path.id}>
-                <LayerItem
-                    path={path}
-                    level={level}
-                    isSelected={selectedPathIds.includes(path.id)}
-                    dropTarget={dropTarget}
-                    groupColorIndex={currentColorIndex}
-                    onDragStart={(e) => handleDragStart(e, path.id)}
-                    onDragOver={(e) => handleItemDragOver(e, path.id)}
-                    onDragEnter={(e) => handleItemDragOver(e, path.id)}
-                    onDrop={handleDrop}
-                    onDragEnd={handleDragEnd}
-                />
-                {path.tool === 'group' && !(path as GroupData).isCollapsed && (path as GroupData).children.length > 0 && (
-                    renderLayerTree((path as GroupData).children, level + 1, currentColorIndex)
-                )}
-            </React.Fragment>
-        );
-    });
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div
@@ -163,10 +198,25 @@ export const LayersPanel: React.FC = () => {
         onDragOver={handleContainerDragOver}
         onDrop={handleDrop}
       >
-        {paths.length === 0 ? (
+        {flattenedLayers.length === 0 ? (
           <div className="text-center text-sm text-[var(--text-secondary)] py-8">画布为空</div>
         ) : (
-          renderLayerTree(paths, 0)
+          flattenedLayers.map(({ path, level, groupColorIndex }) => (
+            <LayerItem
+              key={path.id}
+              path={path}
+              level={level}
+              isSelected={selectedPathIds.includes(path.id)}
+              dropTarget={dropTarget}
+              groupColorIndex={groupColorIndex}
+              onDragStart={(e) => handleDragStart(e, path.id)}
+              onDragOver={(e) => handleItemDragOver(e, path.id)}
+              onDragEnter={(e) => handleItemDragOver(e, path.id)}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              onLayerClick={handleLayerClick}
+            />
+          ))
         )}
       </div>
       {(paths.length > 0 || selectedPathIds.length > 0) && (
