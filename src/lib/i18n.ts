@@ -119,6 +119,7 @@ const resources = {
         styleLibrary: 'Style library',
         colorControl: {
           select: 'Select {{label}}',
+          altSampleHint: 'Hold Alt and click any visible stroke to pick its color—even on locked layers. Hold Alt and drag to pan.',
         },
         fillStyle: {
           title: 'Fill style',
@@ -343,6 +344,7 @@ const resources = {
         styleLibrary: '样式库',
         colorControl: {
           select: '选择{{label}}',
+          altSampleHint: '按住 Alt 点击任意可见描边即可吸取颜色（即使对象被锁定），按住 Alt 拖动可平移画布。',
         },
         fillStyle: {
           title: '填充样式',

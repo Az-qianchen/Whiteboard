@@ -32,9 +32,14 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
     };
 
     const selectLabel = t('sideToolbar.colorControl.select', { label });
+    const altSampleHint = t('sideToolbar.colorControl.altSampleHint');
+    const tooltip = `${selectLabel} · ${altSampleHint}`;
 
     return (
-        <div className={`flex flex-col items-center w-14 transition-opacity ${disabled ? 'opacity-50' : ''} ${className}`} title={label}>
+        <div
+            className={`flex flex-col items-center w-14 transition-opacity ${disabled ? 'opacity-50' : ''} ${className}`}
+            title={tooltip}
+        >
             <FloatingColorPicker
                 color={color}
                 onChange={setColor}
@@ -53,8 +58,8 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
                             backgroundColor: color,
                             ...(isTransparent && checkerboardStyle)
                         }}
-                        aria-label={selectLabel}
-                        title={selectLabel}
+                        aria-label={tooltip}
+                        title={tooltip}
                     />
                 )}
             </FloatingColorPicker>
