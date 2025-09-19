@@ -519,8 +519,9 @@ export const useAppStore = () => {
 
   const startTextEditing = useCallback((pathId: string) => {
     setEditingTextPathId(pathId);
+    setSelectedPathIds([pathId]);
     beginPathsCoalescing();
-  }, [setEditingTextPathId, beginPathsCoalescing]);
+  }, [setEditingTextPathId, beginPathsCoalescing, setSelectedPathIds]);
 
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
@@ -675,7 +676,7 @@ export const useAppStore = () => {
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
-      if (path.tool === 'text') { setEditingTextPathId(path.id); beginPathsCoalescing(); }
+      if (path.tool === 'text') { startTextEditing(path.id); }
       else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           beginPathsCoalescing();
@@ -687,7 +688,7 @@ export const useAppStore = () => {
           setCropHistory({ past: [], future: [] });
           setSelectedPathIds([path.id]);
       }
-  }, [toolbarState.selectionMode, beginPathsCoalescing, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc, setSelectedPathIds]);
+  }, [toolbarState.selectionMode, startTextEditing, groupIsolation, beginPathsCoalescing, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc, setSelectedPathIds]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState, startTextEditing });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });

@@ -179,7 +179,6 @@ export const useDrawing = ({
         };
         setPaths((prev: AnyPath[]) => [...prev, newText]);
         toolbarState.setTool('selection');
-        pathState.setSelectedPathIds([id]);
         startTextEditing(id);
         break;
       }
