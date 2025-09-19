@@ -20,6 +20,8 @@ import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
 import { removeBackground } from '@/lib/image';
+import { getImageDataUrl } from '@/lib/imageCache';
+import { useFilesStore } from '@/context/filesStore';
 import { createDocumentSignature } from '@/lib/document';
 
 type ConfirmationDialogState = {
@@ -228,37 +230,44 @@ export const useAppStore = () => {
       return;
     }
 
-    const { originalPath } = appState.croppingState;
-    const src = cropEditedSrc ?? originalPath.src;
     let isCancelled = false;
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = src;
-    img.onload = () => {
-      if (isCancelled) return;
-      const canvas = document.createElement('canvas');
-      const width = img.naturalWidth || img.width;
-      const height = img.naturalHeight || img.height;
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        console.warn('Unable to acquire 2D context for magic wand preparation');
-        return;
+    const load = async () => {
+      const { originalPath } = appState.croppingState!;
+      try {
+        const src = cropEditedSrc ?? (await getImageDataUrl(originalPath));
+        if (isCancelled) return;
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve(undefined);
+          img.onerror = (err) => reject(err);
+        });
+        if (isCancelled) return;
+        const canvas = document.createElement('canvas');
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.warn('Unable to acquire 2D context for magic wand preparation');
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, width, height);
+        cropImageCacheRef.current = { naturalWidth: width, naturalHeight: height, imageData: data };
+      } catch (err) {
+        console.error('Failed to load image for cropping', err);
       }
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, width, height);
-      cropImageCacheRef.current = { naturalWidth: width, naturalHeight: height, imageData: data };
     };
-    img.onerror = (err) => {
-      console.error('Failed to load image for cropping', err);
-    };
+
+    void load();
 
     return () => {
       isCancelled = true;
     };
-  }, [appState.croppingState?.pathId, cropEditedSrc, appState.croppingState?.originalPath.src]);
+  }, [appState.croppingState?.pathId, cropEditedSrc, appState.croppingState?.originalPath.fileId]);
 
   // --- Memoized Setters for State Properties ---
   const setIsGridVisible = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isGridVisible: typeof val === 'function' ? val(s.isGridVisible) : val })), []);
@@ -362,23 +371,28 @@ export const useAppStore = () => {
     const result = cropMagicWandResultRef.current;
     const { newSrc, imageData } = result;
 
-    pathState.setPaths(prev => prev.map(p =>
-      p.id === cropping.pathId ? { ...(p as PathImageData), src: newSrc } : p
-    ));
-    setCroppingState(prev => (
-      prev && prev.pathId === cropping.pathId
-        ? { ...prev, originalPath: { ...prev.originalPath, src: newSrc } }
-        : prev
-    ));
+    void (async () => {
+      const filesStore = useFilesStore.getState();
+      const { fileId } = await filesStore.ingestDataUrl(newSrc);
 
-    if (cropImageCacheRef.current) {
-      cropImageCacheRef.current = {
-        ...cropImageCacheRef.current,
-        imageData,
-      };
-    }
-    setCropEditedSrc(newSrc);
-    clearCropSelection();
+      pathState.setPaths(prev => prev.map(p =>
+        p.id === cropping.pathId ? { ...(p as PathImageData), fileId } : p
+      ));
+      setCroppingState(prev => (
+        prev && prev.pathId === cropping.pathId
+          ? { ...prev, originalPath: { ...prev.originalPath, fileId } }
+          : prev
+      ));
+
+      if (cropImageCacheRef.current) {
+        cropImageCacheRef.current = {
+          ...cropImageCacheRef.current,
+          imageData,
+        };
+      }
+      setCropEditedSrc(newSrc);
+      clearCropSelection();
+    })();
   }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
 
   const cancelMagicWandSelection = useCallback(() => {
@@ -506,12 +520,11 @@ export const useAppStore = () => {
     if (!appState.croppingState || !appState.currentCropRect) return;
     const { pathId, originalPath } = appState.croppingState;
     const cropRect = appState.currentCropRect;
-    const sourceSrc = cropEditedSrc ?? originalPath.src;
-
     const performCrop = async () => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = sourceSrc;
+      const baseSrc = cropEditedSrc ?? (await getImageDataUrl(originalPath));
+      img.src = baseSrc;
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
         img.onerror = err => reject(err);
@@ -536,6 +549,8 @@ export const useAppStore = () => {
       ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
 
       const newSrc = canvas.toDataURL();
+      const filesStore = useFilesStore.getState();
+      const { fileId } = await filesStore.ingestDataUrl(newSrc);
       const rotation = originalPath.rotation ?? 0;
 
       const oldCenter = {
@@ -561,7 +576,7 @@ export const useAppStore = () => {
 
       activePathState.setPaths(prev => prev.map(p =>
         p.id === pathId
-          ? { ...(p as PathImageData), src: newSrc, x: newX, y: newY, width: cropRect.width, height: cropRect.height, rotation }
+          ? { ...(p as PathImageData), fileId, x: newX, y: newY, width: cropRect.width, height: cropRect.height, rotation }
           : p
       ));
 

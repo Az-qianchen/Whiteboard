@@ -12,6 +12,7 @@ import {
   DEFAULT_CURVE_TIGHTNESS,
   DEFAULT_CURVE_STEP_COUNT,
 } from '@/constants';
+import { useFilesStore } from '@/context/filesStore';
 
 interface ExcalidrawElement {
   type: string;
@@ -50,14 +51,19 @@ const sharedProps = (el: ExcalidrawElement) => ({
   rotation: el.angle ?? 0,
 });
 
-export function importExcalidraw(json: string): AnyPath[] {
+export async function importExcalidraw(json: string): Promise<AnyPath[]> {
   let data: any;
-  try { data = JSON.parse(json); } catch { return []; }
+  try {
+    data = JSON.parse(json);
+  } catch {
+    return [];
+  }
   const elements: ExcalidrawElement[] = data?.elements;
   if (!Array.isArray(elements)) return [];
   const files: Record<string, { dataURL?: string }> = data?.files ?? {};
 
   const paths: AnyPath[] = [];
+  const filesStore = useFilesStore.getState();
 
   for (const el of elements) {
     if (el.type === 'rectangle') {
@@ -78,20 +84,7 @@ export function importExcalidraw(json: string): AnyPath[] {
         width: el.width,
         height: el.height,
       } as EllipseData);
-    } else if (el.type === 'text' && el.text) {
-      paths.push({
-        ...sharedProps(el),
-        tool: 'text',
-        text: el.text,
-        fontSize: el.fontSize ?? 16,
-        fontFamily: typeof el.fontFamily === 'string' ? el.fontFamily : 'Virgil',
-        textAlign: el.textAlign ?? 'left',
-        x: el.x,
-        y: el.y,
-        width: el.width ?? 0,
-        height: el.height ?? el.fontSize ?? 16,
-      } as TextData);
-    } else if (['line', 'arrow', 'draw', 'freedraw'].includes(el.type) && Array.isArray(el.points)) {
+    } else if (el.type === 'line' && Array.isArray(el.points)) {
       const anchors: Anchor[] = el.points.map((p) => {
         const x = el.x + p[0];
         const y = el.y + p[1];
@@ -107,10 +100,11 @@ export function importExcalidraw(json: string): AnyPath[] {
       const file = files[el.fileId];
       const src = file?.dataURL;
       if (src) {
+        const { fileId } = await filesStore.ingestDataUrl(src);
         paths.push({
           ...sharedProps(el),
           tool: 'image',
-          src,
+          fileId,
           x: el.x,
           y: el.y,
           width: el.width,
@@ -120,9 +114,21 @@ export function importExcalidraw(json: string): AnyPath[] {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text' && typeof el.text === 'string') {
+      paths.push({
+        ...sharedProps(el),
+        tool: 'text',
+        text: el.text,
+        fontSize: el.fontSize ?? 16,
+        fontFamily: typeof el.fontFamily === 'string' ? el.fontFamily : 'Virgil',
+        textAlign: el.textAlign ?? 'left',
+        x: el.x,
+        y: el.y,
+        width: el.width ?? 0,
+        height: el.height ?? el.fontSize ?? 16,
+      } as TextData);
     }
   }
 
   return paths;
 }
-
