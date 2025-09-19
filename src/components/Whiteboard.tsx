@@ -55,6 +55,7 @@ interface WhiteboardProps {
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  cropSelectionInverted: boolean;
 }
 
 /**
@@ -95,6 +96,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   currentCropRect,
   cropTool,
   cropSelectionContours,
+  cropSelectionInverted,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -264,7 +266,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
           {croppingState && cropSelectionContours && cropSelectionContours.length > 0 && (
-            <MagicWandOverlay contours={cropSelectionContours} />
+            <MagicWandOverlay
+              contours={cropSelectionContours}
+              image={croppingState.originalPath}
+              isInverted={cropSelectionInverted}
+            />
           )}
 
           <ControlsRenderer

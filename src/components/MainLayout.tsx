@@ -59,6 +59,7 @@ export const MainLayout: React.FC = () => {
         currentCropRect,
         cropTool,
         cropSelectionContours,
+        cropSelectionInverted,
         // Drop handler props
         getPointerPosition,
         handleApplyMaterial,
@@ -236,6 +237,7 @@ export const MainLayout: React.FC = () => {
                             currentCropRect={currentCropRect}
                             cropTool={cropTool}
                             cropSelectionContours={cropSelectionContours}
+                            cropSelectionInverted={cropSelectionInverted}
                         />
                     </div>
                     <TimelinePanel />
