@@ -296,7 +296,7 @@ const resources = {
       simplify: '简化',
       removeBackground: '抠图',
       cropMode: '裁剪模式',
-      cropAdjust: '裁剪框',
+      cropAdjust: '裁剪',
       cropMagicWand: '抠图',
       applySelection: '应用选区',
       clearSelection: '清除选区',
