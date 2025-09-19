@@ -18,11 +18,31 @@ import { getLocalStorageItem } from '../lib/utils';
 export const usePaths = () => {
   const frameManagement = useFrameManagement();
   const liveDrawingState = useLiveDrawingState();
+  const { paths } = frameManagement;
   const [selectedPathIds, setSelectedPathIds] = useState<string[]>(() => getLocalStorageItem('whiteboard_selectedPathIds', []));
 
   useEffect(() => {
     localStorage.setItem('whiteboard_selectedPathIds', JSON.stringify(selectedPathIds));
   }, [selectedPathIds]);
+
+  useEffect(() => {
+    if (selectedPathIds.length === 0) return;
+
+    const existingIds = new Set<string>();
+    const stack = [...paths];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current) continue;
+      existingIds.add(current.id);
+      if (current.tool === 'group') {
+        stack.push(...current.children);
+      }
+    }
+
+    if (!selectedPathIds.some(id => !existingIds.has(id))) return;
+
+    setSelectedPathIds(prev => prev.filter(id => existingIds.has(id)));
+  }, [paths, selectedPathIds, setSelectedPathIds]);
 
   const { setPaths: setCurrentFramePaths } = frameManagement;
   const { currentBrushPath, setCurrentBrushPath, currentPenPath, setCurrentPenPath, currentLinePath, setCurrentLinePath } = liveDrawingState;
