@@ -69,7 +69,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       style={{ bottom: timelineBottomOffset }}
     >
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-[var(--text-secondary)]">{t('cropMode')}</span>
         <div className="flex items-center gap-1 rounded-lg bg-[var(--ui-element-bg)] p-1">
           <button
             type="button"
@@ -106,7 +105,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-threshold">
             {t('threshold')}
-            <div className={`${PANEL_CLASSES.inputWrapper} w-24`}>
+            <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
               <input
                 id="magic-wand-threshold"
                 type="number"
@@ -138,28 +137,25 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       )}
 
       {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">
-          <span>{t('clickImageToSelectArea')}</span>
-          <div className="flex items-center gap-2">
-            <PanelButton
-              type="button"
-              onClick={applyMagicWandSelection}
-              disabled={!hasSelection}
-              className="!w-auto px-3 gap-1 bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:bg-[var(--accent-bg)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {React.cloneElement(ICONS.CHECK, { className: 'h-4 w-4' })}
-              <span>{t('applySelection')}</span>
-            </PanelButton>
-            <PanelButton
-              type="button"
-              onClick={cancelMagicWandSelection}
-              disabled={!hasSelection}
-              className="!w-auto px-3 gap-1 text-[var(--danger-text)] hover:bg-[var(--danger-bg)] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {React.cloneElement(ICONS.X, { className: 'h-4 w-4' })}
-              <span>{t('clearSelection')}</span>
-            </PanelButton>
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <PanelButton
+            type="button"
+            onClick={applyMagicWandSelection}
+            disabled={!hasSelection}
+            className="!w-auto px-3 gap-1 bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {React.cloneElement(ICONS.CHECK, { className: 'h-4 w-4' })}
+            <span>{t('applySelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            onClick={cancelMagicWandSelection}
+            disabled={!hasSelection}
+            className="!w-auto px-3 gap-1 bg-[var(--danger-text)] text-[var(--text-on-accent-solid)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {React.cloneElement(ICONS.X, { className: 'h-4 w-4' })}
+            <span>{t('clearSelection')}</span>
+          </PanelButton>
         </div>
       )}
 
