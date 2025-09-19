@@ -5,6 +5,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
+import { PANEL_CLASSES } from '@/components/panelStyles';
 import { ICONS, getTimelinePanelBottomOffset } from '@/constants';
 
 interface CropToolbarProps {
@@ -48,7 +49,14 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   );
 
   const handleThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCropMagicWandOptions({ threshold: Number(event.target.value) });
+    const parsedValue = Number(event.target.value);
+
+    if (Number.isNaN(parsedValue)) {
+      return;
+    }
+
+    const clampedValue = Math.min(120, Math.max(1, parsedValue));
+    setCropMagicWandOptions({ threshold: clampedValue });
   };
 
   const handleContiguousToggle = () => {
@@ -98,19 +106,19 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-threshold">
             {t('threshold')}
-            <input
-              id="magic-wand-threshold"
-              type="range"
-              min={1}
-              max={120}
-              step={1}
-              value={cropMagicWandOptions.threshold}
-              onChange={handleThresholdChange}
-              className="themed-slider w-36"
-            />
-            <span className="w-10 text-right font-medium text-[var(--text-primary)]">
-              {cropMagicWandOptions.threshold}
-            </span>
+            <div className={`${PANEL_CLASSES.inputWrapper} w-24`}>
+              <input
+                id="magic-wand-threshold"
+                type="number"
+                min={1}
+                max={120}
+                step={1}
+                value={cropMagicWandOptions.threshold}
+                onChange={handleThresholdChange}
+                inputMode="numeric"
+                className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+              />
+            </div>
           </label>
 
           <PanelButton
