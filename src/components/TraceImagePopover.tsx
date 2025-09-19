@@ -82,10 +82,10 @@ const ParameterInput: React.FC<ParameterInputProps> = ({ label, value, setValue,
 
   return (
     <div className="flex items-center gap-3">
-      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex-1 min-w-0`} htmlFor={inputId}>
+      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] shrink-0`} htmlFor={inputId}>
         {label}
       </label>
-      <div className={`${PANEL_CLASSES.inputWrapper} w-16 shrink-0`}>
+      <div className={`${PANEL_CLASSES.inputWrapper} flex-1`}>
         <input
           id={inputId}
           type="number"
