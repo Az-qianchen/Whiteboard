@@ -1,5 +1,7 @@
 import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, TextData, RectangleData, EllipseData, PolygonData, GroupData } from '@/types';
 import { rectangleToVectorPath, ellipseToVectorPath, polygonToVectorPath } from '../convert';
+import { getCachedImage } from '@/lib/imageCache';
+import { useFilesStore } from '@/context/filesStore';
 
 /**
  * 翻转图形。
@@ -39,32 +41,32 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
     }
     case 'image': {
       const imgPath = path as ImageData;
+      const cached = await getCachedImage(imgPath);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
 
-      const flippedSrc = await new Promise<string>((resolve, reject) => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Could not get canvas context'));
+      canvas.width = cached.width;
+      canvas.height = cached.height;
+      ctx.save();
+      if (axis === 'horizontal') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      } else {
+        ctx.translate(0, canvas.height);
+        ctx.scale(1, -1);
+      }
+      ctx.drawImage(cached.source, 0, 0);
+      ctx.restore();
 
-        const img = new Image();
-        img.onload = () => {
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          ctx.save();
-          if (axis === 'horizontal') {
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-          } else {
-            ctx.translate(0, canvas.height);
-            ctx.scale(1, -1);
-          }
-          ctx.drawImage(img, 0, 0);
-          ctx.restore();
-          resolve(canvas.toDataURL());
-        };
-        img.onerror = err => reject(err);
-        img.crossOrigin = 'anonymous';
-        img.src = imgPath.src;
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((value) => {
+          if (value) resolve(value);
+          else reject(new Error('Failed to create flipped image blob'));
+        }, 'image/png');
       });
+      const filesStore = useFilesStore.getState();
+      const metadata = await filesStore.addFile(blob);
 
       const { x, y, width, height, rotation } = imgPath;
       const shapeCenter = { x: x + width / 2, y: y + height / 2 };
@@ -73,7 +75,7 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
       const newY = newShapeCenter.y - height / 2;
       const newRotation = -(rotation ?? 0);
 
-      return { ...imgPath, x: newX, y: newY, rotation: newRotation, src: flippedSrc };
+      return { ...imgPath, x: newX, y: newY, rotation: newRotation, fileId: metadata.id };
     }
     case 'text': {
       const textPath = path as TextData;

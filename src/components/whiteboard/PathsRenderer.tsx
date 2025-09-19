@@ -3,10 +3,11 @@
  * 它使用 RoughJS 库来创建手绘风格的 SVG 图形。
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, FrameData, GroupData } from '@/types';
+import type { AnyPath, FrameData, GroupData, ImageData } from '@/types';
 import { renderPathNode } from '@/lib/export';
+import { getImageDataUrl } from '@/lib/imageCache';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 
 /**
@@ -32,6 +33,27 @@ const getAllFrames = (paths: AnyPath[]): AnyPath[] => {
  * 仅更新组内已更改的元素。遮罩组则被视为原子单元进行渲染。
  */
 const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.memo(({ rc, data }) => {
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        if (data.tool !== 'image') {
+            setImageSrc(null);
+            return () => {
+                cancelled = true;
+            };
+        }
+        setImageSrc(null);
+        void getImageDataUrl(data as ImageData)
+            .then((src) => {
+                if (!cancelled) setImageSrc(src);
+            })
+            .catch((err) => console.error('Failed to resolve image for rendering', err));
+        return () => {
+            cancelled = true;
+        };
+    }, [data]);
+
     // 如果路径是常规（非遮罩）组，则递归渲染其子项以获得性能优势。
     if (data.tool === 'group' && !(data as GroupData).mask) {
         return (
@@ -47,10 +69,16 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
     // 遮罩组需要作为一个整体进行渲染，以正确生成 <clipPath> 和相关结构。
     const nodeString = useMemo(() => {
         if (!rc) return '';
+        if (data.tool === 'image') {
+            if (!imageSrc) return '';
+            const prepared = { ...(data as ImageData), src: imageSrc };
+            const node = renderPathNode(rc, prepared);
+            return node ? node.outerHTML : '';
+        }
         const node = renderPathNode(rc, data);
         // 使用 outerHTML 确保整个节点都被正确序列化。
         return node ? node.outerHTML : '';
-    }, [rc, data]);
+    }, [rc, data, imageSrc]);
 
     // 使用 dangerouslySetInnerHTML 来渲染预先计算好的 SVG 字符串。
     return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;
@@ -61,12 +89,38 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
  * This is optimized for live previews where we don't need group recursion or frame logic.
  */
 export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.memo(({ rc, data }) => {
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        if (data.tool !== 'image') {
+            setImageSrc(null);
+            return () => {
+                cancelled = true;
+            };
+        }
+        setImageSrc(null);
+        void getImageDataUrl(data as ImageData)
+            .then((src) => {
+                if (!cancelled) setImageSrc(src);
+            })
+            .catch((err) => console.error('Failed to resolve image for rough path', err));
+        return () => {
+            cancelled = true;
+        };
+    }, [data]);
+
     const nodeString = useMemo(() => {
         if (!rc || data.tool === 'group') return '';
+        if (data.tool === 'image') {
+            if (!imageSrc) return '';
+            const prepared = { ...(data as ImageData), src: imageSrc };
+            const node = renderPathNode(rc, prepared);
+            return node ? node.outerHTML : '';
+        }
         const node = renderPathNode(rc, data);
-        // 使用 outerHTML 而不是 innerHTML，以确保像 <path> 这样的单个元素能被正确渲染。
         return node ? node.outerHTML : '';
-    }, [rc, data]);
+    }, [rc, data, imageSrc]);
 
     // Use dangerouslySetInnerHTML to render the pre-computed SVG string.
     return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;

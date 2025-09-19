@@ -194,9 +194,24 @@ export interface EllipseData extends ShapeBase {
   skewY?: number;
 }
 
+export interface BinaryFileMetadata {
+  id: string;
+  mimeType: string;
+  size: number;
+  created: number;
+  lastModified: number;
+  name?: string;
+}
+
+export interface BinaryFile extends BinaryFileMetadata {
+  blob: Blob;
+}
+
 export interface ImageData extends ShapeBase {
   tool: 'image';
-  src: string; // data URL
+  fileId: string;
+  // Legacy field retained for migrations – new code should rely on fileId.
+  src?: string;
   x: number;
   y: number;
   width: number;
@@ -246,6 +261,7 @@ export interface WhiteboardData {
   frames?: Frame[]; // For new version 3
   backgroundColor?: string;
   fps?: number;
+  files?: Record<string, { dataURL: string; mimeType?: string }>; // Legacy export compatibility
 }
 
 // 用于实时手绘的临时路径类型。
