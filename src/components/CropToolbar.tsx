@@ -63,41 +63,48 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
     setCropMagicWandOptions({ contiguous: !cropMagicWandOptions.contiguous });
   };
 
+  const segmentedButtonBase =
+    'flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors';
+  const textButtonBase =
+    'flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-wrap items-start gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)]"
       style={{ bottom: timelineBottomOffset }}
     >
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-1 rounded-lg bg-[var(--ui-element-bg)] p-1">
-          <button
+        <div className={PANEL_CLASSES.segmentGroup}>
+          <PanelButton
             type="button"
-            className={`flex items-center gap-1 rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+            variant="unstyled"
+            className={`${segmentedButtonBase} ${
               cropTool === 'crop'
                 ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
             }`}
             onClick={() => setCropTool('crop')}
             aria-pressed={cropTool === 'crop'}
             title={t('cropAdjust')}
           >
-            {React.cloneElement(ICONS.FRAME, { className: 'h-4 w-4' })}
+            {ICONS.FRAME}
             <span>{t('cropAdjust')}</span>
-          </button>
-          <button
+          </PanelButton>
+          <PanelButton
             type="button"
-            className={`flex items-center gap-1 rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+            variant="unstyled"
+            className={`${segmentedButtonBase} ${
               cropTool === 'magic-wand'
                 ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
             }`}
             onClick={() => setCropTool('magic-wand')}
             aria-pressed={cropTool === 'magic-wand'}
             title={t('cropMagicWand')}
           >
-            {React.cloneElement(ICONS.TRACE_IMAGE, { className: 'h-4 w-4' })}
+            {ICONS.TRACE_IMAGE}
             <span>{t('cropMagicWand')}</span>
-          </button>
+          </PanelButton>
         </div>
       </div>
 
@@ -122,11 +129,12 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
           <PanelButton
             type="button"
+            variant="unstyled"
             onClick={handleContiguousToggle}
-            className={`!w-auto px-3 gap-2 text-sm font-medium transition-colors ${
+            className={`${segmentedButtonBase} ${
               cropMagicWandOptions.contiguous
-                ? '!bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
             }`}
             aria-pressed={cropMagicWandOptions.contiguous}
             title={t('contiguous')}
@@ -140,20 +148,22 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           <PanelButton
             type="button"
+            variant="unstyled"
             onClick={applyMagicWandSelection}
             disabled={!hasSelection}
-            className="!w-auto px-3 gap-1 bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
           >
-            {React.cloneElement(ICONS.CHECK, { className: 'h-4 w-4' })}
+            {ICONS.CHECK}
             <span>{t('applySelection')}</span>
           </PanelButton>
           <PanelButton
             type="button"
+            variant="unstyled"
             onClick={cancelMagicWandSelection}
             disabled={!hasSelection}
-            className="!w-auto px-3 gap-1 bg-[var(--danger-text)] text-[var(--text-on-accent-solid)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            className={`${textButtonBase} bg-[var(--danger-bg)] text-[var(--danger-text)] hover:opacity-90`}
           >
-            {React.cloneElement(ICONS.X, { className: 'h-4 w-4' })}
+            {ICONS.X}
             <span>{t('clearSelection')}</span>
           </PanelButton>
         </div>
@@ -164,18 +174,20 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           type="button"
           title={t('cancel')}
           onClick={cancelCrop}
-          className="!w-auto px-3 gap-1 text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
+          variant="unstyled"
+          className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
         >
-          {React.cloneElement(ICONS.X, { className: 'h-5 w-5' })}
+          {ICONS.X}
           <span>{t('cancel')}</span>
         </PanelButton>
         <PanelButton
           type="button"
           title={t('confirm')}
           onClick={confirmCrop}
-          className="!w-auto px-3 gap-1 bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:bg-[var(--accent-bg)] hover:opacity-90"
+          variant="unstyled"
+          className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
         >
-          {React.cloneElement(ICONS.CHECK, { className: 'h-5 w-5' })}
+          {ICONS.CHECK}
           <span>{t('confirm')}</span>
         </PanelButton>
       </div>
