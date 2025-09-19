@@ -4,7 +4,7 @@
  * HTML textarea，以提供无缝的在画布上编辑体验。
  */
 
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useLayoutEffect, useRef, useEffect, useState, useCallback } from 'react';
 import type { TextData } from '../types';
 
 interface TextEditorProps {
@@ -21,6 +21,22 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onCommit,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [canvasOffset, setCanvasOffset] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  const updateCanvasOffset = useCallback(() => {
+    const svg = document.querySelector<SVGSVGElement>('[data-whiteboard-canvas]');
+    if (!svg) {
+      setCanvasOffset(prev => (prev.top === 0 && prev.left === 0 ? prev : { top: 0, left: 0 }));
+      return;
+    }
+    const rect = svg.getBoundingClientRect();
+    setCanvasOffset(prev => {
+      if (Math.abs(prev.top - rect.top) < 0.5 && Math.abs(prev.left - rect.left) < 0.5) {
+        return prev;
+      }
+      return { top: rect.top, left: rect.left };
+    });
+  }, []);
 
   // 自动调整 textarea 高度以适应内容
   const adjustHeight = () => {
@@ -35,6 +51,29 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   useLayoutEffect(() => {
     adjustHeight();
   }, [path.text, viewTransform.scale]);
+
+  useLayoutEffect(() => {
+    updateCanvasOffset();
+
+    const svg = document.querySelector<SVGSVGElement>('[data-whiteboard-canvas]');
+    const handleViewportChange = () => updateCanvasOffset();
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (svg && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => updateCanvasOffset());
+      resizeObserver.observe(svg);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [updateCanvasOffset]);
 
   // 在挂载时聚焦并选中文本
   useEffect(() => {
@@ -62,7 +101,8 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   };
 
   const { scale, translateX, translateY } = viewTransform;
-  
+  const { top: canvasTop, left: canvasLeft } = canvasOffset;
+
   const family = path.fontFamily || 'Excalifont';
   // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
   const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
@@ -70,8 +110,8 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   // 将 SVG 坐标转换为屏幕坐标并应用样式
   const style: React.CSSProperties = {
     position: 'fixed',
-    top: `${(path.y * scale) + translateY}px`,
-    left: `${(path.x * scale) + translateX}px`,
+    top: `${canvasTop + (path.y * scale) + translateY}px`,
+    left: `${canvasLeft + (path.x * scale) + translateX}px`,
     // 为宽度增加一点填充，以容纳光标
     minWidth: `${path.width * scale + 10}px`, 
     fontFamily: familyWithQuotes,

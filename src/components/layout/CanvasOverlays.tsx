@@ -16,7 +16,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
-import type { AnyPath, TextData, MaterialData } from '@/types';
+import type { AnyPath, TextData, MaterialData, GroupData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 
@@ -40,6 +40,7 @@ export const CanvasOverlays: React.FC = () => {
         gridOpacity,
         setGridOpacity,
         paths,
+        activePaths,
         groupIsolationPath,
         handleJumpToGroup,
         selectedPathIds,
@@ -110,9 +111,33 @@ export const CanvasOverlays: React.FC = () => {
         setIsTimelineCollapsed,
     } = store;
 
-    const editingPath = useMemo(() => 
-        paths.find((p: AnyPath) => p.id === activeEditingTextPathId && p.tool === 'text') as TextData | undefined,
-        [paths, activeEditingTextPathId]
+    const findTextPathById = useCallback((id: string | null): TextData | undefined => {
+        if (!id) return undefined;
+
+        const search = (candidates: AnyPath[]): TextData | undefined => {
+            for (const candidate of candidates) {
+                if (candidate.id === id) {
+                    return candidate.tool === 'text' ? (candidate as TextData) : undefined;
+                }
+                if (candidate.tool === 'group') {
+                    const result = search((candidate as GroupData).children);
+                    if (result) return result;
+                }
+            }
+            return undefined;
+        };
+
+        const activeResult = search(activePaths as AnyPath[]);
+        if (activeResult) {
+            return activeResult;
+        }
+
+        return search(paths as AnyPath[]);
+    }, [activePaths, paths]);
+
+    const editingPath = useMemo(
+        () => findTextPathById(activeEditingTextPathId),
+        [findTextPathById, activeEditingTextPathId]
     );
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);

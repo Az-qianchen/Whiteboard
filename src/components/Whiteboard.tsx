@@ -237,6 +237,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       onContextMenu={onContextMenu}
     >
       <svg
+        data-whiteboard-canvas="true"
         ref={svgRef}
         className="w-full h-full touch-none"
         onPointerDown={onPointerDown}
