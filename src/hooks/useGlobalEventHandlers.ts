@@ -15,19 +15,21 @@ const useGlobalEventHandlers = () => {
     selectedPathIds, setSelectedPathIds,
     currentPenPath, handleCancelPenPath, handleFinishPenPath,
     currentLinePath, handleCancelLinePath, handleFinishLinePath,
-    undo: handleUndo, redo: handleRedo, handleDeleteSelected, setPaths,
+    undo: handleUndo, redo: handleRedo, handleDeleteSelected,
     beginCoalescing, endCoalescing,
     tool, selectionMode, handleSetTool: setTool, setSelectionMode,
     drawingInteraction,
     isGridVisible, setIsGridVisible,
-    handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport, handleSaveFile, 
+    handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport, handleSaveFile,
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
-    groupIsolationPath, handleExitGroup,
+    groupIsolationPath, handleExitGroup, activePathState,
     croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
   } = useAppContext();
+
+  const { setPaths: setActivePaths } = activePathState;
 
   const { drawingShape, cancelDrawingShape } = drawingInteraction;
 
@@ -290,7 +292,7 @@ const useGlobalEventHandlers = () => {
         }
 
         if (dx !== 0 || dy !== 0) {
-          setPaths((currentPaths: AnyPath[]) =>
+          setActivePaths((currentPaths: AnyPath[]) =>
             currentPaths.map((p) =>
               selectedPathIds.includes(p.id) ? movePath(p, dx, dy) : p
             )
@@ -321,7 +323,7 @@ const useGlobalEventHandlers = () => {
     tool,
     selectionMode,
     selectedPathIds,
-    setPaths,
+    setActivePaths,
     beginCoalescing,
     endCoalescing,
     croppingState,
@@ -380,7 +382,7 @@ const useGlobalEventHandlers = () => {
                                 roughness: 0, bowing: 0, fillWeight: -1, hachureAngle: -41, hachureGap: -1, curveTightness: 0, curveStepCount: 9,
                             };
 
-                            setPaths((prev: AnyPath[]) => [...prev, newImage]);
+                            setActivePaths((prev: AnyPath[]) => [...prev, newImage]);
                             setSelectedPathIds([newImage.id]);
                             setTool('selection' as Tool);
                         };
@@ -448,7 +450,7 @@ const useGlobalEventHandlers = () => {
     return () => {
         document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [handlePaste, getPointerPosition, setPaths, setSelectedPathIds, setTool, vt.scale, lastPointerPosition]);
+  }, [handlePaste, getPointerPosition, setActivePaths, setSelectedPathIds, setTool, vt.scale, lastPointerPosition]);
 };
 
 export default useGlobalEventHandlers;
