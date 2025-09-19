@@ -21,6 +21,7 @@ interface CropToolbarProps {
   cancelMagicWandSelection: () => void;
   toggleCropSelectionInverted: () => void;
   cutMagicWandSelection: () => void;
+  trimTransparentEdges: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
 }
@@ -41,6 +42,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   cancelMagicWandSelection,
   toggleCropSelectionInverted,
   cutMagicWandSelection,
+  trimTransparentEdges,
   confirmCrop,
   cancelCrop,
 }) => {
@@ -208,6 +210,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <PanelButton
+          type="button"
+          title={t('trimTransparent')}
+          onClick={trimTransparentEdges}
+          variant="unstyled"
+          className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
+        >
+          {ICONS.CROP_TRIM}
+          <span>{t('trimTransparent')}</span>
+        </PanelButton>
         <PanelButton
           type="button"
           title={t('cancel')}

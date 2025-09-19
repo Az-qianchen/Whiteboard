@@ -8,6 +8,8 @@ import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData
 import type { AppActionsProps } from './useAppActions';
 import { importSvg } from '@/lib/import';
 import { removeBackground, adjustHsv, type HsvAdjustment } from '@/lib/image';
+import { getImageDataUrl } from '@/lib/imageCache';
+import { useFilesStore } from '@/context/filesStore';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'divide';
 
@@ -259,7 +261,7 @@ export const useObjectActions = ({
   const removeBgRef = useRef<{
     handler?: (e: MouseEvent) => void;
     overlay?: SVGRectElement;
-    newSrc?: string;
+    newFileId?: string;
     targetId?: string;
   } | null>(null);
 
@@ -284,7 +286,7 @@ export const useObjectActions = ({
 
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = (imagePath as ImageData).src;
+      img.src = await getImageDataUrl(imagePath as ImageData);
       await new Promise(resolve => { img.onload = resolve; });
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
@@ -301,7 +303,9 @@ export const useObjectActions = ({
       const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
       ctx.putImageData(newData, 0, 0);
       const newSrc = canvas.toDataURL();
-      removeBgRef.current = { ...removeBgRef.current, newSrc };
+      const filesStore = useFilesStore.getState();
+      const { fileId } = await filesStore.ingestDataUrl(newSrc);
+      removeBgRef.current = { ...removeBgRef.current, newFileId: fileId };
 
       if (region) {
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -335,9 +339,9 @@ export const useObjectActions = ({
    */
   const applyRemoveBackground = useCallback(() => {
     const info = removeBgRef.current;
-    if (!info?.newSrc || !info.targetId) return;
+    if (!info?.newFileId || !info.targetId) return;
     pathState.beginCoalescing();
-    pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, src: info.newSrc! } : p));
+    pathState.setPaths(prev => prev.map(p => p.id === info.targetId ? { ...p, fileId: info.newFileId! } : p));
     pathState.endCoalescing();
     info.overlay?.remove();
     removeBgRef.current = null;
@@ -367,7 +371,7 @@ export const useObjectActions = ({
     pathState.beginCoalescing();
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = (imagePath as ImageData).src;
+    img.src = await getImageDataUrl(imagePath as ImageData);
     await new Promise(resolve => { img.onload = resolve; });
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
@@ -379,7 +383,9 @@ export const useObjectActions = ({
     const newData = adjustHsv(data, adj);
     ctx.putImageData(newData, 0, 0);
     const newSrc = canvas.toDataURL();
-    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, src: newSrc } : p));
+    const filesStore = useFilesStore.getState();
+    const { fileId } = await filesStore.ingestDataUrl(newSrc);
+    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
     pathState.endCoalescing();
   }, [paths, selectedPathIds, pathState]);
 
@@ -396,8 +402,9 @@ export const useObjectActions = ({
 
     const ImageTracer = (await import('imagetracerjs')).default;
 
+    const dataUrl = await getImageDataUrl(imagePathData);
     const svgString = await new Promise<string>((resolve) => {
-        ImageTracer.imageToSVG(imagePathData.src, (svgstr: string) => {
+        ImageTracer.imageToSVG(dataUrl, (svgstr: string) => {
             resolve(svgstr);
         }, options);
     });

@@ -3,11 +3,13 @@
  */
 
 import { useCallback } from 'react';
-import type { AnyPath, WhiteboardData, Point, Tool } from '@/types';
+import type { AnyPath, WhiteboardData, Point, Tool, ImageData, GroupData } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
 import { importSvg } from '@/lib/import';
 import { importExcalidraw } from '@/lib/importExcalidraw';
 import type { AppActionsProps } from './useAppActions';
+import { useFilesStore } from '@/context/filesStore';
+import { getImageDataUrl } from '@/lib/imageCache';
 
 /**
  * 封装剪贴板相关操作的 Hook。
@@ -21,6 +23,21 @@ export const useClipboardActions = ({
   toolbarState,
   viewTransform,
 }: AppActionsProps) => {
+  
+  const collectImagePaths = useCallback((input: AnyPath[]): ImageData[] => {
+    const result: ImageData[] = [];
+    const walk = (items: AnyPath[]) => {
+      items.forEach(item => {
+        if (item.tool === 'image') {
+          result.push(item as ImageData);
+        } else if (item.tool === 'group') {
+          walk((item as GroupData).children);
+        }
+      });
+    };
+    walk(input);
+    return result;
+  }, []);
 
   /**
    * 将选中的图形复制到剪贴板。
@@ -28,7 +45,16 @@ export const useClipboardActions = ({
   const handleCopy = useCallback(async () => {
     if (selectedPathIds.length > 0) {
       const selected = paths.filter(p => selectedPathIds.includes(p.id));
-      const clipboardData: WhiteboardData = { type: 'whiteboard/shapes', version: 1, paths: selected };
+      const filesStore = useFilesStore.getState();
+      const files: Record<string, { dataURL: string; mimeType?: string }> = {};
+      await Promise.all(
+        collectImagePaths(selected).map(async (image) => {
+          if (!filesStore.files[image.fileId]) return;
+          const dataURL = await getImageDataUrl(image);
+          files[image.fileId] = { dataURL, mimeType: filesStore.files[image.fileId]?.mimeType };
+        })
+      );
+      const clipboardData: WhiteboardData = { type: 'whiteboard/shapes', version: 1, paths: selected, files: Object.keys(files).length ? files : undefined };
       try {
         await navigator.clipboard.writeText(JSON.stringify(clipboardData));
       } catch (err) {
@@ -44,7 +70,16 @@ export const useClipboardActions = ({
   const handleCut = useCallback(async () => {
     if (selectedPathIds.length > 0) {
       const selected = paths.filter(p => selectedPathIds.includes(p.id));
-      const clipboardData: WhiteboardData = { type: 'whiteboard/shapes', version: 1, paths: selected };
+      const filesStore = useFilesStore.getState();
+      const files: Record<string, { dataURL: string; mimeType?: string }> = {};
+      await Promise.all(
+        collectImagePaths(selected).map(async (image) => {
+          if (!filesStore.files[image.fileId]) return;
+          const dataURL = await getImageDataUrl(image);
+          files[image.fileId] = { dataURL, mimeType: filesStore.files[image.fileId]?.mimeType };
+        })
+      );
+      const clipboardData: WhiteboardData = { type: 'whiteboard/shapes', version: 1, paths: selected, files: Object.keys(files).length ? files : undefined };
       try {
         await navigator.clipboard.writeText(JSON.stringify(clipboardData));
         pathState.setPaths(prev => prev.filter(p => !selectedPathIds.includes(p.id)));
@@ -70,11 +105,23 @@ export const useClipboardActions = ({
     let pathsToPaste: AnyPath[] = [];
     try {
       const data: WhiteboardData = JSON.parse(text);
-      if (data?.type === 'whiteboard/shapes' && Array.isArray(data.paths)) pathsToPaste = data.paths;
+      if (data?.type === 'whiteboard/shapes' && Array.isArray(data.paths)) {
+        if (data.files) {
+          const filesStore = useFilesStore.getState();
+          await Promise.all(
+            Object.entries(data.files).map(async ([fileId, file]) => {
+              if (filesStore.files[fileId]) return;
+              const blob = await (await fetch(file.dataURL)).blob();
+              await filesStore.addFile(blob, { id: fileId, mimeType: file.mimeType });
+            })
+          );
+        }
+        pathsToPaste = data.paths;
+      }
     } catch (err) {}
 
     if (pathsToPaste.length === 0) {
-      const excalidrawPaths = importExcalidraw(text);
+      const excalidrawPaths = await importExcalidraw(text);
       if (excalidrawPaths.length > 0) pathsToPaste = excalidrawPaths;
     }
 
@@ -91,8 +138,23 @@ export const useClipboardActions = ({
         }
       }
     }
-    
+
     if (pathsToPaste.length === 0) return;
+
+    const hydratePath = async (path: AnyPath): Promise<void> => {
+      if (path.tool === 'image') {
+        const image = path as ImageData;
+        if (!image.fileId && image.src) {
+          const filesStore = useFilesStore.getState();
+          const { fileId } = await filesStore.ingestDataUrl(image.src);
+          (image as ImageData).fileId = fileId;
+        }
+      } else if (path.tool === 'group') {
+        await Promise.all((path as GroupData).children.map(hydratePath));
+      }
+    };
+
+    await Promise.all(pathsToPaste.map((path) => hydratePath(path)));
 
     const newPaths: AnyPath[] = [], newIds: string[] = [];
     const copiedPathsBbox = getPathsBoundingBox(pathsToPaste);

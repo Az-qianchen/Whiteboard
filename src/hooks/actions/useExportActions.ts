@@ -8,6 +8,7 @@ import type { AppActionsProps } from './useAppActions';
 import type { FrameData, AnimationExportOptions, ImageData } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '@/lib/drawing';
 import JSZip from 'jszip';
+import { useFilesStore } from '@/context/filesStore';
 
 /**
  * 封装导出相关操作的 Hook。
@@ -52,8 +53,9 @@ export const useExportActions = ({
       const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
       if (selectedPath?.tool === 'image') {
         try {
-          const res = await fetch((selectedPath as ImageData).src);
-          const blob = await res.blob();
+          const filesStore = useFilesStore.getState();
+          const blob = await filesStore.getBlob((selectedPath as ImageData).fileId);
+          if (!blob) throw new Error('Missing blob for image');
           try {
             await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
           } catch (err) {

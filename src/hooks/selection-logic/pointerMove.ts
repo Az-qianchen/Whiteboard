@@ -12,7 +12,7 @@ import type {
   SelectionToolbarState,
   SelectionViewTransform,
 } from '@/types';
-import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist } from '@/lib/drawing';
+import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist, skewPath } from '@/lib/drawing';
 import { isPointHittingPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
@@ -130,7 +130,7 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
             case 'scale': {
                 const { originalPaths, initialSelectionBbox, handle, initialPointerPos } = dragState;
                 const snappedMovePoint = snapToGrid(movePoint);
-                
+
                 const dx = snappedMovePoint.x - initialPointerPos.x;
                 const dy = snappedMovePoint.y - initialPointerPos.y;
 
@@ -189,6 +189,12 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                     keepAspectRatio = e.shiftKey;
                 }
                 transformedShapes = [resizePath(originalPath, handle, snappedMovePoint, initialPointerPos, keepAspectRatio)];
+                break;
+            }
+            case 'skew': {
+                const { originalPath, handle } = dragState;
+                const snappedMovePoint = snapToGrid(movePoint);
+                transformedShapes = [skewPath(originalPath, handle, snappedMovePoint)];
                 break;
             }
         }

@@ -4,7 +4,11 @@ import { getPolygonPathD, getRoundedRectPathD } from '@/lib/drawing';
 
 export function renderImage(data: ImageData): SVGElement {
     const imgData = data as ImageData;
-        
+    if (!imgData.src) {
+        console.warn('renderImage called without data URL. Ensure image sources are hydrated before rendering.');
+        return document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    }
+
     if (imgData.borderRadius && imgData.borderRadius > 0) {
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');

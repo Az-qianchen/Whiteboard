@@ -25,6 +25,7 @@ import {
   Play, Pause, Rewind, ChevronUp, Wand2,SquaresExclude,SquaresIntersect,SquaresSubtract,SquaresUnite,
   SquareDashed,
   RotateCcw,
+  Crop,
 } from 'lucide-react';
 
 
@@ -162,9 +163,9 @@ export const ICONS = {
   SIMPLIFY_PATH: <Waypoints className="h-5 w-5" />,
   BRING_FORWARD: <ArrowUpSquare className="h-5 w-5" />,
   SEND_BACKWARD: <ArrowDownSquare className="h-5 w-5" />,
-  CHEVRON_LEFT: <ChevronLeft className="h-5 w-5" />,
+  CHEVRON_LEFT: <ChevronLeft className="h-[24px] w-[24px]" />,
   CHEVRON_DOWN: <ChevronDown className="w-full h-full" />,
-  CHEVRON_UP: <ChevronUp className="h-5 w-5" />,
+  CHEVRON_UP: <ChevronUp className="h-[24px] w-[24px]" />,
   LOCK_CLOSED: <Lock className="h-5 w-5" />,
   LOCK_OPEN: <LockOpen className="h-5 w-5" />,
   EYE_OPEN: <Eye className="h-5 w-5" />,
@@ -199,6 +200,7 @@ export const ICONS = {
   MASK: <Blend className="h-5 w-5" />,
   REMOVE_BG: <Eraser className="h-5 w-5" />,
   INVERT_SELECTION: <Contrast className="h-5 w-5" />,
+  CROP_TRIM: <Crop className="h-5 w-5" />,
   PLAY: <Play className="h-5 w-5" />,
   PAUSE: <Pause className="h-5 w-5" />,
   REWIND: <Rewind className="h-5 w-5" />,

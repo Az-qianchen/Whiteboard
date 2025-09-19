@@ -9,6 +9,8 @@ import { fileOpen, fileSave } from 'browser-fs-access';
 import { importSvg } from '@/lib/import';
 import { createDocumentSignature } from '@/lib/document';
 import type { AppActionsProps } from './useAppActions';
+import { getImageDataUrl } from '@/lib/imageCache';
+import { useFilesStore } from '@/context/filesStore';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
 
@@ -38,7 +40,28 @@ export const useFileActions = ({
    * 提示用户选择位置以另存为文件。
    */
   const handleSaveAs = useCallback(async () => {
-    const data: WhiteboardData = { type: 'whiteboard/shapes', version: 3, frames, backgroundColor, fps };
+    const filesStore = useFilesStore.getState();
+    const files: Record<string, { dataURL: string; mimeType?: string }> = {};
+    const seen = new Set<string>();
+    for (const frame of frames) {
+      for (const path of frame.paths) {
+        const stack: AnyPath[] = [path];
+        while (stack.length) {
+          const current = stack.pop()!;
+          if (current.tool === 'image') {
+            const image = current as any as { fileId: string; src?: string };
+            if (!seen.has(image.fileId) && filesStore.files[image.fileId]) {
+              seen.add(image.fileId);
+              const dataURL = await getImageDataUrl(image as any);
+              files[image.fileId] = { dataURL, mimeType: filesStore.files[image.fileId]?.mimeType };
+            }
+          } else if (current.tool === 'group') {
+            stack.push(...(current as any).children);
+          }
+        }
+      }
+    }
+    const data: WhiteboardData = { type: 'whiteboard/shapes', version: 3, frames, backgroundColor, fps, files: Object.keys(files).length ? files : undefined };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/vnd.whiteboard+json' });
     try {
         // 移除了 'id' 属性，以确保在所有浏览器中都能可靠地触发原生保存对话框，
@@ -89,7 +112,28 @@ export const useFileActions = ({
                 }
             }
             const writable = await activeFileHandle.createWritable();
-            const data: WhiteboardData = { type: 'whiteboard/shapes', version: 3, frames, backgroundColor, fps };
+            const filesStoreInner = useFilesStore.getState();
+            const files: Record<string, { dataURL: string; mimeType?: string }> = {};
+            const seen = new Set<string>();
+            for (const frame of frames) {
+              for (const path of frame.paths) {
+                const stack: AnyPath[] = [path];
+                while (stack.length) {
+                  const current = stack.pop()!;
+                  if (current.tool === 'image') {
+                    const image = current as any as { fileId: string; src?: string };
+                    if (!seen.has(image.fileId) && filesStoreInner.files[image.fileId]) {
+                      seen.add(image.fileId);
+                      const dataURL = await getImageDataUrl(image as any);
+                      files[image.fileId] = { dataURL, mimeType: filesStoreInner.files[image.fileId]?.mimeType };
+                    }
+                  } else if (current.tool === 'group') {
+                    stack.push(...(current as any).children);
+                  }
+                }
+              }
+            }
+            const data: WhiteboardData = { type: 'whiteboard/shapes', version: 3, frames, backgroundColor, fps, files: Object.keys(files).length ? files : undefined };
             await writable.write(JSON.stringify(data, null, 2));
             await writable.close();
             markDocumentSaved(createDocumentSignature(frames, backgroundColor, fps));
@@ -119,6 +163,16 @@ export const useFileActions = ({
         const data: WhiteboardData = JSON.parse(contents);
 
         if (data?.type === 'whiteboard/shapes' && (data.frames || data.paths)) {
+            if (data.files) {
+                const filesStore = useFilesStore.getState();
+                await Promise.all(
+                    Object.entries(data.files).map(async ([fileId, file]) => {
+                        if (filesStore.files[fileId]) return;
+                        const blob = await (await fetch(file.dataURL)).blob();
+                        await filesStore.addFile(blob, { id: fileId, mimeType: file.mimeType });
+                    })
+                );
+            }
             const framesToLoad = data.frames || [{ paths: data.paths ?? [] }];
             const nextBackgroundColor = data.backgroundColor ?? '#212529';
             const nextFps = data.fps ?? fps;
