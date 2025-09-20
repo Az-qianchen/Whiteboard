@@ -1,20 +1,29 @@
-/**
- * 管理画布视图变换的状态存储，提供缩放、平移与触摸手势处理
- */
+// 管理画布视图变换的状态存储，提供缩放、平移与触摸手势处理
 import { create } from 'zustand';
 import type { Point } from '@/types';
 import { getPointerPosition as getPointerPositionUtil } from '@/lib/utils';
 
+const DOM_DELTA_PIXEL = typeof WheelEvent !== 'undefined' ? WheelEvent.DOM_DELTA_PIXEL : 0;
+const TRACKPAD_GESTURE_MAX_DELTA = 60;
+
+/**
+ * 判断当前滚轮事件是否来源于 Mac 触控板捏合，以便调高缩放灵敏度
+ */
+const isMacTrackpadPinch = (event: WheelEvent): boolean => {
+  if (!event.ctrlKey) return false;
+  const isPixelMode = event.deltaMode === DOM_DELTA_PIXEL;
+  if (!isPixelMode) return false;
+  const magnitude = Math.sqrt(event.deltaX * event.deltaX + event.deltaY * event.deltaY);
+  if (magnitude === 0) return false;
+  return magnitude < TRACKPAD_GESTURE_MAX_DELTA;
+};
 type ViewTransform = { scale: number; translateX: number; translateY: number };
 
 export interface ViewTransformState {
   viewTransform: ViewTransform;
   isPanning: boolean;
-  // Indicates whether a two-finger pinch gesture is active
   isPinching: boolean;
-  // Active touch points indexed by pointerId
   touchPoints: Map<number, Point>;
-  // Stored data for the current pinch gesture
   initialPinch: {
     distance: number;
     midpoint: Point;
@@ -45,7 +54,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   initialPinch: null,
   lastPointerPosition: null,
   pendingFitToContent: false,
-
   // 设置是否处于平移状态
   setIsPanning: (v) => set({ isPanning: v }),
   // 更新视图变换
@@ -54,18 +62,19 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   setLastPointerPosition: (p) => set({ lastPointerPosition: p }),
   requestFitToContent: () => set({ pendingFitToContent: true }),
   consumeFitToContent: () => set({ pendingFitToContent: false }),
-
   // 处理滚轮缩放和平移
   handleWheel: (e) => {
     // 阻止浏览器默认缩放行为，避免在 Mac 上触发页面缩放
     e.preventDefault();
-    const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
+    const wheelEvent = e as WheelEvent;
+    const { deltaX, deltaY, ctrlKey, clientX, clientY } = wheelEvent as any;
     const { viewTransform } = get();
 
     if (ctrlKey) {
       const { scale, translateX, translateY } = viewTransform;
       // 将滚轮缩放步长调小以降低缩放速度
-      const zoomStep = 0.001;
+      const baseStep = 0.001;
+      const zoomStep = isMacTrackpadPinch(wheelEvent) ? baseStep * 4 : baseStep;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
@@ -92,7 +101,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       }));
     }
   },
-
   // 处理平移移动
   handlePanMove: (e) => {
     const { isPanning } = get();
@@ -107,7 +115,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       },
     }));
   },
-
   // 处理触摸开始
   handleTouchStart: (e) => {
     const { pointerId, clientX, clientY } = e;
@@ -140,7 +147,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       return { touchPoints: pts };
     });
   },
-
   // 处理触摸移动
   handleTouchMove: (e) => {
     const { pointerId, clientX, clientY } = e;
@@ -170,7 +176,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       return { touchPoints: pts };
     });
   },
-
   // 处理触摸结束
   handleTouchEnd: (e) => {
     const { pointerId } = e;
@@ -183,7 +188,6 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       return { touchPoints: pts };
     });
   },
-
   // 获取指针在 SVG 中的位置
   getPointerPosition: (e, svg) => {
     const { viewTransform } = get();
