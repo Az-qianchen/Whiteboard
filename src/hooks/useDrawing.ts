@@ -17,6 +17,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  beginTextEditing: (pathId: string, options?: { select?: boolean; initialText?: string }) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  beginTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export const useDrawing = ({
         };
         setPaths((prev: AnyPath[]) => [...prev, newText]);
         toolbarState.setTool('selection');
-        pathState.setSelectedPathIds([id]);
+        beginTextEditing(id, { initialText: defaultText });
         break;
       }
       case 'arc': {

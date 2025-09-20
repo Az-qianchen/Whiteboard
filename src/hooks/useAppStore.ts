@@ -126,6 +126,7 @@ interface AppState {
   styleLibrary: StyleClipboardData[];
   materialLibrary: MaterialData[];
   editingTextPathId: string | null;
+  textEditSnapshot: { pathId: string; text: string } | null;
   activeFileHandle: FileSystemFileHandle | null;
   activeFileName: string | null;
   isLoading: boolean;
@@ -177,6 +178,7 @@ const getInitialAppState = (): AppState => ({
   styleLibrary: getLocalStorageItem('whiteboard_styleLibrary', []),
   materialLibrary: getLocalStorageItem('whiteboard_materialLibrary', []),
   editingTextPathId: null,
+  textEditSnapshot: null,
   activeFileHandle: null,
   activeFileName: null,
   isLoading: true,
@@ -295,7 +297,6 @@ export const useAppStore = () => {
   const setStyleClipboard = useCallback((val: AppState['styleClipboard'] | ((prev: AppState['styleClipboard']) => AppState['styleClipboard'])) => setAppState(s => ({ ...s, styleClipboard: typeof val === 'function' ? val(s.styleClipboard) : val })), []);
   const setStyleLibrary = useCallback((val: AppState['styleLibrary'] | ((prev: AppState['styleLibrary']) => AppState['styleLibrary'])) => setAppState(s => ({ ...s, styleLibrary: typeof val === 'function' ? val(s.styleLibrary) : val })), []);
   const setMaterialLibrary = useCallback((val: AppState['materialLibrary'] | ((prev: AppState['materialLibrary']) => AppState['materialLibrary'])) => setAppState(s => ({ ...s, materialLibrary: typeof val === 'function' ? val(s.materialLibrary) : val })), []);
-  const setEditingTextPathId = useCallback((val: AppState['editingTextPathId'] | ((prev: AppState['editingTextPathId']) => AppState['editingTextPathId'])) => setAppState(s => ({ ...s, editingTextPathId: typeof val === 'function' ? val(s.editingTextPathId) : val })), []);
   const setActiveFileHandle = useCallback((val: AppState['activeFileHandle'] | ((prev: AppState['activeFileHandle']) => AppState['activeFileHandle'])) => setAppState(s => ({ ...s, activeFileHandle: typeof val === 'function' ? val(s.activeFileHandle) : val })), []);
   const setActiveFileName = useCallback((val: AppState['activeFileName'] | ((prev: AppState['activeFileName']) => AppState['activeFileName'])) => setAppState(s => ({ ...s, activeFileName: typeof val === 'function' ? val(s.activeFileName) : val })), []);
   const setIsLoading = useCallback((val: AppState['isLoading'] | ((prev: AppState['isLoading']) => AppState['isLoading'])) => setAppState(s => ({ ...s, isLoading: typeof val === 'function' ? val(s.isLoading) : val })), []);
@@ -546,10 +547,61 @@ export const useAppStore = () => {
     );
   }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
 
+  /**
+   * 开始文本编辑会话，并记录原始文本内容以便取消时恢复。
+   */
+  const beginTextEditing = useCallback((pathId: string, options?: { select?: boolean; initialText?: string }) => {
+      if (appState.editingTextPathId && appState.editingTextPathId !== pathId) {
+          pathState.endCoalescing();
+      }
+      if (options?.select ?? true) {
+          pathState.setSelectedPathIds([pathId]);
+      }
+      const snapshotText = options?.initialText ?? (() => {
+          const match = activePaths.find(p => p.id === pathId && p.tool === 'text') as TextData | undefined;
+          return match?.text ?? '';
+      })();
+      pathState.beginCoalescing();
+      setAppState(prev => ({
+          ...prev,
+          editingTextPathId: pathId,
+          textEditSnapshot: { pathId, text: snapshotText },
+      }));
+  }, [appState.editingTextPathId, activePaths, pathState]);
+
+  /**
+   * 在用户输入时实时更新文本对象的内容与尺寸。
+   */
   const handleTextChange = useCallback((pathId: string, newText: string) => {
       activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
   }, [activePathState]);
-  const handleTextEditCommit = useCallback(() => { pathState.endCoalescing(); setEditingTextPathId(null); }, [pathState, setEditingTextPathId]);
+
+  /**
+   * 完成文本编辑并结束历史合并。
+   */
+  const handleTextEditCommit = useCallback(() => {
+      pathState.endCoalescing();
+      setAppState(prev => ({ ...prev, editingTextPathId: null, textEditSnapshot: null }));
+  }, [pathState]);
+
+  /**
+   * 取消文本编辑并恢复至开始编辑时的内容。
+   */
+  const handleTextEditCancel = useCallback(() => {
+      const snapshot = appState.textEditSnapshot;
+      if (snapshot) {
+          activePathState.setPaths(prev => prev.map(p => {
+              if (p.id === snapshot.pathId && p.tool === 'text') {
+                  const original = snapshot.text;
+                  const textPath = p as TextData;
+                  return { ...textPath, text: original, ...measureText(original, textPath.fontSize, textPath.fontFamily) };
+              }
+              return p;
+          }));
+      }
+      pathState.endCoalescing();
+      setAppState(prev => ({ ...prev, editingTextPathId: null, textEditSnapshot: null }));
+  }, [appState.textEditSnapshot, activePathState, pathState]);
   
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
@@ -663,7 +715,7 @@ export const useAppStore = () => {
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
-      if (path.tool === 'text') { setEditingTextPathId(path.id); pathState.beginCoalescing(); } 
+      if (path.tool === 'text') { beginTextEditing(path.id); }
       else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           pathState.beginCoalescing();
@@ -675,9 +727,17 @@ export const useAppStore = () => {
           setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);
       }
-  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
+  }, [toolbarState.selectionMode, beginTextEditing, groupIsolation, pathState, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({
+    pathState: activePathState,
+    toolbarState,
+    viewTransform,
+    isGridVisible: uiState.isGridVisible,
+    gridSize: uiState.gridSize,
+    gridSubdivisions: uiState.gridSubdivisions,
+    beginTextEditing,
+  });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   
@@ -842,10 +902,10 @@ export const useAppStore = () => {
     setIsStatusBarCollapsed, setIsSideToolbarCollapsed, setIsMainMenuCollapsed, setMainMenuWidth,
     setPngExportOptions, setIsStyleLibraryOpen, setStyleLibraryPosition, setIsTimelineCollapsed,
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
-    setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
+    setMaterialLibrary, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
     setCropTool, setCropMagicWandOptions, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
-    confirmCrop, trimTransparentEdges, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
+    confirmCrop, trimTransparentEdges, cancelCrop, beginTextEditing, handleTextChange, handleTextEditCommit, handleTextEditCancel, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,
     handleResetPreferences,

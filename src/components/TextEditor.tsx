@@ -1,104 +1,114 @@
 /**
- * 本文件定义了画布上的文本编辑器组件。
- * 当用户双击文本对象时，此组件会创建一个覆盖在 SVG 文本上方的
- * HTML textarea，以提供无缝的在画布上编辑体验。
+ * 本文件定义了画布内联文本编辑器组件。
+ * 组件通过 SVG `foreignObject` 将 HTML textarea 直接嵌入画布坐标系中，
+ * 以提供所见即所得的文本编辑体验。
  */
 
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useLayoutEffect, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { TextData } from '../types';
+import { getShapeTransformMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 
 interface TextEditorProps {
   path: TextData;
-  viewTransform: { scale: number; translateX: number; translateY: number };
   onUpdate: (newText: string) => void;
   onCommit: () => void;
+  onCancel: () => void;
 }
 
 export const TextEditor: React.FC<TextEditorProps> = ({
   path,
-  viewTransform,
   onUpdate,
   onCommit,
+  onCancel,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 自动调整 textarea 高度以适应内容
-  const adjustHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      // 添加 1px 以防止在某些情况下出现滚动条
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight + 1}px`;
-    }
-  };
+  /**
+   * 根据内容动态调整文本域高度，确保显示完整文本。
+   */
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
-  // 在挂载和文本更新时调整高度
   useLayoutEffect(() => {
     adjustHeight();
-  }, [path.text, viewTransform.scale]);
+  }, [adjustHeight, path.text, path.fontSize]);
 
-  // 在挂载时聚焦并选中文本
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select();
-    }
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
   }, []);
-  
-  // 处理文本输入
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onUpdate(e.target.value);
   };
-  
-  // 处理键盘事件
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.stopPropagation();
     if (e.key === 'Escape') {
-      onCommit();
+      e.preventDefault();
+      onCancel();
+      return;
     }
-    // 按下 Enter 键（不带 Shift）时提交
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       onCommit();
     }
   };
 
-  const { scale, translateX, translateY } = viewTransform;
-  
-  const family = path.fontFamily || 'Excalifont';
-  // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
-  const familyWithQuotes = family.includes(' ') ? `'${family}'` : family;
-
-  // 将 SVG 坐标转换为屏幕坐标并应用样式
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    top: `${(path.y * scale) + translateY}px`,
-    left: `${(path.x * scale) + translateX}px`,
-    // 为宽度增加一点填充，以容纳光标
-    minWidth: `${path.width * scale + 10}px`, 
-    fontFamily: familyWithQuotes,
-    fontSize: `${path.fontSize * scale}px`,
-    lineHeight: 1.25,
-    color: path.color,
-    textAlign: path.textAlign,
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    resize: 'none',
-    overflow: 'hidden',
-    padding: 0,
-    margin: 0,
-    // 将其置于所有画布元素之上
-    zIndex: 100,
+  const stopPointerPropagation = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
   };
 
+  const transform = useMemo(() => matrixToString(getShapeTransformMatrix(path)), [path]);
+
+  const width = Math.max(path.width, path.fontSize * 2);
+  const height = Math.max(path.height, path.fontSize * 1.25);
+  const fontFamily = path.fontFamily.includes(' ') ? `'${path.fontFamily}'` : path.fontFamily;
+
   return (
-    <textarea
-      ref={textareaRef}
-      value={path.text}
-      onChange={handleChange}
-      onBlur={onCommit}
-      onKeyDown={handleKeyDown}
-      style={style}
-      spellCheck="false"
-    />
+    <g transform={transform} className="pointer-events-none">
+      <foreignObject
+        x={path.x}
+        y={path.y}
+        width={width}
+        height={height}
+        className="pointer-events-auto"
+      >
+        <textarea
+          ref={textareaRef}
+          value={path.text}
+          onChange={handleChange}
+          onBlur={onCommit}
+          onKeyDown={handleKeyDown}
+          onPointerDown={stopPointerPropagation}
+          onPointerMove={stopPointerPropagation}
+          onPointerUp={stopPointerPropagation}
+          spellCheck={false}
+          style={{
+            width: '100%',
+            minHeight: '100%',
+            resize: 'none',
+            border: 'none',
+            outline: 'none',
+            padding: 0,
+            margin: 0,
+            background: 'transparent',
+            color: path.color,
+            fontFamily,
+            fontSize: `${path.fontSize}px`,
+            lineHeight: 1.25,
+            textAlign: path.textAlign,
+            overflow: 'hidden',
+            whiteSpace: 'pre-wrap',
+          }}
+        />
+      </foreignObject>
+    </g>
   );
 };

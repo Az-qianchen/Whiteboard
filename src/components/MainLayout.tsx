@@ -10,7 +10,7 @@ import { Whiteboard } from './Whiteboard';
 import { LayersProvider } from '../lib/layers-context';
 import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
-import type { MaterialData, AnyPath } from '../types';
+import type { MaterialData, AnyPath, TextData } from '../types';
 
 // Import new layout components
 import { MainMenuPanel } from './layout/MainMenuPanel';
@@ -55,6 +55,9 @@ export const MainLayout: React.FC = () => {
         gridSubdivisions,
         gridOpacity,
         editingTextPathId,
+        handleTextChange,
+        handleTextEditCommit,
+        handleTextEditCancel,
         croppingState,
         currentCropRect,
         cropTool,
@@ -106,6 +109,12 @@ export const MainLayout: React.FC = () => {
 
         return skinPaths;
     }, [isOnionSkinEnabled, frames, currentFrameIndex, onionSkinPrevFrames, onionSkinNextFrames, onionSkinOpacity]);
+
+    const editingTextPath = useMemo(() => {
+        if (!editingTextPathId) { return null; }
+        const target = activePaths.find(path => path.id === editingTextPathId && path.tool === 'text');
+        return (target as TextData | undefined) ?? null;
+    }, [activePaths, editingTextPathId]);
 
     /**
      * 创建一个处理画布右键菜单的函数。
@@ -232,10 +241,14 @@ export const MainLayout: React.FC = () => {
                             gridOpacity={gridOpacity}
                             dragState={selectionInteraction.dragState}
                             editingTextPathId={editingTextPathId}
+                            editingTextPath={editingTextPath}
                             croppingState={croppingState}
                             currentCropRect={currentCropRect}
                             cropTool={cropTool}
                             cropSelectionContours={cropSelectionContours}
+                            onTextChange={handleTextChange}
+                            onTextCommit={handleTextEditCommit}
+                            onTextCancel={handleTextEditCancel}
                         />
                     </div>
                     <TimelinePanel />

@@ -7,10 +7,11 @@
 import React, { useRef, useEffect, useState, useMemo, useLayoutEffect } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../types';
+import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox, TextData } from '../types';
 import { getPointerPosition } from '../lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 import { getPathsBoundingBox } from '@/lib/drawing';
+import { TextEditor } from './TextEditor';
 
 // Import new sub-components
 import { Grid } from './whiteboard/Grid';
@@ -51,10 +52,14 @@ interface WhiteboardProps {
   gridOpacity: number;
   dragState: DragState | null;
   editingTextPathId: string | null;
+  editingTextPath: TextData | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  onTextChange: (pathId: string, newText: string) => void;
+  onTextCommit: () => void;
+  onTextCancel: () => void;
 }
 
 /**
@@ -91,10 +96,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   gridOpacity,
   dragState,
   editingTextPathId,
+  editingTextPath,
   croppingState,
   currentCropRect,
   cropTool,
   cropSelectionContours,
+  onTextChange,
+  onTextCommit,
+  onTextCancel,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -283,7 +292,16 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           
           <Marquee marquee={marquee} viewTransform={viewTransform} />
           <Lasso lassoPath={lassoPath} viewTransform={viewTransform} />
-          
+
+          {editingTextPath && (
+            <TextEditor
+              path={editingTextPath}
+              onUpdate={(newText) => onTextChange(editingTextPath.id, newText)}
+              onCommit={onTextCommit}
+              onCancel={onTextCancel}
+            />
+          )}
+
         </g>
       </svg>
     </div>
