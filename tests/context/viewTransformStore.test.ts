@@ -81,6 +81,33 @@ describe('useViewTransformStore pinch gestures', () => {
     expect(vt.translateY).toBeCloseTo(0);
   });
 
+  it('anchors pinch zoom around the gesture midpoint in world space', () => {
+    const svg = createSvgMock() as any;
+    useViewTransformStore.setState({
+      viewTransform: { scale: 2, translateX: 40, translateY: -30 },
+    });
+    const store = useViewTransformStore.getState();
+    store.handleTouchStart({ pointerId: 1, clientX: 100, clientY: 80, currentTarget: svg } as any);
+    store.handleTouchStart({ pointerId: 2, clientX: 140, clientY: 80, currentTarget: svg } as any);
+    const pinchMoveHandled = store.handleTouchMove({
+      pointerId: 2,
+      clientX: 170,
+      clientY: 90,
+      currentTarget: svg,
+    } as any);
+    expect(pinchMoveHandled).toBe(true);
+    const vt = useViewTransformStore.getState().viewTransform;
+    expect(vt.scale).toBeCloseTo(6.6066, 4);
+    const worldMidpoint = {
+      x: (120 - 40) / 2,
+      y: (80 - (-30)) / 2,
+    };
+    const mappedX = worldMidpoint.x * vt.scale + vt.translateX;
+    const mappedY = worldMidpoint.y * vt.scale + vt.translateY;
+    expect(mappedX).toBeCloseTo(135);
+    expect(mappedY).toBeCloseTo(85);
+  });
+
   it('ends pinch when finger lifted', () => {
     const svg = createSvgMock() as any;
     const store = useViewTransformStore.getState();
@@ -128,5 +155,26 @@ describe('useViewTransformStore wheel zoom', () => {
     expect(scale).toBeCloseTo(1.02);
     expect(translateX).toBeCloseTo(-5);
     expect(translateY).toBeCloseTo(10);
+  });
+
+  it('anchors wheel zoom at the pointer even after prior transforms', () => {
+    useViewTransformStore.setState({
+      viewTransform: { scale: 2, translateX: 40, translateY: -30 },
+    });
+    setNavigatorPlatform('Win32');
+    const event = createWheelEvent({ clientX: 120, clientY: 80 });
+    useViewTransformStore.getState().handleWheel(event);
+    const vt = useViewTransformStore.getState().viewTransform;
+    expect(vt.scale).toBeCloseTo(2.01);
+    expect(vt.translateX).toBeCloseTo(39.6);
+    expect(vt.translateY).toBeCloseTo(-30.55);
+    const worldPoint = {
+      x: (120 - 40) / 2,
+      y: (80 - (-30)) / 2,
+    };
+    const mappedX = worldPoint.x * vt.scale + vt.translateX;
+    const mappedY = worldPoint.y * vt.scale + vt.translateY;
+    expect(mappedX).toBeCloseTo(120);
+    expect(mappedY).toBeCloseTo(80);
   });
 });

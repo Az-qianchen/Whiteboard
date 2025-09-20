@@ -142,19 +142,24 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
         point.x = mid.x;
         point.y = mid.y;
         const ctm = svg.getScreenCTM();
-        let midpoint: Point = { x: mid.x, y: mid.y };
+        let midpointSvg: Point = { x: mid.x, y: mid.y };
         if (ctm) {
           const svgPoint = point.matrixTransform(ctm.inverse());
-          midpoint = { x: svgPoint.x, y: svgPoint.y };
+          midpointSvg = { x: svgPoint.x, y: svgPoint.y };
         }
+        const { translateX, translateY, scale: currentScale } = s.viewTransform;
+        const midpointWorld: Point = {
+          x: (midpointSvg.x - translateX) / currentScale,
+          y: (midpointSvg.y - translateY) / currentScale,
+        };
         pinchActive = true;
         return {
           touchPoints: pts,
           isPinching: true,
           initialPinch: {
             distance: dist,
-            midpoint,
-            scale: s.viewTransform.scale,
+            midpoint: midpointWorld,
+            scale: currentScale,
           },
         };
       }
@@ -191,13 +196,14 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
         const ctm = svg.getScreenCTM();
         let translateX = s.viewTransform.translateX;
         let translateY = s.viewTransform.translateY;
+        const worldMidpoint = s.initialPinch.midpoint;
         if (ctm) {
           const svgPoint = point.matrixTransform(ctm.inverse());
-          translateX = svgPoint.x - s.initialPinch.midpoint.x * newScale;
-          translateY = svgPoint.y - s.initialPinch.midpoint.y * newScale;
+          translateX = svgPoint.x - worldMidpoint.x * newScale;
+          translateY = svgPoint.y - worldMidpoint.y * newScale;
         } else {
-          translateX = midScreen.x - s.initialPinch.midpoint.x * newScale;
-          translateY = midScreen.y - s.initialPinch.midpoint.y * newScale;
+          translateX = midScreen.x - worldMidpoint.x * newScale;
+          translateY = midScreen.y - worldMidpoint.y * newScale;
         }
         pinchActive = true;
         return {
