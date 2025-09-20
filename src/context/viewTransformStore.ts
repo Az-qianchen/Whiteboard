@@ -75,7 +75,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       // 将滚轮缩放步长调小以降低缩放速度；Mac 触控板捏合需要翻倍以保持流畅
       const baseZoomStep = 0.001;
       const isMacTrackpadGesture = deltaMode === 0 && isMacPlatform();
-      const zoomStep = isMacTrackpadGesture ? baseZoomStep * 4 : baseZoomStep;
+      const zoomStep = isMacTrackpadGesture ? baseZoomStep * 2 : baseZoomStep;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
@@ -88,8 +88,13 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       if (!ctm) return;
       const svgPoint = point.matrixTransform(ctm.inverse());
 
-      const newTranslateX = svgPoint.x - (svgPoint.x - translateX) * (newScale / scale);
-      const newTranslateY = svgPoint.y - (svgPoint.y - translateY) * (newScale / scale);
+      let newTranslateX = svgPoint.x - (svgPoint.x - translateX) * (newScale / scale);
+      let newTranslateY = svgPoint.y - (svgPoint.y - translateY) * (newScale / scale);
+
+      if (isMacTrackpadGesture) {
+        newTranslateX -= deltaX;
+        newTranslateY -= deltaY;
+      }
 
       set({ viewTransform: { scale: newScale, translateX: newTranslateX, translateY: newTranslateY } });
     } else {

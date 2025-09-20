@@ -109,7 +109,7 @@ describe('useViewTransformStore wheel zoom', () => {
     const event = createWheelEvent();
     useViewTransformStore.getState().handleWheel(event);
     const { scale } = useViewTransformStore.getState().viewTransform;
-    expect(scale).toBeCloseTo(1.04);
+    expect(scale).toBeCloseTo(1.02);
   });
 
   it('keeps mouse wheel zoom speed on mac for line-based deltaMode', () => {
@@ -118,5 +118,15 @@ describe('useViewTransformStore wheel zoom', () => {
     useViewTransformStore.getState().handleWheel(event);
     const { scale } = useViewTransformStore.getState().viewTransform;
     expect(scale).toBeCloseTo(1.01);
+  });
+
+  it('applies pan deltas during mac trackpad pinch zoom', () => {
+    setNavigatorPlatform('MacIntel');
+    const event = createWheelEvent({ deltaX: 5, deltaY: -10 });
+    useViewTransformStore.getState().handleWheel(event);
+    const { scale, translateX, translateY } = useViewTransformStore.getState().viewTransform;
+    expect(scale).toBeCloseTo(1.02);
+    expect(translateX).toBeCloseTo(-5);
+    expect(translateY).toBeCloseTo(10);
   });
 });
