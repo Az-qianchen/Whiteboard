@@ -242,16 +242,8 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
           {!isTextMode && (
             <>
-              <ColorControl
-                label={fillColorLabel}
-                color={fill}
-                gradient={fillGradient}
-                setColor={setFill}
-                beginCoalescing={beginCoalescing}
-                endCoalescing={endCoalescing}
-                className="mt-2"
-              />
               <GradientFillPopover
+                label={fillColorLabel}
                 fill={fill}
                 fillGradient={fillGradient}
                 setFill={setFill}
@@ -260,6 +252,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
                 setFillStyle={setFillStyle}
                 beginCoalescing={beginCoalescing}
                 endCoalescing={endCoalescing}
+                className="mt-2"
               />
               <FillStyleControl
                 fillStyle={fillStyle}
