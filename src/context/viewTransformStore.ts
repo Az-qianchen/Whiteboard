@@ -7,6 +7,14 @@ import { getPointerPosition as getPointerPositionUtil } from '@/lib/utils';
 
 type ViewTransform = { scale: number; translateX: number; translateY: number };
 
+const isMacPlatform = (): boolean => {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const platform = navigator.userAgentData?.platform ?? navigator.platform ?? '';
+  return /Mac|iPhone|iPad|iPod/i.test(platform);
+};
+
 export interface ViewTransformState {
   viewTransform: ViewTransform;
   isPanning: boolean;
@@ -59,13 +67,15 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   handleWheel: (e) => {
     // 阻止浏览器默认缩放行为，避免在 Mac 上触发页面缩放
     e.preventDefault();
-    const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
+    const { deltaX, deltaY, deltaMode, ctrlKey, clientX, clientY } = e as any;
     const { viewTransform } = get();
 
     if (ctrlKey) {
       const { scale, translateX, translateY } = viewTransform;
-      // 将滚轮缩放步长调小以降低缩放速度
-      const zoomStep = 0.001;
+      // 将滚轮缩放步长调小以降低缩放速度；Mac 触控板捏合需要翻倍以保持流畅
+      const baseZoomStep = 0.001;
+      const isMacTrackpadGesture = deltaMode === 0 && isMacPlatform();
+      const zoomStep = isMacTrackpadGesture ? baseZoomStep * 2 : baseZoomStep;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 

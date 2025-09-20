@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
 const createSvgMock = () => ({
@@ -12,6 +12,30 @@ const createSvgMock = () => ({
   getScreenCTM: () => ({ inverse: () => ({}) }),
 });
 
+const originalPlatform = navigator.platform;
+
+const setNavigatorPlatform = (platform: string) => {
+  Object.defineProperty(window.navigator, 'platform', {
+    value: platform,
+    configurable: true,
+  });
+};
+
+const createWheelEvent = (overrides: Partial<WheelEvent> = {}) => {
+  const svg = createSvgMock();
+  return {
+    preventDefault: () => {},
+    deltaX: 0,
+    deltaY: -10,
+    deltaMode: 0,
+    ctrlKey: true,
+    clientX: 0,
+    clientY: 0,
+    currentTarget: { querySelector: () => svg },
+    ...overrides,
+  } as WheelEvent;
+};
+
 beforeEach(() => {
   useViewTransformStore.setState({
     viewTransform: { scale: 1, translateX: 0, translateY: 0 },
@@ -20,7 +44,13 @@ beforeEach(() => {
     touchPoints: new Map(),
     initialPinch: null,
     lastPointerPosition: null,
+    pendingFitToContent: false,
   });
+  setNavigatorPlatform(originalPlatform);
+});
+
+afterEach(() => {
+  setNavigatorPlatform(originalPlatform);
 });
 
 describe('useViewTransformStore pinch gestures', () => {
@@ -56,5 +86,31 @@ describe('useViewTransformStore pinch gestures', () => {
     expect(state.isPinching).toBe(false);
     expect(state.initialPinch).toBeNull();
     expect(state.touchPoints.size).toBe(1);
+  });
+});
+
+describe('useViewTransformStore wheel zoom', () => {
+  it('keeps zoom step unchanged for non-mac ctrl+wheel events', () => {
+    setNavigatorPlatform('Win32');
+    const event = createWheelEvent();
+    useViewTransformStore.getState().handleWheel(event);
+    const { scale } = useViewTransformStore.getState().viewTransform;
+    expect(scale).toBeCloseTo(1.01);
+  });
+
+  it('doubles zoom step for mac trackpad pinch gestures', () => {
+    setNavigatorPlatform('MacIntel');
+    const event = createWheelEvent();
+    useViewTransformStore.getState().handleWheel(event);
+    const { scale } = useViewTransformStore.getState().viewTransform;
+    expect(scale).toBeCloseTo(1.02);
+  });
+
+  it('keeps mouse wheel zoom speed on mac for line-based deltaMode', () => {
+    setNavigatorPlatform('MacIntel');
+    const event = createWheelEvent({ deltaMode: 1 });
+    useViewTransformStore.getState().handleWheel(event);
+    const { scale } = useViewTransformStore.getState().viewTransform;
+    expect(scale).toBeCloseTo(1.01);
   });
 });
