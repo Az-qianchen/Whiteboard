@@ -20,7 +20,7 @@ interface CropToolbarProps {
   setCropSelectionOperation: (op: 'add' | 'subtract') => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   applyMagicWandSelection: () => void;
-  cancelMagicWandSelection: () => void;
+  cutMagicWandSelection: () => void;
   trimTransparentEdges: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
@@ -41,7 +41,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   setCropSelectionOperation,
   cropSelectionContours,
   applyMagicWandSelection,
-  cancelMagicWandSelection,
+  cutMagicWandSelection,
   trimTransparentEdges,
   confirmCrop,
   cancelCrop,
@@ -255,17 +255,17 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
           >
             {ICONS.CHECK}
-            <span>{t('applySelection')}</span>
+            <span>{t('subtractSelection')}</span>
           </PanelButton>
           <PanelButton
             type="button"
             variant="unstyled"
-            onClick={cancelMagicWandSelection}
+            onClick={cutMagicWandSelection}
             disabled={!hasSelection}
             className={`${textButtonBase} bg-[var(--danger-bg)] text-[var(--danger-text)] hover:opacity-90`}
           >
-            {ICONS.X}
-            <span>{t('clearSelection')}</span>
+            {ICONS.CUT}
+            <span>{t('cutSelection')}</span>
           </PanelButton>
         </div>
       )}
