@@ -534,6 +534,17 @@ export const useAppStore = () => {
   const eyeDropperAbortRef = useRef<AbortController | null>(null);
   const currentScale = viewTransform.viewTransform.scale;
 
+  const hasUserActivation = useCallback(() => {
+    if (typeof navigator === 'undefined') {
+      return true;
+    }
+    const nav = navigator as Navigator & { userActivation?: { isActive: boolean } };
+    if (!nav.userActivation) {
+      return true;
+    }
+    return nav.userActivation.isActive;
+  }, []);
+
   const sampleStrokeAtPoint = useCallback(
     (point: Point | null) => {
       if (!point) {
@@ -560,6 +571,9 @@ export const useAppStore = () => {
 
   const openEyeDropper = useCallback(() => {
     if (!eyeDropperCtor || eyeDropperActiveRef.current) {
+      return false;
+    }
+    if (!hasUserActivation()) {
       return false;
     }
     try {
@@ -591,7 +605,7 @@ export const useAppStore = () => {
       eyeDropperActiveRef.current = false;
       return false;
     }
-  }, [eyeDropperCtor, setColor]);
+  }, [eyeDropperCtor, hasUserActivation, setColor]);
 
   const sampleStrokeUnderPointer = useCallback(
     () => sampleStrokeAtPoint(viewTransform.lastPointerPosition),
@@ -609,15 +623,17 @@ export const useAppStore = () => {
   const handleAltStrokeColorPick = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
       event.preventDefault();
-      if (openEyeDropper()) {
-        return true;
-      }
       const svg = event.currentTarget;
       if (svg) {
         const point = viewTransform.getPointerPosition(event, svg);
-        return sampleStrokeAtPoint(point);
+        if (sampleStrokeAtPoint(point)) {
+          return true;
+        }
       }
-      return sampleStrokeUnderPointer();
+      if (sampleStrokeUnderPointer()) {
+        return true;
+      }
+      return openEyeDropper();
     },
     [openEyeDropper, sampleStrokeAtPoint, sampleStrokeUnderPointer, viewTransform]
   );

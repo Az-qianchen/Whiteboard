@@ -4,7 +4,31 @@ import { describe, expect, it, vi } from 'vitest';
 import { useAltKeyColorSampler } from '@/hooks/useAltKeyColorSampler';
 
 describe('useAltKeyColorSampler', () => {
-  it('Alt 按下时优先调用 EyeDropper 回调', () => {
+  it('Alt 按下时先尝试备用取色逻辑', () => {
+    const openEyeDropper = vi.fn().mockReturnValue(true);
+    const fallbackPick = vi.fn().mockReturnValue(true);
+
+    const { unmount } = renderHook((props: Parameters<typeof useAltKeyColorSampler>[0]) => useAltKeyColorSampler(props), {
+      initialProps: {
+        isEnabled: true,
+        canSample: true,
+        openEyeDropper,
+        fallbackPick,
+        cancelSampling: vi.fn(),
+      },
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
+    });
+
+    expect(fallbackPick).toHaveBeenCalledTimes(1);
+    expect(openEyeDropper).not.toHaveBeenCalled();
+
+    unmount();
+  });
+
+  it('备用取色失败时再尝试 EyeDropper', () => {
     const openEyeDropper = vi.fn().mockReturnValue(true);
     const fallbackPick = vi.fn().mockReturnValue(false);
 
@@ -22,32 +46,8 @@ describe('useAltKeyColorSampler', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
     });
 
-    expect(openEyeDropper).toHaveBeenCalledTimes(1);
-    expect(fallbackPick).not.toHaveBeenCalled();
-
-    unmount();
-  });
-
-  it('EyeDropper 回调返回 false 时执行备用取色', () => {
-    const openEyeDropper = vi.fn().mockReturnValue(false);
-    const fallbackPick = vi.fn().mockReturnValue(true);
-
-    const { unmount } = renderHook((props: Parameters<typeof useAltKeyColorSampler>[0]) => useAltKeyColorSampler(props), {
-      initialProps: {
-        isEnabled: true,
-        canSample: true,
-        openEyeDropper,
-        fallbackPick,
-        cancelSampling: vi.fn(),
-      },
-    });
-
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
-    });
-
-    expect(openEyeDropper).toHaveBeenCalledTimes(1);
     expect(fallbackPick).toHaveBeenCalledTimes(1);
+    expect(openEyeDropper).toHaveBeenCalledTimes(1);
 
     unmount();
   });
@@ -85,8 +85,8 @@ describe('useAltKeyColorSampler', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
     });
 
-    expect(openEyeDropper).toHaveBeenCalledTimes(1);
-    expect(fallbackPick).not.toHaveBeenCalled();
+    expect(fallbackPick).toHaveBeenCalledTimes(1);
+    expect(openEyeDropper).not.toHaveBeenCalled();
 
     unmount();
   });
@@ -137,6 +137,7 @@ describe('useAltKeyColorSampler', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
     });
 
+    expect(fallbackPick).toHaveBeenCalledTimes(1);
     expect(openEyeDropper).toHaveBeenCalledTimes(1);
 
     act(() => {
@@ -170,6 +171,7 @@ describe('useAltKeyColorSampler', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
     });
 
+    expect(fallbackPick).toHaveBeenCalledTimes(1);
     expect(openEyeDropper).toHaveBeenCalledTimes(1);
 
     act(() => {
