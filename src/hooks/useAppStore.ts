@@ -12,6 +12,7 @@ import { useViewTransformStore } from '@/context/viewTransformStore';
 import { useDrawing } from './useDrawing';
 import { useSelection } from './useSelection';
 import { usePointerInteraction } from './usePointerInteraction';
+import { useAltKeyColorSampler } from './useAltKeyColorSampler';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
@@ -516,47 +517,88 @@ export const useAppStore = () => {
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   const { setColor } = toolbarState;
 
-  const handleAltStrokeColorPick = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
-    type EyeDropperConstructor = new () => { open: () => Promise<{ sRGBHex: string }>; };
+  type EyeDropperConstructor = new () => { open: () => Promise<{ sRGBHex: string }>; };
+  const eyeDropperCtor = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    return (
+      (window as typeof window & { EyeDropper?: EyeDropperConstructor }).EyeDropper ?? null
+    );
+  }, []);
 
-    const eyeDropperCtor =
-      typeof window !== 'undefined'
-        ? (window as typeof window & { EyeDropper?: EyeDropperConstructor }).EyeDropper
-        : undefined;
+  const eyeDropperActiveRef = useRef(false);
+  const currentScale = viewTransform.viewTransform.scale;
 
-    if (eyeDropperCtor) {
-      event.preventDefault();
-      try {
-        const eyeDropper = new eyeDropperCtor();
-        eyeDropper
-          .open()
-          .then(result => {
-            if (result?.sRGBHex) {
-              setColor(result.sRGBHex);
-            }
-          })
-          .catch(() => {
-            // 用户取消取色或浏览器阻止 EyeDropper，忽略即可
-          });
-        return true;
-      } catch {
-        // 构造 EyeDropper 失败时回退到画布取色逻辑
+  const sampleStrokeAtPoint = useCallback(
+    (point: Point | null) => {
+      if (!point) {
+        return false;
       }
-    }
+      const hitPath = findDeepestHitPath(point, activePaths, currentScale);
+      if (!hitPath) {
+        return false;
+      }
+      setColor(hitPath.color);
+      return true;
+    },
+    [activePaths, currentScale, setColor]
+  );
 
-    const svg = event.currentTarget;
-    if (!svg) {
+  const openEyeDropper = useCallback(() => {
+    if (!eyeDropperCtor || eyeDropperActiveRef.current) {
       return false;
     }
-    const point = viewTransform.getPointerPosition(event, svg);
-    const scale = viewTransform.viewTransform.scale;
-    const hitPath = findDeepestHitPath(point, activePaths, scale);
-    if (!hitPath) {
+    try {
+      const eyeDropper = new eyeDropperCtor();
+      eyeDropperActiveRef.current = true;
+      void eyeDropper
+        .open()
+        .then(result => {
+          if (result?.sRGBHex) {
+            setColor(result.sRGBHex);
+          }
+        })
+        .catch(() => {
+          // 用户取消取色或浏览器阻止 EyeDropper，忽略即可
+        })
+        .finally(() => {
+          eyeDropperActiveRef.current = false;
+        });
+      return true;
+    } catch {
+      eyeDropperActiveRef.current = false;
       return false;
     }
-    setColor(hitPath.color);
-    return true;
-  }, [activePaths, setColor, viewTransform]);
+  }, [eyeDropperCtor, setColor]);
+
+  const sampleStrokeUnderPointer = useCallback(
+    () => sampleStrokeAtPoint(viewTransform.lastPointerPosition),
+    [sampleStrokeAtPoint, viewTransform.lastPointerPosition]
+  );
+
+  useAltKeyColorSampler({
+    isEnabled: toolbarState.tool !== 'selection',
+    canSample: Boolean(viewTransform.lastPointerPosition || eyeDropperCtor),
+    openEyeDropper,
+    fallbackPick: sampleStrokeUnderPointer,
+  });
+
+  const handleAltStrokeColorPick = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      event.preventDefault();
+      if (openEyeDropper()) {
+        return true;
+      }
+      const svg = event.currentTarget;
+      if (svg) {
+        const point = viewTransform.getPointerPosition(event, svg);
+        return sampleStrokeAtPoint(point);
+      }
+      return sampleStrokeUnderPointer();
+    },
+    [openEyeDropper, sampleStrokeAtPoint, sampleStrokeUnderPointer, viewTransform]
+  );
 
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
