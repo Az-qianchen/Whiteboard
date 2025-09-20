@@ -39,9 +39,9 @@ export interface ViewTransformState {
 
   handleWheel: (e: WheelEvent) => void;
   handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
-  handleTouchStart: (e: React.PointerEvent<SVGSVGElement>) => void;
-  handleTouchMove: (e: React.PointerEvent<SVGSVGElement>) => void;
-  handleTouchEnd: (e: React.PointerEvent<SVGSVGElement>) => void;
+  handleTouchStart: (e: React.PointerEvent<SVGSVGElement>) => boolean;
+  handleTouchMove: (e: React.PointerEvent<SVGSVGElement>) => boolean;
+  handleTouchEnd: (e: React.PointerEvent<SVGSVGElement>) => boolean;
   getPointerPosition: (e: { clientX: number; clientY: number }, svg: SVGSVGElement) => Point;
 }
 
@@ -75,7 +75,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       // 将滚轮缩放步长调小以降低缩放速度；Mac 触控板捏合需要翻倍以保持流畅
       const baseZoomStep = 0.001;
       const isMacTrackpadGesture = deltaMode === 0 && isMacPlatform();
-      const zoomStep = isMacTrackpadGesture ? baseZoomStep * 2 : baseZoomStep;
+      const zoomStep = isMacTrackpadGesture ? baseZoomStep * 4 : baseZoomStep;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
@@ -122,6 +122,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   handleTouchStart: (e) => {
     const { pointerId, clientX, clientY } = e;
     const svg = e.currentTarget;
+    let pinchActive = false;
     set((s) => {
       const pts = new Map(s.touchPoints);
       pts.set(pointerId, { x: clientX, y: clientY });
@@ -141,25 +142,34 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
           const svgPoint = point.matrixTransform(ctm.inverse());
           midpoint = { x: svgPoint.x, y: svgPoint.y };
         }
+        pinchActive = true;
         return {
           touchPoints: pts,
           isPinching: true,
-          initialPinch: { distance: dist, midpoint, scale: s.viewTransform.scale },
+          initialPinch: {
+            distance: dist,
+            midpoint,
+            scale: s.viewTransform.scale,
+          },
         };
       }
+      pinchActive = s.isPinching;
       return { touchPoints: pts };
     });
+    return pinchActive;
   },
 
   // 处理触摸移动
   handleTouchMove: (e) => {
     const { pointerId, clientX, clientY } = e;
+    const svg = e.currentTarget;
+    let pinchActive = false;
     set((s) => {
       if (!s.touchPoints.has(pointerId)) return {};
       const pts = new Map(s.touchPoints);
       pts.set(pointerId, { x: clientX, y: clientY });
-      if (s.isPinching && s.initialPinch && pts.size === 2) {
-        const values = [...pts.values()];
+      if (s.isPinching && s.initialPinch && pts.size >= 2) {
+        const values = [...pts.values()].slice(0, 2);
         const dist = Math.hypot(values[0].x - values[1].x, values[0].y - values[1].y);
         const midScreen = {
           x: (values[0].x + values[1].x) / 2,
@@ -170,28 +180,47 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
         const scaleFactor = 1 + (rawFactor - 1) * 3;
         let newScale = s.initialPinch.scale * scaleFactor;
         newScale = Math.max(0.1, Math.min(10, newScale));
-        const newTranslateX = midScreen.x - s.initialPinch.midpoint.x * newScale;
-        const newTranslateY = midScreen.y - s.initialPinch.midpoint.y * newScale;
+        const point = svg.createSVGPoint();
+        point.x = midScreen.x;
+        point.y = midScreen.y;
+        const ctm = svg.getScreenCTM();
+        let translateX = s.viewTransform.translateX;
+        let translateY = s.viewTransform.translateY;
+        if (ctm) {
+          const svgPoint = point.matrixTransform(ctm.inverse());
+          translateX = svgPoint.x - s.initialPinch.midpoint.x * newScale;
+          translateY = svgPoint.y - s.initialPinch.midpoint.y * newScale;
+        } else {
+          translateX = midScreen.x - s.initialPinch.midpoint.x * newScale;
+          translateY = midScreen.y - s.initialPinch.midpoint.y * newScale;
+        }
+        pinchActive = true;
         return {
           touchPoints: pts,
-          viewTransform: { scale: newScale, translateX: newTranslateX, translateY: newTranslateY },
+          viewTransform: { scale: newScale, translateX, translateY },
         };
       }
+      pinchActive = s.isPinching;
       return { touchPoints: pts };
     });
+    return pinchActive;
   },
 
   // 处理触摸结束
   handleTouchEnd: (e) => {
     const { pointerId } = e;
+    let pinchActive = false;
     set((s) => {
       const pts = new Map(s.touchPoints);
       pts.delete(pointerId);
       if (pts.size < 2) {
+        pinchActive = false;
         return { touchPoints: pts, isPinching: false, initialPinch: null };
       }
+      pinchActive = true;
       return { touchPoints: pts };
     });
+    return pinchActive;
   },
 
   // 获取指针在 SVG 中的位置

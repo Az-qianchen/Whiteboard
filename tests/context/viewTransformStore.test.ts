@@ -1,3 +1,4 @@
+// 覆盖视图变换存储的触摸捏合与滚轮缩放逻辑
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
@@ -56,8 +57,11 @@ afterEach(() => {
 describe('useViewTransformStore pinch gestures', () => {
   it('starts pinch on second touch', () => {
     const svg = createSvgMock() as any;
-    useViewTransformStore.getState().handleTouchStart({ pointerId: 1, clientX: 0, clientY: 0, currentTarget: svg } as any);
-    useViewTransformStore.getState().handleTouchStart({ pointerId: 2, clientX: 10, clientY: 0, currentTarget: svg } as any);
+    const store = useViewTransformStore.getState();
+    const firstTouchPinch = store.handleTouchStart({ pointerId: 1, clientX: 0, clientY: 0, currentTarget: svg } as any);
+    expect(firstTouchPinch).toBe(false);
+    const secondTouchPinch = store.handleTouchStart({ pointerId: 2, clientX: 10, clientY: 0, currentTarget: svg } as any);
+    expect(secondTouchPinch).toBe(true);
     const state = useViewTransformStore.getState();
     expect(state.isPinching).toBe(true);
     expect(state.initialPinch?.distance).toBeCloseTo(10);
@@ -69,7 +73,8 @@ describe('useViewTransformStore pinch gestures', () => {
     const store = useViewTransformStore.getState();
     store.handleTouchStart({ pointerId: 1, clientX: 0, clientY: 0, currentTarget: svg } as any);
     store.handleTouchStart({ pointerId: 2, clientX: 10, clientY: 0, currentTarget: svg } as any);
-    store.handleTouchMove({ pointerId: 2, clientX: 20, clientY: 0 } as any);
+    const pinchMoveHandled = store.handleTouchMove({ pointerId: 2, clientX: 20, clientY: 0, currentTarget: svg } as any);
+    expect(pinchMoveHandled).toBe(true);
     const vt = useViewTransformStore.getState().viewTransform;
     expect(vt.scale).toBeCloseTo(4);
     expect(vt.translateX).toBeCloseTo(-10);
@@ -81,7 +86,8 @@ describe('useViewTransformStore pinch gestures', () => {
     const store = useViewTransformStore.getState();
     store.handleTouchStart({ pointerId: 1, clientX: 0, clientY: 0, currentTarget: svg } as any);
     store.handleTouchStart({ pointerId: 2, clientX: 10, clientY: 0, currentTarget: svg } as any);
-    store.handleTouchEnd({ pointerId: 1 } as any);
+    const stillPinching = store.handleTouchEnd({ pointerId: 1 } as any);
+    expect(stillPinching).toBe(false);
     const state = useViewTransformStore.getState();
     expect(state.isPinching).toBe(false);
     expect(state.initialPinch).toBeNull();
@@ -103,7 +109,7 @@ describe('useViewTransformStore wheel zoom', () => {
     const event = createWheelEvent();
     useViewTransformStore.getState().handleWheel(event);
     const { scale } = useViewTransformStore.getState().viewTransform;
-    expect(scale).toBeCloseTo(1.02);
+    expect(scale).toBeCloseTo(1.04);
   });
 
   it('keeps mouse wheel zoom speed on mac for line-based deltaMode', () => {
