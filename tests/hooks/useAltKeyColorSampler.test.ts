@@ -14,6 +14,7 @@ describe('useAltKeyColorSampler', () => {
         canSample: true,
         openEyeDropper,
         fallbackPick,
+        cancelSampling: vi.fn(),
       },
     });
 
@@ -37,6 +38,7 @@ describe('useAltKeyColorSampler', () => {
         canSample: true,
         openEyeDropper,
         fallbackPick,
+        cancelSampling: vi.fn(),
       },
     });
 
@@ -62,6 +64,7 @@ describe('useAltKeyColorSampler', () => {
           canSample: false,
           openEyeDropper,
           fallbackPick,
+          cancelSampling: vi.fn(),
         },
       }
     );
@@ -76,7 +79,7 @@ describe('useAltKeyColorSampler', () => {
     openEyeDropper.mockClear();
     fallbackPick.mockClear();
 
-    rerender({ isEnabled: true, canSample: true, openEyeDropper, fallbackPick });
+    rerender({ isEnabled: true, canSample: true, openEyeDropper, fallbackPick, cancelSampling: vi.fn() });
 
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
@@ -98,6 +101,7 @@ describe('useAltKeyColorSampler', () => {
         canSample: true,
         openEyeDropper,
         fallbackPick,
+        cancelSampling: vi.fn(),
       },
     });
 
@@ -107,6 +111,72 @@ describe('useAltKeyColorSampler', () => {
 
     expect(openEyeDropper).not.toHaveBeenCalled();
     expect(fallbackPick).not.toHaveBeenCalled();
+
+    unmount();
+  });
+
+  it('Alt 松开时调用取消回调以结束取色状态', () => {
+    const openEyeDropper = vi.fn().mockReturnValue(true);
+    const fallbackPick = vi.fn().mockReturnValue(false);
+    const cancelSampling = vi.fn();
+
+    const { unmount } = renderHook(
+      (props: Parameters<typeof useAltKeyColorSampler>[0]) => useAltKeyColorSampler(props),
+      {
+        initialProps: {
+          isEnabled: true,
+          canSample: true,
+          openEyeDropper,
+          fallbackPick,
+          cancelSampling,
+        },
+      }
+    );
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
+    });
+
+    expect(openEyeDropper).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt' }));
+    });
+
+    expect(cancelSampling).toHaveBeenCalledTimes(1);
+
+    unmount();
+  });
+
+  it('未进入取色状态时松开 Alt 不触发取消', () => {
+    const openEyeDropper = vi.fn().mockReturnValue(false);
+    const fallbackPick = vi.fn().mockReturnValue(false);
+    const cancelSampling = vi.fn();
+
+    const { unmount } = renderHook(
+      (props: Parameters<typeof useAltKeyColorSampler>[0]) => useAltKeyColorSampler(props),
+      {
+        initialProps: {
+          isEnabled: true,
+          canSample: true,
+          openEyeDropper,
+          fallbackPick,
+          cancelSampling,
+        },
+      }
+    );
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
+    });
+
+    expect(openEyeDropper).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt' }));
+    });
+
+    expect(cancelSampling).not.toHaveBeenCalled();
 
     unmount();
   });

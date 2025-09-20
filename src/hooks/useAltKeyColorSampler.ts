@@ -13,6 +13,8 @@ interface UseAltKeyColorSamplerOptions {
   openEyeDropper: () => boolean;
   /** EyeDropper 不可用或触发失败时的备用取色回调 */
   fallbackPick: () => boolean;
+  /** 取消当前取色流程（如中止 EyeDropper 或重置状态） */
+  cancelSampling: () => void;
 }
 
 /**
@@ -24,10 +26,13 @@ export const useAltKeyColorSampler = ({
   canSample,
   openEyeDropper,
   fallbackPick,
+  cancelSampling,
 }: UseAltKeyColorSamplerOptions) => {
   const canSampleRef = useRef(canSample);
   const openEyeDropperRef = useRef(openEyeDropper);
   const fallbackPickRef = useRef(fallbackPick);
+  const cancelSamplingRef = useRef(cancelSampling);
+  const isSamplingRef = useRef(false);
 
   useEffect(() => {
     canSampleRef.current = canSample;
@@ -42,7 +47,15 @@ export const useAltKeyColorSampler = ({
   }, [fallbackPick]);
 
   useEffect(() => {
+    cancelSamplingRef.current = cancelSampling;
+  }, [cancelSampling]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || !isEnabled) {
+      if (isSamplingRef.current) {
+        isSamplingRef.current = false;
+        cancelSamplingRef.current();
+      }
       return;
     }
 
@@ -52,19 +65,39 @@ export const useAltKeyColorSampler = ({
       }
 
       if (openEyeDropperRef.current()) {
+        isSamplingRef.current = true;
         event.preventDefault();
         return;
       }
 
       if (fallbackPickRef.current()) {
+        isSamplingRef.current = true;
         event.preventDefault();
+        return;
       }
+
+      isSamplingRef.current = false;
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== 'Alt' || !isSamplingRef.current) {
+        return;
+      }
+
+      isSamplingRef.current = false;
+      cancelSamplingRef.current();
     };
 
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (isSamplingRef.current) {
+        isSamplingRef.current = false;
+        cancelSamplingRef.current();
+      }
     };
   }, [isEnabled]);
 };

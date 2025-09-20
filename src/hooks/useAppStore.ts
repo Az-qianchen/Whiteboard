@@ -517,7 +517,10 @@ export const useAppStore = () => {
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   const { setColor } = toolbarState;
 
-  type EyeDropperConstructor = new () => { open: () => Promise<{ sRGBHex: string }>; };
+  type EyeDropperOpenOptions = { signal?: AbortSignal };
+  type EyeDropperConstructor = new () => {
+    open: (options?: EyeDropperOpenOptions) => Promise<{ sRGBHex: string }>;
+  };
   const eyeDropperCtor = useMemo(() => {
     if (typeof window === 'undefined') {
       return null;
@@ -528,6 +531,7 @@ export const useAppStore = () => {
   }, []);
 
   const eyeDropperActiveRef = useRef(false);
+  const eyeDropperAbortRef = useRef<AbortController | null>(null);
   const currentScale = viewTransform.viewTransform.scale;
 
   const sampleStrokeAtPoint = useCallback(
@@ -545,28 +549,45 @@ export const useAppStore = () => {
     [activePaths, currentScale, setColor]
   );
 
+  const cancelEyeDropper = useCallback(() => {
+    if (!eyeDropperActiveRef.current) {
+      return;
+    }
+    eyeDropperAbortRef.current?.abort();
+    eyeDropperAbortRef.current = null;
+    eyeDropperActiveRef.current = false;
+  }, []);
+
   const openEyeDropper = useCallback(() => {
     if (!eyeDropperCtor || eyeDropperActiveRef.current) {
       return false;
     }
     try {
+      const controller = new AbortController();
       const eyeDropper = new eyeDropperCtor();
       eyeDropperActiveRef.current = true;
+      eyeDropperAbortRef.current = controller;
       void eyeDropper
-        .open()
+        .open({ signal: controller.signal })
         .then(result => {
           if (result?.sRGBHex) {
             setColor(result.sRGBHex);
           }
         })
-        .catch(() => {
-          // 用户取消取色或浏览器阻止 EyeDropper，忽略即可
+        .catch(error => {
+          if ((error as DOMException)?.name !== 'AbortError') {
+            // 用户取消取色或浏览器阻止 EyeDropper，忽略即可
+          }
         })
         .finally(() => {
+          if (eyeDropperAbortRef.current === controller) {
+            eyeDropperAbortRef.current = null;
+          }
           eyeDropperActiveRef.current = false;
         });
       return true;
     } catch {
+      eyeDropperAbortRef.current = null;
       eyeDropperActiveRef.current = false;
       return false;
     }
@@ -582,6 +603,7 @@ export const useAppStore = () => {
     canSample: Boolean(viewTransform.lastPointerPosition || eyeDropperCtor),
     openEyeDropper,
     fallbackPick: sampleStrokeUnderPointer,
+    cancelSampling: cancelEyeDropper,
   });
 
   const handleAltStrokeColorPick = useCallback(
