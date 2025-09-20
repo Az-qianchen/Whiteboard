@@ -13,6 +13,7 @@ import type {
   SelectionPathState,
   SelectionToolbarState,
   SelectionViewTransform,
+  GradientControlHandle,
 } from '@/types';
 import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle } from '@/lib/drawing';
 import { isPointHittingPath, findDeepestHitPath } from '@/lib/hit-testing';
@@ -185,6 +186,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
 
     const handle = target.dataset.handle as ResizeHandlePosition | 'rotate' | 'border-radius' | 'arc' | undefined;
     const type = target.dataset.type as 'anchor' | 'handleIn' | 'handleOut' | undefined;
+    const gradientHandle = target.dataset.gradientHandle as GradientControlHandle | undefined;
     const pathId = target.dataset.pathId;
     
     // If in cropping mode, only allow interaction with crop handles for the correct image.
@@ -209,6 +211,17 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
         return;
     }
 
+
+    if (gradientHandle && pathId) {
+        if (selectionMode === 'move') {
+            const path = paths.find((p: AnyPath) => p.id === pathId);
+            if (path && path.fillGradient && !path.isLocked) {
+                beginCoalescing();
+                setDragState({ type: 'gradient', pathId, handle: gradientHandle });
+            }
+        }
+        return;
+    }
 
     if ((handle || type) && pathId) {
         beginCoalescing();

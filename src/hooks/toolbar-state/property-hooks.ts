@@ -17,6 +17,12 @@ export const useDrawingFill = () => {
   return { drawingFill, setDrawingFill };
 };
 
+export const useDrawingFillGradient = () => {
+  const drawingFillGradient = useToolbarStore(s => s.drawingFillGradient);
+  const setDrawingFillGradient = useToolbarStore(s => s.setDrawingFillGradient);
+  return { drawingFillGradient, setDrawingFillGradient };
+};
+
 export const useDrawingFillStyle = () => {
   const drawingFillStyle = useToolbarStore(s => s.drawingFillStyle);
   const setDrawingFillStyle = useToolbarStore(s => s.setDrawingFillStyle);

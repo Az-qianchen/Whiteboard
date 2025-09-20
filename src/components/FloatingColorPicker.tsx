@@ -99,6 +99,18 @@ export const FloatingColorPicker: React.FC<FloatingColorPickerProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside, true);
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.stopPropagation();
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown, true);
+        return () => document.removeEventListener('keydown', handleKeyDown, true);
+    }, [isOpen]);
+
     const pickerElement = (
         <Transition
             show={isOpen}

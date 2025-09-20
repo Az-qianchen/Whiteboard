@@ -2,13 +2,92 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData, FrameData } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData, FrameData, GradientFill } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
 import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
+import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
+import { parseColor, hslaToHslaString } from '@/lib/color';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const ensureDefs = (element: SVGElement): SVGDefsElement => {
+    const existing = element.querySelector('defs');
+    if (existing) return existing as SVGDefsElement;
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    element.insertBefore(defs, element.firstChild);
+    return defs;
+};
+
+const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, gradient: GradientFill, shapeId: string): SVGElement => {
+    let container = finalElement;
+    if (container.tagName !== 'g') {
+        const wrapper = document.createElementNS(SVG_NS, 'g');
+        wrapper.appendChild(container);
+        container = wrapper;
+    }
+
+    const defs = ensureDefs(container);
+    const gradientId = `gradient-${shapeId}`;
+    const existingGradient = defs.querySelector(`#${gradientId}`);
+    if (existingGradient) defs.removeChild(existingGradient);
+
+    const gradientElement = gradient.type === 'linear'
+      ? document.createElementNS(SVG_NS, 'linearGradient')
+      : document.createElementNS(SVG_NS, 'radialGradient');
+
+    gradientElement.setAttribute('id', gradientId);
+
+    if (gradient.type === 'linear') {
+      const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient);
+      gradientElement.setAttribute('x1', x1.toString());
+      gradientElement.setAttribute('y1', y1.toString());
+      gradientElement.setAttribute('x2', x2.toString());
+      gradientElement.setAttribute('y2', y2.toString());
+    } else {
+      const { cx, cy, fx, fy, r } = getRadialGradientAttributes(gradient);
+      gradientElement.setAttribute('cx', cx.toString());
+      gradientElement.setAttribute('cy', cy.toString());
+      gradientElement.setAttribute('fx', fx.toString());
+      gradientElement.setAttribute('fy', fy.toString());
+      gradientElement.setAttribute('r', r.toString());
+    }
+
+    gradient.stops.forEach((stop, index) => {
+        const stopElement = document.createElementNS(SVG_NS, 'stop');
+        const offset = clamp(stop.offset ?? 0, 0, 1);
+        stopElement.setAttribute('offset', `${Math.round(offset * 100)}%`);
+        const parsed = parseColor(gradientStopColor(gradient, index));
+        const baseColor = hslaToHslaString({ ...parsed, a: 1 });
+        stopElement.setAttribute('stop-color', baseColor);
+        const alpha = clamp(stop.opacity ?? parsed.a, 0, 1);
+        if (alpha < 1) {
+            stopElement.setAttribute('stop-opacity', alpha.toString());
+        }
+        gradientElement.appendChild(stopElement);
+    });
+
+    defs.appendChild(gradientElement);
+
+    const applyFillRecursive = (element: SVGElement) => {
+        if (element.tagName === 'defs') return;
+        const fillAttr = element.getAttribute('fill');
+        if (!fillAttr || (fillAttr !== 'none' && fillAttr !== 'transparent')) {
+            element.setAttribute('fill', `url(#${gradientId})`);
+        }
+        element.childNodes.forEach(child => {
+            if (child instanceof SVGElement) applyFillRecursive(child);
+        });
+    };
+    applyFillRecursive(shapeNode);
+
+    return container;
+};
 
 /**
  * 将 TextData 对象渲染为 SVG <g> 元素，其中包含一个 <text> 元素。
@@ -195,7 +274,7 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     }
     
     if (!node) return null;
-    
+
     const pathIsVector = data.tool === 'pen' || data.tool === 'line';
     
     if (!pathIsVector) {
@@ -214,11 +293,11 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
 
     const hasEffects = (data.blur ?? 0) > 0 || data.shadowEnabled === true;
     const needsWrapper = capNodes.length > 0 || hasEffects;
-    const finalElement = needsWrapper ? document.createElementNS('http://www.w3.org/2000/svg', 'g') : node;
+    let finalElement = needsWrapper ? document.createElementNS('http://www.w3.org/2000/svg', 'g') : node;
 
     if (needsWrapper) {
         const g = finalElement as SVGGElement;
-        
+
         if (hasEffects) {
             const filter = createEffectsFilter(data);
             if (filter) {
@@ -233,7 +312,11 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         g.appendChild(node);
         capNodes.forEach(cap => g.appendChild(cap));
     }
-    
+
+    if (data.fillGradient && data.fillGradient.stops && data.fillGradient.stops.length > 0) {
+        finalElement = applyGradientFill(finalElement, node, data.fillGradient, data.id);
+    }
+
     if (data.opacity !== undefined && data.opacity < 1) {
         finalElement.setAttribute('opacity', String(data.opacity));
     }

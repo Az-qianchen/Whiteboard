@@ -125,6 +125,23 @@ const resources = {
         colorControl: {
           select: 'Select {{label}}',
         },
+        gradientFill: {
+          title: 'Gradient fill',
+          start: 'Start',
+          end: 'End',
+          type: 'Type',
+          types: {
+            solid: 'Solid',
+            linear: 'Linear',
+            radial: 'Radial',
+          },
+          handles: {
+            start: 'Start handle',
+            end: 'End handle',
+            center: 'Center handle',
+            edge: 'Radius handle',
+          },
+        },
         fillStyle: {
           title: 'Fill style',
           choose: 'Choose fill style',
@@ -353,6 +370,23 @@ const resources = {
         styleLibrary: '样式库',
         colorControl: {
           select: '选择{{label}}',
+        },
+        gradientFill: {
+          title: '渐变填充',
+          start: '起始颜色',
+          end: '结束颜色',
+          type: '类型',
+          types: {
+            solid: '纯色',
+            linear: '线性',
+            radial: '圆形',
+          },
+          handles: {
+            start: '起始控制点',
+            end: '结束控制点',
+            center: '圆心控制点',
+            edge: '半径控制点',
+          },
         },
         fillStyle: {
           title: '填充样式',

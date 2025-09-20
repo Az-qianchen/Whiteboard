@@ -28,6 +28,7 @@ export type EndpointStyle = 'none' | 'arrow' | 'triangle' | 'dot' | 'square' | '
 export interface StyleClipboardData {
   color?: string;
   fill?: string;
+  fillGradient?: GradientFill | null;
   fillStyle?: string;
   strokeWidth?: number;
   strokeLineDash?: [number, number];
@@ -65,6 +66,36 @@ export type MaterialData = {
   shapes: AnyPath[];
 }
 
+export interface GradientStop {
+  offset: number; // 0 - 1
+  color: string;
+  opacity?: number;
+}
+
+export interface GradientHandle {
+  x: number;
+  y: number;
+}
+
+export interface LinearGradientFill {
+  type: 'linear';
+  angle: number; // degrees
+  stops: GradientStop[];
+  start?: GradientHandle;
+  end?: GradientHandle;
+}
+
+export interface RadialGradientFill {
+  type: 'radial';
+  stops: GradientStop[];
+  center: GradientHandle;
+  edge: GradientHandle;
+}
+
+export type GradientFill = LinearGradientFill | RadialGradientFill;
+
+export type GradientControlHandle = 'start' | 'end' | 'center' | 'edge';
+
 export type LibraryData = {
   type: 'whiteboard/library';
   version: 1;
@@ -101,6 +132,7 @@ interface ShapeBase {
   name?: string; // 用于图层，特别是组
   color: string;
   fill: string;
+  fillGradient?: GradientFill | null;
   fillStyle: string;
   strokeWidth: number;
   strokeLineDash?: [number, number];
@@ -363,8 +395,14 @@ type CropDragState = {
     initialPointerPos: Point;
 }
 
+type GradientDragState = {
+    type: 'gradient';
+    pathId: string;
+    handle: GradientControlHandle;
+}
+
 // Union of all possible drag states
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | null;
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | GradientDragState | null;
 
 export interface SelectionPathState {
   paths: AnyPath[];

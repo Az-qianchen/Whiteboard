@@ -1,8 +1,9 @@
-
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FloatingColorPicker } from '../FloatingColorPicker';
 import PanelButton from '@/components/PanelButton';
+import type { GradientFill } from '@/types';
+import { gradientToCss } from '@/lib/gradient';
 
 interface ColorControlProps {
     label: string;
@@ -12,6 +13,7 @@ interface ColorControlProps {
     endCoalescing: () => void;
     disabled?: boolean;
     className?: string;
+    gradient?: GradientFill | null;
 }
 
 export const ColorControl: React.FC<ColorControlProps> = React.memo(({
@@ -21,15 +23,32 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
     beginCoalescing,
     endCoalescing,
     disabled = false,
-    className = ''
+    className = '',
+    gradient = null
 }) => {
     const { t } = useTranslation();
-    const isTransparent = color === 'transparent' || (color.includes('rgba') && color.endsWith('0)')) || (color.includes('hsla') && color.endsWith('0)'));
+    const colorIsTransparent = color === 'transparent' || (color.includes('rgba') && color.endsWith('0)')) || (color.includes('hsla') && color.endsWith('0)'));
     const checkerboardStyle = {
         backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
         backgroundSize: '10px 10px',
         backgroundPosition: '0 0, 0 5px, 5px -5px, -5px 0px',
     };
+
+    const gradientStyle = gradient
+        ? {
+            backgroundImage: `${gradientToCss(gradient)}, ${checkerboardStyle.backgroundImage}`,
+            backgroundSize: `cover, ${checkerboardStyle.backgroundSize}`,
+            backgroundPosition: `0 0, ${checkerboardStyle.backgroundPosition}`,
+            backgroundColor: 'transparent',
+        }
+        : {};
+
+    const fillStyle = gradient
+        ? gradientStyle
+        : {
+            backgroundColor: color,
+            ...(colorIsTransparent ? checkerboardStyle : {}),
+        };
 
     const selectLabel = t('sideToolbar.colorControl.select', { label });
 
@@ -49,10 +68,7 @@ export const ColorControl: React.FC<ColorControlProps> = React.memo(({
                         onClick={onClick}
                         disabled={disabled}
                         className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
-                        style={{
-                            backgroundColor: color,
-                            ...(isTransparent && checkerboardStyle)
-                        }}
+                        style={fillStyle}
                         aria-label={selectLabel}
                         title={selectLabel}
                     />

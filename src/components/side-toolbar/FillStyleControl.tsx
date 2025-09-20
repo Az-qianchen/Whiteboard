@@ -8,9 +8,10 @@ import { useTranslation } from 'react-i18next';
 interface FillStyleControlProps {
     fillStyle: string;
     setFillStyle: (style: string) => void;
+    disabled?: boolean;
 }
 
-export const FillStyleControl: React.FC<FillStyleControlProps> = React.memo(({ fillStyle, setFillStyle }) => {
+export const FillStyleControl: React.FC<FillStyleControlProps> = React.memo(({ fillStyle, setFillStyle, disabled = false }) => {
     const { t } = useTranslation();
     const currentStyle = useMemo(() => FILL_STYLES.find(s => s.name === fillStyle), [fillStyle]);
     const titleLabel = currentStyle ? t(currentStyle.titleKey) : '';
@@ -18,12 +19,13 @@ export const FillStyleControl: React.FC<FillStyleControlProps> = React.memo(({ f
     const selectLabel = t('sideToolbar.fillStyle.choose');
 
     return (
-        <div className="flex flex-col items-center w-14 transition-opacity" title={popoverTitle}>
+        <div className={`flex flex-col items-center w-14 transition-opacity ${disabled ? 'opacity-50' : ''}`} title={popoverTitle}>
             <Popover className="relative">
                 <Popover.Button
                   as={PanelButton}
                   variant="unstyled"
                   className="h-9 w-9 p-1.5 rounded-lg flex items-center justify-center transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed"
+                  disabled={disabled}
                   title={popoverTitle}
                   aria-label={selectLabel}
                 >

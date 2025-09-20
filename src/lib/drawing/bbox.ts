@@ -19,6 +19,18 @@ import { getPolygonVertices } from './polygon';
 import { sampleArc } from './arc';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '@/constants';
 import { applyMatrixToPoint, getShapeTransformMatrix } from './transform/matrix';
+import { parseColor } from '../color';
+import { gradientHasVisibleColor } from '../gradient';
+
+const hasVisibleFill = (path: AnyPath): boolean => {
+  if (path.fillGradient) {
+    return gradientHasVisibleColor(path.fillGradient);
+  }
+  if (!path.fill || path.fill === 'transparent') {
+    return false;
+  }
+  return parseColor(path.fill).a > 0.01;
+};
 
 export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true): BBox {
   let margin = 0;
@@ -31,7 +43,7 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const bowingAmount = (path.bowing ?? DEFAULT_BOWING);
       // RoughJS 的默认 fillWeight 是描边宽度的一半。我们在缓冲区计算中复制该行为。
       const fillWeight = (path.fillWeight != null && path.fillWeight >= 0) ? path.fillWeight : (path.strokeWidth / 2);
-      const halfFillWeight = (path.fill && path.fill !== 'transparent') ? fillWeight / 2 : 0;
+      const halfFillWeight = hasVisibleFill(path) ? fillWeight / 2 : 0;
       
       // 描边的总视觉范围是其半宽加上粗糙度和弯曲度引起的偏差。
       const strokeOutset = halfStroke + roughAmount + bowingAmount;

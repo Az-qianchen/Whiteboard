@@ -1,6 +1,7 @@
 export * from './NumericInput';
 export * from './ColorControl';
 export * from './FillStyleControl';
+export * from './GradientFillPopover';
 export * from './StrokeStylePopover';
 export * from './StylePropertiesPopover';
 export * from './DashControl';

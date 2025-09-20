@@ -2,11 +2,15 @@
  * 本文件定义了用于创建平滑（非手绘风格）SVG 路径节点的函数。
  * 主要用于导出 SVG，以确保输出的 SVG 代码简洁且符合标准。
  */
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData, GradientFill } from '@/types';
 import { anchorsToPathD, pointsToPathD } from '@/lib/path-fitting';
 import { createSvgMarker } from '../markers/svg';
 import { getPolygonPathD, calculateArcPathD } from '@/lib/drawing';
 import { createEffectsFilter } from '../core/effects';
+import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
+import { parseColor, hslaToHslaString } from '@/lib/color';
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 export function createSmoothPathNode(data: AnyPath): SVGElement | null {
     const svgNS = 'http://www.w3.org/2000/svg';
@@ -80,7 +84,50 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
     } else {
       pathEl.setAttribute('stroke', data.color);
       pathEl.setAttribute('stroke-width', String(data.strokeWidth));
-      pathEl.setAttribute('fill', (data.fill && data.fill !== 'transparent') ? data.fill : 'none');
+      const defaultFill = (data.fill && data.fill !== 'transparent') ? data.fill : 'none';
+      if (data.fillGradient && data.fillGradient.stops && data.fillGradient.stops.length > 0) {
+        const gradient = data.fillGradient as GradientFill;
+        const gradientId = `gradient-${data.id}`;
+        const existing = defs.querySelector(`#${gradientId}`);
+        if (existing) defs.removeChild(existing);
+        const gradientElement = gradient.type === 'linear'
+          ? document.createElementNS(svgNS, 'linearGradient')
+          : document.createElementNS(svgNS, 'radialGradient');
+        gradientElement.setAttribute('id', gradientId);
+
+        if (gradient.type === 'linear') {
+          const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient);
+          gradientElement.setAttribute('x1', x1.toString());
+          gradientElement.setAttribute('y1', y1.toString());
+          gradientElement.setAttribute('x2', x2.toString());
+          gradientElement.setAttribute('y2', y2.toString());
+        } else {
+          const { cx, cy, fx, fy, r } = getRadialGradientAttributes(gradient);
+          gradientElement.setAttribute('cx', cx.toString());
+          gradientElement.setAttribute('cy', cy.toString());
+          gradientElement.setAttribute('fx', fx.toString());
+          gradientElement.setAttribute('fy', fy.toString());
+          gradientElement.setAttribute('r', r.toString());
+        }
+
+        gradient.stops.forEach((stop, index) => {
+          const stopEl = document.createElementNS(svgNS, 'stop');
+          const offset = clamp(stop.offset ?? 0, 0, 1);
+          stopEl.setAttribute('offset', `${Math.round(offset * 100)}%`);
+          const parsed = parseColor(gradientStopColor(gradient, index));
+          const baseColor = hslaToHslaString({ ...parsed, a: 1 });
+          stopEl.setAttribute('stop-color', baseColor);
+          const alpha = clamp(stop.opacity ?? parsed.a, 0, 1);
+          if (alpha < 1) {
+            stopEl.setAttribute('stop-opacity', alpha.toString());
+          }
+          gradientElement.appendChild(stopEl);
+        });
+        defs.appendChild(gradientElement);
+        pathEl.setAttribute('fill', `url(#${gradientId})`);
+      } else {
+        pathEl.setAttribute('fill', defaultFill);
+      }
     }
     
     if (data.strokeLineDash) {
