@@ -83,7 +83,7 @@ describe('useViewTransformStore wheel interactions', () => {
     querySelector: () => createSvgMock(),
   });
 
-  it('treats mac trackpad pinch without ctrl key as zoom and doubles the zoom factor', () => {
+  it('treats mac trackpad pinch without ctrl key as zoom and significantly boosts the zoom factor', () => {
     const store = useViewTransformStore.getState();
     const preventDefault = vi.fn();
     store.handleWheel({
@@ -99,9 +99,26 @@ describe('useViewTransformStore wheel interactions', () => {
 
     const state = useViewTransformStore.getState().viewTransform;
     expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(state.scale).toBeCloseTo(1.008);
+    expect(state.scale).toBeCloseTo(1.016);
     expect(state.translateX).toBeCloseTo(0);
     expect(state.translateY).toBeCloseTo(0);
+  });
+
+  it('uses the dominant axis from trackpad pinch deltas to remain responsive when deltaY is tiny', () => {
+    const store = useViewTransformStore.getState();
+    store.handleWheel({
+      preventDefault: vi.fn(),
+      deltaX: 0,
+      deltaY: -0.1,
+      deltaZ: -1,
+      ctrlKey: false,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(state.scale).toBeCloseTo(1.004);
   });
 
   it('keeps mouse wheel panning behaviour when no zoom gesture is detected', () => {

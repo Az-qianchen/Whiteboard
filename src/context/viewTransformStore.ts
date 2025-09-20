@@ -70,8 +70,15 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
     if (shouldZoom) {
       const { scale, translateX, translateY } = viewTransform;
       const baseZoomStep = 0.001;
-      const zoomStep = isTrackpadPinch ? baseZoomStep * 2 : baseZoomStep;
-      const zoomDelta = deltaY !== 0 ? deltaY : deltaZ;
+      const pinchMultiplier = 4;
+      const zoomStep = isTrackpadPinch ? baseZoomStep * pinchMultiplier : baseZoomStep;
+      let zoomDelta = deltaY;
+      if (isTrackpadPinch) {
+        zoomDelta = Math.abs(deltaZ) > Math.abs(deltaY) ? deltaZ : deltaY;
+      } else if (zoomDelta === 0 && deltaZ !== 0) {
+        zoomDelta = deltaZ;
+      }
+      if (zoomDelta === 0) return;
       const newScale = Math.max(0.1, Math.min(10, scale - zoomDelta * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
