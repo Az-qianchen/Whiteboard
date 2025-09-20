@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+// 测试 viewTransformStore 的触摸与滚轮缩放逻辑
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
 const createSvgMock = () => ({
@@ -56,5 +57,49 @@ describe('useViewTransformStore pinch gestures', () => {
     expect(state.isPinching).toBe(false);
     expect(state.initialPinch).toBeNull();
     expect(state.touchPoints.size).toBe(1);
+  });
+});
+
+describe('useViewTransformStore wheel zoom', () => {
+  it('keeps mouse wheel zoom speed unchanged', () => {
+    const svg = createSvgMock() as any;
+    const container = { querySelector: vi.fn().mockReturnValue(svg) } as any;
+    const event = {
+      preventDefault: vi.fn(),
+      deltaX: 0,
+      deltaY: -120,
+      deltaMode: 0,
+      ctrlKey: true,
+      clientX: 100,
+      clientY: 80,
+      currentTarget: container,
+    } as unknown as WheelEvent;
+
+    useViewTransformStore.getState().handleWheel(event);
+
+    const vt = useViewTransformStore.getState().viewTransform;
+    expect(vt.scale).toBeCloseTo(1.12);
+  });
+
+  it('doubles mac trackpad pinch zoom speed', () => {
+    const svg = createSvgMock() as any;
+    const container = { querySelector: vi.fn().mockReturnValue(svg) } as any;
+    const event = {
+      preventDefault: vi.fn(),
+      deltaX: 5,
+      deltaY: -10,
+      deltaMode: 0,
+      ctrlKey: true,
+      clientX: 120,
+      clientY: 90,
+      currentTarget: container,
+    } as unknown as WheelEvent;
+
+    useViewTransformStore.getState().handleWheel(event);
+
+    const vt = useViewTransformStore.getState().viewTransform;
+    expect(vt.scale).toBeCloseTo(1.02);
+    expect(vt.translateX).toBeCloseTo(-2.4);
+    expect(vt.translateY).toBeCloseTo(-1.8);
   });
 });

@@ -1,7 +1,15 @@
+// 测试 renderPathNode 在导出图像时的矩阵组合顺序
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('paper', () => ({}));
 import { renderPathNode } from '@/lib/export/core/render';
 import type { ImageData } from '@/types';
+import {
+  createTranslationMatrix,
+  createRotationMatrix,
+  createScaleMatrix,
+  multiplyMatrices,
+  matrixToString,
+} from '@/lib/drawing/transform/matrix';
 
 describe('renderPathNode transform order', () => {
   it('applies scale before rotation for flipped images', () => {
@@ -29,6 +37,10 @@ describe('renderPathNode transform order', () => {
       curveStepCount: 9,
     };
     const node = renderPathNode({} as any, data)!;
-    expect(node.getAttribute('transform')).toBe('translate(50 50) rotate(45) scale(-1 1) translate(-50 -50)');
+    let expectedMatrix = createTranslationMatrix(50, 50);
+    expectedMatrix = multiplyMatrices(expectedMatrix, createRotationMatrix(Math.PI / 4));
+    expectedMatrix = multiplyMatrices(expectedMatrix, createScaleMatrix(-1, 1));
+    expectedMatrix = multiplyMatrices(expectedMatrix, createTranslationMatrix(-50, -50));
+    expect(node.getAttribute('transform')).toBe(matrixToString(expectedMatrix));
   });
 });
