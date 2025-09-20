@@ -17,7 +17,7 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
 import { measureText, rotatePoint, dist } from '@/lib/drawing';
 import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, type MagicWandMask } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
@@ -482,9 +482,152 @@ export const useAppStore = () => {
     })();
   }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
 
-  const cancelMagicWandSelection = useCallback(() => {
-    clearCropSelection();
-  }, [clearCropSelection]);
+  const cutMagicWandSelection = useCallback(() => {
+    const cropping = appState.croppingState;
+    const mask = cropMagicWandMaskRef.current;
+    const result = cropMagicWandResultRef.current;
+    const cache = cropImageCacheRef.current;
+    if (!cropping || !mask || !result || !cache || !mask.bounds) return;
+
+    const { imageData, newSrc } = result;
+    const { minX, minY, maxX, maxY } = mask.bounds;
+    const pixelWidth = maxX - minX + 1;
+    const pixelHeight = maxY - minY + 1;
+    if (pixelWidth <= 0 || pixelHeight <= 0) {
+      clearCropSelection();
+      return;
+    }
+
+    void (async () => {
+      const selectionCanvas = document.createElement('canvas');
+      selectionCanvas.width = pixelWidth;
+      selectionCanvas.height = pixelHeight;
+      const selectionCtx = selectionCanvas.getContext('2d');
+      if (!selectionCtx) {
+        console.warn('Unable to acquire 2D context for cut selection');
+        return;
+      }
+
+      const selectionImageData = selectionCtx.createImageData(pixelWidth, pixelHeight);
+      const destData = selectionImageData.data;
+      const sourceData = cache.imageData.data;
+      const maskData = mask.data;
+      const maskWidth = mask.width;
+      const sourceWidth = cache.naturalWidth;
+
+      for (let y = minY; y <= maxY; y++) {
+        const maskRowOffset = y * maskWidth;
+        const sourceRowOffset = y * sourceWidth;
+        const destRowOffset = (y - minY) * pixelWidth;
+        for (let x = minX; x <= maxX; x++) {
+          if (!maskData[maskRowOffset + x]) continue;
+          const sourceIndex = (sourceRowOffset + x) * 4;
+          const destIndex = (destRowOffset + (x - minX)) * 4;
+          destData[destIndex] = sourceData[sourceIndex];
+          destData[destIndex + 1] = sourceData[sourceIndex + 1];
+          destData[destIndex + 2] = sourceData[sourceIndex + 2];
+          destData[destIndex + 3] = sourceData[sourceIndex + 3];
+        }
+      }
+
+      selectionCtx.putImageData(selectionImageData, 0, 0);
+
+      const filesStore = useFilesStore.getState();
+      const [cutResult, updatedImage] = await Promise.all([
+        filesStore.ingestDataUrl(selectionCanvas.toDataURL()),
+        filesStore.ingestDataUrl(newSrc),
+      ]);
+
+      const scaleX = cropping.originalPath.width / cache.naturalWidth;
+      const scaleY = cropping.originalPath.height / cache.naturalHeight;
+      const selectionRect = {
+        x: cropping.originalPath.x + minX * scaleX,
+        y: cropping.originalPath.y + minY * scaleY,
+        width: pixelWidth * scaleX,
+        height: pixelHeight * scaleY,
+      };
+
+      const rotation = cropping.originalPath.rotation ?? 0;
+      const oldCenter = {
+        x: cropping.originalPath.x + cropping.originalPath.width / 2,
+        y: cropping.originalPath.y + cropping.originalPath.height / 2,
+      };
+      const newCenterLocal = {
+        x: selectionRect.width / 2,
+        y: selectionRect.height / 2,
+      };
+      const offsetLocal = {
+        x: selectionRect.x - cropping.originalPath.x - (cropping.originalPath.width / 2 - newCenterLocal.x),
+        y: selectionRect.y - cropping.originalPath.y - (cropping.originalPath.height / 2 - newCenterLocal.y),
+      };
+      const rotatedOffset = rotatePoint(offsetLocal, { x: 0, y: 0 }, rotation);
+      const selectionCenter = {
+        x: oldCenter.x + rotatedOffset.x,
+        y: oldCenter.y + rotatedOffset.y,
+      };
+      const newX = selectionCenter.x - newCenterLocal.x;
+      const newY = selectionCenter.y - newCenterLocal.y;
+
+      const { src: _legacySrc, ...baseImage } = cropping.originalPath;
+      const cutLayerId = `${Date.now()}-cut-${Math.random().toString(36).slice(2, 8)}`;
+      const newLayer: PathImageData = {
+        ...baseImage,
+        id: cutLayerId,
+        fileId: cutResult.fileId,
+        x: newX,
+        y: newY,
+        width: selectionRect.width,
+        height: selectionRect.height,
+      };
+
+      const applyCutToPaths = (paths: AnyPath[]): { result: AnyPath[]; handled: boolean } => {
+        let handled = false;
+        const next: AnyPath[] = [];
+
+        for (const path of paths) {
+          if (path.id === cropping.pathId && path.tool === 'image') {
+            next.push({ ...(path as PathImageData), fileId: updatedImage.fileId });
+            next.push(newLayer);
+            handled = true;
+          } else if (path.tool === 'group') {
+            const group = path as GroupData;
+            const childResult = applyCutToPaths(group.children);
+            if (childResult.handled) {
+              next.push({ ...group, children: childResult.result });
+              handled = true;
+            } else {
+              next.push(path);
+            }
+          } else {
+            next.push(path);
+          }
+        }
+
+        return { result: handled ? next : paths, handled };
+      };
+
+      pathState.setPaths(prev => {
+        const { result, handled } = applyCutToPaths(prev);
+        return handled ? result : prev;
+      });
+
+      setCroppingState(prev => (
+        prev && prev.pathId === cropping.pathId
+          ? { ...prev, originalPath: { ...prev.originalPath, fileId: updatedImage.fileId } }
+          : prev
+      ));
+
+      if (cropImageCacheRef.current) {
+        cropImageCacheRef.current = {
+          ...cropImageCacheRef.current,
+          imageData,
+        };
+      }
+
+      setCropEditedSrc(newSrc);
+      clearCropSelection();
+    })();
+  }, [appState.croppingState, clearCropSelection, pathState.setPaths, setCroppingState, setCropEditedSrc]);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
@@ -1031,7 +1174,7 @@ export const useAppStore = () => {
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
-    setCropTool, setCropMagicWandOptions, setCropSelectionMode, setCropSelectionOperation, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
+    setCropTool, setCropMagicWandOptions, setCropSelectionMode, setCropSelectionOperation, selectMagicWandAt, applyMagicWandSelection, cutMagicWandSelection,
     confirmCrop, trimTransparentEdges, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,
