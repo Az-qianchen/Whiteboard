@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, TextData, FrameData } from '../types';
-import { snapAngle, dist, measureText } from '../lib/drawing';
+import { snapAngle, dist, measureTextBounds } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
 
@@ -17,6 +17,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  onBeginTextEditing?: (path: TextData) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  onBeginTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -43,6 +45,8 @@ export const useDrawing = ({
     setCurrentPenPath, currentPenPath,
     setCurrentLinePath, currentLinePath,
     setPaths,
+    setSelectedPathIds,
+    beginCoalescing,
   } = pathState;
 
   const { getPointerPosition } = viewTransform;
@@ -155,8 +159,8 @@ export const useDrawing = ({
         break;
       }
       case 'text': {
-        const defaultText = text || '文本';
-        const { width, height } = measureText(defaultText, fontSize, fontFamily);
+        const defaultText = text ?? '';
+        const { width, height } = measureTextBounds(defaultText, fontSize, fontFamily);
 
         const newText: TextData = {
             id,
@@ -175,9 +179,20 @@ export const useDrawing = ({
             fillStyle: 'solid',
             strokeWidth: 0,
         };
+        if (typeof beginCoalescing === 'function') {
+            beginCoalescing();
+        }
         setPaths((prev: AnyPath[]) => [...prev, newText]);
-        toolbarState.setTool('selection');
-        pathState.setSelectedPathIds([id]);
+        if (setSelectedPathIds) {
+            setSelectedPathIds([id]);
+        }
+        if (typeof toolbarState.setTool === 'function') {
+            toolbarState.setTool('selection');
+        }
+        if (typeof toolbarState.setSelectionMode === 'function') {
+            toolbarState.setSelectionMode('move');
+        }
+        onBeginTextEditing?.(newText);
         break;
       }
       case 'arc': {

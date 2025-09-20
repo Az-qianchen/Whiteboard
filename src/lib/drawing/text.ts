@@ -17,7 +17,7 @@ export function measureText(text: string, fontSize: number, fontFamily: string):
     ctx.font = `${fontSize}px ${family}`;
     const lines = text.split('\n');
     let maxWidth = 0;
-    
+
     // 测量宽度
     for (const line of lines) {
         const metrics = ctx.measureText(line);
@@ -25,11 +25,30 @@ export function measureText(text: string, fontSize: number, fontFamily: string):
             maxWidth = metrics.width;
         }
     }
-    
+
     // 高度是根据字体大小、行数和行高乘数估算的
     // 对于 Excalifont，1.25 是一个合适的行高
     const lineHeight = fontSize * 1.25;
     const height = lines.length * lineHeight;
 
     return { width: maxWidth, height };
+}
+
+/**
+ * 计算文本在画布中的边界框。
+ *
+ * 与 `measureText` 不同的是，当文本为空字符串时，此函数仍然会返回一个合理的宽度，
+ * 以便在创建文本时为编辑器提供可点击的空间。
+ */
+export function measureTextBounds(
+    text: string,
+    fontSize: number,
+    fontFamily: string,
+): { width: number; height: number } {
+    const target = text === '' ? 'M' : text;
+    const { width, height } = measureText(target, fontSize, fontFamily);
+    return {
+        width: text === '' ? Math.max(width, fontSize) : width,
+        height,
+    };
 }

@@ -176,7 +176,7 @@ export const useToolbarStore = create<ToolbarState>()(
       drawingDisableMultiStrokeFill: DEFAULT_DISABLE_MULTI_STROKE_FILL,
       setDrawingDisableMultiStrokeFill: (v) => set({ drawingDisableMultiStrokeFill: v }),
 
-      drawingText: '文本',
+      drawingText: '',
       setDrawingText: (v) => set({ drawingText: v }),
 
       drawingFontFamily: 'Excalifont',

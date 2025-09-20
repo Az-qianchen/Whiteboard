@@ -25,6 +25,22 @@ const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 const modKey = (key: string) => `${isMac ? '⌘' : 'Ctrl+'}${key}`;
 const modShiftKey = (key: string) => `${isMac ? '⇧⌘' : 'Ctrl+Shift+'}${key}`;
 
+const findTextPathById = (paths: AnyPath[], id: string): TextData | undefined => {
+    for (const path of paths) {
+        if (path.id === id) {
+            return path.tool === 'text' ? (path as TextData) : undefined;
+        }
+        if (path.tool === 'group') {
+            const groupChildren = (path as any).children as AnyPath[] | undefined;
+            if (groupChildren) {
+                const found = findTextPathById(groupChildren, id);
+                if (found) return found;
+            }
+        }
+    }
+    return undefined;
+};
+
 export const CanvasOverlays: React.FC = () => {
     const store = useAppContext();
     const { t } = useTranslation();
@@ -110,10 +126,10 @@ export const CanvasOverlays: React.FC = () => {
         setIsTimelineCollapsed,
     } = store;
 
-    const editingPath = useMemo(() => 
-        paths.find((p: AnyPath) => p.id === activeEditingTextPathId && p.tool === 'text') as TextData | undefined,
-        [paths, activeEditingTextPathId]
-    );
+    const editingPath = useMemo(() => {
+        if (!activeEditingTextPathId) return undefined;
+        return findTextPathById(paths, activeEditingTextPathId);
+    }, [paths, activeEditingTextPathId]);
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);

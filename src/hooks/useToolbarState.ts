@@ -3,7 +3,7 @@ import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorP
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
-import { measureText } from '../lib/drawing';
+import { measureTextBounds } from '../lib/drawing';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 
 /**
@@ -174,7 +174,7 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const { width, height } = measureText(newText, p.fontSize, p.fontFamily);
+                const { width, height } = measureTextBounds(newText, p.fontSize, p.fontFamily);
                 return { text: newText, width, height };
             }
             return {};
@@ -188,7 +188,7 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const { width, height } = measureText(p.text, p.fontSize, newFamily);
+                const { width, height } = measureTextBounds(p.text, p.fontSize, newFamily);
                 return { fontFamily: newFamily, width, height };
             }
             return {};
@@ -202,7 +202,7 @@ export const useToolbarState = (
     if (firstSelectedPath?.tool === 'text') {
         updateSelectedPaths((p) => {
             if (p.tool === 'text') {
-                const { width, height } = measureText(p.text, newSize, p.fontFamily);
+                const { width, height } = measureTextBounds(p.text, newSize, p.fontFamily);
                 return { fontSize: newSize, width, height };
             }
             return {};
@@ -310,7 +310,7 @@ export const useToolbarState = (
     setDrawingPreserveVertices(DEFAULT_PRESERVE_VERTICES);
     setDrawingDisableMultiStroke(DEFAULT_DISABLE_MULTI_STROKE);
     setDrawingDisableMultiStrokeFill(DEFAULT_DISABLE_MULTI_STROKE_FILL);
-    setDrawingText('文本');
+    setDrawingText('');
     setDrawingFontFamily('Excalifont');
     setDrawingFontSize(24);
     setDrawingTextAlign('left');
