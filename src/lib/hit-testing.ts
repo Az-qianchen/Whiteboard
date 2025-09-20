@@ -52,6 +52,22 @@ export function isPointInPolygon(point: Point, vs: Point[]): boolean {
     return inside;
 }
 
+function hasVisibleFill(path: AnyPath): boolean {
+    if (path.tool === 'image') {
+        return true;
+    }
+
+    const fill = (path.fill ?? '').trim();
+    if (!fill) return false;
+
+    const normalized = fill.toLowerCase();
+    if (normalized === 'transparent' || normalized === 'none') {
+        return false;
+    }
+
+    return parseColor(fill).a > 0.01;
+}
+
 /**
  * Checks if a point is hitting the stroke of a given path with a tolerance.
  * @param point The point to check.
@@ -120,7 +136,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 const center = { x: x + width / 2, y: y + height / 2 };
                 testPoint = rotatePoint(point, center, -rotation);
             }
-            
+
             const isFillVisible = hasVisibleFill(path);
 
             // Check for hit on the fill area first.
@@ -147,7 +163,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 const center = { x: x + width / 2, y: y + height / 2 };
                 testPoint = rotatePoint(point, center, -rotation);
             }
-            
+
             const isFillVisible = hasVisibleFill(path);
             const vertices = getPolygonVertices(x, y, width, height, sides);
 
@@ -210,12 +226,12 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             if (vectorPath.anchors.length === 1) {
                 return dist(point, vectorPath.anchors[0].point) < threshold;
             }
-            
+
             const pathPoints = samplePath(vectorPath.anchors, 20, vectorPath.isClosed);
             if (pathPoints.length < 2) return false;
 
             if (vectorPath.isClosed) {
-                const isFillVisible = path.fill !== 'transparent' && parseColor(path.fill).a > 0.01;
+                const isFillVisible = hasVisibleFill(path);
                 if (isFillVisible && isPointInPolygon(point, pathPoints)) {
                     return true;
                 }
