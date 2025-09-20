@@ -22,6 +22,7 @@ import { measureText, rotatePoint } from '@/lib/drawing';
 import { findDeepestHitPath } from '@/lib/hit-testing';
 import { removeBackground } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
+import { isEyeDropperSupported, openEyeDropper } from '@/lib/eyeDropper';
 import { useFilesStore } from '@/context/filesStore';
 
 import { createDocumentSignature } from '@/lib/document';
@@ -517,20 +518,38 @@ export const useAppStore = () => {
   const { setColor } = toolbarState;
 
   const sampleStrokeColor = useCallback((point: Point) => {
+    const tryOpenEyeDropper = () => {
+      if (!isEyeDropperSupported()) {
+        return false;
+      }
+
+      void openEyeDropper()
+        .then(color => {
+          if (color) {
+            setColor(color);
+          }
+        })
+        .catch(error => {
+          console.error('EyeDropper failed to open', error);
+        });
+
+      return true;
+    };
+
     const paths = activePaths;
-    if (!paths || paths.length === 0) {
-      return false;
+    if (paths && paths.length > 0) {
+      const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
+      if (hitPath && hitPath.tool !== 'image' && hitPath.color) {
+        setColor(hitPath.color);
+        return true;
+      }
+
+      if (hitPath) {
+        return tryOpenEyeDropper();
+      }
     }
-    const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
-    if (!hitPath) {
-      return false;
-    }
-    const { color } = hitPath;
-    if (!color) {
-      return false;
-    }
-    setColor(color);
-    return true;
+
+    return tryOpenEyeDropper();
   }, [activePaths, viewTransform.viewTransform, setColor]);
   
   const handleResetPreferences = useCallback(() => {

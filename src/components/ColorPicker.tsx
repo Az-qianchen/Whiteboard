@@ -8,6 +8,7 @@ import { HSLA, parseColor, hslaToHslaString, hslaToHex } from '../lib/color';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
+import { isEyeDropperSupported, openEyeDropper } from '@/lib/eyeDropper';
 
 // 预设颜色数组
 const PRESET_COLORS = [
@@ -128,16 +129,18 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
    * 使用浏览器的 EyeDropper API 从屏幕取色。
    */
   const handleEyeDropper = async () => {
-    if (!('EyeDropper' in window)) {
-        alert("Your browser does not support the EyeDropper API.");
-        return;
+    if (!isEyeDropperSupported()) {
+      alert('Your browser does not support the EyeDropper API.');
+      return;
     }
+
     try {
-        const eyeDropper = new (window as any).EyeDropper();
-        const result = await eyeDropper.open();
-        onChange(result.sRGBHex);
-    } catch (e) {
-      // 用户取消了取色器
+      const pickedColor = await openEyeDropper();
+      if (pickedColor) {
+        onChange(pickedColor);
+      }
+    } catch (error) {
+      console.error('EyeDropper failed to open', error);
     }
   };
   
@@ -215,7 +218,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
                <span className={PANEL_CLASSES.inputSuffix}>%</span>
            </div>
            
-            {'EyeDropper' in window && (
+            {isEyeDropperSupported() && (
                 <PanelButton
                     variant="unstyled"
                     onClick={handleEyeDropper}
