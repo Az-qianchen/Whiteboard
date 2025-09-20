@@ -59,14 +59,20 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   handleWheel: (e) => {
     // 阻止浏览器默认缩放行为，避免在 Mac 上触发页面缩放
     e.preventDefault();
-    const { deltaX, deltaY, ctrlKey, clientX, clientY } = e as any;
+    const { deltaX, deltaY, deltaZ, ctrlKey, clientX, clientY } = e;
     const { viewTransform } = get();
 
-    if (ctrlKey) {
+    const isMacPlatform =
+      typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    const isTrackpadPinch = isMacPlatform && Math.abs(deltaZ) > 0;
+    const shouldZoom = ctrlKey || isTrackpadPinch;
+
+    if (shouldZoom) {
       const { scale, translateX, translateY } = viewTransform;
-      // 将滚轮缩放步长调小以降低缩放速度
-      const zoomStep = 0.001;
-      const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
+      const baseZoomStep = 0.001;
+      const zoomStep = isTrackpadPinch ? baseZoomStep * 2 : baseZoomStep;
+      const zoomDelta = deltaY !== 0 ? deltaY : deltaZ;
+      const newScale = Math.max(0.1, Math.min(10, scale - zoomDelta * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
       const svg = (e.currentTarget as HTMLDivElement).querySelector('svg');
