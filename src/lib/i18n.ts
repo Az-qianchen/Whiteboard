@@ -122,12 +122,11 @@ const resources = {
         },
         gradientFill: {
           title: 'Gradient fill',
-          enable: 'Enable',
-          angle: 'Angle',
           start: 'Start',
           end: 'End',
           type: 'Type',
           types: {
+            solid: 'Solid',
             linear: 'Linear',
             radial: 'Radial',
           },
@@ -137,8 +136,6 @@ const resources = {
             center: 'Center handle',
             edge: 'Radius handle',
           },
-          solidHint: 'Gradient forces solid fill style.',
-          disabled: 'Enable gradient fill to blend between two colors.',
         },
         fillStyle: {
           title: 'Fill style',
@@ -366,12 +363,11 @@ const resources = {
         },
         gradientFill: {
           title: '渐变填充',
-          enable: '启用',
-          angle: '角度',
           start: '起始颜色',
           end: '结束颜色',
           type: '类型',
           types: {
+            solid: '纯色',
             linear: '线性',
             radial: '圆形',
           },
@@ -381,8 +377,6 @@ const resources = {
             center: '圆心控制点',
             edge: '半径控制点',
           },
-          solidHint: '渐变会自动切换为实心填充样式。',
-          disabled: '启用渐变后可在此设置两种颜色的过渡。',
         },
         fillStyle: {
           title: '填充样式',

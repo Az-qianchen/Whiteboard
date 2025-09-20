@@ -10,13 +10,11 @@ import {
   getLinearHandles,
   gradientStopColor,
   gradientToCss,
-  updateGradientAngle,
   updateGradientStopColor,
   updateLinearGradientHandles,
   updateRadialGradientHandles,
 } from '@/lib/gradient';
 import { FloatingColorPicker } from '../FloatingColorPicker';
-import { NumericInput } from './NumericInput';
 
 interface GradientFillPopoverProps {
   fill: string;
@@ -99,16 +97,14 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     }
   }, []);
 
-  const isActive = !!fillGradient;
   const title = t('sideToolbar.gradientFill.title');
-  const toggleLabel = t('sideToolbar.gradientFill.enable');
-  const angleLabel = t('sideToolbar.gradientFill.angle');
   const startLabel = t('sideToolbar.gradientFill.start');
   const endLabel = t('sideToolbar.gradientFill.end');
-  const solidHint = t('sideToolbar.gradientFill.solidHint');
   const typeLabel = t('sideToolbar.gradientFill.type');
+  const solidTypeLabel = t('sideToolbar.gradientFill.types.solid');
   const linearTypeLabel = t('sideToolbar.gradientFill.types.linear');
   const radialTypeLabel = t('sideToolbar.gradientFill.types.radial');
+  const solidColorLabel = t('sideToolbar.fillColor');
   const handleLabels: Record<HandleKey, string> = {
     start: t('sideToolbar.gradientFill.handles.start'),
     end: t('sideToolbar.gradientFill.handles.end'),
@@ -236,29 +232,6 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     [fillGradient, beginCoalescing, endCoalescing, updateHandlePosition],
   );
 
-  const ensureGradient = () => {
-    if (fillGradient) return fillGradient;
-    return createDefaultLinearGradient(fill);
-  };
-
-  const handleToggle = () => {
-    if (isActive) {
-      dragCleanupRef.current?.();
-      gradientRef.current = null;
-      setFillGradient(null);
-      return;
-    }
-    const next = ensureGradient();
-    gradientRef.current = next;
-    setFillGradient(next);
-    if (next.stops.length > 0) {
-      setFill(next.stops[0].color);
-    }
-    if (fillStyle !== 'solid') {
-      setFillStyle('solid');
-    }
-  };
-
   const handleStopChange = (index: number, color: string) => {
     if (!fillGradient) return;
     const next = updateGradientStopColor(fillGradient, index, color);
@@ -269,19 +242,45 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     }
   };
 
-  const handleAngleChange = (value: number) => {
-    if (!fillGradient || fillGradient.type !== 'linear') return;
-    const next = updateGradientAngle(fillGradient, value);
-    gradientRef.current = next;
-    setFillGradient(next);
-  };
+  const handleTypeChange = (type: 'solid' | 'linear' | 'radial') => {
+    if (dragCleanupRef.current) {
+      dragCleanupRef.current();
+    }
+    if (type === 'solid') {
+      if (fillGradient) {
+        gradientRef.current = null;
+        setFillGradient(null);
+      }
+      if (fillStyle !== 'solid') {
+        setFillStyle('solid');
+      }
+      return;
+    }
 
-  const handleTypeChange = (type: 'linear' | 'radial') => {
-    if (!fillGradient || fillGradient.type === type) return;
-    const stops = fillGradient.stops.map(stop => ({ ...stop }));
+    const currentStops = fillGradient ? fillGradient.stops.map(stop => ({ ...stop })) : null;
+    const baseColor = currentStops?.[0]?.color ?? fill;
+
+    if (!fillGradient) {
+      const nextBase = type === 'linear'
+        ? (createDefaultLinearGradient(baseColor) as LinearGradientFill)
+        : (createDefaultRadialGradient(baseColor) as RadialGradientFill);
+      gradientRef.current = nextBase;
+      setFillGradient(nextBase);
+      if (nextBase.stops.length > 0) {
+        setFill(nextBase.stops[0].color);
+      }
+      if (fillStyle !== 'solid') {
+        setFillStyle('solid');
+      }
+      return;
+    }
+
+    if (fillGradient.type === type) {
+      return;
+    }
 
     if (type === 'linear') {
-      const base = createDefaultLinearGradient(stops[0]?.color ?? fill) as LinearGradientFill;
+      const base = createDefaultLinearGradient(baseColor) as LinearGradientFill;
       let configured: LinearGradientFill = base;
       if (fillGradient.type === 'radial') {
         const dx = fillGradient.edge.x - fillGradient.center.x;
@@ -290,13 +289,19 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         const end = { x: clamp01(fillGradient.center.x + dx), y: clamp01(fillGradient.center.y + dy) };
         configured = updateLinearGradientHandles(base, [start, end]);
       }
-      const next: GradientFill = { ...configured, stops };
+      const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
       gradientRef.current = next;
       setFillGradient(next);
+      if (next.stops.length > 0) {
+        setFill(next.stops[0].color);
+      }
+      if (fillStyle !== 'solid') {
+        setFillStyle('solid');
+      }
       return;
     }
 
-    const base = createDefaultRadialGradient(stops[0]?.color ?? fill) as RadialGradientFill;
+    const base = createDefaultRadialGradient(baseColor) as RadialGradientFill;
     let configured: RadialGradientFill = base;
     if (fillGradient.type === 'linear') {
       const [start, end] = getLinearHandles(fillGradient);
@@ -306,21 +311,28 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         edge: { x: clamp01(end.x), y: clamp01(end.y) },
       });
     }
-    const next: GradientFill = { ...configured, stops };
+    const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
     gradientRef.current = next;
     setFillGradient(next);
+    if (next.stops.length > 0) {
+      setFill(next.stops[0].color);
+    }
+    if (fillStyle !== 'solid') {
+      setFillStyle('solid');
+    }
   };
 
   const startColor = fillGradient ? gradientStopColor(fillGradient, 0) : fill;
   const endColor = fillGradient ? gradientStopColor(fillGradient, 1) : fill;
-  const gradientType = fillGradient?.type ?? 'linear';
+  const gradientType: 'solid' | 'linear' | 'radial' = fillGradient?.type ?? 'solid';
+  const isGradientActive = gradientType !== 'solid';
 
   return (
     <Popover className="relative">
       <Popover.Button
         as={PanelButton}
         variant="unstyled"
-        className={`h-9 w-9 p-1.5 rounded-lg flex items-center justify-center transition-colors ${isActive ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+        className={`h-9 w-9 p-1.5 rounded-lg flex items-center justify-center transition-colors ${isGradientActive ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
         style={previewStyle}
         title={title}
         aria-label={title}
@@ -341,43 +353,57 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
           <div className="flex flex-col gap-3 text-[var(--text-primary)]">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{title}</span>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={isActive} onChange={handleToggle} className="accent-[var(--accent-primary)]" />
-                <span>{toggleLabel}</span>
-              </label>
             </div>
 
-            {isActive ? (
-              <>
-                {fillStyle !== 'solid' && (
-                  <div className="text-xs text-[var(--text-secondary)]">{solidHint}</div>
-                )}
+            <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+              <span>{typeLabel}</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'solid'
+                    ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
+                    : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                  onClick={() => handleTypeChange('solid')}
+                >
+                  {solidTypeLabel}
+                </button>
+                <button
+                  type="button"
+                  className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'linear'
+                    ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
+                    : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                  onClick={() => handleTypeChange('linear')}
+                >
+                  {linearTypeLabel}
+                </button>
+                <button
+                  type="button"
+                  className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'radial'
+                    ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
+                    : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                  onClick={() => handleTypeChange('radial')}
+                >
+                  {radialTypeLabel}
+                </button>
+              </div>
+            </div>
 
-                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                  <span>{typeLabel}</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'linear'
-                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                        : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
-                      onClick={() => handleTypeChange('linear')}
-                    >
-                      {linearTypeLabel}
-                    </button>
-                    <button
-                      type="button"
-                      className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'radial'
-                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                        : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
-                      onClick={() => handleTypeChange('radial')}
-                    >
-                      {radialTypeLabel}
-                    </button>
-                  </div>
+            {gradientType === 'solid' ? (
+              <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-[var(--text-secondary)]">{solidColorLabel}</span>
+                  <StopPicker
+                    label={solidColorLabel}
+                    color={fill}
+                    onChange={(value) => setFill(value)}
+                    beginCoalescing={beginCoalescing}
+                    endCoalescing={endCoalescing}
+                  />
                 </div>
-
-                {fillGradient && (
+              </div>
+            ) : (
+              fillGradient && (
+                <>
                   <div
                     ref={editorRef}
                     className="relative h-32 w-full overflow-hidden rounded-lg border border-white/10"
@@ -453,48 +479,31 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                       </>
                     )}
                   </div>
-                )}
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-xs text-[var(--text-secondary)]">{startLabel}</span>
-                    <StopPicker
-                      label={startLabel}
-                      color={startColor}
-                      onChange={(value) => handleStopChange(0, value)}
-                      beginCoalescing={beginCoalescing}
-                      endCoalescing={endCoalescing}
-                    />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-[var(--text-secondary)]">{startLabel}</span>
+                      <StopPicker
+                        label={startLabel}
+                        color={startColor}
+                        onChange={(value) => handleStopChange(0, value)}
+                        beginCoalescing={beginCoalescing}
+                        endCoalescing={endCoalescing}
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
+                      <StopPicker
+                        label={endLabel}
+                        color={endColor}
+                        onChange={(value) => handleStopChange(1, value)}
+                        beginCoalescing={beginCoalescing}
+                        endCoalescing={endCoalescing}
+                      />
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
-                    <StopPicker
-                      label={endLabel}
-                      color={endColor}
-                      onChange={(value) => handleStopChange(1, value)}
-                      beginCoalescing={beginCoalescing}
-                      endCoalescing={endCoalescing}
-                    />
-                  </div>
-                  {fillGradient?.type === 'linear' && (
-                    <NumericInput
-                      label={angleLabel}
-                      value={fillGradient.angle}
-                      setValue={handleAngleChange}
-                      min={0}
-                      max={360}
-                      step={1}
-                      unit="°"
-                      beginCoalescing={beginCoalescing}
-                      endCoalescing={endCoalescing}
-                    />
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                {t('sideToolbar.gradientFill.disabled')}
-              </div>
+                </>
+              )
             )}
           </div>
         </Popover.Panel>
