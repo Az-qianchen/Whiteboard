@@ -17,6 +17,14 @@ import type {
 import { handlePointerDownLogic, handlePointerMoveLogic, handlePointerUpLogic } from './selection-logic/index';
 
 // 定义 Hook 将接收的 props
+type CropManualDraft = {
+  mode: 'freehand' | 'polygon';
+  operation: 'add' | 'subtract';
+  points: Point[];
+  previewPoint?: Point;
+  closingHint?: 'near-start';
+};
+
 interface SelectionInteractionProps {
   pathState: SelectionPathState; // from usePaths
   toolbarState: SelectionToolbarState; // from useToolbarState
@@ -31,6 +39,11 @@ interface SelectionInteractionProps {
   pushCropHistory: (rect: BBox) => void;
   cropTool: 'crop' | 'magic-wand';
   onMagicWandSample: (point: Point) => void;
+  cropSelectionMode?: 'magic-wand' | 'freehand' | 'polygon';
+  onCropManualPointerDown?: (point: Point, event: React.PointerEvent<SVGSVGElement>) => void;
+  onCropManualPointerMove?: (point: Point, event: React.PointerEvent<SVGSVGElement>) => void;
+  onCropManualPointerUp?: (event: React.PointerEvent<SVGSVGElement>) => void;
+  cropManualDraft?: CropManualDraft | null;
 }
 
 /**
@@ -51,6 +64,11 @@ export const useSelection = ({
   pushCropHistory,
   cropTool,
   onMagicWandSample,
+  cropSelectionMode,
+  onCropManualPointerDown,
+  onCropManualPointerMove,
+  onCropManualPointerUp,
+  cropManualDraft,
 }: SelectionInteractionProps) => {
   const [dragState, setDragState] = useState<DragState>(null);
   const [marquee, setMarquee] = useState<{ start: Point; end: Point } | null>(null);
@@ -99,6 +117,15 @@ export const useSelection = ({
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = getPointerPosition(e, e.currentTarget);
     
+    if (croppingState && cropTool === 'magic-wand' && (cropSelectionMode && cropSelectionMode !== 'magic-wand')) {
+      onCropManualPointerDown?.(point, e);
+      return;
+    }
+    if (croppingState && cropTool === 'magic-wand' && cropManualDraft) {
+      onCropManualPointerDown?.(point, e);
+      return;
+    }
+
     handlePointerDownLogic({
       e, point, setDragState, setMarquee, setLassoPath,
       pathState, toolbarState, viewTransform,
@@ -114,6 +141,13 @@ export const useSelection = ({
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const movePoint = getPointerPosition(e, e.currentTarget);
     
+    if (croppingState && cropTool === 'magic-wand') {
+      if ((cropSelectionMode && cropSelectionMode !== 'magic-wand') || cropManualDraft) {
+        onCropManualPointerMove?.(movePoint, e);
+        return;
+      }
+    }
+
     handlePointerMoveLogic({
       e, movePoint, dragState, marquee, setMarquee, lassoPath, setLassoPath,
       pathState, toolbarState, viewTransform,
@@ -135,9 +169,13 @@ export const useSelection = ({
       e, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath,
       pathState, isClosingPath, pushCropHistory,
     });
-    
+
     setIsHoveringMovable(false);
     setIsHoveringEditable(false);
+
+    if (croppingState && cropTool === 'magic-wand' && ((cropSelectionMode && cropSelectionMode !== 'magic-wand') || cropManualDraft)) {
+      onCropManualPointerUp?.(e);
+    }
   };
 
   /**
@@ -145,7 +183,7 @@ export const useSelection = ({
    * @param e - React 指针事件。
    */
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
-      if (dragState || marquee || lassoPath) {
+      if (dragState || marquee || lassoPath || (croppingState && cropTool === 'magic-wand' && cropManualDraft)) {
           onPointerUp(e);
       }
       setIsHoveringMovable(false);
