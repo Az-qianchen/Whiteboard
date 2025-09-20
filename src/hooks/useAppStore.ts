@@ -517,6 +517,33 @@ export const useAppStore = () => {
   const { setColor } = toolbarState;
 
   const handleAltStrokeColorPick = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    type EyeDropperConstructor = new () => { open: () => Promise<{ sRGBHex: string }>; };
+
+    const eyeDropperCtor =
+      typeof window !== 'undefined'
+        ? (window as typeof window & { EyeDropper?: EyeDropperConstructor }).EyeDropper
+        : undefined;
+
+    if (eyeDropperCtor) {
+      event.preventDefault();
+      try {
+        const eyeDropper = new eyeDropperCtor();
+        eyeDropper
+          .open()
+          .then(result => {
+            if (result?.sRGBHex) {
+              setColor(result.sRGBHex);
+            }
+          })
+          .catch(() => {
+            // 用户取消取色或浏览器阻止 EyeDropper，忽略即可
+          });
+        return true;
+      } catch {
+        // 构造 EyeDropper 失败时回退到画布取色逻辑
+      }
+    }
+
     const svg = event.currentTarget;
     if (!svg) {
       return false;
