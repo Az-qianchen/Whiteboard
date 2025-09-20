@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { Tool } from '../types';
+import type { Point, Tool } from '../types';
 
 interface InteractionHandlers {
   onPointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -23,9 +23,11 @@ interface PointerInteractionProps {
     handleTouchMove: (e: React.PointerEvent<SVGSVGElement>) => void;
     handleTouchEnd: (e: React.PointerEvent<SVGSVGElement>) => void;
     isPinching: boolean;
+    getPointerPosition: (e: { clientX: number; clientY: number }, svg: SVGSVGElement) => Point;
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  sampleStrokeColor?: (point: Point) => boolean;
 }
 
 /**
@@ -37,12 +39,26 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  sampleStrokeColor,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
 
   // 处理指针按下
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (
+      e.pointerType !== 'touch' &&
+      e.button === 0 &&
+      e.altKey &&
+      tool !== 'selection' &&
+      sampleStrokeColor
+    ) {
+      const point = viewTransform.getPointerPosition(e, e.currentTarget);
+      if (sampleStrokeColor(point)) {
+        return;
+      }
+    }
+
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchStart(e);
       if (viewTransform.isPinching) return;
