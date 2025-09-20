@@ -17,6 +17,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  beginTextEditing: (pathId: string) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  beginTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -158,22 +160,23 @@ export const useDrawing = ({
         const defaultText = text || '文本';
         const { width, height } = measureText(defaultText, fontSize, fontFamily);
 
+        beginTextEditing(id);
         const newText: TextData = {
-            id,
-            tool: 'text',
-            text: defaultText,
-            x: snappedPoint.x,
-            y: snappedPoint.y,
-            width,
-            height,
-            fontFamily,
-            fontSize,
-            textAlign,
-            ...sharedProps,
-            // Text specific overrides
-            fill: 'transparent',
-            fillStyle: 'solid',
-            strokeWidth: 0,
+          id,
+          tool: 'text',
+          text: defaultText,
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          width,
+          height,
+          fontFamily,
+          fontSize,
+          textAlign,
+          ...sharedProps,
+          // Text specific overrides
+          fill: 'transparent',
+          fillStyle: 'solid',
+          strokeWidth: 0,
         };
         setPaths((prev: AnyPath[]) => [...prev, newText]);
         toolbarState.setTool('selection');

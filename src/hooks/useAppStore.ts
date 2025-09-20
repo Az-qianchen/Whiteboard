@@ -546,10 +546,29 @@ export const useAppStore = () => {
     );
   }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
 
+  const beginTextEditing = useCallback((pathId: string) => {
+    pathState.beginCoalescing();
+    setEditingTextPathId(pathId);
+  }, [pathState, setEditingTextPathId]);
+
   const handleTextChange = useCallback((pathId: string, newText: string) => {
-      activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
+    activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
   }, [activePathState]);
-  const handleTextEditCommit = useCallback(() => { pathState.endCoalescing(); setEditingTextPathId(null); }, [pathState, setEditingTextPathId]);
+  const handleTextEditCommit = useCallback(() => {
+    const editingId = appState.editingTextPathId;
+    if (!editingId) {
+      return;
+    }
+
+    const editingPath = activePathState.paths.find((p): p is TextData => p.id === editingId && p.tool === 'text');
+    if (editingPath && editingPath.text.trim() === '') {
+      activePathState.setPaths(prev => prev.filter(p => p.id !== editingId));
+      pathState.setSelectedPathIds(prev => prev.filter(id => id !== editingId));
+    }
+
+    pathState.endCoalescing();
+    setEditingTextPathId(null);
+  }, [appState.editingTextPathId, activePathState, pathState, setEditingTextPathId]);
   
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
@@ -663,7 +682,7 @@ export const useAppStore = () => {
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
-      if (path.tool === 'text') { setEditingTextPathId(path.id); pathState.beginCoalescing(); } 
+      if (path.tool === 'text') { beginTextEditing(path.id); }
       else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           pathState.beginCoalescing();
@@ -675,21 +694,24 @@ export const useAppStore = () => {
           setCropHistory({ past: [], future: [] });
           pathState.setSelectedPathIds([path.id]);
       }
-  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
+  }, [toolbarState.selectionMode, beginTextEditing, groupIsolation, pathState, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState, beginTextEditing });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });
   const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
+    if (appState.editingTextPathId) {
+      handleTextEditCommit();
+    }
     if (appState.croppingState) cancelCrop();
     if (drawingInteraction.drawingShape) drawingInteraction.cancelDrawingShape();
     if (pathState.currentPenPath) pathState.handleCancelPenPath();
     if (pathState.currentLinePath) pathState.handleCancelLinePath();
     if (pathState.currentBrushPath) pathState.setCurrentBrushPath(null);
     toolbarState.setTool(newTool);
-  }, [toolbarState, pathState, drawingInteraction, appState.croppingState, cancelCrop]);
+  }, [toolbarState, appState.editingTextPathId, handleTextEditCommit, appState.croppingState, cancelCrop, drawingInteraction, pathState]);
 
   const handleToggleStyleLibrary = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setUiState(s => {
