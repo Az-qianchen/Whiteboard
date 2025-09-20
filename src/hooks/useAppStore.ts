@@ -517,7 +517,7 @@ export const useAppStore = () => {
   const { setColor } = toolbarState;
 
   const sampleStrokeColor = useCallback((point: Point) => {
-    const paths = pathState.paths;
+    const paths = activePaths;
     if (!paths || paths.length === 0) {
       return false;
     }
@@ -531,7 +531,7 @@ export const useAppStore = () => {
     }
     setColor(color);
     return true;
-  }, [pathState.paths, viewTransform.viewTransform, setColor]);
+  }, [activePaths, viewTransform.viewTransform, setColor]);
   
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
