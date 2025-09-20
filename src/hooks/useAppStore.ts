@@ -517,25 +517,54 @@ export const useAppStore = () => {
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   const { setColor } = toolbarState;
 
-  const sampleStrokeColor = useCallback((point: Point) => {
-    const tryOpenEyeDropper = () => {
-      if (!isEyeDropperSupported()) {
-        return false;
-      }
+  const eyeDropperControllerRef = useRef<AbortController | null>(null);
+  const lastPointerPositionRef = useRef<Point | null>(viewTransform.lastPointerPosition ?? null);
 
-      void openEyeDropper()
-        .then(color => {
-          if (color) {
-            setColor(color);
-          }
-        })
-        .catch(error => {
-          console.error('EyeDropper failed to open', error);
-        });
+  useEffect(() => {
+    lastPointerPositionRef.current = viewTransform.lastPointerPosition ?? null;
+  }, [viewTransform.lastPointerPosition]);
 
+  const cancelEyeDropper = useCallback(() => {
+    const controller = eyeDropperControllerRef.current;
+    if (!controller) {
+      return;
+    }
+
+    eyeDropperControllerRef.current = null;
+    controller.abort();
+  }, []);
+
+  const openEyeDropperForSampling = useCallback(() => {
+    if (!isEyeDropperSupported()) {
+      return false;
+    }
+
+    if (eyeDropperControllerRef.current) {
       return true;
-    };
+    }
 
+    const controller = new AbortController();
+    eyeDropperControllerRef.current = controller;
+
+    void openEyeDropper({ signal: controller.signal })
+      .then(color => {
+        if (color) {
+          setColor(color);
+        }
+      })
+      .catch(error => {
+        console.error('EyeDropper failed to open', error);
+      })
+      .finally(() => {
+        if (eyeDropperControllerRef.current === controller) {
+          eyeDropperControllerRef.current = null;
+        }
+      });
+
+    return true;
+  }, [setColor]);
+
+  const sampleStrokeColor = useCallback((point: Point) => {
     const paths = activePaths;
     if (paths && paths.length > 0) {
       const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
@@ -545,12 +574,64 @@ export const useAppStore = () => {
       }
 
       if (hitPath) {
-        return tryOpenEyeDropper();
+        return openEyeDropperForSampling();
       }
     }
 
-    return tryOpenEyeDropper();
-  }, [activePaths, viewTransform.viewTransform, setColor]);
+    return openEyeDropperForSampling();
+  }, [activePaths, viewTransform.viewTransform, setColor, openEyeDropperForSampling]);
+
+  useEffect(() => {
+    if (!isEyeDropperSupported()) {
+      return;
+    }
+
+    const isAltKey = (event: KeyboardEvent) => event.key === 'Alt' || event.key === 'AltGraph';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isAltKey(event) || event.repeat || event.metaKey || event.ctrlKey) {
+        return;
+      }
+
+      if (toolbarState.tool === 'selection') {
+        return;
+      }
+
+      const point = lastPointerPositionRef.current;
+      const handled = point ? sampleStrokeColor(point) : openEyeDropperForSampling();
+
+      if (handled) {
+        event.preventDefault();
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!isAltKey(event)) {
+        return;
+      }
+      cancelEyeDropper();
+    };
+
+    const handleBlur = () => {
+      cancelEyeDropper();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [toolbarState.tool, sampleStrokeColor, openEyeDropperForSampling, cancelEyeDropper]);
+
+  useEffect(() => {
+    if (toolbarState.tool === 'selection') {
+      cancelEyeDropper();
+    }
+  }, [toolbarState.tool, cancelEyeDropper]);
   
   const handleResetPreferences = useCallback(() => {
     showConfirmation(

@@ -7,8 +7,12 @@ interface EyeDropperResult {
   sRGBHex: string;
 }
 
+interface EyeDropperOpenOptions {
+  signal?: AbortSignal;
+}
+
 interface EyeDropper {
-  open: () => Promise<EyeDropperResult>;
+  open: (options?: EyeDropperOpenOptions) => Promise<EyeDropperResult>;
 }
 
 interface EyeDropperConstructor {
@@ -31,14 +35,16 @@ export const isEyeDropperSupported = (): boolean =>
  * Returns `null` when the API is unsupported or the user cancels the picker.
  * Any other thrown errors are propagated to the caller so they can handle them.
  */
-export const openEyeDropper = async (): Promise<string | null> => {
+export const openEyeDropper = async ({
+  signal,
+}: EyeDropperOpenOptions = {}): Promise<string | null> => {
   if (!isEyeDropperSupported()) {
     return null;
   }
 
   try {
     const eyeDropper = new (window as EyeDropperWindow).EyeDropper!();
-    const result = await eyeDropper.open();
+    const result = await eyeDropper.open(signal ? { signal } : undefined);
     return result.sRGBHex;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
