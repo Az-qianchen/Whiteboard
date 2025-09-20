@@ -64,14 +64,14 @@ export const useAltKeyColorSampler = ({
         return;
       }
 
-      if (fallbackPickRef.current()) {
-        isSamplingRef.current = false;
+      if (openEyeDropperRef.current()) {
+        isSamplingRef.current = true;
         event.preventDefault();
         return;
       }
 
-      if (openEyeDropperRef.current()) {
-        isSamplingRef.current = true;
+      if (fallbackPickRef.current()) {
+        isSamplingRef.current = false;
         event.preventDefault();
         return;
       }
