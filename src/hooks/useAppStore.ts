@@ -19,6 +19,7 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
+import { findDeepestHitPath } from '@/lib/hit-testing';
 import { removeBackground } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
@@ -513,7 +514,23 @@ export const useAppStore = () => {
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
-  
+  const { setColor } = toolbarState;
+
+  const handleAltStrokeColorPick = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    const svg = event.currentTarget;
+    if (!svg) {
+      return false;
+    }
+    const point = viewTransform.getPointerPosition(event, svg);
+    const scale = viewTransform.viewTransform.scale;
+    const hitPath = findDeepestHitPath(point, activePaths, scale);
+    if (!hitPath) {
+      return false;
+    }
+    setColor(hitPath.color);
+    return true;
+  }, [activePaths, setColor, viewTransform]);
+
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
       '重置偏好设置',
@@ -679,7 +696,13 @@ export const useAppStore = () => {
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });
-  const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
+  const pointerInteraction = usePointerInteraction({
+    tool: toolbarState.tool,
+    viewTransform,
+    drawingInteraction,
+    selectionInteraction,
+    handleAltColorPick: handleAltStrokeColorPick,
+  });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;

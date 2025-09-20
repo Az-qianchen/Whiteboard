@@ -26,6 +26,7 @@ interface PointerInteractionProps {
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  handleAltColorPick?: (e: React.PointerEvent<SVGSVGElement>) => boolean;
 }
 
 /**
@@ -37,6 +38,7 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  handleAltColorPick,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -46,6 +48,13 @@ export const usePointerInteraction = ({
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchStart(e);
       if (viewTransform.isPinching) return;
+    }
+
+    if (tool !== 'selection' && e.altKey && e.button === 0 && handleAltColorPick) {
+      const handled = handleAltColorPick(e);
+      if (handled) {
+        return;
+      }
     }
     // Middle-mouse-button panning is always available
     if (e.button === 1 || (e.altKey && tool !== 'selection')) {

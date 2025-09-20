@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('paper', () => ({}));
 import { renderPathNode } from '@/lib/export/core/render';
 import type { ImageData } from '@/types';
+import { createRotationMatrix, createScaleMatrix, createTranslationMatrix, matrixToString, multiplyMatrices } from '@/lib/drawing/transform/matrix';
 
 describe('renderPathNode transform order', () => {
   it('applies scale before rotation for flipped images', () => {
@@ -29,6 +30,16 @@ describe('renderPathNode transform order', () => {
       curveStepCount: 9,
     };
     const node = renderPathNode({} as any, data)!;
-    expect(node.getAttribute('transform')).toBe('translate(50 50) rotate(45) scale(-1 1) translate(-50 -50)');
+    const translateToCenter = createTranslationMatrix(50, 50);
+    const rotation = createRotationMatrix(Math.PI / 4);
+    const scale = createScaleMatrix(-1, 1);
+    const translateBack = createTranslationMatrix(-50, -50);
+    const expectedMatrix = matrixToString(
+      multiplyMatrices(
+        multiplyMatrices(multiplyMatrices(translateToCenter, rotation), scale),
+        translateBack
+      )
+    );
+    expect(node.getAttribute('transform')).toBe(expectedMatrix);
   });
 });
