@@ -81,7 +81,7 @@ describe('useViewTransformStore wheel zoom', () => {
     expect(vt.scale).toBeCloseTo(1.12);
   });
 
-  it('doubles mac trackpad pinch zoom speed', () => {
+  it('quadruples mac trackpad pinch zoom speed', () => {
     const svg = createSvgMock() as any;
     const container = { querySelector: vi.fn().mockReturnValue(svg) } as any;
     const event = {
@@ -98,8 +98,8 @@ describe('useViewTransformStore wheel zoom', () => {
     useViewTransformStore.getState().handleWheel(event);
 
     const vt = useViewTransformStore.getState().viewTransform;
-    expect(vt.scale).toBeCloseTo(1.02);
-    expect(vt.translateX).toBeCloseTo(-2.4);
-    expect(vt.translateY).toBeCloseTo(-1.8);
+    expect(vt.scale).toBeCloseTo(1.04);
+    expect(vt.translateX).toBeCloseTo(-4.8);
+    expect(vt.translateY).toBeCloseTo(-3.6);
   });
 });

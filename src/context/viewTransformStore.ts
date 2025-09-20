@@ -74,7 +74,7 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
       const { scale, translateX, translateY } = viewTransform;
       // 将滚轮缩放步长调小以降低缩放速度
       const baseStep = 0.001;
-      const zoomStep = isMacTrackpadPinch(wheelEvent) ? baseStep * 2 : baseStep;
+      const zoomStep = isMacTrackpadPinch(wheelEvent) ? baseStep * 4 : baseStep;
       const newScale = Math.max(0.1, Math.min(10, scale - deltaY * zoomStep));
       if (Math.abs(scale - newScale) < 1e-9) return;
 
