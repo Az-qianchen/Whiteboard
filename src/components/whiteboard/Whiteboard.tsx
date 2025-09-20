@@ -54,6 +54,13 @@ interface WhiteboardProps {
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  cropManualDraft?: {
+    mode: 'freehand' | 'polygon';
+    operation: 'add' | 'subtract';
+    points: Point[];
+    previewPoint?: Point;
+    closingHint?: 'near-start';
+  } | null;
 }
 
 /**
@@ -94,6 +101,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   currentCropRect,
   cropTool,
   cropSelectionContours,
+  cropManualDraft,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
@@ -189,8 +197,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           />
           
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
-          {croppingState && cropSelectionContours && cropSelectionContours.length > 0 && (
-            <MagicWandOverlay contours={cropSelectionContours} />
+          {croppingState && ((cropSelectionContours && cropSelectionContours.length > 0) || (cropManualDraft && cropManualDraft.points.length > 0)) && (
+            <MagicWandOverlay contours={cropSelectionContours ?? []} draft={cropManualDraft ?? null} />
           )}
 
           <ControlsRenderer

@@ -14,6 +14,10 @@ interface CropToolbarProps {
   setCropTool: (tool: 'crop' | 'magic-wand') => void;
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
+  cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
+  setCropSelectionMode: (mode: 'magic-wand' | 'freehand' | 'polygon') => void;
+  cropSelectionOperation: 'add' | 'subtract';
+  setCropSelectionOperation: (op: 'add' | 'subtract') => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   applyMagicWandSelection: () => void;
   cancelMagicWandSelection: () => void;
@@ -31,6 +35,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   setCropTool,
   cropMagicWandOptions,
   setCropMagicWandOptions,
+  cropSelectionMode,
+  setCropSelectionMode,
+  cropSelectionOperation,
+  setCropSelectionOperation,
   cropSelectionContours,
   applyMagicWandSelection,
   cancelMagicWandSelection,
@@ -109,7 +117,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           </PanelButton>
         </div>
       </div>
-
+      
       {cropTool === 'magic-wand' && (
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-threshold">
@@ -143,6 +151,91 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           >
             <span>{t('contiguous')}</span>
           </PanelButton>
+        </div>
+      )}
+
+      {cropTool === 'magic-wand' && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className={PANEL_CLASSES.segmentGroup}>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropSelectionMode === 'magic-wand'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionMode('magic-wand')}
+              aria-pressed={cropSelectionMode === 'magic-wand'}
+              title={t('cropMagicWand')}
+            >
+              {ICONS.TRACE_IMAGE}
+              <span>{t('cropMagicWand')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropSelectionMode === 'freehand'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionMode('freehand')}
+              aria-pressed={cropSelectionMode === 'freehand'}
+              title={t('cropMagicWandFreehand')}
+            >
+              {ICONS.LASSO}
+              <span>{t('cropMagicWandFreehand')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropSelectionMode === 'polygon'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionMode('polygon')}
+              aria-pressed={cropSelectionMode === 'polygon'}
+              title={t('cropMagicWandPolygon')}
+            >
+              {ICONS.POLYGON}
+              <span>{t('cropMagicWandPolygon')}</span>
+            </PanelButton>
+          </div>
+
+          <div className={PANEL_CLASSES.segmentGroup}>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropSelectionOperation === 'add'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionOperation('add')}
+              aria-pressed={cropSelectionOperation === 'add'}
+              title={t('cropSelectionAdd')}
+            >
+              <span className="font-semibold">＋</span>
+              <span>{t('cropSelectionAdd')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropSelectionOperation === 'subtract'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionOperation('subtract')}
+              aria-pressed={cropSelectionOperation === 'subtract'}
+              title={t('cropSelectionSubtract')}
+            >
+              <span className="font-semibold">－</span>
+              <span>{t('cropSelectionSubtract')}</span>
+            </PanelButton>
+          </div>
         </div>
       )}
 

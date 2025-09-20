@@ -4,6 +4,13 @@
 
 import MagicWand from 'magic-wand-tool';
 
+export interface MagicWandMask {
+  data: Uint8Array;
+  width: number;
+  height: number;
+  bounds: { minX: number; minY: number; maxX: number; maxY: number };
+}
+
 export interface HsvAdjustment {
   /** 色相增量，范围 -360 至 360 */
   h?: number;
@@ -59,14 +66,7 @@ export function adjustHsv(imageData: ImageData, adjustment: HsvAdjustment): Imag
 export interface MattingResult {
   image: ImageData;
   region: { x: number; y: number; width: number; height: number } | null;
-  mask:
-    | {
-        data: Uint8Array;
-        width: number;
-        height: number;
-        bounds: { minX: number; minY: number; maxX: number; maxY: number };
-      }
-    | null;
+  mask: MagicWandMask | null;
   contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }>;
 }
 
@@ -86,7 +86,7 @@ export function removeBackground(
     };
   }
 
-  let mask: { data: Uint8Array; width: number; height: number; bounds: { minX: number; minY: number; maxX: number; maxY: number } } | null;
+  let mask: MagicWandMask | null;
 
   if (contiguous) {
     mask = MagicWand.floodFill({ data: src, width, height, bytes: 4 }, x, y, threshold);
@@ -153,6 +153,138 @@ export function removeBackground(
   }
 
   return { image: new ImageData(result, width, height), region, mask, contours };
+}
+
+function computeMaskBounds(data: Uint8Array, width: number, height: number): MagicWandMask['bounds'] | null {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) {
+      const idx = rowOffset + x;
+      if (data[idx]) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return { minX, minY, maxX, maxY };
+}
+
+export function createMaskFromPolygon(
+  width: number,
+  height: number,
+  points: Array<{ x: number; y: number }>
+): MagicWandMask | null {
+  if (points.length < 3) {
+    return null;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return null;
+  }
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = new Uint8Array(width * height);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = imageData.data[i * 4 + 3] > 0 ? 1 : 0;
+  }
+
+  const bounds = computeMaskBounds(data, width, height);
+  if (!bounds) {
+    return null;
+  }
+
+  return { data, width, height, bounds };
+}
+
+export function combineMasks(
+  base: MagicWandMask | null,
+  delta: MagicWandMask,
+  operation: 'add' | 'subtract'
+): MagicWandMask | null {
+  const { width, height } = delta;
+  if (base && (base.width !== width || base.height !== height)) {
+    throw new Error('Mask dimensions must match');
+  }
+
+  const length = width * height;
+  const nextData = base ? new Uint8Array(base.data) : new Uint8Array(length);
+
+  if (operation === 'add') {
+    for (let i = 0; i < length; i++) {
+      if (delta.data[i]) {
+        nextData[i] = 1;
+      }
+    }
+  } else {
+    if (!base) {
+      return null;
+    }
+    for (let i = 0; i < length; i++) {
+      if (delta.data[i]) {
+        nextData[i] = 0;
+      }
+    }
+  }
+
+  const bounds = computeMaskBounds(nextData, width, height);
+  if (!bounds) {
+    return null;
+  }
+
+  return { data: nextData, width, height, bounds };
+}
+
+export function applyMaskToImage(
+  imageData: ImageData,
+  mask: MagicWandMask | null
+): { image: ImageData; contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> } {
+  const result = new Uint8ClampedArray(imageData.data);
+
+  if (!mask) {
+    return { image: new ImageData(result, imageData.width, imageData.height), contours: [] };
+  }
+
+  for (let i = 0; i < mask.data.length; i++) {
+    if (mask.data[i]) {
+      result[i * 4 + 3] = 0;
+    }
+  }
+
+  let contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> = [];
+  try {
+    const traced = MagicWand.traceContours(mask);
+    contours = MagicWand.simplifyContours(traced, 0, 30);
+  } catch (error) {
+    console.warn('Failed to trace magic wand contours', error);
+  }
+
+  return { image: new ImageData(result, imageData.width, imageData.height), contours };
 }
 
 /**
