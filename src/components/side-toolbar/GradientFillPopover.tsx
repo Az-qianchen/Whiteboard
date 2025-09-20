@@ -40,34 +40,52 @@ interface StopPickerProps {
   onChange: (color: string) => void;
   beginCoalescing: () => void;
   endCoalescing: () => void;
+  disabled?: boolean;
 }
 
-const StopPicker: React.FC<StopPickerProps> = ({ label, color, onChange, beginCoalescing, endCoalescing }) => (
-  <FloatingColorPicker
-    color={color}
-    onChange={onChange}
-    onInteractionStart={beginCoalescing}
-    onInteractionEnd={endCoalescing}
-    placement="left"
-  >
-    {({ ref, onClick }) => (
+const StopPicker: React.FC<StopPickerProps> = ({ label, color, onChange, beginCoalescing, endCoalescing, disabled = false }) => {
+  const buttonStyle: React.CSSProperties = {
+    backgroundImage: `linear-gradient(${color}, ${color}), ${CHECKERBOARD}`,
+    backgroundSize: `cover, ${CHECKERBOARD_SIZES}`,
+    backgroundPosition: `0 0, ${CHECKERBOARD_POSITIONS}`,
+    backgroundColor: 'transparent',
+  };
+
+  if (disabled) {
+    return (
       <PanelButton
         variant="unstyled"
-        ref={ref as any}
-        onClick={onClick}
-        className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110"
-        style={{
-          backgroundImage: `linear-gradient(${color}, ${color}), ${CHECKERBOARD}`,
-          backgroundSize: `cover, ${CHECKERBOARD_SIZES}`,
-          backgroundPosition: `0 0, ${CHECKERBOARD_POSITIONS}`,
-          backgroundColor: 'transparent',
-        }}
+        className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
+        style={buttonStyle}
         aria-label={label}
         title={label}
+        disabled
       />
-    )}
-  </FloatingColorPicker>
-);
+    );
+  }
+
+  return (
+    <FloatingColorPicker
+      color={color}
+      onChange={onChange}
+      onInteractionStart={beginCoalescing}
+      onInteractionEnd={endCoalescing}
+      placement="left"
+    >
+      {({ ref, onClick }) => (
+        <PanelButton
+          variant="unstyled"
+          ref={ref as any}
+          onClick={onClick}
+          className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110"
+          style={buttonStyle}
+          aria-label={label}
+          title={label}
+        />
+      )}
+    </FloatingColorPicker>
+  );
+};
 
 export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.memo(({
   label,
@@ -127,11 +145,23 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
   const handleTypeChange = useCallback(
     (type: 'solid' | 'linear' | 'radial') => {
       if (type === 'solid') {
-        if (fillGradient) {
-          setFillGradient(null);
+        if (!fillGradient) {
+          if (fillStyle !== 'solid') {
+            setFillStyle('solid');
+          }
+          return;
         }
-        if (fillStyle !== 'solid') {
-          setFillStyle('solid');
+
+        beginCoalescing();
+        try {
+          const baseColor = gradientStopColor(fillGradient, 0);
+          setFill(baseColor);
+          setFillGradient(null);
+          if (fillStyle !== 'solid') {
+            setFillStyle('solid');
+          }
+        } finally {
+          endCoalescing();
         }
         return;
       }
@@ -140,15 +170,20 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
       const baseColor = currentStops?.[0]?.color ?? fill;
 
       if (!fillGradient) {
-        const nextBase = type === 'linear'
-          ? (createDefaultLinearGradient(baseColor) as LinearGradientFill)
-          : (createDefaultRadialGradient(baseColor) as RadialGradientFill);
-        setFillGradient(nextBase);
-        if (nextBase.stops.length > 0) {
-          setFill(nextBase.stops[0].color);
-        }
-        if (fillStyle !== 'solid') {
-          setFillStyle('solid');
+        beginCoalescing();
+        try {
+          const nextBase = type === 'linear'
+            ? (createDefaultLinearGradient(baseColor) as LinearGradientFill)
+            : (createDefaultRadialGradient(baseColor) as RadialGradientFill);
+          setFillGradient(nextBase);
+          if (nextBase.stops.length > 0) {
+            setFill(nextBase.stops[0].color);
+          }
+          if (fillStyle !== 'solid') {
+            setFillStyle('solid');
+          }
+        } finally {
+          endCoalescing();
         }
         return;
       }
@@ -157,15 +192,38 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         return;
       }
 
-      if (type === 'linear') {
-        const base = createDefaultLinearGradient(baseColor) as LinearGradientFill;
-        let configured: LinearGradientFill = base;
-        if (fillGradient.type === 'radial') {
-          const dx = fillGradient.edge.x - fillGradient.center.x;
-          const dy = fillGradient.edge.y - fillGradient.center.y;
-          const start = { x: clamp01(fillGradient.center.x - dx), y: clamp01(fillGradient.center.y - dy) };
-          const end = { x: clamp01(fillGradient.center.x + dx), y: clamp01(fillGradient.center.y + dy) };
-          configured = updateLinearGradientHandles(base, [start, end]);
+      beginCoalescing();
+      try {
+        if (type === 'linear') {
+          const base = createDefaultLinearGradient(baseColor) as LinearGradientFill;
+          let configured: LinearGradientFill = base;
+          if (fillGradient.type === 'radial') {
+            const dx = fillGradient.edge.x - fillGradient.center.x;
+            const dy = fillGradient.edge.y - fillGradient.center.y;
+            const start = { x: clamp01(fillGradient.center.x - dx), y: clamp01(fillGradient.center.y - dy) };
+            const end = { x: clamp01(fillGradient.center.x + dx), y: clamp01(fillGradient.center.y + dy) };
+            configured = updateLinearGradientHandles(base, [start, end]);
+          }
+          const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
+          setFillGradient(next);
+          if (next.stops.length > 0) {
+            setFill(next.stops[0].color);
+          }
+          if (fillStyle !== 'solid') {
+            setFillStyle('solid');
+          }
+          return;
+        }
+
+        const base = createDefaultRadialGradient(baseColor) as RadialGradientFill;
+        let configured: RadialGradientFill = base;
+        if (fillGradient.type === 'linear') {
+          const [start, end] = getLinearHandles(fillGradient);
+          const centerPoint = { x: clamp01((start.x + end.x) / 2), y: clamp01((start.y + end.y) / 2) };
+          configured = updateRadialGradientHandles(base, {
+            center: centerPoint,
+            edge: { x: clamp01(end.x), y: clamp01(end.y) },
+          });
         }
         const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
         setFillGradient(next);
@@ -175,33 +233,26 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         if (fillStyle !== 'solid') {
           setFillStyle('solid');
         }
-        return;
-      }
-
-      const base = createDefaultRadialGradient(baseColor) as RadialGradientFill;
-      let configured: RadialGradientFill = base;
-      if (fillGradient.type === 'linear') {
-        const [start, end] = getLinearHandles(fillGradient);
-        const centerPoint = { x: clamp01((start.x + end.x) / 2), y: clamp01((start.y + end.y) / 2) };
-        configured = updateRadialGradientHandles(base, {
-          center: centerPoint,
-          edge: { x: clamp01(end.x), y: clamp01(end.y) },
-        });
-      }
-      const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
-      setFillGradient(next);
-      if (next.stops.length > 0) {
-        setFill(next.stops[0].color);
-      }
-      if (fillStyle !== 'solid') {
-        setFillStyle('solid');
+      } finally {
+        endCoalescing();
       }
     },
-    [fillGradient, fill, fillStyle, setFillGradient, setFill, setFillStyle],
+    [
+      fillGradient,
+      fill,
+      fillStyle,
+      setFillGradient,
+      setFill,
+      setFillStyle,
+      beginCoalescing,
+      endCoalescing,
+    ],
   );
 
   const startColor = fillGradient ? gradientStopColor(fillGradient, 0) : fill;
-  const endColor = fillGradient ? gradientStopColor(fillGradient, 1) : fill;
+  const endColor = fillGradient ? gradientStopColor(fillGradient, 1) : startColor;
+  const isSolidType = gradientType === 'solid';
+  const startPickerLabel = isSolidType ? solidColorLabel : startLabel;
 
   return (
     <div className={`flex flex-col items-center w-14 transition-opacity ${className}`} title={label}>
@@ -227,15 +278,13 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
           leaveFrom="opacity-100 translate-y-0"
           leaveTo="opacity-0 translate-y-1"
         >
-          <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-72 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-3">
-            <div className="flex flex-col gap-3 text-[var(--text-primary)]">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{label}</span>
-              </div>
+          <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-3">
+            <div className="flex flex-col gap-2 text-[var(--text-primary)]">
+              <span className="text-sm font-medium">{label}</span>
 
-              <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+              <div className="flex flex-col gap-1 text-xs text-[var(--text-secondary)]">
                 <span>{typeLabel}</span>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     type="button"
                     className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'solid'
@@ -266,45 +315,29 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                 </div>
               </div>
 
-              {gradientType === 'solid' ? (
-                <div className="flex justify-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-xs text-[var(--text-secondary)]">{solidColorLabel}</span>
-                    <StopPicker
-                      label={solidColorLabel}
-                      color={fill}
-                      onChange={(value) => setFill(value)}
-                      beginCoalescing={beginCoalescing}
-                      endCoalescing={endCoalescing}
-                    />
-                  </div>
+              <div className="flex justify-center gap-4">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-[var(--text-secondary)]">{startPickerLabel}</span>
+                  <StopPicker
+                    label={startPickerLabel}
+                    color={startColor}
+                    onChange={(value) => (isSolidType ? setFill(value) : handleStopChange(0, value))}
+                    beginCoalescing={beginCoalescing}
+                    endCoalescing={endCoalescing}
+                  />
                 </div>
-              ) : (
-                fillGradient && (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs text-[var(--text-secondary)]">{startLabel}</span>
-                      <StopPicker
-                        label={startLabel}
-                        color={startColor}
-                        onChange={(value) => handleStopChange(0, value)}
-                        beginCoalescing={beginCoalescing}
-                        endCoalescing={endCoalescing}
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
-                      <StopPicker
-                        label={endLabel}
-                        color={endColor}
-                        onChange={(value) => handleStopChange(1, value)}
-                        beginCoalescing={beginCoalescing}
-                        endCoalescing={endCoalescing}
-                      />
-                    </div>
-                  </div>
-                )
-              )}
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
+                  <StopPicker
+                    label={endLabel}
+                    color={endColor}
+                    onChange={(value) => handleStopChange(1, value)}
+                    beginCoalescing={beginCoalescing}
+                    endCoalescing={endCoalescing}
+                    disabled={isSolidType || !fillGradient}
+                  />
+                </div>
+              </div>
             </div>
           </Popover.Panel>
         </Transition>
