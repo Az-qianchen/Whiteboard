@@ -269,7 +269,12 @@ export const useToolbarState = (
 
   // --- Display Values ---
   const displayValue = <T,>(selectedProp: keyof AnyPath, drawingValue: T): T => {
-    return firstSelectedPath ? (firstSelectedPath[selectedProp] as T ?? drawingValue) : drawingValue;
+    if (!firstSelectedPath) {
+      return drawingValue;
+    }
+
+    const selectedValue = firstSelectedPath[selectedProp] as T | undefined;
+    return selectedValue === undefined ? drawingValue : selectedValue;
   };
   
   const color = displayValue('color', drawingColor);
