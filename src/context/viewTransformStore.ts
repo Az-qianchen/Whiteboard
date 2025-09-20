@@ -59,22 +59,39 @@ export const useViewTransformStore = create<ViewTransformState>((set, get) => ({
   handleWheel: (e) => {
     // 阻止浏览器默认缩放行为，避免在 Mac 上触发页面缩放
     e.preventDefault();
-    const { deltaX, deltaY, deltaZ, ctrlKey, clientX, clientY } = e;
+    const { deltaX, deltaY, deltaZ, deltaMode, ctrlKey, clientX, clientY } = e;
+    const sourceCapabilities = (e as WheelEvent & {
+      sourceCapabilities?: { firesTouchEvents?: boolean };
+    }).sourceCapabilities;
     const { viewTransform } = get();
 
     const isMacPlatform =
       typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-    const isTrackpadPinch = isMacPlatform && Math.abs(deltaZ) > 0;
+    const domDeltaPixel =
+      typeof WheelEvent !== 'undefined' && 'DOM_DELTA_PIXEL' in WheelEvent
+        ? WheelEvent.DOM_DELTA_PIXEL
+        : 0;
+    const isPixelDelta = deltaMode === undefined || deltaMode === domDeltaPixel;
+    const isTouchLikeSource = Boolean(sourceCapabilities?.firesTouchEvents);
+    const hasTinyDeltas = Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1;
+    const hasDeltaZ = Math.abs(deltaZ) > 0;
+    const isTrackpadPinch =
+      isMacPlatform && (hasDeltaZ || (ctrlKey && (isTouchLikeSource || (isPixelDelta && hasTinyDeltas))));
     const shouldZoom = ctrlKey || isTrackpadPinch;
 
     if (shouldZoom) {
       const { scale, translateX, translateY } = viewTransform;
       const baseZoomStep = 0.001;
-      const pinchMultiplier = 4;
+      const pinchMultiplier = 8;
       const zoomStep = isTrackpadPinch ? baseZoomStep * pinchMultiplier : baseZoomStep;
       let zoomDelta = deltaY;
       if (isTrackpadPinch) {
-        zoomDelta = Math.abs(deltaZ) > Math.abs(deltaY) ? deltaZ : deltaY;
+        const primaryDelta = Math.abs(deltaZ) > Math.abs(deltaY) ? deltaZ : deltaY;
+        const effectiveDelta = primaryDelta !== 0 ? primaryDelta : hasDeltaZ ? deltaZ : deltaY;
+        if (effectiveDelta === 0) return;
+        const normalizedDelta =
+          Math.abs(effectiveDelta) < 1 ? Math.sign(effectiveDelta) : effectiveDelta;
+        zoomDelta = normalizedDelta;
       } else if (zoomDelta === 0 && deltaZ !== 0) {
         zoomDelta = deltaZ;
       }

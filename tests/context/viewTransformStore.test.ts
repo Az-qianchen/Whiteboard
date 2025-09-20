@@ -1,3 +1,4 @@
+// 测试视图变换存储在触控捏合与滚轮交互下的缩放和平移响应
 import { describe, it, expect, beforeEach, vi, afterEach, beforeAll, afterAll } from 'vitest';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
@@ -99,7 +100,7 @@ describe('useViewTransformStore wheel interactions', () => {
 
     const state = useViewTransformStore.getState().viewTransform;
     expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(state.scale).toBeCloseTo(1.016);
+    expect(state.scale).toBeCloseTo(1.032);
     expect(state.translateX).toBeCloseTo(0);
     expect(state.translateY).toBeCloseTo(0);
   });
@@ -118,7 +119,26 @@ describe('useViewTransformStore wheel interactions', () => {
     } as any);
 
     const state = useViewTransformStore.getState().viewTransform;
-    expect(state.scale).toBeCloseTo(1.004);
+    expect(state.scale).toBeCloseTo(1.008);
+  });
+
+  it('accelerates ctrl+trackpad pinch even when deltaZ is zero by recognising touch sources', () => {
+    const store = useViewTransformStore.getState();
+    store.handleWheel({
+      preventDefault: vi.fn(),
+      deltaX: 0,
+      deltaY: -0.2,
+      deltaZ: 0,
+      deltaMode: 0,
+      ctrlKey: true,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+      sourceCapabilities: { firesTouchEvents: true },
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(state.scale).toBeCloseTo(1.008);
   });
 
   it('keeps mouse wheel panning behaviour when no zoom gesture is detected', () => {
@@ -147,6 +167,7 @@ describe('useViewTransformStore wheel interactions', () => {
       deltaX: 0,
       deltaY: -4,
       deltaZ: 0,
+      deltaMode: 1,
       ctrlKey: true,
       clientX: 0,
       clientY: 0,
