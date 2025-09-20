@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+// 测试视图变换存储在触控捏合与滚轮交互下的缩放和平移响应
+import { describe, it, expect, beforeEach, vi, afterEach, beforeAll, afterAll } from 'vitest';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
 const createSvgMock = () => ({
@@ -12,6 +13,16 @@ const createSvgMock = () => ({
   getScreenCTM: () => ({ inverse: () => ({}) }),
 });
 
+let platformSpy: ReturnType<typeof vi.spyOn> | null = null;
+
+beforeAll(() => {
+  platformSpy = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
+});
+
+afterAll(() => {
+  platformSpy?.mockRestore();
+});
+
 beforeEach(() => {
   useViewTransformStore.setState({
     viewTransform: { scale: 1, translateX: 0, translateY: 0 },
@@ -20,6 +31,15 @@ beforeEach(() => {
     touchPoints: new Map(),
     initialPinch: null,
     lastPointerPosition: null,
+  });
+});
+
+afterEach(() => {
+  useViewTransformStore.setState({
+    isPanning: false,
+    isPinching: false,
+    touchPoints: new Map(),
+    initialPinch: null,
   });
 });
 
@@ -56,5 +76,105 @@ describe('useViewTransformStore pinch gestures', () => {
     expect(state.isPinching).toBe(false);
     expect(state.initialPinch).toBeNull();
     expect(state.touchPoints.size).toBe(1);
+  });
+});
+
+describe('useViewTransformStore wheel interactions', () => {
+  const createContainerMock = () => ({
+    querySelector: () => createSvgMock(),
+  });
+
+  it('treats mac trackpad pinch without ctrl key as zoom and significantly boosts the zoom factor', () => {
+    const store = useViewTransformStore.getState();
+    const preventDefault = vi.fn();
+    store.handleWheel({
+      preventDefault,
+      deltaX: 5,
+      deltaY: -4,
+      deltaZ: -1,
+      ctrlKey: false,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(state.scale).toBeCloseTo(1.032);
+    expect(state.translateX).toBeCloseTo(0);
+    expect(state.translateY).toBeCloseTo(0);
+  });
+
+  it('uses the dominant axis from trackpad pinch deltas to remain responsive when deltaY is tiny', () => {
+    const store = useViewTransformStore.getState();
+    store.handleWheel({
+      preventDefault: vi.fn(),
+      deltaX: 0,
+      deltaY: -0.1,
+      deltaZ: -1,
+      ctrlKey: false,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(state.scale).toBeCloseTo(1.008);
+  });
+
+  it('accelerates ctrl+trackpad pinch even when deltaZ is zero by recognising touch sources', () => {
+    const store = useViewTransformStore.getState();
+    store.handleWheel({
+      preventDefault: vi.fn(),
+      deltaX: 0,
+      deltaY: -0.2,
+      deltaZ: 0,
+      deltaMode: 0,
+      ctrlKey: true,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+      sourceCapabilities: { firesTouchEvents: true },
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(state.scale).toBeCloseTo(1.008);
+  });
+
+  it('keeps mouse wheel panning behaviour when no zoom gesture is detected', () => {
+    const store = useViewTransformStore.getState();
+    store.handleWheel({
+      preventDefault: vi.fn(),
+      deltaX: 6,
+      deltaY: -3,
+      deltaZ: 0,
+      ctrlKey: false,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(state.scale).toBeCloseTo(1);
+    expect(state.translateX).toBeCloseTo(-6);
+    expect(state.translateY).toBeCloseTo(3);
+  });
+
+  it('maintains original zoom speed for mouse wheel zoom with modifier keys', () => {
+    const store = useViewTransformStore.getState();
+    store.handleWheel({
+      preventDefault: vi.fn(),
+      deltaX: 0,
+      deltaY: -4,
+      deltaZ: 0,
+      deltaMode: 1,
+      ctrlKey: true,
+      clientX: 0,
+      clientY: 0,
+      currentTarget: createContainerMock(),
+    } as any);
+
+    const state = useViewTransformStore.getState().viewTransform;
+    expect(state.scale).toBeCloseTo(1.004);
   });
 });
