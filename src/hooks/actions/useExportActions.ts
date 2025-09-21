@@ -5,10 +5,31 @@ import { useCallback } from 'react';
 import { pathsToSvgString, pathsToPngBlob } from '@/lib/export';
 import { fileSave } from 'browser-fs-access';
 import type { AppActionsProps } from './useAppActions';
-import type { FrameData, AnimationExportOptions, ImageData } from '@/types';
+import type { FrameData, AnimationExportOptions, ImageData, AnyPath, GroupData } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '@/lib/drawing';
 import JSZip from 'jszip';
 import { useFilesStore } from '@/context/filesStore';
+
+/**
+ * 递归移除路径数组中的画框对象。
+ * @param inputPaths - 需要处理的路径数组。
+ * @returns 已移除画框的路径数组副本。
+ */
+const filterOutFramePaths = (inputPaths: AnyPath[]): AnyPath[] => {
+  return inputPaths.reduce<AnyPath[]>((acc, path) => {
+    if (path.tool === 'frame') {
+      return acc;
+    }
+    if (path.tool === 'group') {
+      const group = path as GroupData;
+      const children = filterOutFramePaths(group.children);
+      acc.push({ ...group, children });
+      return acc;
+    }
+    acc.push(path);
+    return acc;
+  }, []);
+};
 
 /**
  * 封装导出相关操作的 Hook。
@@ -197,8 +218,11 @@ export const useExportActions = ({
       }
     }
   
-    const globalBbox = clipFrame ? undefined : getPathsBoundingBox(frames.flatMap(f => f.paths.filter(p => p.tool !== 'frame')), true);
-  
+    const sanitizedFramePaths = frames.map(frame => filterOutFramePaths(frame.paths));
+    const allContentPaths = sanitizedFramePaths.flat();
+
+    const globalBbox = clipFrame ? undefined : getPathsBoundingBox(allContentPaths, true);
+
     if (!clipFrame && !globalBbox) {
       alert("无法导出空动画。");
       return;
@@ -209,13 +233,13 @@ export const useExportActions = ({
     if (options.format === 'sequence') {
       const zip = new JSZip();
       for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i];
-        const blob = await pathsToPngBlob(frame.paths, { 
-          ...pngExportOptions, 
-          backgroundColor: 'transparent', 
-          transparentBg: true, 
-          overrideBbox: globalBbox, 
-          clipFrame: clipFrame, 
+        const exportPaths = sanitizedFramePaths[i];
+        const blob = await pathsToPngBlob(exportPaths, {
+          ...pngExportOptions,
+          backgroundColor: 'transparent',
+          transparentBg: true,
+          overrideBbox: globalBbox,
+          clipFrame: clipFrame,
           padding 
         });
         if (blob) {
@@ -240,13 +264,13 @@ export const useExportActions = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return alert("无法创建画布进行导出。");
   
-      const imagePromises = frames.map(frame => 
-        pathsToPngBlob(frame.paths, { 
-          ...pngExportOptions, 
-          backgroundColor: 'transparent', 
-          transparentBg: true, 
-          overrideBbox: globalBbox, 
-          clipFrame: clipFrame, 
+      const imagePromises = frames.map((frame, index) =>
+        pathsToPngBlob(sanitizedFramePaths[index], {
+          ...pngExportOptions,
+          backgroundColor: 'transparent',
+          transparentBg: true,
+          overrideBbox: globalBbox,
+          clipFrame: clipFrame,
           padding 
         })
           .then(blob => blob ? createImageBitmap(blob) : null)
