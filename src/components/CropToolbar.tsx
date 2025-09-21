@@ -16,8 +16,8 @@ interface CropToolbarProps {
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
   setCropSelectionMode: (mode: 'magic-wand' | 'freehand' | 'polygon') => void;
-  cropSelectionOperation: 'add' | 'subtract';
-  setCropSelectionOperation: (op: 'add' | 'subtract') => void;
+  cropSelectionOperation: 'add' | 'subtract' | 'replace';
+  setCropSelectionOperation: (op: 'add' | 'subtract' | 'replace') => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   applyMagicWandSelection: () => void;
   cutMagicWandSelection: () => void;
@@ -219,6 +219,21 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             >
               <span className="font-semibold">＋</span>
               <span>{t('cropSelectionAdd')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropSelectionOperation === 'replace'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionOperation('replace')}
+              aria-pressed={cropSelectionOperation === 'replace'}
+              title={t('cropSelectionReset')}
+            >
+              <span className="font-semibold">⟳</span>
+              <span>{t('cropSelectionReset')}</span>
             </PanelButton>
             <PanelButton
               type="button"

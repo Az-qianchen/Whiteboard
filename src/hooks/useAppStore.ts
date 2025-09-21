@@ -137,8 +137,13 @@ interface AppState {
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
-  cropSelectionOperation: 'add' | 'subtract';
-  cropManualDraft: { mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[]; previewPoint?: Point } | null;
+  cropSelectionOperation: 'add' | 'subtract' | 'replace';
+  cropManualDraft: {
+    mode: 'freehand' | 'polygon';
+    operation: 'add' | 'subtract' | 'replace';
+    points: Point[];
+    previewPoint?: Point;
+  } | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -191,7 +196,7 @@ const getInitialAppState = (): AppState => ({
   cropSelectionContours: null,
   cropPendingCutoutSrc: null,
   cropSelectionMode: 'magic-wand',
-  cropSelectionOperation: 'add',
+  cropSelectionOperation: 'replace',
   cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
@@ -222,7 +227,11 @@ export const useAppStore = () => {
   const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
   const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
-  const cropManualDraftRef = useRef<{ mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[] } | null>(null);
+  const cropManualDraftRef = useRef<{
+    mode: 'freehand' | 'polygon';
+    operation: 'add' | 'subtract' | 'replace';
+    points: Point[];
+  } | null>(null);
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -336,13 +345,52 @@ export const useAppStore = () => {
   const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
   }, []);
+  const updateMagicWandSelection = useCallback(
+    (mask: MagicWandMask | null) => {
+      cropMagicWandMaskRef.current = mask;
+
+      if (!mask) {
+        cropMagicWandResultRef.current = null;
+        cropMagicWandSampleRef.current = null;
+        setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+        return;
+      }
+
+      const cropping = appState.croppingState;
+      const cache = cropImageCacheRef.current;
+      if (!cropping || !cache) {
+        return;
+      }
+
+      const { image, contours } = applyMaskToImage(cache.imageData, mask);
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.width = cache.naturalWidth;
+      previewCanvas.height = cache.naturalHeight;
+      const previewCtx = previewCanvas.getContext('2d');
+      if (!previewCtx) {
+        console.warn('Unable to preview magic wand selection');
+        return;
+      }
+
+      previewCtx.putImageData(image, 0, 0);
+      const newSrc = previewCanvas.toDataURL();
+
+      cropMagicWandResultRef.current = { imageData: image, newSrc };
+
+      const contourPaths = buildContourPaths(contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
+      setAppState(s => ({
+        ...s,
+        cropSelectionContours: contourPaths,
+        cropPendingCutoutSrc: newSrc,
+      }));
+    },
+    [appState.croppingState, setAppState]
+  );
   const clearCropSelection = useCallback(() => {
-    cropMagicWandResultRef.current = null;
-    cropMagicWandSampleRef.current = null;
-    cropMagicWandMaskRef.current = null;
     cropManualDraftRef.current = null;
-    setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
-  }, []);
+    updateMagicWandSelection(null);
+    setAppState(s => ({ ...s, cropManualDraft: null }));
+  }, [updateMagicWandSelection]);
 
   const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
     const cropping = appState.croppingState;
@@ -352,38 +400,41 @@ export const useAppStore = () => {
 
     const { threshold, contiguous } = appState.cropMagicWandOptions;
     const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
-    if (!result.mask) {
-      cropMagicWandResultRef.current = null;
-      cropMagicWandMaskRef.current = null;
-      clearManualDraftState();
-      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
-      return;
-    }
-
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = cache.naturalWidth;
-    previewCanvas.height = cache.naturalHeight;
-    const previewCtx = previewCanvas.getContext('2d');
-    if (!previewCtx) {
-      console.warn('Unable to preview magic wand selection');
-      return;
-    }
-    previewCtx.putImageData(result.image, 0, 0);
-    const newSrc = previewCanvas.toDataURL();
-
-    cropMagicWandResultRef.current = { imageData: result.image, newSrc };
-    cropMagicWandMaskRef.current = result.mask;
     clearManualDraftState();
 
-    const contourPaths = buildContourPaths(result.contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
-    setAppState(s => ({
-      ...s,
-      cropSelectionContours: contourPaths,
-      cropPendingCutoutSrc: newSrc,
-    }));
-  }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool, clearManualDraftState]);
+    const operation = appState.cropSelectionOperation;
 
-  const applyManualSelection = useCallback((points: Point[], operation: 'add' | 'subtract') => {
+    if (!result.mask) {
+      if (operation === 'replace' || !cropMagicWandMaskRef.current) {
+        updateMagicWandSelection(null);
+      }
+      return;
+    }
+
+    let nextMask: MagicWandMask | null = null;
+    if (operation === 'replace') {
+      nextMask = result.mask;
+    } else if (!cropMagicWandMaskRef.current) {
+      if (operation === 'add') {
+        nextMask = result.mask;
+      } else {
+        return;
+      }
+    } else {
+      nextMask = combineMasks(cropMagicWandMaskRef.current, result.mask, operation);
+    }
+
+    updateMagicWandSelection(nextMask);
+  }, [
+    appState.cropSelectionOperation,
+    appState.croppingState,
+    appState.cropMagicWandOptions,
+    appState.cropTool,
+    clearManualDraftState,
+    updateMagicWandSelection,
+  ]);
+
+  const applyManualSelection = useCallback((points: Point[], operation: 'add' | 'subtract' | 'replace') => {
     const cropping = appState.croppingState;
     if (!cropping || appState.cropTool !== 'magic-wand') return;
     const cache = cropImageCacheRef.current;
@@ -399,40 +450,29 @@ export const useAppStore = () => {
     if (deduped.length < 3) return;
 
     const mask = createMaskFromPolygon(cache.naturalWidth, cache.naturalHeight, deduped);
-    if (!mask) return;
-
-    const combinedMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
-    cropMagicWandMaskRef.current = combinedMask;
-
-    if (!combinedMask) {
-      cropMagicWandResultRef.current = null;
-      cropMagicWandSampleRef.current = null;
-      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+    if (!mask) {
+      if (operation === 'replace') {
+        updateMagicWandSelection(null);
+      }
       return;
     }
 
-    const { image, contours } = applyMaskToImage(cache.imageData, combinedMask);
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = cache.naturalWidth;
-    previewCanvas.height = cache.naturalHeight;
-    const previewCtx = previewCanvas.getContext('2d');
-    if (!previewCtx) {
-      console.warn('Unable to preview manual selection');
-      return;
+    let nextMask: MagicWandMask | null = null;
+    if (operation === 'replace') {
+      nextMask = mask;
+    } else if (!cropMagicWandMaskRef.current) {
+      if (operation === 'add') {
+        nextMask = mask;
+      } else {
+        return;
+      }
+    } else {
+      nextMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
     }
-    previewCtx.putImageData(image, 0, 0);
-    const newSrc = previewCanvas.toDataURL();
 
-    cropMagicWandResultRef.current = { imageData: image, newSrc };
+    updateMagicWandSelection(nextMask);
     cropMagicWandSampleRef.current = null;
-
-    const contourPaths = buildContourPaths(contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
-    setAppState(s => ({
-      ...s,
-      cropSelectionContours: contourPaths,
-      cropPendingCutoutSrc: newSrc,
-    }));
-  }, [appState.croppingState, appState.cropTool]);
+  }, [appState.croppingState, appState.cropTool, updateMagicWandSelection]);
 
   const selectMagicWandAt = useCallback((point: Point) => {
     const cropping = appState.croppingState;
@@ -449,8 +489,15 @@ export const useAppStore = () => {
   useEffect(() => {
     if (!cropMagicWandSampleRef.current) return;
     if (!appState.croppingState || appState.cropTool !== 'magic-wand') return;
+    if (appState.cropSelectionOperation !== 'replace') return;
     performMagicWandSelection(cropMagicWandSampleRef.current);
-  }, [appState.cropMagicWandOptions, appState.cropTool, appState.croppingState, performMagicWandSelection]);
+  }, [
+    appState.cropMagicWandOptions,
+    appState.cropTool,
+    appState.croppingState,
+    appState.cropSelectionOperation,
+    performMagicWandSelection,
+  ]);
 
   const applyMagicWandSelection = useCallback(() => {
     const cropping = appState.croppingState;
