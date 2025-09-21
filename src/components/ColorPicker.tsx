@@ -137,7 +137,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
     try {
       const pickedColor = await openEyeDropper();
       if (pickedColor) {
-        onChange(pickedColor);
+        const sampled = parseColor(pickedColor);
+        const finalHsla = { ...sampled, a: hsla.a };
+        setHsla(finalHsla);
+        setHexInput(hslaToHex(finalHsla));
+        onChange(hslaToHslaString(finalHsla));
       }
     } catch (error) {
       console.error('EyeDropper failed to open', error);

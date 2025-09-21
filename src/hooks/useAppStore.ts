@@ -19,9 +19,10 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
+import { parseColor, hslaToHslaString } from '@/lib/color';
 import { findDeepestHitPath } from '@/lib/hit-testing';
 import { removeBackground } from '@/lib/image';
-import { getImageDataUrl } from '@/lib/imageCache';
+import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { isEyeDropperSupported, openEyeDropper } from '@/lib/eyeDropper';
 import { useFilesStore } from '@/context/filesStore';
 
@@ -518,6 +519,7 @@ export const useAppStore = () => {
   const { setColor } = toolbarState;
 
   const eyeDropperControllerRef = useRef<AbortController | null>(null);
+  const imagePixelDataCacheRef = useRef<Map<string, Promise<ImageData>>>(new Map());
   const lastPointerPositionRef = useRef<Point | null>(viewTransform.lastPointerPosition ?? null);
 
   useEffect(() => {
@@ -534,6 +536,14 @@ export const useAppStore = () => {
     controller.abort();
   }, []);
 
+  const applySampledColor = useCallback(
+    (color: string) => {
+      const parsed = parseColor(color);
+      setColor(hslaToHslaString(parsed));
+    },
+    [setColor]
+  );
+
   const openEyeDropperForSampling = useCallback(() => {
     if (!isEyeDropperSupported()) {
       return false;
@@ -549,7 +559,7 @@ export const useAppStore = () => {
     void openEyeDropper({ signal: controller.signal })
       .then(color => {
         if (color) {
-          setColor(color);
+          applySampledColor(color);
         }
       })
       .catch(error => {
@@ -562,7 +572,42 @@ export const useAppStore = () => {
       });
 
     return true;
-  }, [setColor]);
+  }, [applySampledColor]);
+
+  const sampleImagePixel = useCallback(
+    (point: Point, image: PathImageData) => {
+      const key = image.fileId ?? image.src;
+      if (!key) {
+        return false;
+      }
+
+      let pixelDataPromise = imagePixelDataCacheRef.current.get(key);
+      if (!pixelDataPromise) {
+        pixelDataPromise = getImagePixelData(image);
+        imagePixelDataCacheRef.current.set(key, pixelDataPromise);
+      }
+
+      void pixelDataPromise
+        .then(data => {
+          const pixel = mapWorldPointToImagePixel(point, image, data.width, data.height);
+          if (!pixel) {
+            return;
+          }
+          const index = (pixel.y * data.width + pixel.x) * 4;
+          const r = data.data[index];
+          const g = data.data[index + 1];
+          const b = data.data[index + 2];
+          const alpha = data.data[index + 3] / 255;
+          applySampledColor(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+        })
+        .catch(error => {
+          console.error('Failed to sample image color', error);
+        });
+
+      return true;
+    },
+    [applySampledColor]
+  );
 
   const sampleStrokeColor = useCallback((point: Point) => {
     const paths = activePaths;
@@ -574,12 +619,15 @@ export const useAppStore = () => {
       }
 
       if (hitPath) {
+        if (hitPath.tool === 'image') {
+          return sampleImagePixel(point, hitPath) || openEyeDropperForSampling();
+        }
         return openEyeDropperForSampling();
       }
     }
 
     return openEyeDropperForSampling();
-  }, [activePaths, viewTransform.viewTransform, setColor, openEyeDropperForSampling]);
+  }, [activePaths, viewTransform.viewTransform, setColor, openEyeDropperForSampling, sampleImagePixel]);
 
   useEffect(() => {
     if (!isEyeDropperSupported()) {
