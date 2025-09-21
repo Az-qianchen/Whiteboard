@@ -847,7 +847,13 @@ export const useAppStore = () => {
       }
   }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({
+    pathState: activePathState,
+    toolbarState,
+    viewTransform,
+    ...uiState,
+    setEditingTextPathId,
+  });
   const selectionInteraction = useSelection({
     pathState: activePathState,
     toolbarState,

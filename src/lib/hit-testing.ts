@@ -470,12 +470,3 @@ export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): bo
     // The core logic: check if EVERY point of the shape is inside the lasso polygon for full containment.
     return pointsToCheck.every(p => isPointInPolygon(p, lassoPoints));
 }
-const hasVisibleFill = (path: AnyPath): boolean => {
-    if (path.fillGradient) {
-        return gradientHasVisibleColor(path.fillGradient);
-    }
-    if (!path.fill || path.fill === 'transparent') {
-        return false;
-    }
-    return parseColor(path.fill).a > 0.01;
-};

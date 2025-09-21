@@ -8,6 +8,7 @@ import type { Dispatch, SetStateAction } from 'react';
 
 const drawingColorSetter = vi.fn();
 const drawingFillSetter = vi.fn();
+const drawingFillGradientSetter = vi.fn();
 const drawingFillStyleSetter = vi.fn();
 const drawingStrokeWidthSetter = vi.fn();
 const drawingOpacitySetter = vi.fn();
@@ -43,6 +44,7 @@ const drawingShadowColorSetter = vi.fn();
 vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
   useDrawingColor: () => ({ drawingColor: '#222222', setDrawingColor: drawingColorSetter }),
   useDrawingFill: () => ({ drawingFill: 'transparent', setDrawingFill: drawingFillSetter }),
+  useDrawingFillGradient: () => ({ drawingFillGradient: null, setDrawingFillGradient: drawingFillGradientSetter }),
   useDrawingFillStyle: () => ({ drawingFillStyle: 'hachure', setDrawingFillStyle: drawingFillStyleSetter }),
   useDrawingStrokeWidth: () => ({ drawingStrokeWidth: 0, setDrawingStrokeWidth: drawingStrokeWidthSetter }),
   useDrawingOpacity: () => ({ drawingOpacity: 1, setDrawingOpacity: drawingOpacitySetter }),

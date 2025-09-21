@@ -20,6 +20,7 @@ import { isPointHittingPath, findDeepestHitPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10; // 点击命中控制点的半径
+export const DOUBLE_CLICK_TIMEOUT_MS = 500;
 
 /**
  * 处理在“移动/变换”模式下的指针按下事件。
@@ -281,7 +282,10 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
 
     if (clickedPath) {
         const now = Date.now();
-        if (lastClickRef.current.pathId === clickedPath.id && now - lastClickRef.current.time < 300) {
+        if (
+            lastClickRef.current.pathId === clickedPath.id &&
+            now - lastClickRef.current.time < DOUBLE_CLICK_TIMEOUT_MS
+        ) {
             // DON'T allow another double-click action if we are already cropping
             if (!croppingState) {
                 onDoubleClick(clickedPath);
