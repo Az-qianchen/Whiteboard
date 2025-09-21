@@ -17,7 +17,12 @@ import type {
 import { handlePointerDownLogic, handlePointerMoveLogic, handlePointerUpLogic } from './selection-logic/index';
 
 // 定义 Hook 将接收的 props
-type CropManualDraft = { mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[]; previewPoint?: Point };
+type CropManualDraft = {
+  mode: 'freehand' | 'polygon';
+  operation: 'add' | 'subtract' | 'replace';
+  points: Point[];
+  previewPoint?: Point;
+};
 
 interface SelectionInteractionProps {
   pathState: SelectionPathState; // from usePaths

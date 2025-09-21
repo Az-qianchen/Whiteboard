@@ -3,7 +3,12 @@ import type { Point } from '@/types';
 
 interface MagicWandOverlayProps {
   contours: Array<{ d: string; inner: boolean }>;
-  draft?: { mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[]; previewPoint?: Point } | null;
+  draft?: {
+    mode: 'freehand' | 'polygon';
+    operation: 'add' | 'subtract' | 'replace';
+    points: Point[];
+    previewPoint?: Point;
+  } | null;
   viewScale: number;
 }
 
@@ -50,12 +55,16 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
       const commands = basePoints.map((p, index) => `${index === 0 ? 'M' : 'L'}${p.x} ${p.y}`);
       draftShouldClose = basePoints.length > 2;
       draftPath = `${commands.join(' ')}${draftShouldClose ? ' Z' : ''}`;
-      draftStroke = draft.operation === 'add' ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)';
-      draftFill = draftShouldClose
-        ? draft.operation === 'add'
-          ? 'rgba(16,185,129,0.2)'
-          : 'rgba(239,68,68,0.2)'
-        : 'none';
+      if (draft.operation === 'subtract') {
+        draftStroke = 'rgba(239,68,68,0.9)';
+        draftFill = draftShouldClose ? 'rgba(239,68,68,0.2)' : 'none';
+      } else if (draft.operation === 'replace') {
+        draftStroke = 'rgba(59,130,246,0.9)';
+        draftFill = draftShouldClose ? 'rgba(59,130,246,0.2)' : 'none';
+      } else {
+        draftStroke = 'rgba(16,185,129,0.9)';
+        draftFill = draftShouldClose ? 'rgba(16,185,129,0.2)' : 'none';
+      }
     }
   }
 

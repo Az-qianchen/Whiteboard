@@ -17,7 +17,7 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
 import { measureText, rotatePoint, dist } from '@/lib/drawing';
 import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, type MagicWandMask } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
@@ -137,8 +137,13 @@ interface AppState {
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
-  cropSelectionOperation: 'add' | 'subtract';
-  cropManualDraft: { mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[]; previewPoint?: Point } | null;
+  cropSelectionOperation: 'add' | 'subtract' | 'replace';
+  cropManualDraft: {
+    mode: 'freehand' | 'polygon';
+    operation: 'add' | 'subtract' | 'replace';
+    points: Point[];
+    previewPoint?: Point;
+  } | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -191,7 +196,7 @@ const getInitialAppState = (): AppState => ({
   cropSelectionContours: null,
   cropPendingCutoutSrc: null,
   cropSelectionMode: 'magic-wand',
-  cropSelectionOperation: 'add',
+  cropSelectionOperation: 'replace',
   cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
@@ -222,7 +227,11 @@ export const useAppStore = () => {
   const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
   const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
-  const cropManualDraftRef = useRef<{ mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[] } | null>(null);
+  const cropManualDraftRef = useRef<{
+    mode: 'freehand' | 'polygon';
+    operation: 'add' | 'subtract' | 'replace';
+    points: Point[];
+  } | null>(null);
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -336,13 +345,52 @@ export const useAppStore = () => {
   const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
   }, []);
+  const updateMagicWandSelection = useCallback(
+    (mask: MagicWandMask | null) => {
+      cropMagicWandMaskRef.current = mask;
+
+      if (!mask) {
+        cropMagicWandResultRef.current = null;
+        cropMagicWandSampleRef.current = null;
+        setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+        return;
+      }
+
+      const cropping = appState.croppingState;
+      const cache = cropImageCacheRef.current;
+      if (!cropping || !cache) {
+        return;
+      }
+
+      const { image, contours } = applyMaskToImage(cache.imageData, mask);
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.width = cache.naturalWidth;
+      previewCanvas.height = cache.naturalHeight;
+      const previewCtx = previewCanvas.getContext('2d');
+      if (!previewCtx) {
+        console.warn('Unable to preview magic wand selection');
+        return;
+      }
+
+      previewCtx.putImageData(image, 0, 0);
+      const newSrc = previewCanvas.toDataURL();
+
+      cropMagicWandResultRef.current = { imageData: image, newSrc };
+
+      const contourPaths = buildContourPaths(contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
+      setAppState(s => ({
+        ...s,
+        cropSelectionContours: contourPaths,
+        cropPendingCutoutSrc: newSrc,
+      }));
+    },
+    [appState.croppingState, setAppState]
+  );
   const clearCropSelection = useCallback(() => {
-    cropMagicWandResultRef.current = null;
-    cropMagicWandSampleRef.current = null;
-    cropMagicWandMaskRef.current = null;
     cropManualDraftRef.current = null;
-    setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
-  }, []);
+    updateMagicWandSelection(null);
+    setAppState(s => ({ ...s, cropManualDraft: null }));
+  }, [updateMagicWandSelection]);
 
   const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
     const cropping = appState.croppingState;
@@ -352,38 +400,41 @@ export const useAppStore = () => {
 
     const { threshold, contiguous } = appState.cropMagicWandOptions;
     const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
-    if (!result.mask) {
-      cropMagicWandResultRef.current = null;
-      cropMagicWandMaskRef.current = null;
-      clearManualDraftState();
-      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
-      return;
-    }
-
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = cache.naturalWidth;
-    previewCanvas.height = cache.naturalHeight;
-    const previewCtx = previewCanvas.getContext('2d');
-    if (!previewCtx) {
-      console.warn('Unable to preview magic wand selection');
-      return;
-    }
-    previewCtx.putImageData(result.image, 0, 0);
-    const newSrc = previewCanvas.toDataURL();
-
-    cropMagicWandResultRef.current = { imageData: result.image, newSrc };
-    cropMagicWandMaskRef.current = result.mask;
     clearManualDraftState();
 
-    const contourPaths = buildContourPaths(result.contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
-    setAppState(s => ({
-      ...s,
-      cropSelectionContours: contourPaths,
-      cropPendingCutoutSrc: newSrc,
-    }));
-  }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool, clearManualDraftState]);
+    const operation = appState.cropSelectionOperation;
 
-  const applyManualSelection = useCallback((points: Point[], operation: 'add' | 'subtract') => {
+    if (!result.mask) {
+      if (operation === 'replace' || !cropMagicWandMaskRef.current) {
+        updateMagicWandSelection(null);
+      }
+      return;
+    }
+
+    let nextMask: MagicWandMask | null = null;
+    if (operation === 'replace') {
+      nextMask = result.mask;
+    } else if (!cropMagicWandMaskRef.current) {
+      if (operation === 'add') {
+        nextMask = result.mask;
+      } else {
+        return;
+      }
+    } else {
+      nextMask = combineMasks(cropMagicWandMaskRef.current, result.mask, operation);
+    }
+
+    updateMagicWandSelection(nextMask);
+  }, [
+    appState.cropSelectionOperation,
+    appState.croppingState,
+    appState.cropMagicWandOptions,
+    appState.cropTool,
+    clearManualDraftState,
+    updateMagicWandSelection,
+  ]);
+
+  const applyManualSelection = useCallback((points: Point[], operation: 'add' | 'subtract' | 'replace') => {
     const cropping = appState.croppingState;
     if (!cropping || appState.cropTool !== 'magic-wand') return;
     const cache = cropImageCacheRef.current;
@@ -399,40 +450,29 @@ export const useAppStore = () => {
     if (deduped.length < 3) return;
 
     const mask = createMaskFromPolygon(cache.naturalWidth, cache.naturalHeight, deduped);
-    if (!mask) return;
-
-    const combinedMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
-    cropMagicWandMaskRef.current = combinedMask;
-
-    if (!combinedMask) {
-      cropMagicWandResultRef.current = null;
-      cropMagicWandSampleRef.current = null;
-      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+    if (!mask) {
+      if (operation === 'replace') {
+        updateMagicWandSelection(null);
+      }
       return;
     }
 
-    const { image, contours } = applyMaskToImage(cache.imageData, combinedMask);
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = cache.naturalWidth;
-    previewCanvas.height = cache.naturalHeight;
-    const previewCtx = previewCanvas.getContext('2d');
-    if (!previewCtx) {
-      console.warn('Unable to preview manual selection');
-      return;
+    let nextMask: MagicWandMask | null = null;
+    if (operation === 'replace') {
+      nextMask = mask;
+    } else if (!cropMagicWandMaskRef.current) {
+      if (operation === 'add') {
+        nextMask = mask;
+      } else {
+        return;
+      }
+    } else {
+      nextMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
     }
-    previewCtx.putImageData(image, 0, 0);
-    const newSrc = previewCanvas.toDataURL();
 
-    cropMagicWandResultRef.current = { imageData: image, newSrc };
+    updateMagicWandSelection(nextMask);
     cropMagicWandSampleRef.current = null;
-
-    const contourPaths = buildContourPaths(contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
-    setAppState(s => ({
-      ...s,
-      cropSelectionContours: contourPaths,
-      cropPendingCutoutSrc: newSrc,
-    }));
-  }, [appState.croppingState, appState.cropTool]);
+  }, [appState.croppingState, appState.cropTool, updateMagicWandSelection]);
 
   const selectMagicWandAt = useCallback((point: Point) => {
     const cropping = appState.croppingState;
@@ -449,8 +489,15 @@ export const useAppStore = () => {
   useEffect(() => {
     if (!cropMagicWandSampleRef.current) return;
     if (!appState.croppingState || appState.cropTool !== 'magic-wand') return;
+    if (appState.cropSelectionOperation !== 'replace') return;
     performMagicWandSelection(cropMagicWandSampleRef.current);
-  }, [appState.cropMagicWandOptions, appState.cropTool, appState.croppingState, performMagicWandSelection]);
+  }, [
+    appState.cropMagicWandOptions,
+    appState.cropTool,
+    appState.croppingState,
+    appState.cropSelectionOperation,
+    performMagicWandSelection,
+  ]);
 
   const applyMagicWandSelection = useCallback(() => {
     const cropping = appState.croppingState;
@@ -482,9 +529,152 @@ export const useAppStore = () => {
     })();
   }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
 
-  const cancelMagicWandSelection = useCallback(() => {
-    clearCropSelection();
-  }, [clearCropSelection]);
+  const cutMagicWandSelection = useCallback(() => {
+    const cropping = appState.croppingState;
+    const mask = cropMagicWandMaskRef.current;
+    const result = cropMagicWandResultRef.current;
+    const cache = cropImageCacheRef.current;
+    if (!cropping || !mask || !result || !cache || !mask.bounds) return;
+
+    const { imageData, newSrc } = result;
+    const { minX, minY, maxX, maxY } = mask.bounds;
+    const pixelWidth = maxX - minX + 1;
+    const pixelHeight = maxY - minY + 1;
+    if (pixelWidth <= 0 || pixelHeight <= 0) {
+      clearCropSelection();
+      return;
+    }
+
+    void (async () => {
+      const selectionCanvas = document.createElement('canvas');
+      selectionCanvas.width = pixelWidth;
+      selectionCanvas.height = pixelHeight;
+      const selectionCtx = selectionCanvas.getContext('2d');
+      if (!selectionCtx) {
+        console.warn('Unable to acquire 2D context for cut selection');
+        return;
+      }
+
+      const selectionImageData = selectionCtx.createImageData(pixelWidth, pixelHeight);
+      const destData = selectionImageData.data;
+      const sourceData = cache.imageData.data;
+      const maskData = mask.data;
+      const maskWidth = mask.width;
+      const sourceWidth = cache.naturalWidth;
+
+      for (let y = minY; y <= maxY; y++) {
+        const maskRowOffset = y * maskWidth;
+        const sourceRowOffset = y * sourceWidth;
+        const destRowOffset = (y - minY) * pixelWidth;
+        for (let x = minX; x <= maxX; x++) {
+          if (!maskData[maskRowOffset + x]) continue;
+          const sourceIndex = (sourceRowOffset + x) * 4;
+          const destIndex = (destRowOffset + (x - minX)) * 4;
+          destData[destIndex] = sourceData[sourceIndex];
+          destData[destIndex + 1] = sourceData[sourceIndex + 1];
+          destData[destIndex + 2] = sourceData[sourceIndex + 2];
+          destData[destIndex + 3] = sourceData[sourceIndex + 3];
+        }
+      }
+
+      selectionCtx.putImageData(selectionImageData, 0, 0);
+
+      const filesStore = useFilesStore.getState();
+      const [cutResult, updatedImage] = await Promise.all([
+        filesStore.ingestDataUrl(selectionCanvas.toDataURL()),
+        filesStore.ingestDataUrl(newSrc),
+      ]);
+
+      const scaleX = cropping.originalPath.width / cache.naturalWidth;
+      const scaleY = cropping.originalPath.height / cache.naturalHeight;
+      const selectionRect = {
+        x: cropping.originalPath.x + minX * scaleX,
+        y: cropping.originalPath.y + minY * scaleY,
+        width: pixelWidth * scaleX,
+        height: pixelHeight * scaleY,
+      };
+
+      const rotation = cropping.originalPath.rotation ?? 0;
+      const oldCenter = {
+        x: cropping.originalPath.x + cropping.originalPath.width / 2,
+        y: cropping.originalPath.y + cropping.originalPath.height / 2,
+      };
+      const newCenterLocal = {
+        x: selectionRect.width / 2,
+        y: selectionRect.height / 2,
+      };
+      const offsetLocal = {
+        x: selectionRect.x - cropping.originalPath.x - (cropping.originalPath.width / 2 - newCenterLocal.x),
+        y: selectionRect.y - cropping.originalPath.y - (cropping.originalPath.height / 2 - newCenterLocal.y),
+      };
+      const rotatedOffset = rotatePoint(offsetLocal, { x: 0, y: 0 }, rotation);
+      const selectionCenter = {
+        x: oldCenter.x + rotatedOffset.x,
+        y: oldCenter.y + rotatedOffset.y,
+      };
+      const newX = selectionCenter.x - newCenterLocal.x;
+      const newY = selectionCenter.y - newCenterLocal.y;
+
+      const { src: _legacySrc, ...baseImage } = cropping.originalPath;
+      const cutLayerId = `${Date.now()}-cut-${Math.random().toString(36).slice(2, 8)}`;
+      const newLayer: PathImageData = {
+        ...baseImage,
+        id: cutLayerId,
+        fileId: cutResult.fileId,
+        x: newX,
+        y: newY,
+        width: selectionRect.width,
+        height: selectionRect.height,
+      };
+
+      const applyCutToPaths = (paths: AnyPath[]): { result: AnyPath[]; handled: boolean } => {
+        let handled = false;
+        const next: AnyPath[] = [];
+
+        for (const path of paths) {
+          if (path.id === cropping.pathId && path.tool === 'image') {
+            next.push({ ...(path as PathImageData), fileId: updatedImage.fileId });
+            next.push(newLayer);
+            handled = true;
+          } else if (path.tool === 'group') {
+            const group = path as GroupData;
+            const childResult = applyCutToPaths(group.children);
+            if (childResult.handled) {
+              next.push({ ...group, children: childResult.result });
+              handled = true;
+            } else {
+              next.push(path);
+            }
+          } else {
+            next.push(path);
+          }
+        }
+
+        return { result: handled ? next : paths, handled };
+      };
+
+      pathState.setPaths(prev => {
+        const { result, handled } = applyCutToPaths(prev);
+        return handled ? result : prev;
+      });
+
+      setCroppingState(prev => (
+        prev && prev.pathId === cropping.pathId
+          ? { ...prev, originalPath: { ...prev.originalPath, fileId: updatedImage.fileId } }
+          : prev
+      ));
+
+      if (cropImageCacheRef.current) {
+        cropImageCacheRef.current = {
+          ...cropImageCacheRef.current,
+          imageData,
+        };
+      }
+
+      setCropEditedSrc(newSrc);
+      clearCropSelection();
+    })();
+  }, [appState.croppingState, clearCropSelection, pathState.setPaths, setCroppingState, setCropEditedSrc]);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
@@ -1031,7 +1221,7 @@ export const useAppStore = () => {
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
-    setCropTool, setCropMagicWandOptions, setCropSelectionMode, setCropSelectionOperation, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
+    setCropTool, setCropMagicWandOptions, setCropSelectionMode, setCropSelectionOperation, selectMagicWandAt, applyMagicWandSelection, cutMagicWandSelection,
     confirmCrop, trimTransparentEdges, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,

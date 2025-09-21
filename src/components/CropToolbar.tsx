@@ -16,11 +16,11 @@ interface CropToolbarProps {
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
   setCropSelectionMode: (mode: 'magic-wand' | 'freehand' | 'polygon') => void;
-  cropSelectionOperation: 'add' | 'subtract';
-  setCropSelectionOperation: (op: 'add' | 'subtract') => void;
+  cropSelectionOperation: 'add' | 'subtract' | 'replace';
+  setCropSelectionOperation: (op: 'add' | 'subtract' | 'replace') => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   applyMagicWandSelection: () => void;
-  cancelMagicWandSelection: () => void;
+  cutMagicWandSelection: () => void;
   trimTransparentEdges: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
@@ -41,7 +41,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   setCropSelectionOperation,
   cropSelectionContours,
   applyMagicWandSelection,
-  cancelMagicWandSelection,
+  cutMagicWandSelection,
   trimTransparentEdges,
   confirmCrop,
   cancelCrop,
@@ -224,6 +224,21 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               type="button"
               variant="unstyled"
               className={`${segmentedButtonBase} ${
+                cropSelectionOperation === 'replace'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionOperation('replace')}
+              aria-pressed={cropSelectionOperation === 'replace'}
+              title={t('cropSelectionReset')}
+            >
+              <span className="font-semibold">⟳</span>
+              <span>{t('cropSelectionReset')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
                 cropSelectionOperation === 'subtract'
                   ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -255,32 +270,34 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
           >
             {ICONS.CHECK}
-            <span>{t('applySelection')}</span>
+            <span>{t('subtractSelection')}</span>
           </PanelButton>
           <PanelButton
             type="button"
             variant="unstyled"
-            onClick={cancelMagicWandSelection}
+            onClick={cutMagicWandSelection}
             disabled={!hasSelection}
             className={`${textButtonBase} bg-[var(--danger-bg)] text-[var(--danger-text)] hover:opacity-90`}
           >
-            {ICONS.X}
-            <span>{t('clearSelection')}</span>
+            {ICONS.CUT}
+            <span>{t('cutSelection')}</span>
           </PanelButton>
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <PanelButton
-          type="button"
-          title={t('trimTransparent')}
-          onClick={trimTransparentEdges}
-          variant="unstyled"
-          className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
-        >
-          {ICONS.CROP_TRIM}
-          <span>{t('trimTransparent')}</span>
-        </PanelButton>
+        {cropTool === 'crop' && (
+          <PanelButton
+            type="button"
+            title={t('trimTransparent')}
+            onClick={trimTransparentEdges}
+            variant="unstyled"
+            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
+          >
+            {ICONS.CROP_TRIM}
+            <span>{t('trimTransparent')}</span>
+          </PanelButton>
+        )}
         <PanelButton
           type="button"
           title={t('cancel')}
