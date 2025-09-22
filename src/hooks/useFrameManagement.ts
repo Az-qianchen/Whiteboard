@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { AnyPath, Frame } from '../types';
 import {
   usePathsStore,
@@ -44,28 +44,53 @@ export const useFrameManagement = () => {
   // Stable wrapper to preserve referential stability
   const setPathsStable = useCallback((updater: React.SetStateAction<AnyPath[]>) => setPaths(updater), [setPaths]);
 
-  return {
-    frames,
-    currentFrameIndex,
-    setCurrentFrameIndex,
-    paths,
-    setPaths: setPathsStable,
-    handleLoadFile,
-    handleDeletePaths,
-    togglePathsProperty,
-    toggleGroupCollapse,
-    setPathName,
-    reorderPaths,
-    addFrame,
-    copyFrame,
-    deleteFrame,
-    reorderFrames,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    beginCoalescing,
-    endCoalescing,
-  };
+  return useMemo(
+    () => ({
+      frames,
+      currentFrameIndex,
+      setCurrentFrameIndex,
+      paths,
+      setPaths: setPathsStable,
+      handleLoadFile,
+      handleDeletePaths,
+      togglePathsProperty,
+      toggleGroupCollapse,
+      setPathName,
+      reorderPaths,
+      addFrame,
+      copyFrame,
+      deleteFrame,
+      reorderFrames,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+      beginCoalescing,
+      endCoalescing,
+    }),
+    [
+      frames,
+      currentFrameIndex,
+      setCurrentFrameIndex,
+      paths,
+      setPathsStable,
+      handleLoadFile,
+      handleDeletePaths,
+      togglePathsProperty,
+      toggleGroupCollapse,
+      setPathName,
+      reorderPaths,
+      addFrame,
+      copyFrame,
+      deleteFrame,
+      reorderFrames,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+      beginCoalescing,
+      endCoalescing,
+    ]
+  );
 };
 

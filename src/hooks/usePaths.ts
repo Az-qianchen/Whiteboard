@@ -4,7 +4,7 @@
  * 此版本已重构为协调器，组合了多个功能更专一的子 Hook。
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import type { AnyPath, VectorPathData } from '../types';
 import { brushToVectorPath } from '../lib/drawing';
 import { useFrameManagement } from './useFrameManagement';
@@ -99,17 +99,32 @@ export const usePaths = () => {
     }
   }, [selectedPathIds, frameManagement]);
 
-  return {
-    ...frameManagement,
-    ...liveDrawingState,
-    selectedPathIds,
-    setSelectedPathIds,
-    finishBrushPath,
-    handleFinishPenPath,
-    handleCancelPenPath,
-    handleFinishLinePath,
-    handleCancelLinePath,
-    handleReorder,
-    handleDeleteSelected,
-  };
+  return useMemo(
+    () => ({
+      ...frameManagement,
+      ...liveDrawingState,
+      selectedPathIds,
+      setSelectedPathIds,
+      finishBrushPath,
+      handleFinishPenPath,
+      handleCancelPenPath,
+      handleFinishLinePath,
+      handleCancelLinePath,
+      handleReorder,
+      handleDeleteSelected,
+    }),
+    [
+      frameManagement,
+      liveDrawingState,
+      selectedPathIds,
+      setSelectedPathIds,
+      finishBrushPath,
+      handleFinishPenPath,
+      handleCancelPenPath,
+      handleFinishLinePath,
+      handleCancelLinePath,
+      handleReorder,
+      handleDeleteSelected,
+    ]
+  );
 };

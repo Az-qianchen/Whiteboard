@@ -147,13 +147,24 @@ export const useGroupIsolation = (pathState: any) => {
     setPaths: setActivePaths,
   }), [pathState, activePaths, setActivePaths]);
   
-  return {
-    groupIsolationPath,
-    activePaths,
-    backgroundPaths,
-    activePathState,
-    handleGroupDoubleClick,
-    handleExitGroup,
-    handleJumpToGroup,
-  };
+  return useMemo(
+    () => ({
+      groupIsolationPath,
+      activePaths,
+      backgroundPaths,
+      activePathState,
+      handleGroupDoubleClick,
+      handleExitGroup,
+      handleJumpToGroup,
+    }),
+    [
+      groupIsolationPath,
+      activePaths,
+      backgroundPaths,
+      activePathState,
+      handleGroupDoubleClick,
+      handleExitGroup,
+      handleJumpToGroup,
+    ]
+  );
 };

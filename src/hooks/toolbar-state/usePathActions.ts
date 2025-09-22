@@ -1,7 +1,7 @@
 /**
  * 本文件定义了一个自定义 Hook，用于管理与路径本身相关的操作，例如路径简化。
  */
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { AnyPath, GroupData, VectorPathData } from '@/types';
 import { simplifyPath } from '@/lib/drawing';
 
@@ -84,10 +84,13 @@ export const usePathActions = ({
     return selectedPaths.some(checkPath);
   }, [selectedPaths]);
 
-  return {
-    beginSimplify,
-    setSimplify,
-    endSimplify,
-    isSimplifiable,
-  };
+  return useMemo(
+    () => ({
+      beginSimplify,
+      setSimplify,
+      endSimplify,
+      isSimplifiable,
+    }),
+    [beginSimplify, endSimplify, isSimplifiable, setSimplify]
+  );
 };

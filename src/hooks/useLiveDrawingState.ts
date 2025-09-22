@@ -2,7 +2,7 @@
  * 本文件定义了一个自定义 Hook (useLiveDrawingState)，
  * 它只负责管理正在绘制过程中的临时路径状态。
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { LivePath, VectorPathData } from '../types';
 
 /**
@@ -14,12 +14,22 @@ export const useLiveDrawingState = () => {
   const [currentPenPath, setCurrentPenPath] = useState<VectorPathData | null>(null);
   const [currentLinePath, setCurrentLinePath] = useState<VectorPathData | null>(null);
 
-  return {
-    currentBrushPath,
-    setCurrentBrushPath,
-    currentPenPath,
-    setCurrentPenPath,
-    currentLinePath,
-    setCurrentLinePath,
-  };
+  return useMemo(
+    () => ({
+      currentBrushPath,
+      setCurrentBrushPath,
+      currentPenPath,
+      setCurrentPenPath,
+      currentLinePath,
+      setCurrentLinePath,
+    }),
+    [
+      currentBrushPath,
+      setCurrentBrushPath,
+      currentPenPath,
+      setCurrentPenPath,
+      currentLinePath,
+      setCurrentLinePath,
+    ]
+  );
 };
