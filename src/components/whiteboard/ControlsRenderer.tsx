@@ -494,10 +494,13 @@ const LABEL_PADDING_Y = 4;
 const LABEL_OFFSET_PX = 12;
 
 type DimensionGuide = {
-  text: string;
+  width: number;
+  height: number;
   anchor: Point;
   normal: Point;
   angle: number;
+  rotation?: number;
+  cornerRadius?: number;
 };
 
 const measureTextWidth = (() => {
@@ -532,11 +535,48 @@ const formatDimensionValue = (value: number) => {
   return fixed.replace(/\.00$/, '').replace(/(\.\d*[1-9])0$/, '$1');
 };
 
-const createDimensionGuide = (width: number, height: number, anchor: Point, normal: Point, angle: number): DimensionGuide => ({
-  text: `${formatDimensionValue(Math.max(0, width))} × ${formatDimensionValue(Math.max(0, height))}`,
+const formatRotationValue = (radians: number) => {
+  const degrees = (radians * 180) / Math.PI;
+  let normalized = ((degrees + 180) % 360 + 360) % 360 - 180;
+  if (Math.abs(normalized) < 0.01) {
+    normalized = 0;
+  }
+  const rounded = Math.round(normalized * 100) / 100;
+  if (Math.abs(rounded) < 0.01) {
+    return '0°';
+  }
+  const magnitude = formatDimensionValue(Math.abs(rounded));
+  const sign = rounded < 0 ? '-' : '';
+  return `${sign}${magnitude}°`;
+};
+
+const buildDimensionLabelText = (guide: DimensionGuide) => {
+  const segments = [
+    `${formatDimensionValue(Math.max(0, guide.width))} × ${formatDimensionValue(Math.max(0, guide.height))}`,
+  ];
+  if (typeof guide.rotation === 'number') {
+    segments.push(formatRotationValue(guide.rotation));
+  }
+  if (typeof guide.cornerRadius === 'number') {
+    segments.push(`R ${formatDimensionValue(Math.max(0, guide.cornerRadius))}`);
+  }
+  return segments.join(' • ');
+};
+
+const createDimensionGuide = (
+  width: number,
+  height: number,
+  anchor: Point,
+  normal: Point,
+  angle: number,
+  extras: Partial<Pick<DimensionGuide, 'rotation' | 'cornerRadius'>> = {},
+): DimensionGuide => ({
+  width,
+  height,
   anchor,
   normal,
   angle,
+  ...extras,
 });
 
 const averageNonZero = (values: number[]) => {
@@ -589,16 +629,34 @@ const getGuideForTransformableShape = (
     y: (bottomLeft.y + bottomRight.y) / 2,
   };
 
-  return createDimensionGuide(widthValue, heightValue, anchor, normal, angle);
+  const cornerRadius =
+    path.tool === 'rectangle' || path.tool === 'polygon'
+      ? path.borderRadius ?? 0
+      : undefined;
+
+  return createDimensionGuide(
+    widthValue,
+    heightValue,
+    anchor,
+    normal,
+    angle,
+    {
+      rotation: path.rotation ?? 0,
+      cornerRadius,
+    },
+  );
 };
 
-const getGuideFromBBox = (bbox: BBox | null): DimensionGuide | null => {
+const getGuideFromBBox = (
+  bbox: BBox | null,
+  extras: Partial<Pick<DimensionGuide, 'rotation' | 'cornerRadius'>> = {},
+): DimensionGuide | null => {
   if (!bbox) {
     return null;
   }
   const anchor = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height };
   const normal = { x: 0, y: 1 };
-  return createDimensionGuide(bbox.width, bbox.height, anchor, normal, 0);
+  return createDimensionGuide(bbox.width, bbox.height, anchor, normal, 0, extras);
 };
 
 const getGuideForPath = (path: AnyPath): DimensionGuide | null => {
@@ -611,7 +669,10 @@ const getGuideForPath = (path: AnyPath): DimensionGuide | null => {
     case 'frame':
       return getGuideForTransformableShape(path);
     default:
-      return getGuideFromBBox(getPathBoundingBox(path, false));
+      return getGuideFromBBox(
+        getPathBoundingBox(path, false),
+        { rotation: path.rotation ?? 0 },
+      );
   }
 };
 
@@ -626,7 +687,8 @@ const getDimensionGuide = (paths: AnyPath[]): DimensionGuide | null => {
 };
 
 const DimensionLabel: React.FC<{ guide: DimensionGuide; scale: number }> = React.memo(({ guide, scale }) => {
-  const textWidth = React.useMemo(() => measureTextWidth(guide.text, LABEL_FONT), [guide.text]);
+  const labelText = React.useMemo(() => buildDimensionLabelText(guide), [guide.width, guide.height, guide.rotation, guide.cornerRadius]);
+  const textWidth = React.useMemo(() => measureTextWidth(labelText, LABEL_FONT), [labelText]);
   const labelWidth = textWidth + LABEL_PADDING_X * 2;
   const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
   const safeScale = Math.max(scale, 0.0001);
@@ -672,7 +734,7 @@ const DimensionLabel: React.FC<{ guide: DimensionGuide; scale: number }> = React
         fontWeight={LABEL_FONT_WEIGHT}
         fill="var(--text-on-accent-solid)"
       >
-        {guide.text}
+        {labelText}
       </text>
     </g>
   );
