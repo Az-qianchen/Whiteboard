@@ -22,18 +22,34 @@ export const useViewTransform = () => {
   const lastPointerPosition = useViewTransformStore(s => s.lastPointerPosition);
   const setLastPointerPosition = useViewTransformStore(s => s.setLastPointerPosition);
 
-  return {
-    viewTransform,
-    isPanning,
-    setIsPanning,
-    handleWheel,
-    handlePanMove,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-    isPinching,
-    getPointerPosition,
-    lastPointerPosition,
-    setLastPointerPosition,
-  };
+  return React.useMemo(
+    () => ({
+      viewTransform,
+      isPanning,
+      setIsPanning,
+      handleWheel,
+      handlePanMove,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      isPinching,
+      getPointerPosition,
+      lastPointerPosition,
+      setLastPointerPosition,
+    }),
+    [
+      viewTransform,
+      isPanning,
+      setIsPanning,
+      handleWheel,
+      handlePanMove,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      isPinching,
+      getPointerPosition,
+      lastPointerPosition,
+      setLastPointerPosition,
+    ]
+  );
 };

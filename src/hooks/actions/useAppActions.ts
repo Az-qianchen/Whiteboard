@@ -3,6 +3,7 @@
  * 它通过组合多个职责更单一的子 Hooks，为应用提供一个统一的操作接口。
  */
 
+import { useMemo } from 'react';
 import { useClipboardActions } from './useClipboardActions';
 import { useExportActions } from './useExportActions';
 import { useFileActions } from './useFileActions';
@@ -67,12 +68,15 @@ export const useAppActions = (props: AppActionsProps) => {
   const fileActions = useFileActions(props);
   const libraryActions = useLibraryActions(props);
   const objectActions = useObjectActions(props);
-  
-  return {
-    ...clipboardActions,
-    ...exportActions,
-    ...fileActions,
-    ...libraryActions,
-    ...objectActions,
-  };
+
+  return useMemo(
+    () => ({
+      ...clipboardActions,
+      ...exportActions,
+      ...fileActions,
+      ...libraryActions,
+      ...objectActions,
+    }),
+    [clipboardActions, exportActions, fileActions, libraryActions, objectActions]
+  );
 };
