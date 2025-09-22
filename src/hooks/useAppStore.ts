@@ -5,6 +5,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useUiStore } from '@/context/uiStore';
+import type { UiState } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
 import { useViewTransform } from './useViewTransform';
@@ -101,28 +102,6 @@ const buildContourPaths = (
 
 // --- State Type Definitions ---
 
-interface UiState {
-  isGridVisible: boolean;
-  gridSize: number;
-  gridSubdivisions: number;
-  gridOpacity: number;
-  backgroundColor: string;
-  isStatusBarCollapsed: boolean;
-  isSideToolbarCollapsed: boolean;
-  isMainMenuCollapsed: boolean;
-  mainMenuWidth: number;
-  pngExportOptions: PngExportOptions;
-  isStyleLibraryOpen: boolean;
-  styleLibraryPosition: { x: number; y: number };
-  isTimelineCollapsed: boolean;
-  fps: number;
-  isPlaying: boolean;
-  isOnionSkinEnabled: boolean;
-  onionSkinPrevFrames: number;
-  onionSkinNextFrames: number;
-  onionSkinOpacity: number;
-}
-
 interface AppState {
   contextMenu: { isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null;
   styleClipboard: StyleClipboardData | null;
@@ -195,6 +174,11 @@ const getInitialAppState = (): AppState => ({
 });
 
 
+const isUiStateUpdater = (
+  value: UiState | ((s: UiState) => UiState)
+): value is (s: UiState) => UiState => typeof value === 'function';
+
+
 /**
  * 集中管理整个应用状态的主 Hook。
  * @returns 返回一个包含所有状态和操作函数的对象。
@@ -204,9 +188,13 @@ export const useAppStore = () => {
   const uiState = useUiStore();
   const initialFpsRef = useRef(uiState.fps);
   const initialFitRequestedRef = useRef(false);
-  const setUiState = useCallback((updater: (s: UiState) => UiState) => {
+  const setUiState = useCallback((updater: UiState | ((s: UiState) => UiState)) => {
     // Replace entire UI slice with updater result to mirror previous React setState pattern
-    useUiStore.setState(updater as (prev: UiState) => UiState, true);
+    if (isUiStateUpdater(updater)) {
+      useUiStore.setState(state => updater(state), true);
+    } else {
+      useUiStore.setState(updater, true);
+    }
   }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
