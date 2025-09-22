@@ -522,13 +522,8 @@ export const useAppStore = () => {
 
   const eyeDropperControllerRef = useRef<{ controller: AbortController; target: SampleTarget } | null>(null);
   const imagePixelDataCacheRef = useRef<Map<string, Promise<ImageData>>>(new Map());
-  const lastPointerPositionRef = useRef<Point | null>(viewTransform.lastPointerPosition ?? null);
   const altKeyPressedRef = useRef(false);
   const shiftKeyPressedRef = useRef(false);
-
-  useEffect(() => {
-    lastPointerPositionRef.current = viewTransform.lastPointerPosition ?? null;
-  }, [viewTransform.lastPointerPosition]);
 
   const cancelEyeDropper = useCallback(() => {
     const active = eyeDropperControllerRef.current;
@@ -681,12 +676,7 @@ export const useAppStore = () => {
         }
 
         const target: SampleTarget = (shiftKeyPressedRef.current || event.shiftKey) ? 'fill' : 'stroke';
-        const point = lastPointerPositionRef.current;
-        const handled = point
-          ? sampleColorAtPoint(point, target)
-          : openEyeDropperForSampling(target);
-
-        if (handled) {
+        if (openEyeDropperForSampling(target)) {
           event.preventDefault();
         }
         return;
@@ -703,12 +693,7 @@ export const useAppStore = () => {
           return;
         }
 
-        const point = lastPointerPositionRef.current;
-        const handled = point
-          ? sampleColorAtPoint(point, 'fill')
-          : openEyeDropperForSampling('fill');
-
-        if (handled) {
+        if (openEyeDropperForSampling('fill')) {
           event.preventDefault();
         }
       }
@@ -723,6 +708,9 @@ export const useAppStore = () => {
 
       if (isShiftKey(event)) {
         shiftKeyPressedRef.current = false;
+        if (altKeyPressedRef.current && toolbarState.tool !== 'selection') {
+          openEyeDropperForSampling('stroke');
+        }
       }
     };
 
@@ -741,7 +729,7 @@ export const useAppStore = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [toolbarState.tool, sampleColorAtPoint, openEyeDropperForSampling, cancelEyeDropper]);
+  }, [toolbarState.tool, openEyeDropperForSampling, cancelEyeDropper]);
 
   useEffect(() => {
     if (toolbarState.tool === 'selection') {
