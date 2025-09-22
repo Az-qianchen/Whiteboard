@@ -96,6 +96,47 @@ const buildContourPaths = (
     .filter((item): item is { d: string; inner: boolean } => item !== null);
 };
 
+/**
+ * 复制魔棒蒙版，避免历史记录引用同一数据。
+ */
+const cloneMagicWandMask = (mask: MagicWandMask | null): MagicWandMask | null => {
+  if (!mask) {
+    return null;
+  }
+  return {
+    data: new Uint8Array(mask.data),
+    width: mask.width,
+    height: mask.height,
+    bounds: { ...mask.bounds },
+  };
+};
+
+/**
+ * 判断两个魔棒蒙版数据是否一致。
+ */
+const areMasksEqual = (a: MagicWandMask | null, b: MagicWandMask | null): boolean => {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  if (a.width !== b.width || a.height !== b.height) {
+    return false;
+  }
+  const aData = a.data;
+  const bData = b.data;
+  if (aData.length !== bData.length) {
+    return false;
+  }
+  for (let i = 0; i < aData.length; i++) {
+    if (aData[i] !== bData[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
 // --- State Type Definitions ---
 
 interface UiState {
@@ -218,6 +259,7 @@ export const useAppStore = () => {
   }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
+  const [cropSelectionHistory, setCropSelectionHistory] = useState<{ past: (MagicWandMask | null)[]; future: (MagicWandMask | null)[] }>({ past: [], future: [] });
   const [cropEditedSrc, setCropEditedSrc] = useState<string | null>(null);
   const cropImageCacheRef = useRef<{
     naturalWidth: number;
@@ -248,6 +290,7 @@ export const useAppStore = () => {
       cropMagicWandMaskRef.current = null;
       cropMagicWandSampleRef.current = null;
       cropManualDraftRef.current = null;
+      setCropSelectionHistory({ past: [], future: [] });
       setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
       return;
     }
@@ -346,10 +389,22 @@ export const useAppStore = () => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
   }, []);
   const updateMagicWandSelection = useCallback(
-    (mask: MagicWandMask | null) => {
-      cropMagicWandMaskRef.current = mask;
+    (mask: MagicWandMask | null, options: { saveToHistory?: boolean } = {}) => {
+      const { saveToHistory = true } = options;
+      const previousMask = cropMagicWandMaskRef.current;
+      const normalizedMask = cloneMagicWandMask(mask);
+      const maskChanged = !areMasksEqual(previousMask, normalizedMask);
 
-      if (!mask) {
+      if (saveToHistory && maskChanged) {
+        setCropSelectionHistory(history => ({
+          past: [...history.past, cloneMagicWandMask(previousMask)],
+          future: [],
+        }));
+      }
+
+      cropMagicWandMaskRef.current = normalizedMask;
+
+      if (!normalizedMask) {
         cropMagicWandResultRef.current = null;
         cropMagicWandSampleRef.current = null;
         setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
@@ -362,7 +417,7 @@ export const useAppStore = () => {
         return;
       }
 
-      const { image, contours } = applyMaskToImage(cache.imageData, mask);
+      const { image, contours } = applyMaskToImage(cache.imageData, normalizedMask);
       const previewCanvas = document.createElement('canvas');
       previewCanvas.width = cache.naturalWidth;
       previewCanvas.height = cache.naturalHeight;
@@ -388,7 +443,8 @@ export const useAppStore = () => {
   );
   const clearCropSelection = useCallback(() => {
     cropManualDraftRef.current = null;
-    updateMagicWandSelection(null);
+    updateMagicWandSelection(null, { saveToHistory: false });
+    setCropSelectionHistory({ past: [], future: [] });
     setAppState(s => ({ ...s, cropManualDraft: null }));
   }, [updateMagicWandSelection]);
 
@@ -704,6 +760,36 @@ export const useAppStore = () => {
     });
   }, [appState.currentCropRect, setCurrentCropRect]);
 
+  /**
+   * 撤销最近一次魔棒蒙版编辑。
+   */
+  const undoSelectionMask = useCallback(() => {
+    setCropSelectionHistory(history => {
+      if (history.past.length === 0) {
+        return history;
+      }
+      const previous = history.past[history.past.length - 1];
+      const current = cloneMagicWandMask(cropMagicWandMaskRef.current);
+      updateMagicWandSelection(previous, { saveToHistory: false });
+      return { past: history.past.slice(0, -1), future: [current, ...history.future] };
+    });
+  }, [updateMagicWandSelection]);
+
+  /**
+   * 重做最近一次被撤销的魔棒蒙版编辑。
+   */
+  const redoSelectionMask = useCallback(() => {
+    setCropSelectionHistory(history => {
+      if (history.future.length === 0) {
+        return history;
+      }
+      const [next, ...rest] = history.future;
+      const current = cloneMagicWandMask(cropMagicWandMaskRef.current);
+      updateMagicWandSelection(next, { saveToHistory: false });
+      return { past: [...history.past, current], future: rest };
+    });
+  }, [updateMagicWandSelection]);
+
   const trimTransparentEdges = useCallback(() => {
     const cropping = appState.croppingState;
     const cache = cropImageCacheRef.current;
@@ -999,27 +1085,37 @@ export const useAppStore = () => {
 
   const handleUndo = useCallback(() => {
     if (appState.croppingState) {
+      if (cropSelectionHistory.past.length > 0) {
+        undoSelectionMask();
+        return;
+      }
       if (cropHistory.past.length > 0) {
         undoCropRect();
-      } else {
-        cancelCrop();
-        pathState.undo();
+        return;
       }
-    } else {
-      pathState.undo();
+      cancelCrop();
+      return;
     }
-  }, [appState.croppingState, cropHistory.past.length, undoCropRect, cancelCrop, pathState]);
+    pathState.undo();
+  }, [appState.croppingState, cropSelectionHistory.past.length, cropHistory.past.length, undoSelectionMask, undoCropRect, cancelCrop, pathState]);
 
   const handleRedo = useCallback(() => {
-    if (appState.croppingState && cropHistory.future.length > 0) {
-      redoCropRect();
-    } else {
-      pathState.redo();
+    if (appState.croppingState) {
+      if (cropSelectionHistory.future.length > 0) {
+        redoSelectionMask();
+        return;
+      }
+      if (cropHistory.future.length > 0) {
+        redoCropRect();
+        return;
+      }
+      return;
     }
-  }, [appState.croppingState, cropHistory.future.length, redoCropRect, pathState]);
+    pathState.redo();
+  }, [appState.croppingState, cropSelectionHistory.future.length, cropHistory.future.length, redoSelectionMask, redoCropRect, pathState]);
 
-  const canUndo = pathState.canUndo || (appState.croppingState !== null && cropHistory.past.length > 0);
-  const canRedo = pathState.canRedo || (appState.croppingState !== null && cropHistory.future.length > 0);
+  const canUndo = pathState.canUndo || appState.croppingState !== null;
+  const canRedo = pathState.canRedo || (appState.croppingState !== null && (cropHistory.future.length > 0 || cropSelectionHistory.future.length > 0));
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
