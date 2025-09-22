@@ -19,9 +19,11 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
 import { measureText, rotatePoint } from '@/lib/drawing';
+import { parseColor, hslaToHslaString } from '@/lib/color';
 import { findDeepestHitPath } from '@/lib/hit-testing';
 import { removeBackground } from '@/lib/image';
-import { getImageDataUrl } from '@/lib/imageCache';
+import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
+import { isEyeDropperSupported, openEyeDropper } from '@/lib/eyeDropper';
 import { useFilesStore } from '@/context/filesStore';
 
 import { createDocumentSignature } from '@/lib/document';
@@ -516,22 +518,230 @@ export const useAppStore = () => {
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   const { setColor } = toolbarState;
 
-  const sampleStrokeColor = useCallback((point: Point) => {
-    const paths = pathState.paths;
-    if (!paths || paths.length === 0) {
+  type SampleTarget = 'foreground' | 'background';
+
+  const eyeDropperControllerRef = useRef<{ controller: AbortController; target: SampleTarget } | null>(null);
+  const imagePixelDataCacheRef = useRef<Map<string, Promise<ImageData>>>(new Map());
+  const lastPointerPositionRef = useRef<Point | null>(viewTransform.lastPointerPosition ?? null);
+  const altKeyPressedRef = useRef(false);
+  const shiftKeyPressedRef = useRef(false);
+
+  useEffect(() => {
+    lastPointerPositionRef.current = viewTransform.lastPointerPosition ?? null;
+  }, [viewTransform.lastPointerPosition]);
+
+  const cancelEyeDropper = useCallback(() => {
+    const active = eyeDropperControllerRef.current;
+    if (!active) {
+      return;
+    }
+
+    eyeDropperControllerRef.current = null;
+    active.controller.abort();
+  }, []);
+
+  const applySampledColor = useCallback(
+    (color: string, target: SampleTarget, normalize: boolean = true) => {
+      const value = normalize ? hslaToHslaString(parseColor(color)) : color;
+      if (target === 'foreground') {
+        setColor(value);
+      } else {
+        setBackgroundColor(value);
+      }
+    },
+    [setColor, setBackgroundColor]
+  );
+
+  const openEyeDropperForSampling = useCallback((target: SampleTarget) => {
+    if (!isEyeDropperSupported()) {
       return false;
     }
-    const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
-    if (!hitPath) {
-      return false;
+
+    const existing = eyeDropperControllerRef.current;
+    if (existing) {
+      if (existing.target === target) {
+        return true;
+      }
+
+      eyeDropperControllerRef.current = null;
+      existing.controller.abort();
     }
-    const { color } = hitPath;
-    if (!color) {
-      return false;
-    }
-    setColor(color);
+
+    const controller = new AbortController();
+    const state = { controller, target };
+    eyeDropperControllerRef.current = state;
+
+    void openEyeDropper({ signal: controller.signal })
+      .then(color => {
+        if (color) {
+          applySampledColor(color, target);
+        }
+      })
+      .catch(error => {
+        console.error('EyeDropper failed to open', error);
+      })
+      .finally(() => {
+        if (eyeDropperControllerRef.current === state) {
+          eyeDropperControllerRef.current = null;
+        }
+      });
+
     return true;
-  }, [pathState.paths, viewTransform.viewTransform, setColor]);
+  }, [applySampledColor]);
+
+  const sampleImagePixel = useCallback(
+    (point: Point, image: PathImageData, target: SampleTarget) => {
+      const key = image.fileId ?? image.src;
+      if (!key) {
+        return false;
+      }
+
+      let pixelDataPromise = imagePixelDataCacheRef.current.get(key);
+      if (!pixelDataPromise) {
+        pixelDataPromise = getImagePixelData(image);
+        imagePixelDataCacheRef.current.set(key, pixelDataPromise);
+      }
+
+      void pixelDataPromise
+        .then(data => {
+          const pixel = mapWorldPointToImagePixel(point, image, data.width, data.height);
+          if (!pixel) {
+            return;
+          }
+          const index = (pixel.y * data.width + pixel.x) * 4;
+          const r = data.data[index];
+          const g = data.data[index + 1];
+          const b = data.data[index + 2];
+          const alpha = data.data[index + 3] / 255;
+          applySampledColor(`rgba(${r}, ${g}, ${b}, ${alpha})`, target);
+        })
+        .catch(error => {
+          console.error('Failed to sample image color', error);
+        });
+
+      return true;
+    },
+    [applySampledColor]
+  );
+
+  const sampleColorAtPoint = useCallback(
+    (point: Point, target: SampleTarget) => {
+      const paths = activePaths;
+      if (paths && paths.length > 0) {
+        const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
+        if (hitPath && hitPath.tool !== 'image' && hitPath.color) {
+          applySampledColor(hitPath.color, target, false);
+          return true;
+        }
+
+        if (hitPath) {
+          if (hitPath.tool === 'image') {
+            return sampleImagePixel(point, hitPath, target) || openEyeDropperForSampling(target);
+          }
+          return openEyeDropperForSampling(target);
+        }
+      }
+
+      return openEyeDropperForSampling(target);
+    },
+    [activePaths, viewTransform.viewTransform, applySampledColor, openEyeDropperForSampling, sampleImagePixel]
+  );
+
+  const sampleForegroundColor = useCallback(
+    (point: Point) => sampleColorAtPoint(point, 'foreground'),
+    [sampleColorAtPoint]
+  );
+
+  useEffect(() => {
+    if (!isEyeDropperSupported()) {
+      return;
+    }
+
+    const isAltKey = (event: KeyboardEvent) => event.key === 'Alt' || event.key === 'AltGraph';
+    const isShiftKey = (event: KeyboardEvent) => event.key === 'Shift';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isAltKey(event)) {
+        if (event.repeat || event.metaKey || event.ctrlKey) {
+          return;
+        }
+
+        altKeyPressedRef.current = true;
+
+        if (toolbarState.tool === 'selection') {
+          return;
+        }
+
+        const target: SampleTarget = (shiftKeyPressedRef.current || event.shiftKey) ? 'background' : 'foreground';
+        const point = lastPointerPositionRef.current;
+        const handled = point
+          ? sampleColorAtPoint(point, target)
+          : openEyeDropperForSampling(target);
+
+        if (handled) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (isShiftKey(event)) {
+        if (event.repeat) {
+          return;
+        }
+
+        shiftKeyPressedRef.current = true;
+
+        if (!altKeyPressedRef.current || event.metaKey || event.ctrlKey || toolbarState.tool === 'selection') {
+          return;
+        }
+
+        const point = lastPointerPositionRef.current;
+        const handled = point
+          ? sampleColorAtPoint(point, 'background')
+          : openEyeDropperForSampling('background');
+
+        if (handled) {
+          event.preventDefault();
+        }
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (isAltKey(event)) {
+        altKeyPressedRef.current = false;
+        cancelEyeDropper();
+        return;
+      }
+
+      if (isShiftKey(event)) {
+        shiftKeyPressedRef.current = false;
+      }
+    };
+
+    const handleBlur = () => {
+      altKeyPressedRef.current = false;
+      shiftKeyPressedRef.current = false;
+      cancelEyeDropper();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [toolbarState.tool, sampleColorAtPoint, openEyeDropperForSampling, cancelEyeDropper]);
+
+  useEffect(() => {
+    if (toolbarState.tool === 'selection') {
+      altKeyPressedRef.current = false;
+      shiftKeyPressedRef.current = false;
+      cancelEyeDropper();
+    }
+  }, [toolbarState.tool, cancelEyeDropper]);
   
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
@@ -698,7 +908,13 @@ export const useAppStore = () => {
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
   const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });
-  const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction, sampleStrokeColor });
+  const pointerInteraction = usePointerInteraction({
+    tool: toolbarState.tool,
+    viewTransform,
+    drawingInteraction,
+    selectionInteraction,
+    sampleStrokeColor: sampleForegroundColor,
+  });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
