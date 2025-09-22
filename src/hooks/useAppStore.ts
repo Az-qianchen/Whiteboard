@@ -516,9 +516,9 @@ export const useAppStore = () => {
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
-  const { setColor } = toolbarState;
+  const { setColor, setFill } = toolbarState;
 
-  type SampleTarget = 'foreground' | 'background';
+  type SampleTarget = 'stroke' | 'fill';
 
   const eyeDropperControllerRef = useRef<{ controller: AbortController; target: SampleTarget } | null>(null);
   const imagePixelDataCacheRef = useRef<Map<string, Promise<ImageData>>>(new Map());
@@ -543,13 +543,13 @@ export const useAppStore = () => {
   const applySampledColor = useCallback(
     (color: string, target: SampleTarget, normalize: boolean = true) => {
       const value = normalize ? hslaToHslaString(parseColor(color)) : color;
-      if (target === 'foreground') {
+      if (target === 'stroke') {
         setColor(value);
       } else {
-        setBackgroundColor(value);
+        setFill(value);
       }
     },
-    [setColor, setBackgroundColor]
+    [setColor, setFill]
   );
 
   const openEyeDropperForSampling = useCallback((target: SampleTarget) => {
@@ -629,9 +629,12 @@ export const useAppStore = () => {
       const paths = activePaths;
       if (paths && paths.length > 0) {
         const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
-        if (hitPath && hitPath.tool !== 'image' && hitPath.color) {
-          applySampledColor(hitPath.color, target, false);
-          return true;
+        if (hitPath && hitPath.tool !== 'image') {
+          const sampledColor = target === 'fill' ? hitPath.fill : hitPath.color;
+          if (sampledColor) {
+            applySampledColor(sampledColor, target, false);
+            return true;
+          }
         }
 
         if (hitPath) {
@@ -647,8 +650,13 @@ export const useAppStore = () => {
     [activePaths, viewTransform.viewTransform, applySampledColor, openEyeDropperForSampling, sampleImagePixel]
   );
 
-  const sampleForegroundColor = useCallback(
-    (point: Point) => sampleColorAtPoint(point, 'foreground'),
+  const sampleStrokeColor = useCallback(
+    (point: Point) => sampleColorAtPoint(point, 'stroke'),
+    [sampleColorAtPoint]
+  );
+
+  const sampleFillColor = useCallback(
+    (point: Point) => sampleColorAtPoint(point, 'fill'),
     [sampleColorAtPoint]
   );
 
@@ -672,7 +680,7 @@ export const useAppStore = () => {
           return;
         }
 
-        const target: SampleTarget = (shiftKeyPressedRef.current || event.shiftKey) ? 'background' : 'foreground';
+        const target: SampleTarget = (shiftKeyPressedRef.current || event.shiftKey) ? 'fill' : 'stroke';
         const point = lastPointerPositionRef.current;
         const handled = point
           ? sampleColorAtPoint(point, target)
@@ -697,8 +705,8 @@ export const useAppStore = () => {
 
         const point = lastPointerPositionRef.current;
         const handled = point
-          ? sampleColorAtPoint(point, 'background')
-          : openEyeDropperForSampling('background');
+          ? sampleColorAtPoint(point, 'fill')
+          : openEyeDropperForSampling('fill');
 
         if (handled) {
           event.preventDefault();
@@ -913,7 +921,8 @@ export const useAppStore = () => {
     viewTransform,
     drawingInteraction,
     selectionInteraction,
-    sampleStrokeColor: sampleForegroundColor,
+    sampleStrokeColor,
+    sampleFillColor,
   });
   
   const handleSetTool = useCallback((newTool: Tool) => {
