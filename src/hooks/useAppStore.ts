@@ -19,10 +19,12 @@ import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
-import { measureText, rotatePoint } from '@/lib/drawing';
+
+import { measureText, rotatePoint, dist } from '@/lib/drawing';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 import { findDeepestHitPath } from '@/lib/hit-testing';
-import { removeBackground } from '@/lib/image';
+import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, type MagicWandMask } from '@/lib/image';
+
 import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { isEyeDropperSupported, openEyeDropper } from '@/lib/eyeDropper';
 import { useFilesStore } from '@/context/filesStore';
@@ -118,6 +120,9 @@ interface AppState {
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
+  cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
+  cropSelectionOperation: 'add' | 'subtract';
+  cropManualDraft: { mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[]; previewPoint?: Point } | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -169,6 +174,9 @@ const getInitialAppState = (): AppState => ({
   cropMagicWandOptions: { threshold: 20, contiguous: true },
   cropSelectionContours: null,
   cropPendingCutoutSrc: null,
+  cropSelectionMode: 'magic-wand',
+  cropSelectionOperation: 'add',
+  cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
 });
@@ -205,7 +213,9 @@ export const useAppStore = () => {
     imageData: ImageData;
   } | null>(null);
   const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
+  const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
+  const cropManualDraftRef = useRef<{ mode: 'freehand' | 'polygon'; operation: 'add' | 'subtract'; points: Point[] } | null>(null);
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -219,6 +229,10 @@ export const useAppStore = () => {
     if (!appState.croppingState) {
       cropImageCacheRef.current = null;
       cropMagicWandResultRef.current = null;
+      cropMagicWandMaskRef.current = null;
+      cropMagicWandSampleRef.current = null;
+      cropManualDraftRef.current = null;
+      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
       return;
     }
 
@@ -293,15 +307,34 @@ export const useAppStore = () => {
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
-  const setCropTool = useCallback((tool: AppState['cropTool']) => setAppState(s => ({ ...s, cropTool: tool })), []);
+  const clearManualDraftState = useCallback(() => {
+    cropManualDraftRef.current = null;
+    setAppState(s => ({ ...s, cropManualDraft: null }));
+  }, []);
+
+  const setCropTool = useCallback((tool: AppState['cropTool']) => {
+    if (tool !== 'magic-wand') {
+      clearManualDraftState();
+    }
+    setAppState(s => ({ ...s, cropTool: tool, cropManualDraft: tool === 'magic-wand' ? s.cropManualDraft : null }));
+  }, [clearManualDraftState]);
   const setCropMagicWandOptions = useCallback((val: Partial<AppState['cropMagicWandOptions']>) => setAppState(s => ({
     ...s,
     cropMagicWandOptions: { ...s.cropMagicWandOptions, ...val },
   })), []);
+  const setCropSelectionMode = useCallback((mode: AppState['cropSelectionMode']) => {
+    clearManualDraftState();
+    setAppState(s => ({ ...s, cropSelectionMode: mode }));
+  }, [clearManualDraftState]);
+  const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
+    setAppState(s => ({ ...s, cropSelectionOperation: op }));
+  }, []);
   const clearCropSelection = useCallback(() => {
     cropMagicWandResultRef.current = null;
     cropMagicWandSampleRef.current = null;
-    setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+    cropMagicWandMaskRef.current = null;
+    cropManualDraftRef.current = null;
+    setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
   }, []);
 
   const performMagicWandSelection = useCallback((pixel: { x: number; y: number }) => {
@@ -314,6 +347,8 @@ export const useAppStore = () => {
     const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
     if (!result.mask) {
       cropMagicWandResultRef.current = null;
+      cropMagicWandMaskRef.current = null;
+      clearManualDraftState();
       setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
       return;
     }
@@ -330,6 +365,8 @@ export const useAppStore = () => {
     const newSrc = previewCanvas.toDataURL();
 
     cropMagicWandResultRef.current = { imageData: result.image, newSrc };
+    cropMagicWandMaskRef.current = result.mask;
+    clearManualDraftState();
 
     const contourPaths = buildContourPaths(result.contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
     setAppState(s => ({
@@ -337,7 +374,58 @@ export const useAppStore = () => {
       cropSelectionContours: contourPaths,
       cropPendingCutoutSrc: newSrc,
     }));
-  }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool]);
+  }, [appState.croppingState, appState.cropMagicWandOptions, appState.cropTool, clearManualDraftState]);
+
+  const applyManualSelection = useCallback((points: Point[], operation: 'add' | 'subtract') => {
+    const cropping = appState.croppingState;
+    if (!cropping || appState.cropTool !== 'magic-wand') return;
+    const cache = cropImageCacheRef.current;
+    if (!cache) return;
+
+    const pixelPoints = points
+      .map(pt => mapWorldPointToImagePixel(pt, cropping.originalPath, cache.naturalWidth, cache.naturalHeight))
+      .filter((pt): pt is { x: number; y: number } => pt !== null);
+
+    if (pixelPoints.length < 3) return;
+
+    const deduped = pixelPoints.filter((pt, idx, arr) => idx === 0 || pt.x !== arr[idx - 1].x || pt.y !== arr[idx - 1].y);
+    if (deduped.length < 3) return;
+
+    const mask = createMaskFromPolygon(cache.naturalWidth, cache.naturalHeight, deduped);
+    if (!mask) return;
+
+    const combinedMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
+    cropMagicWandMaskRef.current = combinedMask;
+
+    if (!combinedMask) {
+      cropMagicWandResultRef.current = null;
+      cropMagicWandSampleRef.current = null;
+      setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
+      return;
+    }
+
+    const { image, contours } = applyMaskToImage(cache.imageData, combinedMask);
+    const previewCanvas = document.createElement('canvas');
+    previewCanvas.width = cache.naturalWidth;
+    previewCanvas.height = cache.naturalHeight;
+    const previewCtx = previewCanvas.getContext('2d');
+    if (!previewCtx) {
+      console.warn('Unable to preview manual selection');
+      return;
+    }
+    previewCtx.putImageData(image, 0, 0);
+    const newSrc = previewCanvas.toDataURL();
+
+    cropMagicWandResultRef.current = { imageData: image, newSrc };
+    cropMagicWandSampleRef.current = null;
+
+    const contourPaths = buildContourPaths(contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
+    setAppState(s => ({
+      ...s,
+      cropSelectionContours: contourPaths,
+      cropPendingCutoutSrc: newSrc,
+    }));
+  }, [appState.croppingState, appState.cropTool]);
 
   const selectMagicWandAt = useCallback((point: Point) => {
     const cropping = appState.croppingState;
@@ -506,65 +594,65 @@ export const useAppStore = () => {
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
   const { setColor, setFill } = toolbarState;
 
-  type SampleTarget = 'stroke' | 'fill';
 
-  const eyeDropperControllerRef = useRef<{ controller: AbortController; target: SampleTarget } | null>(null);
+  const eyeDropperControllerRef = useRef<AbortController | null>(null);
   const imagePixelDataCacheRef = useRef<Map<string, Promise<ImageData>>>(new Map());
-  const altKeyPressedRef = useRef(false);
-  const shiftKeyPressedRef = useRef(false);
+  const lastPointerPositionRef = useRef<Point | null>(viewTransform.lastPointerPosition ?? null);
+
+  useEffect(() => {
+    lastPointerPositionRef.current = viewTransform.lastPointerPosition ?? null;
+  }, [viewTransform.lastPointerPosition]);
 
   const cancelEyeDropper = useCallback(() => {
-    const active = eyeDropperControllerRef.current;
-    if (!active) {
+    const controller = eyeDropperControllerRef.current;
+    if (!controller) {
+
       return;
     }
 
     eyeDropperControllerRef.current = null;
-    active.controller.abort();
+
+    controller.abort();
   }, []);
 
   const applySampledColor = useCallback(
-    (color: string, target: SampleTarget, normalize: boolean = true) => {
-      const value = normalize ? hslaToHslaString(parseColor(color)) : color;
-      if (target === 'stroke') {
-        setColor(value);
-      } else {
-        setFill(value);
-      }
+    (color: string) => {
+      const parsed = parseColor(color);
+      setColor(hslaToHslaString(parsed));
     },
-    [setColor, setFill]
+    [setColor]
   );
 
-  const openEyeDropperForSampling = useCallback((target: SampleTarget) => {
+  const openEyeDropperForSampling = useCallback(() => {
+
     if (!isEyeDropperSupported()) {
       return false;
     }
 
-    const existing = eyeDropperControllerRef.current;
-    if (existing) {
-      if (existing.target === target) {
-        return true;
-      }
 
-      eyeDropperControllerRef.current = null;
-      existing.controller.abort();
+    if (eyeDropperControllerRef.current) {
+      return true;
     }
 
     const controller = new AbortController();
-    const state = { controller, target };
-    eyeDropperControllerRef.current = state;
+    eyeDropperControllerRef.current = controller;
+
 
     void openEyeDropper({ signal: controller.signal })
       .then(color => {
         if (color) {
-          applySampledColor(color, target);
+
+          applySampledColor(color);
+
         }
       })
       .catch(error => {
         console.error('EyeDropper failed to open', error);
       })
       .finally(() => {
-        if (eyeDropperControllerRef.current === state) {
+
+        if (eyeDropperControllerRef.current === controller) {
+
           eyeDropperControllerRef.current = null;
         }
       });
@@ -573,7 +661,9 @@ export const useAppStore = () => {
   }, [applySampledColor]);
 
   const sampleImagePixel = useCallback(
-    (point: Point, image: PathImageData, target: SampleTarget) => {
+
+    (point: Point, image: PathImageData) => {
+
       const key = image.fileId ?? image.src;
       if (!key) {
         return false;
@@ -596,7 +686,9 @@ export const useAppStore = () => {
           const g = data.data[index + 1];
           const b = data.data[index + 2];
           const alpha = data.data[index + 3] / 255;
-          applySampledColor(`rgba(${r}, ${g}, ${b}, ${alpha})`, target);
+
+          applySampledColor(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+
         })
         .catch(error => {
           console.error('Failed to sample image color', error);
@@ -607,41 +699,27 @@ export const useAppStore = () => {
     [applySampledColor]
   );
 
-  const sampleColorAtPoint = useCallback(
-    (point: Point, target: SampleTarget) => {
-      const paths = activePaths;
-      if (paths && paths.length > 0) {
-        const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
-        if (hitPath && hitPath.tool !== 'image') {
-          const sampledColor = target === 'fill' ? hitPath.fill : hitPath.color;
-          if (sampledColor) {
-            applySampledColor(sampledColor, target, false);
-            return true;
-          }
-        }
 
-        if (hitPath) {
-          if (hitPath.tool === 'image') {
-            return sampleImagePixel(point, hitPath, target) || openEyeDropperForSampling(target);
-          }
-          return openEyeDropperForSampling(target);
-        }
+  const sampleStrokeColor = useCallback((point: Point) => {
+    const paths = activePaths;
+    if (paths && paths.length > 0) {
+      const hitPath = findDeepestHitPath(point, paths, viewTransform.viewTransform.scale);
+      if (hitPath && hitPath.tool !== 'image' && hitPath.color) {
+        setColor(hitPath.color);
+        return true;
       }
 
-      return openEyeDropperForSampling(target);
-    },
-    [activePaths, viewTransform.viewTransform, applySampledColor, openEyeDropperForSampling, sampleImagePixel]
-  );
+      if (hitPath) {
+        if (hitPath.tool === 'image') {
+          return sampleImagePixel(point, hitPath) || openEyeDropperForSampling();
+        }
+        return openEyeDropperForSampling();
+      }
+    }
 
-  const sampleStrokeColor = useCallback(
-    (point: Point) => sampleColorAtPoint(point, 'stroke'),
-    [sampleColorAtPoint]
-  );
+    return openEyeDropperForSampling();
+  }, [activePaths, viewTransform.viewTransform, setColor, openEyeDropperForSampling, sampleImagePixel]);
 
-  const sampleFillColor = useCallback(
-    (point: Point) => sampleColorAtPoint(point, 'fill'),
-    [sampleColorAtPoint]
-  );
 
   useEffect(() => {
     if (!isEyeDropperSupported()) {
@@ -649,62 +727,36 @@ export const useAppStore = () => {
     }
 
     const isAltKey = (event: KeyboardEvent) => event.key === 'Alt' || event.key === 'AltGraph';
-    const isShiftKey = (event: KeyboardEvent) => event.key === 'Shift';
+
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isAltKey(event)) {
-        if (event.repeat || event.metaKey || event.ctrlKey) {
-          return;
-        }
-
-        altKeyPressedRef.current = true;
-
-        if (toolbarState.tool === 'selection') {
-          return;
-        }
-
-        const target: SampleTarget = (shiftKeyPressedRef.current || event.shiftKey) ? 'fill' : 'stroke';
-        if (openEyeDropperForSampling(target)) {
-          event.preventDefault();
-        }
+      if (!isAltKey(event) || event.repeat || event.metaKey || event.ctrlKey) {
         return;
       }
 
-      if (isShiftKey(event)) {
-        if (event.repeat) {
-          return;
-        }
+      if (toolbarState.tool === 'selection') {
+        return;
+      }
 
-        shiftKeyPressedRef.current = true;
+      const point = lastPointerPositionRef.current;
+      const handled = point ? sampleStrokeColor(point) : openEyeDropperForSampling();
 
-        if (!altKeyPressedRef.current || event.metaKey || event.ctrlKey || toolbarState.tool === 'selection') {
-          return;
-        }
+      if (handled) {
+        event.preventDefault();
 
-        if (openEyeDropperForSampling('fill')) {
-          event.preventDefault();
-        }
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (isAltKey(event)) {
-        altKeyPressedRef.current = false;
-        cancelEyeDropper();
+
+      if (!isAltKey(event)) {
         return;
       }
-
-      if (isShiftKey(event)) {
-        shiftKeyPressedRef.current = false;
-        if (altKeyPressedRef.current && toolbarState.tool !== 'selection') {
-          openEyeDropperForSampling('stroke');
-        }
-      }
+      cancelEyeDropper();
     };
 
     const handleBlur = () => {
-      altKeyPressedRef.current = false;
-      shiftKeyPressedRef.current = false;
+
       cancelEyeDropper();
     };
 
@@ -717,16 +769,99 @@ export const useAppStore = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [toolbarState.tool, openEyeDropperForSampling, cancelEyeDropper]);
+
+  }, [toolbarState.tool, sampleStrokeColor, openEyeDropperForSampling, cancelEyeDropper]);
 
   useEffect(() => {
     if (toolbarState.tool === 'selection') {
-      altKeyPressedRef.current = false;
-      shiftKeyPressedRef.current = false;
       cancelEyeDropper();
     }
   }, [toolbarState.tool, cancelEyeDropper]);
-  
+
+  const handleCropManualPointerDown = useCallback((point: Point, event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0) return;
+    if (appState.cropSelectionMode === 'magic-wand') return;
+
+    const baseOperation = appState.cropSelectionOperation;
+    const operation = event.altKey ? (baseOperation === 'add' ? 'subtract' : 'add') : baseOperation;
+
+    if (appState.cropSelectionMode === 'freehand') {
+      const draft = { mode: 'freehand' as const, operation, points: [point] };
+      cropManualDraftRef.current = draft;
+      setAppState(s => ({ ...s, cropManualDraft: draft }));
+      return;
+    }
+
+    const existing = cropManualDraftRef.current;
+    if (!existing || existing.mode !== 'polygon') {
+      const draft = { mode: 'polygon' as const, operation, points: [point] };
+      cropManualDraftRef.current = draft;
+      setAppState(s => ({ ...s, cropManualDraft: draft }));
+      return;
+    }
+
+    const nextPoints = [...existing.points, point];
+    const scale = viewTransform.viewTransform.scale || 1;
+    const closeThreshold = 12 / Math.max(scale, 0.001);
+    const firstPoint = nextPoints[0];
+    const shouldCloseByDistance = nextPoints.length >= 3 && dist(point, firstPoint) <= closeThreshold;
+    const shouldCloseByDoubleClick = event.detail >= 2;
+
+    const normalizedPoints = shouldCloseByDistance
+      ? [...nextPoints.slice(0, -1), firstPoint]
+      : nextPoints;
+
+    const nextDraft = { mode: 'polygon' as const, operation, points: normalizedPoints };
+    cropManualDraftRef.current = nextDraft;
+    setAppState(s => ({ ...s, cropManualDraft: { ...nextDraft, previewPoint: undefined } }));
+
+    if ((shouldCloseByDistance || shouldCloseByDoubleClick) && normalizedPoints.length >= 3) {
+      clearManualDraftState();
+      applyManualSelection(normalizedPoints, operation);
+    }
+  }, [appState.cropSelectionMode, appState.cropSelectionOperation, applyManualSelection, clearManualDraftState, setAppState, viewTransform.viewTransform.scale]);
+
+  const handleCropManualPointerMove = useCallback((point: Point) => {
+    const draft = cropManualDraftRef.current;
+    if (!draft) return;
+
+    if (draft.mode === 'freehand') {
+      const last = draft.points[draft.points.length - 1];
+      if (last && last.x === point.x && last.y === point.y) return;
+      const nextPoints = [...draft.points, point];
+      cropManualDraftRef.current = { ...draft, points: nextPoints };
+      setAppState(s => ({ ...s, cropManualDraft: { mode: 'freehand', operation: draft.operation, points: nextPoints } }));
+      return;
+    }
+
+    setAppState(s => {
+      const current = s.cropManualDraft;
+      if (!current || current.mode !== 'polygon') return s;
+      if (current.previewPoint && current.previewPoint.x === point.x && current.previewPoint.y === point.y) return s;
+      return { ...s, cropManualDraft: { ...current, previewPoint: point } };
+    });
+  }, [setAppState]);
+
+  const handleCropManualPointerUp = useCallback((_event?: React.PointerEvent<SVGSVGElement>) => {
+    const draft = cropManualDraftRef.current;
+    if (!draft) return;
+
+    if (draft.mode === 'freehand') {
+      const points = draft.points;
+      clearManualDraftState();
+      if (points.length < 2) return;
+      const closedPoints = points.length >= 3 ? [...points, points[0]] : points;
+      applyManualSelection(closedPoints, draft.operation);
+      return;
+    }
+
+    setAppState(s => {
+      const current = s.cropManualDraft;
+      if (!current || current.mode !== 'polygon' || !current.previewPoint) return s;
+      return { ...s, cropManualDraft: { ...current, previewPoint: undefined } };
+    });
+  }, [applyManualSelection, clearManualDraftState, setAppState]);
+
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
       '重置偏好设置',
@@ -891,15 +1026,25 @@ export const useAppStore = () => {
   }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
-  const selectionInteraction = useSelection({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onDoubleClick, croppingState: appState.croppingState, currentCropRect: appState.currentCropRect, setCurrentCropRect, pushCropHistory, cropTool: appState.cropTool, onMagicWandSample: selectMagicWandAt });
-  const pointerInteraction = usePointerInteraction({
-    tool: toolbarState.tool,
+  const selectionInteraction = useSelection({
+    pathState: activePathState,
+    toolbarState,
     viewTransform,
-    drawingInteraction,
-    selectionInteraction,
-    sampleStrokeColor,
-    sampleFillColor,
+    ...uiState,
+    onDoubleClick,
+    croppingState: appState.croppingState,
+    currentCropRect: appState.currentCropRect,
+    setCurrentCropRect,
+    pushCropHistory,
+    cropTool: appState.cropTool,
+    onMagicWandSample: selectMagicWandAt,
+    cropSelectionMode: appState.cropSelectionMode,
+    onCropManualPointerDown: handleCropManualPointerDown,
+    onCropManualPointerMove: handleCropManualPointerMove,
+    onCropManualPointerUp: handleCropManualPointerUp,
+    cropManualDraft: appState.cropManualDraft,
   });
+  const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction, sampleStrokeColor });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
@@ -1064,7 +1209,7 @@ export const useAppStore = () => {
     setFps, setIsPlaying, setContextMenu, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, setEditingTextPathId, setActiveFileHandle, setActiveFileName, setIsLoading,
     showConfirmation, hideConfirmation, setCroppingState, setCurrentCropRect, pushCropHistory,
-    setCropTool, setCropMagicWandOptions, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
+    setCropTool, setCropMagicWandOptions, setCropSelectionMode, setCropSelectionOperation, selectMagicWandAt, applyMagicWandSelection, cancelMagicWandSelection,
     confirmCrop, trimTransparentEdges, cancelCrop, handleTextChange, handleTextEditCommit, handleSetTool, handleToggleStyleLibrary,
     handleClear,
     handleClearAllData,
