@@ -141,7 +141,8 @@ const ShapeControls: React.FC<{
     isSelectedAlone: boolean;
     dragState: DragState | null;
     allowSkew: boolean;
-}> = React.memo(({ path, scale, isSelectedAlone, dragState, allowSkew }) => {
+    showMeasurements?: boolean;
+}> = React.memo(({ path, scale, isSelectedAlone, dragState, allowSkew, showMeasurements = false }) => {
     const { x, y, width, height } = path;
 
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
@@ -206,6 +207,30 @@ const ShapeControls: React.FC<{
     const topCenter = transformPoint(topCenterUnrotated);
     const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
 
+    const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
+    const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
+
+    let rotationHandleLabel: React.ReactNode = null;
+    if (showMeasurements && typeof path.rotation === 'number') {
+        const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
+        const handleLength = Math.hypot(handleVec.x, handleVec.y);
+        const handleUnit = handleLength > 0.0001 ? { x: handleVec.x / handleLength, y: handleVec.y / handleLength } : { x: 0, y: -1 };
+
+        const labelCenter = {
+            x: rotationHandlePos.x + handleUnit.x * handleLabelOffsetWorld,
+            y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
+        };
+
+        rotationHandleLabel = (
+            <LabelPill
+                text={formatRotationValue(path.rotation ?? 0)}
+                position={labelCenter}
+                rotation={0}
+                scale={scale}
+            />
+        );
+    }
+
     return (
         <g className="pointer-events-auto">
             <PathHighlight path={path} scale={scale} />
@@ -230,20 +255,37 @@ const ShapeControls: React.FC<{
                 <line x1={topCenter.x} y1={topCenter.y} x2={rotationHandlePos.x} y2={rotationHandlePos.y} stroke={accent} strokeWidth={scaledStroke(1)} strokeDasharray={`${2 / scale} ${2 / scale}`} className="pointer-events-none" />
                 <circle cx={rotationHandlePos.x} cy={rotationHandlePos.y} r={5 / scale} fill="var(--text-primary)" stroke={accent} strokeWidth={scaledStroke(1)} data-handle="rotate" data-path-id={path.id} style={{ cursor: 'grab' }} className="pointer-events-all" />
 
+                {rotationHandleLabel}
+
                 {isSelectedAlone && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') && (() => {
                     const cornerPos = { x, y };
                     // Using a fixed screen-space offset makes it consistent regardless of zoom.
-                    const handleOffset = 20 / scale; 
+                    const handleOffset = 20 / scale;
                     const unrotatedHandlePos = { x: cornerPos.x, y: cornerPos.y - handleOffset };
-                    
+
                     const handlePos = transformPoint(unrotatedHandlePos);
                     const rotatedCornerPos = transformPoint(cornerPos);
-                    
+
+                    const handleDirection = {
+                        x: handlePos.x - rotatedCornerPos.x,
+                        y: handlePos.y - rotatedCornerPos.y,
+                    };
+                    const handleLength = Math.hypot(handleDirection.x, handleDirection.y);
+                    const handleUnit = handleLength > 0.0001
+                        ? { x: handleDirection.x / handleLength, y: handleDirection.y / handleLength }
+                        : { x: 0, y: -1 };
+
+                    const cornerRadiusValue = 'borderRadius' in path ? Math.max(0, path.borderRadius ?? 0) : 0;
+                    const cornerLabelCenter = {
+                        x: handlePos.x + handleUnit.x * handleLabelOffsetWorld,
+                        y: handlePos.y + handleUnit.y * handleLabelOffsetWorld,
+                    };
+
                     return (
                         <>
-                            <line 
-                                x1={rotatedCornerPos.x} y1={rotatedCornerPos.y} 
-                                x2={handlePos.x} y2={handlePos.y} 
+                            <line
+                                x1={rotatedCornerPos.x} y1={rotatedCornerPos.y}
+                                x2={handlePos.x} y2={handlePos.y}
                                 stroke="var(--accent-primary)" 
                                 strokeWidth={1/scale} 
                                 strokeDasharray={`${2/scale} ${2/scale}`} 
@@ -256,10 +298,18 @@ const ShapeControls: React.FC<{
                                 stroke="var(--text-primary)" 
                                 strokeWidth={1 / scale} 
                                 data-handle="border-radius" 
-                                data-path-id={path.id} 
+                                data-path-id={path.id}
                                 style={{ cursor: 'ew-resize' }}
                                 className="pointer-events-all"
                             />
+                            {showMeasurements && (
+                                <LabelPill
+                                    text={`R ${formatDimensionValue(cornerRadiusValue)}`}
+                                    position={cornerLabelCenter}
+                                    rotation={0}
+                                    scale={scale}
+                                />
+                            )}
                         </>
                     );
                 })()}
@@ -485,7 +535,279 @@ const GradientHandles: React.FC<{ path: AnyPath; scale: number }> = React.memo((
   );
 });
 
-const MultiSelectionControls: React.FC<{ paths: AnyPath[], scale: number }> = React.memo(({ paths, scale }) => {
+const LABEL_FONT_SIZE = 12;
+const LABEL_FONT_WEIGHT = 600;
+const LABEL_FONT_FAMILY = 'Inter, system-ui, sans-serif';
+const LABEL_FONT = `${LABEL_FONT_WEIGHT} ${LABEL_FONT_SIZE}px ${LABEL_FONT_FAMILY}`;
+const LABEL_PADDING_X = 10;
+const LABEL_PADDING_Y = 4;
+const LABEL_OFFSET_PX = 12;
+const HANDLE_LABEL_OFFSET_PX = 8;
+
+type DimensionGuide = {
+  width: number;
+  height: number;
+  anchor: Point;
+  normal: Point;
+  angle: number;
+  rotation?: number;
+  cornerRadius?: number;
+};
+
+const measureTextWidth = (() => {
+  let canvas: HTMLCanvasElement | null = null;
+  let context: CanvasRenderingContext2D | null = null;
+  return (text: string, font: string) => {
+    if (typeof document === 'undefined') {
+      return text.length * 7;
+    }
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      context = canvas.getContext('2d');
+    }
+    if (!context) {
+      return text.length * 7;
+    }
+    context.font = font;
+    return context.measureText(text).width;
+  };
+})();
+
+const formatDimensionValue = (value: number) => {
+  if (!isFinite(value)) {
+    return '0';
+  }
+  const absolute = Math.abs(value);
+  const rounded = Math.round(absolute * 100) / 100;
+  if (rounded < 0.01) {
+    return '0';
+  }
+  const fixed = rounded.toFixed(2);
+  return fixed.replace(/\.00$/, '').replace(/(\.\d*[1-9])0$/, '$1');
+};
+
+const formatRotationValue = (radians: number) => {
+  const degrees = (radians * 180) / Math.PI;
+  let normalized = ((degrees + 180) % 360 + 360) % 360 - 180;
+  if (Math.abs(normalized) < 0.01) {
+    normalized = 0;
+  }
+  const rounded = Math.round(normalized * 100) / 100;
+  if (Math.abs(rounded) < 0.01) {
+    return '0°';
+  }
+  const magnitude = formatDimensionValue(Math.abs(rounded));
+  const sign = rounded < 0 ? '-' : '';
+  return `${sign}${magnitude}°`;
+};
+
+const buildDimensionLabelText = (guide: DimensionGuide) =>
+  `${formatDimensionValue(Math.max(0, guide.width))} × ${formatDimensionValue(Math.max(0, guide.height))}`;
+
+const createDimensionGuide = (
+  width: number,
+  height: number,
+  anchor: Point,
+  normal: Point,
+  angle: number,
+  extras: Partial<Pick<DimensionGuide, 'rotation' | 'cornerRadius'>> = {},
+): DimensionGuide => ({
+  width,
+  height,
+  anchor,
+  normal,
+  angle,
+  ...extras,
+});
+
+const averageNonZero = (values: number[]) => {
+  const positives = values.map(Math.abs).filter(v => v > 0.0001);
+  if (positives.length === 0) {
+    return 0;
+  }
+  const sum = positives.reduce((acc, curr) => acc + curr, 0);
+  return sum / positives.length;
+};
+
+const getGuideForTransformableShape = (
+  path: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData,
+): DimensionGuide => {
+  const { x, y, width, height } = path;
+  const matrix = getShapeTransformMatrix(path);
+  const corners = [
+    { x, y },
+    { x: x + width, y },
+    { x: x + width, y: y + height },
+    { x, y: y + height },
+  ].map(point => applyMatrixToPoint(matrix, point));
+
+  const [topLeft, topRight, bottomRight, bottomLeft] = corners;
+
+  const topEdgeVec = { x: topRight.x - topLeft.x, y: topRight.y - topLeft.y };
+  const bottomEdgeVec = { x: bottomRight.x - bottomLeft.x, y: bottomRight.y - bottomLeft.y };
+  const leftEdgeVec = { x: bottomLeft.x - topLeft.x, y: bottomLeft.y - topLeft.y };
+  const rightEdgeVec = { x: bottomRight.x - topRight.x, y: bottomRight.y - topRight.y };
+
+  const widthValue = averageNonZero([
+    Math.hypot(topEdgeVec.x, topEdgeVec.y),
+    Math.hypot(bottomEdgeVec.x, bottomEdgeVec.y),
+  ]);
+
+  const heightValue = averageNonZero([
+    Math.hypot(leftEdgeVec.x, leftEdgeVec.y),
+    Math.hypot(rightEdgeVec.x, rightEdgeVec.y),
+  ]);
+
+  const edgeForOrientation = Math.hypot(bottomEdgeVec.x, bottomEdgeVec.y) > 0.0001 ? bottomEdgeVec : topEdgeVec;
+  const edgeLength = Math.hypot(edgeForOrientation.x, edgeForOrientation.y);
+  const angle = edgeLength > 0.0001 ? Math.atan2(edgeForOrientation.y, edgeForOrientation.x) : 0;
+  const normal = edgeLength > 0.0001
+    ? { x: -edgeForOrientation.y / edgeLength, y: edgeForOrientation.x / edgeLength }
+    : { x: 0, y: 1 };
+
+  const anchor = {
+    x: (bottomLeft.x + bottomRight.x) / 2,
+    y: (bottomLeft.y + bottomRight.y) / 2,
+  };
+
+  const cornerRadius =
+    path.tool === 'rectangle' || path.tool === 'polygon'
+      ? path.borderRadius ?? 0
+      : undefined;
+
+  return createDimensionGuide(
+    widthValue,
+    heightValue,
+    anchor,
+    normal,
+    angle,
+    {
+      rotation: path.rotation ?? 0,
+      cornerRadius,
+    },
+  );
+};
+
+const getGuideFromBBox = (
+  bbox: BBox | null,
+  extras: Partial<Pick<DimensionGuide, 'rotation' | 'cornerRadius'>> = {},
+): DimensionGuide | null => {
+  if (!bbox) {
+    return null;
+  }
+  const anchor = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height };
+  const normal = { x: 0, y: 1 };
+  return createDimensionGuide(bbox.width, bbox.height, anchor, normal, 0, extras);
+};
+
+const getGuideForPath = (path: AnyPath): DimensionGuide | null => {
+  switch (path.tool) {
+    case 'rectangle':
+    case 'ellipse':
+    case 'image':
+    case 'polygon':
+    case 'text':
+    case 'frame':
+      return getGuideForTransformableShape(path);
+    default:
+      return getGuideFromBBox(
+        getPathBoundingBox(path, false),
+        { rotation: path.rotation ?? 0 },
+      );
+  }
+};
+
+const getDimensionGuide = (paths: AnyPath[]): DimensionGuide | null => {
+  if (!paths || paths.length === 0) {
+    return null;
+  }
+  if (paths.length === 1) {
+    return getGuideForPath(paths[0]);
+  }
+  return getGuideFromBBox(getPathsBoundingBox(paths, false));
+};
+
+type LabelPillProps = {
+  text: string;
+  position: Point;
+  scale: number;
+  rotation?: number;
+};
+
+const LabelPill: React.FC<LabelPillProps> = React.memo(({ text, position, scale, rotation = 0 }) => {
+  const textWidth = React.useMemo(() => measureTextWidth(text, LABEL_FONT), [text]);
+  const labelWidth = textWidth + LABEL_PADDING_X * 2;
+  const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
+  const safeScale = Math.max(scale, 0.0001);
+  const rotationDeg = (rotation * 180) / Math.PI;
+
+  return (
+    <g
+      transform={`translate(${position.x} ${position.y}) rotate(${rotationDeg}) scale(${1 / safeScale})`}
+      className="pointer-events-none select-none"
+    >
+      <rect
+        x={-labelWidth / 2}
+        y={-labelHeight / 2}
+        width={labelWidth}
+        height={labelHeight}
+        rx={labelHeight / 2}
+        ry={labelHeight / 2}
+        fill="var(--accent-primary)"
+        stroke="var(--text-primary)"
+        strokeOpacity={0.25}
+      />
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={LABEL_FONT_SIZE}
+        fontFamily={LABEL_FONT_FAMILY}
+        fontWeight={LABEL_FONT_WEIGHT}
+        fill="var(--text-on-accent-solid)"
+      >
+        {text}
+      </text>
+    </g>
+  );
+});
+
+const DimensionLabel: React.FC<{ guide: DimensionGuide; scale: number }> = React.memo(({ guide, scale }) => {
+  const labelText = React.useMemo(() => buildDimensionLabelText(guide), [guide.width, guide.height]);
+  const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
+  const safeScale = Math.max(scale, 0.0001);
+
+  const normalLength = Math.hypot(guide.normal.x, guide.normal.y);
+  const normal = normalLength > 0.0001
+    ? { x: guide.normal.x / normalLength, y: guide.normal.y / normalLength }
+    : { x: 0, y: 1 };
+
+  let rotationRad = guide.angle;
+  if (Math.abs(rotationRad) > Math.PI / 2) {
+    rotationRad = rotationRad > 0 ? rotationRad - Math.PI : rotationRad + Math.PI;
+  }
+
+  const offsetWorld = (LABEL_OFFSET_PX + labelHeight / 2) / safeScale;
+  const anchorX = guide.anchor.x + normal.x * offsetWorld;
+  const anchorY = guide.anchor.y + normal.y * offsetWorld;
+
+  return (
+    <LabelPill
+      text={labelText}
+      position={{ x: anchorX, y: anchorY }}
+      rotation={rotationRad}
+      scale={scale}
+    />
+  );
+});
+
+const MultiSelectionControls: React.FC<{
+    paths: AnyPath[];
+    scale: number;
+    showMeasurements?: boolean;
+    rotationValue?: number | null;
+}> = React.memo(({ paths, scale, showMeasurements = false, rotationValue }) => {
     const bbox = getPathsBoundingBox(paths, false);
     if (!bbox) return null;
     const accent = 'var(--accent-primary)';
@@ -498,13 +820,53 @@ const MultiSelectionControls: React.FC<{ paths: AnyPath[], scale: number }> = Re
     const rotationHandlePos = { x: topCenter.x, y: topCenter.y - rotationHandleOffset };
     const firstPathId = paths[0]?.id;
 
+    const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
+    const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
+
+    let rotationHandleLabel: React.ReactNode = null;
+    if (showMeasurements && typeof rotationValue === 'number') {
+        const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
+        const handleLength = Math.hypot(handleVec.x, handleVec.y);
+        const handleUnit = handleLength > 0.0001 ? { x: handleVec.x / handleLength, y: handleVec.y / handleLength } : { x: 0, y: -1 };
+
+        const labelCenter = {
+            x: rotationHandlePos.x + handleUnit.x * handleLabelOffsetWorld,
+            y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
+        };
+
+        rotationHandleLabel = (
+            <LabelPill
+                text={formatRotationValue(rotationValue)}
+                position={labelCenter}
+                rotation={0}
+                scale={scale}
+            />
+        );
+    }
+
     return (
         <g className="pointer-events-auto">
             {paths.map(p => <PathHighlight key={p.id} path={p} scale={scale} isMultiSelect={true} />)}
             <rect x={bbox.x} y={bbox.y} width={bbox.width} height={bbox.height} fill="none" stroke={accent} strokeWidth={scaledStroke(1)} strokeDasharray={`${4 / scale} ${4 / scale}`} className="pointer-events-none" />
             <line x1={topCenter.x} y1={topCenter.y} x2={rotationHandlePos.x} y2={rotationHandlePos.y} stroke={accent} strokeWidth={scaledStroke(1)} strokeDasharray={`${2 / scale} ${2 / scale}`} className="pointer-events-none" />
             <circle cx={rotationHandlePos.x} cy={rotationHandlePos.y} r={5 / scale} fill="var(--text-primary)" stroke={accent} strokeWidth={scaledStroke(1)} data-handle="rotate" data-path-id={firstPathId} style={{ cursor: 'grab' }} className="pointer-events-all" />
-            {handles.map(({ pos, name, cursor }) => (<rect key={name} x={pos.x - halfHandleSize} y={pos.y - halfHandleSize} width={handleSize} height={handleSize} fill="var(--text-primary)" stroke={accent} strokeWidth={scaledStroke(1)} data-handle={name} data-path-id={firstPathId} style={{ cursor }} className="pointer-events-all" />))}
+            {rotationHandleLabel}
+            {handles.map(({ pos, name, cursor }) => (
+                <rect
+                    key={name}
+                    x={pos.x - halfHandleSize}
+                    y={pos.y - halfHandleSize}
+                    width={handleSize}
+                    height={handleSize}
+                    fill="var(--text-primary)"
+                    stroke={accent}
+                    strokeWidth={scaledStroke(1)}
+                    data-handle={name}
+                    data-path-id={firstPathId}
+                    style={{ cursor }}
+                    className="pointer-events-all"
+                />
+            ))}
         </g>
     );
 });
@@ -590,6 +952,11 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
 
   // Move/transform mode logic
   if (selectionMode === 'move') {
+    const dimensionGuide = getDimensionGuide(selectedPaths);
+    const dimensionLabel = dimensionGuide ? (
+      <DimensionLabel guide={dimensionGuide} scale={scale} />
+    ) : null;
+
     if (selectedPaths.length === 1) {
         const selectedPath = selectedPaths[0];
         const gradientHandles = selectedPath.fillGradient ? (
@@ -605,20 +972,38 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
                         isSelectedAlone={true}
                         dragState={dragState}
                         allowSkew={true}
+                        showMeasurements={true}
                     />
                     {gradientHandles}
+                    {dimensionLabel}
                 </>
             );
         }
 
         return (
             <>
-                <MultiSelectionControls paths={selectedPaths} scale={scale} />
+                <MultiSelectionControls
+                    paths={selectedPaths}
+                    scale={scale}
+                    showMeasurements={true}
+                    rotationValue={dimensionGuide?.rotation ?? null}
+                />
                 {gradientHandles}
+                {dimensionLabel}
             </>
         );
     }
-    return <MultiSelectionControls paths={selectedPaths} scale={scale} />;
+    return (
+      <>
+        <MultiSelectionControls
+          paths={selectedPaths}
+          scale={scale}
+          showMeasurements={true}
+          rotationValue={dimensionGuide?.rotation ?? null}
+        />
+        {dimensionLabel}
+      </>
+    );
   }
 
   return null;
