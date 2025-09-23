@@ -148,7 +148,7 @@ export const useSelection = ({
     }
 
     handlePointerMoveLogic({
-      e, movePoint, dragState, marquee, setMarquee, lassoPath, setLassoPath,
+      e, movePoint, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath,
       pathState, toolbarState, viewTransform,
       setIsHoveringMovable, setIsHoveringEditable, isClosingPath, snapToGrid,
       setCurrentCropRect,
