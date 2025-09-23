@@ -19,6 +19,7 @@ import { isPointHittingPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10;
+const AXIS_LOCK_SWITCH_THRESHOLD = 4;
 
 // Coalesce frequent move-updates into a single render per frame to improve
 // responsiveness when dragging, especially for large groups or rough shapes.
@@ -30,6 +31,7 @@ interface HandlePointerMoveProps {
   e: React.PointerEvent<SVGSVGElement>;
   movePoint: Point;
   dragState: DragState;
+  setDragState: Dispatch<SetStateAction<DragState>>;
   marquee: { start: Point; end: Point } | null;
   setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
   lassoPath: Point[] | null;
@@ -49,7 +51,7 @@ interface HandlePointerMoveProps {
  * @param props - 包含事件对象、状态和设置器的对象。
  */
 export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
-    const { e, movePoint, dragState, marquee, setMarquee, lassoPath, setLassoPath, pathState, toolbarState, viewTransform, setIsHoveringMovable, setIsHoveringEditable, isClosingPath, snapToGrid, setCurrentCropRect } = props;
+    const { e, movePoint, dragState, setDragState, marquee, setMarquee, lassoPath, setLassoPath, pathState, toolbarState, viewTransform, setIsHoveringMovable, setIsHoveringEditable, isClosingPath, snapToGrid, setCurrentCropRect } = props;
     const { paths, setPaths } = pathState;
     const { selectionMode } = toolbarState;
     const { viewTransform: vt } = viewTransform;
@@ -66,10 +68,38 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
         let transformedShapes: AnyPath[] = [];
         switch (dragState.type) {
             case 'move': {
-                const { originalPaths, initialPointerPos, initialSelectionBbox } = dragState;
+                const { originalPaths, initialPointerPos, initialSelectionBbox, axisLock: currentAxisLock } = dragState;
                 const raw_dx = movePoint.x - initialPointerPos.x; const raw_dy = movePoint.y - initialPointerPos.y;
+                const absDx = Math.abs(raw_dx); const absDy = Math.abs(raw_dy);
+
+                let nextAxisLock = currentAxisLock;
+                if (e.shiftKey) {
+                    if (!currentAxisLock) {
+                        if (absDx > absDy) {
+                            nextAxisLock = 'x';
+                        } else if (absDy > absDx) {
+                            nextAxisLock = 'y';
+                        }
+                    } else if (currentAxisLock === 'x' && absDy - absDx > AXIS_LOCK_SWITCH_THRESHOLD) {
+                        nextAxisLock = 'y';
+                    } else if (currentAxisLock === 'y' && absDx - absDy > AXIS_LOCK_SWITCH_THRESHOLD) {
+                        nextAxisLock = 'x';
+                    }
+                } else {
+                    nextAxisLock = null;
+                }
+
+                if (nextAxisLock !== currentAxisLock) {
+                    setDragState(prev => (prev && prev.type === 'move' ? { ...prev, axisLock: nextAxisLock } : prev));
+                }
+
                 const snappedBboxTopLeft = snapToGrid({ x: initialSelectionBbox.x + raw_dx, y: initialSelectionBbox.y + raw_dy });
-                const final_dx = snappedBboxTopLeft.x - initialSelectionBbox.x; const final_dy = snappedBboxTopLeft.y - initialSelectionBbox.y;
+                let final_dx = snappedBboxTopLeft.x - initialSelectionBbox.x; let final_dy = snappedBboxTopLeft.y - initialSelectionBbox.y;
+                if (nextAxisLock === 'x') {
+                    final_dy = 0;
+                } else if (nextAxisLock === 'y') {
+                    final_dx = 0;
+                }
                 transformedShapes = originalPaths.map((p: AnyPath) => movePath(p, final_dx, final_dy));
 
                 // Schedule a single paths update for this animation frame using the

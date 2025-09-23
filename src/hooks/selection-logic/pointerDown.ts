@@ -54,6 +54,7 @@ const handlePointerDownForMove = (
               originalPaths: selectedPaths,
               initialPointerPos: point,
               initialSelectionBbox: selectionGeometricBbox,
+              axisLock: null,
           });
       }
     };

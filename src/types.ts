@@ -333,6 +333,7 @@ type MoveDragState = {
   originalPaths: AnyPath[];
   initialPointerPos: Point;
   initialSelectionBbox: BBox;
+  axisLock: 'x' | 'y' | null;
 };
 
 // A drag state for resizing a single shape
