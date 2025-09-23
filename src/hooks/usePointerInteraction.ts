@@ -28,6 +28,7 @@ interface PointerInteractionProps {
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
   sampleStrokeColor?: (point: Point) => boolean;
+  sampleFillColor?: (point: Point) => boolean;
 }
 
 /**
@@ -40,6 +41,7 @@ export const usePointerInteraction = ({
   drawingInteraction,
   selectionInteraction,
   sampleStrokeColor,
+  sampleFillColor,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -50,12 +52,14 @@ export const usePointerInteraction = ({
       e.pointerType !== 'touch' &&
       e.button === 0 &&
       e.altKey &&
-      tool !== 'selection' &&
-      sampleStrokeColor
+      tool !== 'selection'
     ) {
-      const point = viewTransform.getPointerPosition(e, e.currentTarget);
-      if (sampleStrokeColor(point)) {
-        return;
+      const sampler = e.shiftKey ? sampleFillColor : sampleStrokeColor;
+      if (sampler) {
+        const point = viewTransform.getPointerPosition(e, e.currentTarget);
+        if (sampler(point)) {
+          return;
+        }
       }
     }
 

@@ -5,6 +5,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useUiStore } from '@/context/uiStore';
+import type { UiState } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
 import { useViewTransform } from './useViewTransform';
@@ -18,10 +19,12 @@ import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point } from '../types';
+
 import { measureText, rotatePoint, dist } from '@/lib/drawing';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 import { findDeepestHitPath } from '@/lib/hit-testing';
 import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, type MagicWandMask } from '@/lib/image';
+
 import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { isEyeDropperSupported, openEyeDropper } from '@/lib/eyeDropper';
 import { useFilesStore } from '@/context/filesStore';
@@ -101,28 +104,6 @@ const buildContourPaths = (
 
 // --- State Type Definitions ---
 
-interface UiState {
-  isGridVisible: boolean;
-  gridSize: number;
-  gridSubdivisions: number;
-  gridOpacity: number;
-  backgroundColor: string;
-  isStatusBarCollapsed: boolean;
-  isSideToolbarCollapsed: boolean;
-  isMainMenuCollapsed: boolean;
-  mainMenuWidth: number;
-  pngExportOptions: PngExportOptions;
-  isStyleLibraryOpen: boolean;
-  styleLibraryPosition: { x: number; y: number };
-  isTimelineCollapsed: boolean;
-  fps: number;
-  isPlaying: boolean;
-  isOnionSkinEnabled: boolean;
-  onionSkinPrevFrames: number;
-  onionSkinNextFrames: number;
-  onionSkinOpacity: number;
-}
-
 interface AppState {
   contextMenu: { isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null;
   styleClipboard: StyleClipboardData | null;
@@ -201,6 +182,11 @@ const getInitialAppState = (): AppState => ({
 });
 
 
+const isUiStateUpdater = (
+  value: UiState | ((s: UiState) => UiState)
+): value is (s: UiState) => UiState => typeof value === 'function';
+
+
 /**
  * 集中管理整个应用状态的主 Hook。
  * @returns 返回一个包含所有状态和操作函数的对象。
@@ -210,9 +196,13 @@ export const useAppStore = () => {
   const uiState = useUiStore();
   const initialFpsRef = useRef(uiState.fps);
   const initialFitRequestedRef = useRef(false);
-  const setUiState = useCallback((updater: (s: UiState) => UiState) => {
+  const setUiState = useCallback((updater: UiState | ((s: UiState) => UiState)) => {
     // Replace entire UI slice with updater result to mirror previous React setState pattern
-    useUiStore.setState(updater as (prev: UiState) => UiState, true);
+    if (isUiStateUpdater(updater)) {
+      useUiStore.setState(state => updater(state), true);
+    } else {
+      useUiStore.setState(updater, true);
+    }
   }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
@@ -602,7 +592,8 @@ export const useAppStore = () => {
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
-  const { setColor } = toolbarState;
+  const { setColor, setFill } = toolbarState;
+
 
   const eyeDropperControllerRef = useRef<AbortController | null>(null);
   const imagePixelDataCacheRef = useRef<Map<string, Promise<ImageData>>>(new Map());
@@ -615,10 +606,12 @@ export const useAppStore = () => {
   const cancelEyeDropper = useCallback(() => {
     const controller = eyeDropperControllerRef.current;
     if (!controller) {
+
       return;
     }
 
     eyeDropperControllerRef.current = null;
+
     controller.abort();
   }, []);
 
@@ -631,9 +624,11 @@ export const useAppStore = () => {
   );
 
   const openEyeDropperForSampling = useCallback(() => {
+
     if (!isEyeDropperSupported()) {
       return false;
     }
+
 
     if (eyeDropperControllerRef.current) {
       return true;
@@ -642,17 +637,22 @@ export const useAppStore = () => {
     const controller = new AbortController();
     eyeDropperControllerRef.current = controller;
 
+
     void openEyeDropper({ signal: controller.signal })
       .then(color => {
         if (color) {
+
           applySampledColor(color);
+
         }
       })
       .catch(error => {
         console.error('EyeDropper failed to open', error);
       })
       .finally(() => {
+
         if (eyeDropperControllerRef.current === controller) {
+
           eyeDropperControllerRef.current = null;
         }
       });
@@ -661,7 +661,9 @@ export const useAppStore = () => {
   }, [applySampledColor]);
 
   const sampleImagePixel = useCallback(
+
     (point: Point, image: PathImageData) => {
+
       const key = image.fileId ?? image.src;
       if (!key) {
         return false;
@@ -684,7 +686,9 @@ export const useAppStore = () => {
           const g = data.data[index + 1];
           const b = data.data[index + 2];
           const alpha = data.data[index + 3] / 255;
+
           applySampledColor(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+
         })
         .catch(error => {
           console.error('Failed to sample image color', error);
@@ -694,6 +698,7 @@ export const useAppStore = () => {
     },
     [applySampledColor]
   );
+
 
   const sampleStrokeColor = useCallback((point: Point) => {
     const paths = activePaths;
@@ -715,12 +720,14 @@ export const useAppStore = () => {
     return openEyeDropperForSampling();
   }, [activePaths, viewTransform.viewTransform, setColor, openEyeDropperForSampling, sampleImagePixel]);
 
+
   useEffect(() => {
     if (!isEyeDropperSupported()) {
       return;
     }
 
     const isAltKey = (event: KeyboardEvent) => event.key === 'Alt' || event.key === 'AltGraph';
+
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isAltKey(event) || event.repeat || event.metaKey || event.ctrlKey) {
@@ -736,10 +743,12 @@ export const useAppStore = () => {
 
       if (handled) {
         event.preventDefault();
+
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
+
       if (!isAltKey(event)) {
         return;
       }
@@ -747,6 +756,7 @@ export const useAppStore = () => {
     };
 
     const handleBlur = () => {
+
       cancelEyeDropper();
     };
 
@@ -759,6 +769,7 @@ export const useAppStore = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
+
   }, [toolbarState.tool, sampleStrokeColor, openEyeDropperForSampling, cancelEyeDropper]);
 
   useEffect(() => {
@@ -850,6 +861,7 @@ export const useAppStore = () => {
       return { ...s, cropManualDraft: { ...current, previewPoint: undefined } };
     });
   }, [applyManualSelection, clearManualDraftState, setAppState]);
+
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
       '重置偏好设置',
