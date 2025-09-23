@@ -1,4 +1,4 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
 
 /**
  * 缩放图形。
@@ -56,6 +56,68 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         children: (path as GroupData).children.map(child => scalePath(child, pivot, scaleX, scaleY)),
       };
   }
+}
+
+const toScaledStrokeDash = (dash: [number, number] | undefined, scale: number): [number, number] | undefined => {
+  if (!dash) {
+    return dash;
+  }
+  return [dash[0] * scale, dash[1] * scale];
+};
+
+const applyUniformStyleScaling = <T extends AnyPath>(original: T, scaled: T, scale: number): T => {
+  const magnitude = Math.abs(scale);
+  const styleUpdates: Partial<AnyPath> = {
+    strokeWidth: (original.strokeWidth ?? 0) * magnitude,
+  };
+
+  if (original.strokeLineDash) {
+    styleUpdates.strokeLineDash = toScaledStrokeDash(original.strokeLineDash, magnitude);
+  }
+  if (typeof original.endpointSize === 'number') {
+    styleUpdates.endpointSize = original.endpointSize * magnitude;
+  }
+  if (typeof original.fillWeight === 'number' && original.fillWeight >= 0) {
+    styleUpdates.fillWeight = original.fillWeight * magnitude;
+  }
+  if (typeof original.hachureGap === 'number' && original.hachureGap > 0) {
+    styleUpdates.hachureGap = original.hachureGap * magnitude;
+  }
+  if (typeof original.blur === 'number') {
+    styleUpdates.blur = original.blur * magnitude;
+  }
+  if (typeof original.shadowOffsetX === 'number') {
+    styleUpdates.shadowOffsetX = original.shadowOffsetX * magnitude;
+  }
+  if (typeof original.shadowOffsetY === 'number') {
+    styleUpdates.shadowOffsetY = original.shadowOffsetY * magnitude;
+  }
+  if (typeof original.shadowBlur === 'number') {
+    styleUpdates.shadowBlur = original.shadowBlur * magnitude;
+  }
+
+  let result: AnyPath = { ...scaled, ...styleUpdates };
+
+  if (original.tool === 'text' && (original as TextData).fontSize != null) {
+    (result as TextData).fontSize = (original as TextData).fontSize * magnitude;
+  }
+
+  if (original.tool === 'group' && scaled.tool === 'group') {
+    const originalChildren = (original as GroupData).children;
+    const scaledChildren = (scaled as GroupData).children;
+    const children = scaledChildren.map((child, index) => {
+      const source = originalChildren[index] ?? child;
+      return applyUniformStyleScaling(source, child, scale);
+    });
+    result = { ...result, children } as GroupData;
+  }
+
+  return result as T;
+};
+
+export function scalePathUniformWithStyles<T extends AnyPath>(path: T, pivot: Point, scale: number): T {
+  const scaled = scalePath(path, pivot, scale, scale);
+  return applyUniformStyleScaling(path, scaled, scale);
 }
 
 export default scalePath;
