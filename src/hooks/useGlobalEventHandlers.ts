@@ -75,6 +75,11 @@ const useGlobalEventHandlers = () => {
     endCoalescing();
   }, [setActivePaths, endCoalescing]);
 
+  const finishKeyboardScaleRef = useRef(finishKeyboardScale);
+  useEffect(() => {
+    finishKeyboardScaleRef.current = finishKeyboardScale;
+  }, [finishKeyboardScale]);
+
   const startKeyboardScale = useCallback(() => {
     if (keyboardScaleRef.current) {
       return;
@@ -554,10 +559,10 @@ const useGlobalEventHandlers = () => {
   useEffect(() => {
     return () => {
       if (keyboardScaleRef.current) {
-        finishKeyboardScale(false);
+        finishKeyboardScaleRef.current(false);
       }
     };
-  }, [finishKeyboardScale]);
+  }, []);
 
   useEffect(() => {
     if (!keyboardScaleRef.current) {
