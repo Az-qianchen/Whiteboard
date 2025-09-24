@@ -37,7 +37,7 @@ const useGlobalEventHandlers = () => {
     tool, selectionMode, handleSetTool: setTool, setSelectionMode,
     drawingInteraction,
     isGridVisible, setIsGridVisible,
-    handleCut, handleCopy, handlePaste, handleImportClick, handleFileImport, handleSaveFile,
+    handleCut, handleCopy, handleCopyAsPng, handlePaste, handleImportClick, handleFileImport, handleSaveFile,
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
     handleGroup, handleUngroup,
     getPointerPosition, viewTransform: vt, lastPointerPosition,
@@ -507,6 +507,18 @@ const useGlobalEventHandlers = () => {
       }
     });
 
+    hotkeys('command+shift+c, ctrl+shift+c', (event) => {
+      const activeElement = document.activeElement;
+      const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
+      if (!isInput) {
+        event.preventDefault();
+        if (keyboardScaleRef.current) {
+          return;
+        }
+        void handleCopyAsPng();
+      }
+    });
+
     // IMPORTANT: Restore the filter immediately after binding the exceptions.
     hotkeys.filter = originalFilter;
 
@@ -520,6 +532,7 @@ const useGlobalEventHandlers = () => {
       hotkeys.unbind('command+shift+z, ctrl+shift+z');
       hotkeys.unbind('command+x, ctrl+x');
       hotkeys.unbind('command+c, ctrl+c');
+      hotkeys.unbind('command+shift+c, ctrl+shift+c');
       hotkeys.unbind('command+i, ctrl+i');
       hotkeys.unbind('command+s, ctrl+s');
       hotkeys.unbind('command+g, ctrl+g');
@@ -544,6 +557,7 @@ const useGlobalEventHandlers = () => {
     cancelDrawingShape,
     handleCut,
     handleCopy,
+    handleCopyAsPng,
     handlePaste,
     handleImportClick,
     handleSaveFile,

@@ -379,8 +379,8 @@ const resources = {
         },
         gradientFill: {
           title: '渐变填充',
-          start: '起始颜色',
-          end: '结束颜色',
+          start: '起始色',
+          end: '结束色',
           type: '类型',
           types: {
             solid: '纯色',
