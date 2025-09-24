@@ -38,7 +38,8 @@ const mapWorldPointToImagePixel = (
   point: Point,
   image: PathImageData,
   naturalWidth: number,
-  naturalHeight: number
+  naturalHeight: number,
+  options: { clampToBounds?: boolean } = {}
 ): { x: number; y: number } | null => {
   const rotation = image.rotation ?? 0;
   const center = { x: image.x + image.width / 2, y: image.y + image.height / 2 };
@@ -49,13 +50,30 @@ const mapWorldPointToImagePixel = (
 
   const normalizedX = (localPoint.x - image.x) / image.width;
   const normalizedY = (localPoint.y - image.y) / image.height;
-  if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1) {
+  const { clampToBounds = false } = options;
+  if (!clampToBounds && (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1)) {
     return null;
   }
 
+  const clampedX = clampToBounds ? Math.min(Math.max(normalizedX, 0), 1) : normalizedX;
+  const clampedY = clampToBounds ? Math.min(Math.max(normalizedY, 0), 1) : normalizedY;
+
+  const toPixel = (value: number, size: number) => {
+    if (Number.isNaN(value) || size <= 0) {
+      return 0;
+    }
+    if (value <= 0) {
+      return 0;
+    }
+    if (value >= 1) {
+      return size - 1;
+    }
+    return Math.floor(value * size);
+  };
+
   return {
-    x: Math.floor(normalizedX * naturalWidth),
-    y: Math.floor(normalizedY * naturalHeight),
+    x: toPixel(clampedX, naturalWidth),
+    y: toPixel(clampedY, naturalHeight),
   };
 };
 
@@ -554,7 +572,7 @@ export const useAppStore = () => {
     if (!cache) return;
 
     const pixelPoints = points
-      .map(pt => mapWorldPointToImagePixel(pt, cropping.originalPath, cache.naturalWidth, cache.naturalHeight))
+      .map(pt => mapWorldPointToImagePixel(pt, cropping.originalPath, cache.naturalWidth, cache.naturalHeight, { clampToBounds: true }))
       .filter((pt): pt is { x: number; y: number } => pt !== null);
 
     if (pixelPoints.length < 3) return;
