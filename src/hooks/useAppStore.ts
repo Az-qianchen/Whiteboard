@@ -4,6 +4,7 @@
  * 并为整个应用提供一个统一的状态和操作接口。
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useUiStore } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
@@ -250,7 +251,27 @@ const getInitialAppState = (): AppState => ({
  */
 export const useAppStore = () => {
   // UI slice migrated to Zustand; keep API stable by bridging setUiState
-  const uiState = useUiStore();
+  const uiState = useUiStore(useShallow(state => ({
+    isGridVisible: state.isGridVisible,
+    gridSize: state.gridSize,
+    gridSubdivisions: state.gridSubdivisions,
+    gridOpacity: state.gridOpacity,
+    backgroundColor: state.backgroundColor,
+    isStatusBarCollapsed: state.isStatusBarCollapsed,
+    isSideToolbarCollapsed: state.isSideToolbarCollapsed,
+    isMainMenuCollapsed: state.isMainMenuCollapsed,
+    mainMenuWidth: state.mainMenuWidth,
+    pngExportOptions: state.pngExportOptions,
+    isStyleLibraryOpen: state.isStyleLibraryOpen,
+    styleLibraryPosition: state.styleLibraryPosition,
+    isTimelineCollapsed: state.isTimelineCollapsed,
+    fps: state.fps,
+    isPlaying: state.isPlaying,
+    isOnionSkinEnabled: state.isOnionSkinEnabled,
+    onionSkinPrevFrames: state.onionSkinPrevFrames,
+    onionSkinNextFrames: state.onionSkinNextFrames,
+    onionSkinOpacity: state.onionSkinOpacity,
+  })));
   const initialFpsRef = useRef(uiState.fps);
   const initialFitRequestedRef = useRef(false);
   const setUiState = useCallback((updater: (s: UiState) => UiState) => {
@@ -276,7 +297,43 @@ export const useAppStore = () => {
   } | null>(null);
 
   const pathState = usePathsStore();
-  const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
+  const {
+    paths,
+    frames,
+    setCurrentFrameIndex,
+    setPaths,
+    handleLoadFile,
+    handleDeletePaths,
+    togglePathsProperty,
+    toggleGroupCollapse,
+    setPathName,
+    reorderPaths,
+    addFrame,
+    copyFrame,
+    deleteFrame,
+    reorderFrames,
+    undo,
+    redo,
+    canUndo: pathCanUndo,
+    canRedo: pathCanRedo,
+    beginCoalescing,
+    endCoalescing,
+    selectedPathIds,
+    setSelectedPathIds,
+    finishBrushPath,
+    handleFinishPenPath,
+    handleCancelPenPath,
+    handleFinishLinePath,
+    handleCancelLinePath,
+    handleReorder,
+    handleDeleteSelected,
+    currentBrushPath,
+    setCurrentBrushPath,
+    currentPenPath,
+    setCurrentPenPath,
+    currentLinePath,
+    setCurrentLinePath,
+  } = pathState;
 
   const currentDocumentSignature = useMemo(
     () => createDocumentSignature(frames, uiState.backgroundColor, uiState.fps),
@@ -565,7 +622,7 @@ export const useAppStore = () => {
       const filesStore = useFilesStore.getState();
       const { fileId } = await filesStore.ingestDataUrl(newSrc);
 
-      pathState.setPaths(prev => prev.map(p =>
+      setPaths(prev => prev.map(p =>
         p.id === cropping.pathId ? { ...(p as PathImageData), fileId } : p
       ));
       setCroppingState(prev => (
@@ -583,7 +640,7 @@ export const useAppStore = () => {
       setCropEditedSrc(newSrc);
       clearCropSelection();
     })();
-  }, [appState.croppingState, pathState.setPaths, setCroppingState, clearCropSelection]);
+  }, [appState.croppingState, setPaths, setCroppingState, clearCropSelection]);
 
   const cutMagicWandSelection = useCallback(() => {
     const cropping = appState.croppingState;
@@ -709,7 +766,7 @@ export const useAppStore = () => {
         return { result: handled ? next : paths, handled };
       };
 
-      pathState.setPaths(prev => {
+      setPaths(prev => {
         const { result, handled } = applyCutToPaths(prev);
         return handled ? result : prev;
       });
@@ -730,7 +787,7 @@ export const useAppStore = () => {
       setCropEditedSrc(newSrc);
       clearCropSelection();
     })();
-  }, [appState.croppingState, clearCropSelection, pathState.setPaths, setCroppingState, setCropEditedSrc]);
+  }, [appState.croppingState, clearCropSelection, setPaths, setCroppingState, setCropEditedSrc]);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
@@ -846,13 +903,13 @@ export const useAppStore = () => {
         '清空画布',
         '确定要清空整个画布吗？此操作无法撤销。',
         () => {
-          pathState.setPaths([]);
+          setPaths([]);
           setSelectedPathIds([]);
         },
         '清空'
       );
     }
-  }, [canClear, pathState, showConfirmation, setSelectedPathIds]);
+  }, [canClear, setPaths, showConfirmation, setSelectedPathIds]);
 
   const handleClearAllData = useCallback(() => {
     if (!canClearAllData) return;
@@ -862,19 +919,19 @@ export const useAppStore = () => {
       () => {
         const resetFrames = [{ paths: [] } as Frame];
         // Reset the timeline to a single empty frame so no leftover thumbnails remain
-        pathState.handleLoadFile(resetFrames, 0);
+        handleLoadFile(resetFrames, 0);
         setSelectedPathIds([]);
       },
       '清空'
     );
-  }, [canClearAllData, pathState, showConfirmation, setSelectedPathIds]);
-  
+  }, [canClearAllData, handleLoadFile, showConfirmation, setSelectedPathIds]);
+
   const groupIsolation = useGroupIsolation(pathState);
   const { activePaths, activePathState } = groupIsolation;
 
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
-  const toolbarState = useToolsStore(activePaths, pathState.selectedPathIds, activePathState.setPaths, pathState.setSelectedPathIds, pathState.beginCoalescing, pathState.endCoalescing);
+  const toolbarState = useToolsStore(activePaths, selectedPathIds, activePathState.setPaths, setSelectedPathIds, beginCoalescing, endCoalescing);
 
   const handleCropManualPointerDown = useCallback((point: Point, event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
@@ -995,7 +1052,7 @@ export const useAppStore = () => {
   const handleTextChange = useCallback((pathId: string, newText: string) => {
       activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
   }, [activePathState]);
-  const handleTextEditCommit = useCallback(() => { pathState.endCoalescing(); setEditingTextPathId(null); }, [pathState, setEditingTextPathId]);
+  const handleTextEditCommit = useCallback(() => { endCoalescing(); setEditingTextPathId(null); }, [endCoalescing, setEditingTextPathId]);
   
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
@@ -1067,11 +1124,20 @@ export const useAppStore = () => {
       setCropEditedSrc(null);
       clearCropSelection();
       setAppState(prev => ({ ...prev, cropTool: 'crop' }));
-      pathState.endCoalescing();
+      endCoalescing();
     };
 
     void performCrop();
-  }, [appState.croppingState, appState.currentCropRect, activePathState, pathState, setCroppingState, setCurrentCropRect, cropEditedSrc, clearCropSelection]);
+  }, [
+    appState.croppingState,
+    appState.currentCropRect,
+    activePathState,
+    endCoalescing,
+    setCroppingState,
+    setCurrentCropRect,
+    cropEditedSrc,
+    clearCropSelection,
+  ]);
 
   const cancelCrop = useCallback(() => {
     clearCropSelection();
@@ -1080,8 +1146,8 @@ export const useAppStore = () => {
     setCroppingState(null);
     setCurrentCropRect(null);
     setCropHistory({ past: [], future: [] });
-    pathState.endCoalescing();
-  }, [setCroppingState, setCurrentCropRect, pathState, clearCropSelection]);
+    endCoalescing();
+  }, [setCroppingState, setCurrentCropRect, endCoalescing, clearCropSelection]);
 
   const handleUndo = useCallback(() => {
     if (appState.croppingState) {
@@ -1096,8 +1162,16 @@ export const useAppStore = () => {
       cancelCrop();
       return;
     }
-    pathState.undo();
-  }, [appState.croppingState, cropSelectionHistory.past.length, cropHistory.past.length, undoSelectionMask, undoCropRect, cancelCrop, pathState]);
+    undo();
+  }, [
+    appState.croppingState,
+    cropSelectionHistory.past.length,
+    cropHistory.past.length,
+    undoSelectionMask,
+    undoCropRect,
+    cancelCrop,
+    undo,
+  ]);
 
   const handleRedo = useCallback(() => {
     if (appState.croppingState) {
@@ -1111,27 +1185,47 @@ export const useAppStore = () => {
       }
       return;
     }
-    pathState.redo();
-  }, [appState.croppingState, cropSelectionHistory.future.length, cropHistory.future.length, redoSelectionMask, redoCropRect, pathState]);
+    redo();
+  }, [
+    appState.croppingState,
+    cropSelectionHistory.future.length,
+    cropHistory.future.length,
+    redoSelectionMask,
+    redoCropRect,
+    redo,
+  ]);
 
-  const canUndo = pathState.canUndo || appState.croppingState !== null;
-  const canRedo = pathState.canRedo || (appState.croppingState !== null && (cropHistory.future.length > 0 || cropSelectionHistory.future.length > 0));
+  const canUndo = pathCanUndo || appState.croppingState !== null;
+  const canRedo =
+    pathCanRedo ||
+    (appState.croppingState !== null && (cropHistory.future.length > 0 || cropSelectionHistory.future.length > 0));
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
-      if (path.tool === 'text') { setEditingTextPathId(path.id); pathState.beginCoalescing(); } 
+      if (path.tool === 'text') { setEditingTextPathId(path.id); beginCoalescing(); }
       else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
-          pathState.beginCoalescing();
+          beginCoalescing();
           clearCropSelection();
           setCropEditedSrc(null);
           setCropTool('crop');
           setCroppingState({ pathId: path.id, originalPath: path as PathImageData });
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
-          pathState.setSelectedPathIds([path.id]);
+          setSelectedPathIds([path.id]);
       }
-  }, [toolbarState.selectionMode, pathState, groupIsolation, setEditingTextPathId, setCroppingState, setCurrentCropRect, clearCropSelection, setCropTool, setCropEditedSrc]);
+  }, [
+    toolbarState.selectionMode,
+    beginCoalescing,
+    groupIsolation,
+    setEditingTextPathId,
+    setCroppingState,
+    setCurrentCropRect,
+    clearCropSelection,
+    setCropTool,
+    setCropEditedSrc,
+    setSelectedPathIds,
+  ]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
   const selectionInteraction = useSelection({
@@ -1158,11 +1252,22 @@ export const useAppStore = () => {
     if (newTool === toolbarState.tool) return;
     if (appState.croppingState) cancelCrop();
     if (drawingInteraction.drawingShape) drawingInteraction.cancelDrawingShape();
-    if (pathState.currentPenPath) pathState.handleCancelPenPath();
-    if (pathState.currentLinePath) pathState.handleCancelLinePath();
-    if (pathState.currentBrushPath) pathState.setCurrentBrushPath(null);
+    if (currentPenPath) handleCancelPenPath();
+    if (currentLinePath) handleCancelLinePath();
+    if (currentBrushPath) setCurrentBrushPath(null);
     toolbarState.setTool(newTool);
-  }, [toolbarState, pathState, drawingInteraction, appState.croppingState, cancelCrop]);
+  }, [
+    toolbarState,
+    drawingInteraction,
+    appState.croppingState,
+    cancelCrop,
+    currentPenPath,
+    handleCancelPenPath,
+    currentLinePath,
+    handleCancelLinePath,
+    currentBrushPath,
+    setCurrentBrushPath,
+  ]);
 
   const handleToggleStyleLibrary = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setUiState(s => {
@@ -1195,8 +1300,8 @@ export const useAppStore = () => {
   }, []);
 
   const appActions = useAppActions({
-    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds: pathState.selectedPathIds,
-    pathState: { ...activePathState, handleLoadFile: pathState.handleLoadFile },
+    paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds,
+    pathState: { ...activePathState, handleLoadFile },
     toolbarState, viewTransform, getPointerPosition: viewTransform.getPointerPosition, ...appState,
     setActiveFileHandle, setActiveFileName, setBackgroundColor, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
@@ -1260,7 +1365,7 @@ export const useAppStore = () => {
           const framesToLoad = data.frames || [{ paths: data.paths ?? [] }];
           const nextBackground = data.backgroundColor ?? '#212529';
           const nextFps = data.fps ?? initialFpsRef.current;
-          pathState.handleLoadFile(framesToLoad);
+          handleLoadFile(framesToLoad);
           requestFitToContent();
           initialFitRequestedRef.current = true;
           setBackgroundColor(nextBackground);
@@ -1279,7 +1384,7 @@ export const useAppStore = () => {
       }
     };
     loadLastFile();
-  }, [pathState.handleLoadFile, setActiveFileHandle, setActiveFileName, setBackgroundColor, setIsLoading, setFps, markDocumentSaved, initialFpsRef]);
+  }, [handleLoadFile, setActiveFileHandle, setActiveFileName, setBackgroundColor, setIsLoading, setFps, markDocumentSaved, initialFpsRef]);
 
   useEffect(() => {
     if (!uiState.isPlaying || frames.length === 0) return;
@@ -1371,7 +1476,40 @@ export const useAppStore = () => {
     [
       uiState,
       appState,
-      pathState,
+      frames,
+      setCurrentFrameIndex,
+      setPaths,
+      handleLoadFile,
+      handleDeletePaths,
+      togglePathsProperty,
+      toggleGroupCollapse,
+      setPathName,
+      reorderPaths,
+      addFrame,
+      copyFrame,
+      deleteFrame,
+      reorderFrames,
+      undo,
+      redo,
+      pathCanUndo,
+      pathCanRedo,
+      beginCoalescing,
+      endCoalescing,
+      selectedPathIds,
+      setSelectedPathIds,
+      finishBrushPath,
+      handleFinishPenPath,
+      handleCancelPenPath,
+      handleFinishLinePath,
+      handleCancelLinePath,
+      handleReorder,
+      handleDeleteSelected,
+      currentBrushPath,
+      setCurrentBrushPath,
+      currentPenPath,
+      setCurrentPenPath,
+      currentLinePath,
+      setCurrentLinePath,
       groupIsolation,
       viewTransform,
       toolbarState,
