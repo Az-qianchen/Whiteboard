@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow';
 import { useUiStore } from '@/context/uiStore';
 import { usePathsStore } from './usePathsStore';
+import { usePathsStore as pathsStoreApi } from '@/context/pathsStore';
 import { useToolsStore } from './useToolsStore';
 import { useViewTransform } from './useViewTransform';
 import { useViewTransformStore } from '@/context/viewTransformStore';
@@ -463,6 +464,25 @@ export const useAppStore = () => {
   const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
   }, []);
+  const refreshCroppingImageFromStore = useCallback((pathId: string) => {
+    const { frames: storeFrames, currentFrameIndex: storeFrameIndex } = pathsStoreApi.getState();
+    const frame = storeFrames[storeFrameIndex];
+    const nextPath = frame?.paths.find(p => p.id === pathId);
+
+    if (!nextPath || nextPath.tool !== 'image') {
+      setCroppingState(prev => (prev && prev.pathId === pathId ? null : prev));
+      return;
+    }
+
+    cropImageCacheRef.current = null;
+    setCropEditedSrc(null);
+    setCroppingState(prev => {
+      if (!prev || prev.pathId !== pathId) {
+        return prev;
+      }
+      return { ...prev, originalPath: nextPath as PathImageData };
+    });
+  }, [setCroppingState, setCropEditedSrc]);
   const updateMagicWandSelection = useCallback(
     (mask: MagicWandMask | null, options: { saveToHistory?: boolean } = {}) => {
       const { saveToHistory = true } = options;
@@ -1177,6 +1197,12 @@ export const useAppStore = () => {
         undoCropRect();
         return;
       }
+      if (pathCanUndo) {
+        const targetId = appState.croppingState.pathId;
+        undo();
+        refreshCroppingImageFromStore(targetId);
+        return;
+      }
       cancelCrop();
       return;
     }
@@ -1185,8 +1211,10 @@ export const useAppStore = () => {
     appState.croppingState,
     cropSelectionHistory.past.length,
     cropHistory.past.length,
+    pathCanUndo,
     undoSelectionMask,
     undoCropRect,
+    refreshCroppingImageFromStore,
     cancelCrop,
     undo,
   ]);
@@ -1201,6 +1229,12 @@ export const useAppStore = () => {
         redoCropRect();
         return;
       }
+      if (pathCanRedo) {
+        const targetId = appState.croppingState.pathId;
+        redo();
+        refreshCroppingImageFromStore(targetId);
+        return;
+      }
       return;
     }
     redo();
@@ -1208,8 +1242,10 @@ export const useAppStore = () => {
     appState.croppingState,
     cropSelectionHistory.future.length,
     cropHistory.future.length,
+    pathCanRedo,
     redoSelectionMask,
     redoCropRect,
+    refreshCroppingImageFromStore,
     redo,
   ]);
 
