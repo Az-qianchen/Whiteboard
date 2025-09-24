@@ -21,6 +21,7 @@ type KeyboardScaleState = {
   pointerScale: number;
   currentScale: number;
   inputBuffer: string;
+  pointerLocked: boolean;
   applyScale: (scale: number, options?: { fromPointer?: boolean }) => void;
   cleanup: () => void;
 };
@@ -141,6 +142,7 @@ const useGlobalEventHandlers = () => {
       pointerScale: 1,
       currentScale: 1,
       inputBuffer: '',
+      pointerLocked: false,
       applyScale: () => {},
       cleanup: () => {},
     };
@@ -172,6 +174,9 @@ const useGlobalEventHandlers = () => {
 
     const pointerMoveListener = (event: PointerEvent) => {
       if (!keyboardScaleRef.current) {
+        return;
+      }
+      if (state.pointerLocked) {
         return;
       }
       const svg = ensureCanvas();
@@ -251,6 +256,7 @@ const useGlobalEventHandlers = () => {
         event.stopImmediatePropagation();
         state.inputBuffer = state.inputBuffer.slice(0, -1);
         if (state.inputBuffer.length === 0) {
+          state.pointerLocked = false;
           state.applyScale(state.pointerScale);
         } else {
           updateFromBuffer();
@@ -268,6 +274,7 @@ const useGlobalEventHandlers = () => {
         event.stopPropagation();
         event.stopImmediatePropagation();
         state.inputBuffer += '.';
+        state.pointerLocked = true;
         updateFromBuffer();
         return;
       }
@@ -276,6 +283,7 @@ const useGlobalEventHandlers = () => {
         event.stopPropagation();
         event.stopImmediatePropagation();
         state.inputBuffer += event.key;
+        state.pointerLocked = true;
         updateFromBuffer();
       }
     };
