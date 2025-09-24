@@ -54,26 +54,27 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
             };
         }
 
+        const imageData = latestImageDataRef.current;
+        if (!imageData) {
+            lastImageKeyRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
         if (lastImageKeyRef.current === imageKey) {
             return () => {
                 cancelled = true;
             };
         }
 
-        lastImageKeyRef.current = imageKey;
         setImageSrc(prev => (prev === null ? prev : null));
-
-        const imageData = latestImageDataRef.current;
-        if (!imageData) {
-            return () => {
-                cancelled = true;
-            };
-        }
 
         void getImageDataUrl(imageData)
             .then((src) => {
                 if (!cancelled) {
                     setImageSrc(prev => (prev === src ? prev : src));
+                    lastImageKeyRef.current = imageKey;
                 }
             })
             .catch((err) => console.error('Failed to resolve image for rendering', err));
@@ -139,26 +140,27 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = Reac
             };
         }
 
+        const imageData = latestImageDataRef.current;
+        if (!imageData) {
+            lastImageKeyRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
         if (lastImageKeyRef.current === imageKey) {
             return () => {
                 cancelled = true;
             };
         }
 
-        lastImageKeyRef.current = imageKey;
         setImageSrc(prev => (prev === null ? prev : null));
-
-        const imageData = latestImageDataRef.current;
-        if (!imageData) {
-            return () => {
-                cancelled = true;
-            };
-        }
 
         void getImageDataUrl(imageData)
             .then((src) => {
                 if (!cancelled) {
                     setImageSrc(prev => (prev === src ? prev : src));
+                    lastImageKeyRef.current = imageKey;
                 }
             })
             .catch((err) => console.error('Failed to resolve image for rough path', err));
