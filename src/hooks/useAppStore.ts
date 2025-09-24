@@ -324,7 +324,11 @@ export const useAppStore = () => {
   }, []);
   const [appState, setAppState] = useState<AppState>(getInitialAppState);
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
-  const [cropSelectionHistory, setCropSelectionHistory] = useState<{ past: (MagicWandMask | null)[]; future: (MagicWandMask | null)[] }>({ past: [], future: [] });
+  const [cropSelectionHistory, setCropSelectionHistory] = useState<{
+    past: (MagicWandMask | null)[];
+    present: MagicWandMask | null;
+    future: (MagicWandMask | null)[];
+  }>({ past: [], present: null, future: [] });
   const [cropEditedSrc, setCropEditedSrc] = useState<string | null>(null);
   const cropImageCacheRef = useRef<{
     naturalWidth: number;
@@ -387,7 +391,7 @@ export const useAppStore = () => {
       cropMagicWandMaskRef.current = null;
       cropMagicWandSampleRef.current = null;
       cropManualDraftRef.current = null;
-      setCropSelectionHistory({ past: [], future: [] });
+      setCropSelectionHistory({ past: [], present: null, future: [] });
       setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null, cropManualDraft: null }));
       return;
     }
@@ -491,23 +495,11 @@ export const useAppStore = () => {
   const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
   }, []);
-  const updateMagicWandSelection = useCallback(
-    (mask: MagicWandMask | null, options: { saveToHistory?: boolean } = {}) => {
-      const { saveToHistory = true } = options;
-      const previousMask = cropMagicWandMaskRef.current;
-      const normalizedMask = cloneMagicWandMask(mask);
-      const maskChanged = !areMasksEqual(previousMask, normalizedMask);
+  const applySelectionMask = useCallback(
+    (mask: MagicWandMask | null) => {
+      cropMagicWandMaskRef.current = mask;
 
-      if (saveToHistory && maskChanged) {
-        setCropSelectionHistory(history => ({
-          past: [...history.past, cloneMagicWandMask(previousMask)],
-          future: [],
-        }));
-      }
-
-      cropMagicWandMaskRef.current = normalizedMask;
-
-      if (!normalizedMask) {
+      if (!mask) {
         cropMagicWandResultRef.current = null;
         cropMagicWandSampleRef.current = null;
         setAppState(s => ({ ...s, cropSelectionContours: null, cropPendingCutoutSrc: null }));
@@ -520,7 +512,7 @@ export const useAppStore = () => {
         return;
       }
 
-      const { image, contours } = applyMaskToImage(cache.imageData, normalizedMask);
+      const { image, contours } = applyMaskToImage(cache.imageData, mask);
       const previewCanvas = document.createElement('canvas');
       previewCanvas.width = cache.naturalWidth;
       previewCanvas.height = cache.naturalHeight;
@@ -544,10 +536,45 @@ export const useAppStore = () => {
     },
     [appState.croppingState, setAppState]
   );
+
+  const updateMagicWandSelection = useCallback(
+    (mask: MagicWandMask | null, options: { saveToHistory?: boolean } = {}) => {
+      const { saveToHistory = true } = options;
+      const previousMask = cropMagicWandMaskRef.current;
+      const normalizedMask = cloneMagicWandMask(mask);
+      const maskChanged = !areMasksEqual(previousMask, normalizedMask);
+
+      if (!maskChanged) {
+        return;
+      }
+
+      applySelectionMask(normalizedMask);
+
+      setCropSelectionHistory(history => {
+        if (saveToHistory) {
+          return {
+            past: [...history.past, cloneMagicWandMask(history.present)],
+            present: cloneMagicWandMask(normalizedMask),
+            future: [],
+          };
+        }
+
+        if (areMasksEqual(history.present, normalizedMask)) {
+          return history;
+        }
+
+        return {
+          ...history,
+          present: cloneMagicWandMask(normalizedMask),
+        };
+      });
+    },
+    [applySelectionMask]
+  );
   const clearCropSelection = useCallback(() => {
     cropManualDraftRef.current = null;
     updateMagicWandSelection(null, { saveToHistory: false });
-    setCropSelectionHistory({ past: [], future: [] });
+    setCropSelectionHistory({ past: [], present: null, future: [] });
     setAppState(s => ({ ...s, cropManualDraft: null }));
   }, [updateMagicWandSelection]);
 
@@ -919,12 +946,20 @@ export const useAppStore = () => {
       if (history.past.length === 0) {
         return history;
       }
+
       const previous = history.past[history.past.length - 1];
-      const current = cloneMagicWandMask(cropMagicWandMaskRef.current);
-      updateMagicWandSelection(previous, { saveToHistory: false });
-      return { past: history.past.slice(0, -1), future: [current, ...history.future] };
+      const normalizedPrevious = cloneMagicWandMask(previous);
+      const current = cloneMagicWandMask(history.present);
+
+      applySelectionMask(normalizedPrevious);
+
+      return {
+        past: history.past.slice(0, -1),
+        present: cloneMagicWandMask(normalizedPrevious),
+        future: [current, ...history.future],
+      };
     });
-  }, [updateMagicWandSelection]);
+  }, [applySelectionMask]);
 
   /**
    * 重做最近一次被撤销的魔棒蒙版编辑。
@@ -934,12 +969,20 @@ export const useAppStore = () => {
       if (history.future.length === 0) {
         return history;
       }
+
       const [next, ...rest] = history.future;
-      const current = cloneMagicWandMask(cropMagicWandMaskRef.current);
-      updateMagicWandSelection(next, { saveToHistory: false });
-      return { past: [...history.past, current], future: rest };
+      const normalizedNext = cloneMagicWandMask(next);
+      const current = cloneMagicWandMask(history.present);
+
+      applySelectionMask(normalizedNext);
+
+      return {
+        past: [...history.past, current],
+        present: cloneMagicWandMask(normalizedNext),
+        future: rest,
+      };
     });
-  }, [updateMagicWandSelection]);
+  }, [applySelectionMask]);
 
   const trimTransparentEdges = useCallback(() => {
     const cropping = appState.croppingState;
