@@ -20,7 +20,14 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
 import { measureText, rotatePoint, dist } from '@/lib/drawing';
-import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, type MagicWandMask } from '@/lib/image';
+import {
+  removeBackground,
+  createMaskFromPolygon,
+  combineMasks,
+  applyMaskToImage,
+  getOpaqueBounds,
+  type MagicWandMask,
+} from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
