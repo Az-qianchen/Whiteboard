@@ -7,7 +7,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import useGlobalEventHandlers from '../hooks/useGlobalEventHandlers';
 import { Whiteboard } from './Whiteboard';
-import { LayersProvider } from '../lib/layers-context';
+import { LayersProvider, type LayersContextValue } from '../lib/layers-context';
 import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import type { MaterialData, AnyPath } from '../types';
@@ -68,6 +68,8 @@ export const MainLayout: React.FC = () => {
         handleFinishPenPath,
         handleFinishLinePath,
     } = store;
+
+    const layersValue = useMemo<LayersContextValue>(() => store.activePathState, [store.activePathState]);
 
     const onionSkinPaths = useMemo(() => {
         if (!isOnionSkinEnabled || frames.length <= 1) {
@@ -180,7 +182,7 @@ export const MainLayout: React.FC = () => {
 
     return (
         <div className="h-full w-full max-w-full font-sans bg-transparent flex overflow-hidden">
-            <LayersProvider {...store}>
+            <LayersProvider value={layersValue}>
                 <MainMenuPanel />
 
                 <main className="flex-grow h-full relative flex flex-col min-w-0">
