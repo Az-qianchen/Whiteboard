@@ -76,7 +76,9 @@ const mapWorldPointToImagePixel = (
       return 0;
     }
     if (value >= 1) {
-      return size - 1;
+      // When clamping points we allow coordinates to reach the canvas edge so the
+      // generated mask covers the outermost pixel instead of leaving a 1px gap.
+      return clampToBounds ? size : size - 1;
     }
     return Math.floor(value * size);
   };
