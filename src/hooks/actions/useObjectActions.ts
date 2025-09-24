@@ -317,9 +317,12 @@ export const useObjectActions = ({
         rect.setAttribute('y', String(sy));
         rect.setAttribute('width', String(sw));
         rect.setAttribute('height', String(sh));
-        rect.setAttribute('fill', 'none');
-        rect.setAttribute('stroke-width', '1');
-        rect.setAttribute('class', 'marching-ants');
+        rect.setAttribute('fill', 'var(--accent-primary)');
+        rect.setAttribute('fill-opacity', '0.12');
+        rect.setAttribute('stroke', 'var(--accent-primary)');
+        rect.setAttribute('stroke-opacity', '0.95');
+        rect.setAttribute('stroke-width', '1.5');
+        rect.setAttribute('class', 'marching-ants selection-highlight');
         rect.setAttribute('vector-effect', 'non-scaling-stroke');
         rect.setAttribute('pointer-events', 'none');
         svg.appendChild(rect);
