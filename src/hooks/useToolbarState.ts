@@ -351,7 +351,7 @@ export const useToolbarState = (
     setDrawingPreserveVertices(DEFAULT_PRESERVE_VERTICES);
     setDrawingDisableMultiStroke(DEFAULT_DISABLE_MULTI_STROKE);
     setDrawingDisableMultiStrokeFill(DEFAULT_DISABLE_MULTI_STROKE_FILL);
-    setDrawingText('文本');
+    setDrawingText('');
     setDrawingFontFamily('Excalifont');
     setDrawingFontSize(24);
     setDrawingTextAlign('left');

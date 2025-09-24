@@ -6,6 +6,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, TextData, FrameData } from '../types';
 import { snapAngle, dist, measureText } from '../lib/drawing';
+import { findDeepestHitPath } from '../lib/hit-testing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
 
@@ -17,6 +18,8 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  setEditingTextPathId: (id: string | null) => void;
+  editingTextPathId: string | null;
 }
 
 /**
@@ -31,6 +34,8 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  setEditingTextPathId,
+  editingTextPathId,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -43,6 +48,9 @@ export const useDrawing = ({
     setCurrentPenPath, currentPenPath,
     setCurrentLinePath, currentLinePath,
     setPaths,
+    setSelectedPathIds,
+    beginCoalescing,
+    paths,
   } = pathState;
 
   const { getPointerPosition } = viewTransform;
@@ -91,6 +99,10 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (editingTextPathId) {
+      return;
+    }
+
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
@@ -156,13 +168,24 @@ export const useDrawing = ({
         break;
       }
       case 'text': {
-        const defaultText = text || '文本';
-        const { width, height } = measureText(defaultText, fontSize, fontFamily);
+        const scale = viewTransform.viewTransform?.scale ?? 1;
+        const hitPath = findDeepestHitPath(point, paths, scale);
+        if (hitPath && hitPath.tool === 'text') {
+          beginCoalescing();
+          toolbarState.setTool('selection');
+          setSelectedPathIds([hitPath.id]);
+          setEditingTextPathId(hitPath.id);
+          break;
+        }
+
+        const initialText = text ?? '';
+        beginCoalescing();
+        const { width, height } = measureText(initialText, fontSize, fontFamily);
 
         const newText: TextData = {
             id,
             tool: 'text',
-            text: defaultText,
+            text: initialText,
             x: snappedPoint.x,
             y: snappedPoint.y,
             width,
@@ -179,7 +202,8 @@ export const useDrawing = ({
         };
         setPaths((prev: AnyPath[]) => [...prev, newText]);
         toolbarState.setTool('selection');
-        pathState.setSelectedPathIds([id]);
+        setSelectedPathIds([id]);
+        setEditingTextPathId(id);
         break;
       }
       case 'arc': {

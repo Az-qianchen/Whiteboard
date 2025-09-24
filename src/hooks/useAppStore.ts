@@ -1189,7 +1189,30 @@ export const useAppStore = () => {
   const handleTextChange = useCallback((pathId: string, newText: string) => {
       activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
   }, [activePathState]);
-  const handleTextEditCommit = useCallback(() => { endCoalescing(); setEditingTextPathId(null); }, [endCoalescing, setEditingTextPathId]);
+  const handleTextEditCommit = useCallback(() => {
+    const editingId = appState.editingTextPathId;
+    if (editingId) {
+      let removed = false;
+      setPaths(prev => {
+        const index = prev.findIndex(p => p.id === editingId);
+        if (index === -1) return prev;
+        const path = prev[index];
+        if (path.tool !== 'text') return prev;
+        const textContent = (path as TextData).text.replace(/\s+/g, '');
+        if (textContent.length === 0) {
+          removed = true;
+          const next = [...prev.slice(0, index), ...prev.slice(index + 1)];
+          return next;
+        }
+        return prev;
+      });
+      if (removed) {
+        setSelectedPathIds(prev => prev.filter(id => id !== editingId));
+      }
+    }
+    endCoalescing();
+    setEditingTextPathId(null);
+  }, [appState.editingTextPathId, endCoalescing, setEditingTextPathId, setPaths, setSelectedPathIds]);
   
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
@@ -1364,7 +1387,14 @@ export const useAppStore = () => {
     setSelectedPathIds,
   ]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({
+    pathState: activePathState,
+    toolbarState,
+    viewTransform,
+    ...uiState,
+    setEditingTextPathId,
+    editingTextPathId: appState.editingTextPathId,
+  });
   const selectionInteraction = useSelection({
     pathState: activePathState,
     toolbarState,

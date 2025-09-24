@@ -66,7 +66,7 @@ vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
   useDrawingPreserveVertices: () => ({ drawingPreserveVertices: DEFAULT_PRESERVE_VERTICES, setDrawingPreserveVertices: drawingPreserveVerticesSetter }),
   useDrawingDisableMultiStroke: () => ({ drawingDisableMultiStroke: DEFAULT_DISABLE_MULTI_STROKE, setDrawingDisableMultiStroke: drawingDisableMultiStrokeSetter }),
   useDrawingDisableMultiStrokeFill: () => ({ drawingDisableMultiStrokeFill: DEFAULT_DISABLE_MULTI_STROKE_FILL, setDrawingDisableMultiStrokeFill: drawingDisableMultiStrokeFillSetter }),
-  useDrawingText: () => ({ drawingText: '文本', setDrawingText: drawingTextSetter }),
+  useDrawingText: () => ({ drawingText: '', setDrawingText: drawingTextSetter }),
   useDrawingFontFamily: () => ({ drawingFontFamily: 'Excalifont', setDrawingFontFamily: drawingFontFamilySetter }),
   useDrawingFontSize: () => ({ drawingFontSize: 24, setDrawingFontSize: drawingFontSizeSetter }),
   useDrawingTextAlign: () => ({ drawingTextAlign: 'left', setDrawingTextAlign: drawingTextAlignSetter }),
@@ -320,7 +320,7 @@ describe('useToolbarState', () => {
     expect(drawingPreserveVerticesSetter).toHaveBeenCalledWith(DEFAULT_PRESERVE_VERTICES);
     expect(drawingDisableMultiStrokeSetter).toHaveBeenCalledWith(DEFAULT_DISABLE_MULTI_STROKE);
     expect(drawingDisableMultiStrokeFillSetter).toHaveBeenCalledWith(DEFAULT_DISABLE_MULTI_STROKE_FILL);
-    expect(drawingTextSetter).toHaveBeenCalledWith('文本');
+    expect(drawingTextSetter).toHaveBeenCalledWith('');
     expect(drawingFontFamilySetter).toHaveBeenCalledWith('Excalifont');
     expect(drawingFontSizeSetter).toHaveBeenCalledWith(24);
     expect(drawingTextAlignSetter).toHaveBeenCalledWith('left');
