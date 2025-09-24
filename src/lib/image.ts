@@ -86,42 +86,58 @@ export function removeBackground(
     };
   }
 
-  let mask: MagicWandMask | null;
+  const baseThreshold = clamp(threshold, 0, 255);
+  const edgeThreshold = clamp(baseThreshold + Math.max(20, Math.round(baseThreshold * 0.5)), 0, 255);
+  const pixelIndex = (y * width + x) * 4;
+  const sampleColor: [number, number, number] = [
+    src[pixelIndex],
+    src[pixelIndex + 1],
+    src[pixelIndex + 2],
+  ];
+
+  let mask: MagicWandMask | null = null;
 
   if (contiguous) {
-    mask = MagicWand.floodFill({ data: src, width, height, bytes: 4 }, x, y, threshold);
+    const baseMask = MagicWand.floodFill({ data: src, width, height, bytes: 4 }, x, y, baseThreshold);
+    if (baseMask) {
+      const expandedMask = MagicWand.floodFill({ data: src, width, height, bytes: 4 }, x, y, baseThreshold, undefined, true);
+      mask = expandMaskWithEdgeTolerance(
+        baseMask,
+        expandedMask ? expandedMask.data : null,
+        src,
+        width,
+        height,
+        sampleColor,
+        baseThreshold,
+        edgeThreshold
+      );
+    }
   } else {
-    const idx = (y * width + x) * 4;
-    const tr = src[idx];
-    const tg = src[idx + 1];
-    const tb = src[idx + 2];
     const data = new Uint8Array(width * height);
-    let minX = width;
-    let minY = height;
-    let maxX = -1;
-    let maxY = -1;
     for (let py = 0; py < height; py++) {
       for (let px = 0; px < width; px++) {
         const i = (py * width + px) * 4;
-        const dr = Math.abs(src[i] - tr);
-        const dg = Math.abs(src[i + 1] - tg);
-        const db = Math.abs(src[i + 2] - tb);
-        if (dr <= threshold && dg <= threshold && db <= threshold) {
-          const pos = py * width + px;
-          data[pos] = 1;
-          if (px < minX) minX = px;
-          if (py < minY) minY = py;
-          if (px > maxX) maxX = px;
-          if (py > maxY) maxY = py;
+        const dr = Math.abs(src[i] - sampleColor[0]);
+        const dg = Math.abs(src[i + 1] - sampleColor[1]);
+        const db = Math.abs(src[i + 2] - sampleColor[2]);
+        if (dr <= baseThreshold && dg <= baseThreshold && db <= baseThreshold) {
+          data[py * width + px] = 1;
         }
       }
     }
-    mask = {
-      data,
-      width,
-      height,
-      bounds: { minX, minY, maxX, maxY }
-    };
+    const bounds = computeMaskBounds(data, width, height);
+    if (bounds) {
+      mask = expandMaskWithEdgeTolerance(
+        { data, width, height, bounds },
+        null,
+        src,
+        width,
+        height,
+        sampleColor,
+        baseThreshold,
+        edgeThreshold
+      );
+    }
   }
 
   if (!mask) {
@@ -153,6 +169,107 @@ export function removeBackground(
   }
 
   return { image: new ImageData(result, width, height), region, mask, contours };
+}
+
+function expandMaskWithEdgeTolerance(
+  baseMask: MagicWandMask,
+  candidateMask: Uint8Array | null,
+  source: Uint8Array,
+  width: number,
+  height: number,
+  sampleColor: [number, number, number],
+  threshold: number,
+  edgeThreshold: number
+): MagicWandMask {
+  const total = width * height;
+  const nextData = new Uint8Array(total);
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  const includeIndex = (index: number) => {
+    if (nextData[index]) {
+      return;
+    }
+    nextData[index] = 1;
+    const x = index % width;
+    const y = Math.floor(index / width);
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  };
+
+  for (let i = 0; i < total; i++) {
+    if (baseMask.data[i]) {
+      includeIndex(i);
+    }
+  }
+
+  if (edgeThreshold > threshold) {
+    const candidates = candidateMask ?? collectNeighborCandidates(baseMask.data, width, height);
+    if (candidates) {
+      for (let i = 0; i < total; i++) {
+        if (!candidates[i] || nextData[i]) {
+          continue;
+        }
+        const offset = i * 4;
+        const diff = Math.max(
+          Math.abs(source[offset] - sampleColor[0]),
+          Math.abs(source[offset + 1] - sampleColor[1]),
+          Math.abs(source[offset + 2] - sampleColor[2])
+        );
+        if (diff > threshold && diff <= edgeThreshold) {
+          includeIndex(i);
+        }
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return baseMask;
+  }
+
+  return {
+    data: nextData,
+    width,
+    height,
+    bounds: { minX, minY, maxX, maxY },
+  };
+}
+
+function collectNeighborCandidates(data: Uint8Array, width: number, height: number): Uint8Array | null {
+  const neighbors = new Uint8Array(width * height);
+  let hasCandidate = false;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = y * width + x;
+      if (!data[index]) {
+        continue;
+      }
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) {
+            continue;
+          }
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
+            continue;
+          }
+          const neighborIndex = ny * width + nx;
+          if (!data[neighborIndex] && !neighbors[neighborIndex]) {
+            neighbors[neighborIndex] = 1;
+            hasCandidate = true;
+          }
+        }
+      }
+    }
+  }
+
+  return hasCandidate ? neighbors : null;
 }
 
 function computeMaskBounds(data: Uint8Array, width: number, height: number): MagicWandMask['bounds'] | null {

@@ -42,6 +42,23 @@ test('魔法棒抠除连续区域', () => {
   expect(nonContiguous.region).toEqual({ x: 0, y: 0, width: 3, height: 1 });
 });
 
+test('边缘相近颜色会被一并抠除', () => {
+  const pixels = new Uint8ClampedArray([
+    255, 255, 255, 255,
+    235, 235, 235, 255,
+    0, 0, 0, 255,
+  ]);
+  const imageData = new ImageData(pixels, 3, 1);
+  const contiguous = removeBackground(imageData, { x: 0, y: 0, threshold: 10, contiguous: true });
+  expect(contiguous.image.data[3]).toBe(0);
+  expect(contiguous.image.data[7]).toBe(0);
+  expect(contiguous.image.data[11]).toBe(255);
+  const nonContiguous = removeBackground(imageData, { x: 0, y: 0, threshold: 10, contiguous: false });
+  expect(nonContiguous.image.data[3]).toBe(0);
+  expect(nonContiguous.image.data[7]).toBe(0);
+  expect(nonContiguous.image.data[11]).toBe(255);
+});
+
 test('获取不透明区域边界', () => {
   const pixels = new Uint8ClampedArray([
     0, 0, 0, 0,
