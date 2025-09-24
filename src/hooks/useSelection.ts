@@ -17,12 +17,24 @@ import type {
 import { handlePointerDownLogic, handlePointerMoveLogic, handlePointerUpLogic } from './selection-logic/index';
 
 // 定义 Hook 将接收的 props
-type CropManualDraft = {
-  mode: 'freehand' | 'polygon';
-  operation: 'add' | 'subtract' | 'replace';
-  points: Point[];
-  previewPoint?: Point;
-};
+type CropManualDraft =
+  | {
+      mode: 'freehand';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+    }
+  | {
+      mode: 'polygon';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+      previewPoint?: Point;
+    }
+  | {
+      mode: 'brush';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+      brushSize: number;
+    };
 
 interface SelectionInteractionProps {
   pathState: SelectionPathState; // from usePaths
@@ -38,7 +50,7 @@ interface SelectionInteractionProps {
   pushCropHistory: (rect: BBox) => void;
   cropTool: 'crop' | 'magic-wand';
   onMagicWandSample: (point: Point) => void;
-  cropSelectionMode?: 'magic-wand' | 'freehand' | 'polygon';
+  cropSelectionMode?: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
   onCropManualPointerDown?: (point: Point, event: React.PointerEvent<SVGSVGElement>) => void;
   onCropManualPointerMove?: (point: Point, event: React.PointerEvent<SVGSVGElement>) => void;
   onCropManualPointerUp?: (event: React.PointerEvent<SVGSVGElement>) => void;

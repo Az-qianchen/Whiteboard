@@ -222,6 +222,65 @@ export function createMaskFromPolygon(
   return { data, width, height, bounds };
 }
 
+export function createMaskFromBrushStroke(
+  width: number,
+  height: number,
+  points: Array<{ x: number; y: number }>,
+  radius: number
+): MagicWandMask | null {
+  if (points.length === 0 || radius <= 0) {
+    return null;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return null;
+  }
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = '#ffffff';
+
+  if (points.length === 1) {
+    const [point] = points;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = radius * 2;
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+
+    // Ensure endpoints are filled when the stroke consists of only two points.
+    ctx.beginPath();
+    ctx.arc(points[0].x, points[0].y, radius, 0, Math.PI * 2);
+    ctx.arc(points[points.length - 1].x, points[points.length - 1].y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = new Uint8Array(width * height);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = imageData.data[i * 4 + 3] > 0 ? 1 : 0;
+  }
+
+  const bounds = computeMaskBounds(data, width, height);
+  if (!bounds) {
+    return null;
+  }
+
+  return { data, width, height, bounds };
+}
+
 export function combineMasks(
   base: MagicWandMask | null,
   delta: MagicWandMask,

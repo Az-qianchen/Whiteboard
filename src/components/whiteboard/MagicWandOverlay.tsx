@@ -1,14 +1,48 @@
 import React from 'react';
 import type { Point } from '@/types';
 
+type MagicWandDraft =
+  | {
+      mode: 'freehand';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+    }
+  | {
+      mode: 'polygon';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+      previewPoint?: Point;
+    }
+  | {
+      mode: 'brush';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+      brushSize: number;
+    };
+
+const getOperationStyle = (operation: 'add' | 'subtract' | 'replace') => {
+  switch (operation) {
+    case 'subtract':
+      return {
+        stroke: 'rgba(239,68,68,0.9)',
+        fill: 'rgba(239,68,68,0.2)',
+      };
+    case 'replace':
+      return {
+        stroke: 'rgba(59,130,246,0.9)',
+        fill: 'rgba(59,130,246,0.2)',
+      };
+    default:
+      return {
+        stroke: 'rgba(16,185,129,0.9)',
+        fill: 'rgba(16,185,129,0.2)',
+      };
+  }
+};
+
 interface MagicWandOverlayProps {
   contours: Array<{ d: string; inner: boolean }>;
-  draft?: {
-    mode: 'freehand' | 'polygon';
-    operation: 'add' | 'subtract' | 'replace';
-    points: Point[];
-    previewPoint?: Point;
-  } | null;
+  draft?: MagicWandDraft | null;
   viewScale: number;
 }
 
@@ -20,6 +54,11 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
   let draftShouldClose = false;
   let draftFill = 'none';
   let draftStroke = 'rgba(16,185,129,0.9)';
+  let brushPath: string | null = null;
+  let brushStroke = 'rgba(16,185,129,0.9)';
+  let brushFill = 'rgba(16,185,129,0.2)';
+  let brushStrokeWidth = 0;
+  let brushHead: Point | null = null;
   let polygonStart: Point | null = null;
   let previewClosesPolygon = false;
   const safeScale = Math.max(viewScale, 0.001);
@@ -29,41 +68,48 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
   const markerInnerStroke = 0.75;
 
   if (hasDraft && draft) {
-    let previewPoint = draft.previewPoint;
+    if (draft.mode === 'brush') {
+      const style = getOperationStyle(draft.operation);
+      brushStroke = style.stroke;
+      brushFill = style.fill;
+      brushStrokeWidth = Math.max(1, draft.brushSize);
+      brushHead = draft.points[draft.points.length - 1] ?? null;
+      if (draft.points.length >= 2) {
+        const commands = draft.points.map((p, index) => `${index === 0 ? 'M' : 'L'}${p.x} ${p.y}`);
+        brushPath = commands.join(' ');
+      } else if (draft.points.length === 1) {
+        brushHead = draft.points[0];
+      }
+    } else {
+      const style = getOperationStyle(draft.operation);
+      let previewPoint = draft.mode === 'polygon' ? draft.previewPoint : undefined;
 
-    if (draft.mode === 'polygon') {
-      polygonStart = draft.points[0] ?? null;
-      if (previewPoint && polygonStart) {
-        const distance = Math.hypot(previewPoint.x - polygonStart.x, previewPoint.y - polygonStart.y);
-        const closeThreshold = 12 / safeScale;
-        if (distance <= closeThreshold) {
-          previewPoint = polygonStart;
-          previewClosesPolygon = true;
+      if (draft.mode === 'polygon') {
+        polygonStart = draft.points[0] ?? null;
+        if (previewPoint && polygonStart) {
+          const distance = Math.hypot(previewPoint.x - polygonStart.x, previewPoint.y - polygonStart.y);
+          const closeThreshold = 12 / safeScale;
+          if (distance <= closeThreshold) {
+            previewPoint = polygonStart;
+            previewClosesPolygon = true;
+          }
         }
       }
-    }
 
-    const basePoints = previewPoint && draft.mode === 'polygon'
-      ? [...draft.points, previewPoint]
-      : [...draft.points];
+      const basePoints = previewPoint && draft.mode === 'polygon'
+        ? [...draft.points, previewPoint]
+        : [...draft.points];
 
-    if (draft.mode === 'freehand' && basePoints.length >= 2) {
-      basePoints.push(basePoints[0]);
-    }
+      if (draft.mode === 'freehand' && basePoints.length >= 2) {
+        basePoints.push(basePoints[0]);
+      }
 
-    if (basePoints.length > 1) {
-      const commands = basePoints.map((p, index) => `${index === 0 ? 'M' : 'L'}${p.x} ${p.y}`);
-      draftShouldClose = basePoints.length > 2;
-      draftPath = `${commands.join(' ')}${draftShouldClose ? ' Z' : ''}`;
-      if (draft.operation === 'subtract') {
-        draftStroke = 'rgba(239,68,68,0.9)';
-        draftFill = draftShouldClose ? 'rgba(239,68,68,0.2)' : 'none';
-      } else if (draft.operation === 'replace') {
-        draftStroke = 'rgba(59,130,246,0.9)';
-        draftFill = draftShouldClose ? 'rgba(59,130,246,0.2)' : 'none';
-      } else {
-        draftStroke = 'rgba(16,185,129,0.9)';
-        draftFill = draftShouldClose ? 'rgba(16,185,129,0.2)' : 'none';
+      if (basePoints.length > 1) {
+        const commands = basePoints.map((p, index) => `${index === 0 ? 'M' : 'L'}${p.x} ${p.y}`);
+        draftShouldClose = basePoints.length > 2;
+        draftPath = `${commands.join(' ')}${draftShouldClose ? ' Z' : ''}`;
+        draftStroke = style.stroke;
+        draftFill = draftShouldClose ? style.fill : 'none';
       }
     }
   }
@@ -102,6 +148,30 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
           strokeWidth={1.5}
           vectorEffect="non-scaling-stroke"
           strokeDasharray={draftShouldClose ? undefined : '6 4'}
+        />
+      )}
+
+      {brushPath && (
+        <path
+          d={brushPath}
+          fill="none"
+          stroke={brushStroke}
+          strokeWidth={brushStrokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.6}
+        />
+      )}
+
+      {brushHead && brushStrokeWidth > 0 && (
+        <circle
+          cx={brushHead.x}
+          cy={brushHead.y}
+          r={Math.max(brushStrokeWidth / 2, 1)}
+          fill={brushFill}
+          stroke={brushStroke}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
         />
       )}
 

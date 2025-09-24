@@ -54,12 +54,25 @@ interface WhiteboardProps {
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
-  cropManualDraft?: {
-    mode: 'freehand' | 'polygon';
-    operation: 'add' | 'subtract' | 'replace';
-    points: Point[];
-    previewPoint?: Point;
-  } | null;
+  cropManualDraft?: (
+    | {
+        mode: 'freehand';
+        operation: 'add' | 'subtract' | 'replace';
+        points: Point[];
+      }
+    | {
+        mode: 'polygon';
+        operation: 'add' | 'subtract' | 'replace';
+        points: Point[];
+        previewPoint?: Point;
+      }
+    | {
+        mode: 'brush';
+        operation: 'add' | 'subtract' | 'replace';
+        points: Point[];
+        brushSize: number;
+      }
+  ) | null;
 }
 
 /**

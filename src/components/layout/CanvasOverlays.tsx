@@ -98,6 +98,8 @@ export const CanvasOverlays: React.FC = () => {
         setCropMagicWandOptions,
         cropSelectionMode,
         setCropSelectionMode,
+        cropBrushSize,
+        setCropBrushSize,
         cropSelectionOperation,
         setCropSelectionOperation,
         cropSelectionContours,
@@ -207,6 +209,8 @@ export const CanvasOverlays: React.FC = () => {
                     setCropMagicWandOptions={setCropMagicWandOptions}
                     cropSelectionMode={cropSelectionMode}
                     setCropSelectionMode={setCropSelectionMode}
+                    cropBrushSize={cropBrushSize}
+                    setCropBrushSize={setCropBrushSize}
                     cropSelectionOperation={cropSelectionOperation}
                     setCropSelectionOperation={setCropSelectionOperation}
                     cropSelectionContours={cropSelectionContours}
