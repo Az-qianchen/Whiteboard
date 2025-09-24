@@ -319,6 +319,27 @@ export function combineMasks(
   return { data: nextData, width, height, bounds };
 }
 
+export function invertMask(mask: MagicWandMask | null): MagicWandMask | null {
+  if (!mask) {
+    return null;
+  }
+
+  const { width, height, data } = mask;
+  const length = width * height;
+  const nextData = new Uint8Array(length);
+
+  for (let i = 0; i < length; i++) {
+    nextData[i] = data[i] ? 0 : 1;
+  }
+
+  const bounds = computeMaskBounds(nextData, width, height);
+  if (!bounds) {
+    return null;
+  }
+
+  return { data: nextData, width, height, bounds };
+}
+
 export function applyMaskToImage(
   imageData: ImageData,
   mask: MagicWandMask | null

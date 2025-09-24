@@ -21,6 +21,7 @@ interface CropToolbarProps {
   cropSelectionOperation: 'add' | 'subtract' | 'replace';
   setCropSelectionOperation: (op: 'add' | 'subtract' | 'replace') => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
+  invertMagicWandSelection: () => void;
   applyMagicWandSelection: () => void;
   cutMagicWandSelection: () => void;
   trimTransparentEdges: () => void;
@@ -44,6 +45,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   cropSelectionOperation,
   setCropSelectionOperation,
   cropSelectionContours,
+  invertMagicWandSelection,
   applyMagicWandSelection,
   cutMagicWandSelection,
   trimTransparentEdges,
@@ -335,6 +337,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           >
             {ICONS.CHECK}
             <span>{t('subtractSelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={invertMagicWandSelection}
+            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
+            title={t('cropSelectionInvert')}
+          >
+            <span className="font-semibold">⇆</span>
+            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
           <PanelButton
             type="button"
