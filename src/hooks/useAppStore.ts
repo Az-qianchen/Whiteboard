@@ -319,6 +319,7 @@ export const useAppStore = () => {
   const {
     paths,
     frames,
+    currentFrameIndex,
     setCurrentFrameIndex,
     setPaths,
     handleLoadFile,
@@ -410,6 +411,14 @@ export const useAppStore = () => {
     };
   }, [appState.croppingState?.pathId, cropEditedSrc, appState.croppingState?.originalPath.fileId]);
 
+  useEffect(() => {
+    if (!appState.croppingState) {
+      return;
+    }
+
+    refreshCroppingImageFromStore(appState.croppingState.pathId);
+  }, [appState.croppingState?.pathId, frames, currentFrameIndex, refreshCroppingImageFromStore]);
+
   // --- Memoized Setters for State Properties ---
   const setIsGridVisible = useCallback((val: boolean | ((prev: boolean) => boolean)) => setUiState(s => ({ ...s, isGridVisible: typeof val === 'function' ? val(s.isGridVisible) : val })), []);
   const setGridSize = useCallback((val: number | ((prev: number) => number)) => setUiState(s => ({ ...s, gridSize: typeof val === 'function' ? val(s.gridSize) : val })), []);
@@ -474,12 +483,17 @@ export const useAppStore = () => {
       return;
     }
 
-    cropImageCacheRef.current = null;
-    setCropEditedSrc(null);
     setCroppingState(prev => {
       if (!prev || prev.pathId !== pathId) {
         return prev;
       }
+
+      if (prev.originalPath === nextPath) {
+        return prev;
+      }
+
+      cropImageCacheRef.current = null;
+      setCropEditedSrc(null);
       return { ...prev, originalPath: nextPath as PathImageData };
     });
   }, [setCroppingState, setCropEditedSrc]);
@@ -1531,6 +1545,7 @@ export const useAppStore = () => {
       uiState,
       appState,
       frames,
+      currentFrameIndex,
       setCurrentFrameIndex,
       setPaths,
       handleLoadFile,
