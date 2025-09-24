@@ -115,8 +115,16 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
 
   const previousFillStyleRef = useRef<string | null>(null);
   const forcedSolidRef = useRef(false);
+  const isForcingFillStyleRef = useRef(false);
 
   useEffect(() => {
+    if (isForcingFillStyleRef.current) {
+      if (isGradientActive) {
+        isForcingFillStyleRef.current = false;
+      }
+      return;
+    }
+
     if (fillStyle !== 'solid' || !isGradientActive) {
       previousFillStyleRef.current = null;
       forcedSolidRef.current = false;
@@ -127,6 +135,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     if (fillStyle !== 'solid') {
       previousFillStyleRef.current = fillStyle;
       forcedSolidRef.current = true;
+      isForcingFillStyleRef.current = true;
       setFillStyle('solid');
     }
   }, [fillStyle, setFillStyle]);
@@ -134,6 +143,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
   const restoreFillStyle = useCallback(() => {
     if (!forcedSolidRef.current) {
       previousFillStyleRef.current = null;
+      isForcingFillStyleRef.current = false;
       return;
     }
     forcedSolidRef.current = false;
@@ -142,6 +152,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     if (previous && previous !== 'solid') {
       setFillStyle(previous);
     }
+    isForcingFillStyleRef.current = false;
   }, [setFillStyle]);
 
   const previewStyle = useMemo(() => {
@@ -274,6 +285,8 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
   const endColor = fillGradient ? gradientStopColor(fillGradient, 1) : startColor;
   const isSolidType = gradientType === 'solid';
   const startPickerLabel = isSolidType ? solidColorLabel : startLabel;
+  const panelWidthClass = 'w-52';
+  const typeButtonBaseClass = 'px-2 py-1 rounded-md border border-transparent text-xs transition-colors';
 
   return (
     <div className={`flex flex-col items-center w-14 transition-opacity ${className}`} title={label}>
@@ -299,7 +312,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
           leaveFrom="opacity-100 translate-y-0"
           leaveTo="opacity-0 translate-y-1"
         >
-          <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-3">
+          <Popover.Panel className={`absolute bottom-0 mb-0 right-full mr-2 ${panelWidthClass} bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-3`}>
             <div className="flex flex-col gap-2 text-[var(--text-primary)]">
               <span className="text-sm font-medium">{label}</span>
 
@@ -308,27 +321,33 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                 <div className="flex gap-1">
                   <button
                     type="button"
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'solid'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                      : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                    className={`${typeButtonBaseClass} ${
+                      gradientType === 'solid'
+                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                    }`}
                     onClick={() => handleTypeChange('solid')}
                   >
                     {solidTypeLabel}
                   </button>
                   <button
                     type="button"
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'linear'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                      : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                    className={`${typeButtonBaseClass} ${
+                      gradientType === 'linear'
+                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                    }`}
                     onClick={() => handleTypeChange('linear')}
                   >
                     {linearTypeLabel}
                   </button>
                   <button
                     type="button"
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'radial'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                      : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                    className={`${typeButtonBaseClass} ${
+                      gradientType === 'radial'
+                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                    }`}
                     onClick={() => handleTypeChange('radial')}
                   >
                     {radialTypeLabel}
@@ -336,7 +355,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                 </div>
               </div>
 
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-start gap-4">
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-xs text-[var(--text-secondary)]">{startPickerLabel}</span>
                   <StopPicker
@@ -347,17 +366,19 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                     endCoalescing={endCoalescing}
                   />
                 </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
-                  <StopPicker
-                    label={endLabel}
-                    color={endColor}
-                    onChange={(value) => handleStopChange(1, value)}
-                    beginCoalescing={beginCoalescing}
-                    endCoalescing={endCoalescing}
-                    disabled={isSolidType || !fillGradient}
-                  />
-                </div>
+                {!isSolidType && (
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
+                    <StopPicker
+                      label={endLabel}
+                      color={endColor}
+                      onChange={(value) => handleStopChange(1, value)}
+                      beginCoalescing={beginCoalescing}
+                      endCoalescing={endCoalescing}
+                      disabled={isSolidType || !fillGradient}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </Popover.Panel>
