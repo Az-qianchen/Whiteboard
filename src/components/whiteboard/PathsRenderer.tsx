@@ -3,7 +3,7 @@
  * 它使用 RoughJS 库来创建手绘风格的 SVG 图形。
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { AnyPath, FrameData, GroupData, ImageData } from '@/types';
 import { renderPathNode } from '@/lib/export';
@@ -34,25 +34,55 @@ const getAllFrames = (paths: AnyPath[]): AnyPath[] => {
  */
 const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.memo(({ rc, data }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const lastImageKeyRef = useRef<string | null>(null);
+    const latestImageDataRef = useRef<ImageData | null>(null);
+
+    const imageKey = data.tool === 'image'
+        ? (data.fileId ?? data.src ?? null)
+        : null;
+
+    latestImageDataRef.current = data.tool === 'image' ? (data as ImageData) : null;
 
     useEffect(() => {
         let cancelled = false;
-        if (data.tool !== 'image') {
-            setImageSrc(null);
+
+        if (!imageKey) {
+            lastImageKeyRef.current = null;
+            setImageSrc(prev => (prev === null ? prev : null));
             return () => {
                 cancelled = true;
             };
         }
-        setImageSrc(null);
-        void getImageDataUrl(data as ImageData)
+
+        const imageData = latestImageDataRef.current;
+        if (!imageData) {
+            lastImageKeyRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (lastImageKeyRef.current === imageKey) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        setImageSrc(prev => (prev === null ? prev : null));
+
+        void getImageDataUrl(imageData)
             .then((src) => {
-                if (!cancelled) setImageSrc(src);
+                if (!cancelled) {
+                    setImageSrc(prev => (prev === src ? prev : src));
+                    lastImageKeyRef.current = imageKey;
+                }
             })
             .catch((err) => console.error('Failed to resolve image for rendering', err));
+
         return () => {
             cancelled = true;
         };
-    }, [data]);
+    }, [imageKey]);
 
     // 如果路径是常规（非遮罩）组，则递归渲染其子项以获得性能优势。
     if (data.tool === 'group' && !(data as GroupData).mask) {
@@ -90,25 +120,55 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
  */
 export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.memo(({ rc, data }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const lastImageKeyRef = useRef<string | null>(null);
+    const latestImageDataRef = useRef<ImageData | null>(null);
+
+    const imageKey = data.tool === 'image'
+        ? (data.fileId ?? data.src ?? null)
+        : null;
+
+    latestImageDataRef.current = data.tool === 'image' ? (data as ImageData) : null;
 
     useEffect(() => {
         let cancelled = false;
-        if (data.tool !== 'image') {
-            setImageSrc(null);
+
+        if (!imageKey) {
+            lastImageKeyRef.current = null;
+            setImageSrc(prev => (prev === null ? prev : null));
             return () => {
                 cancelled = true;
             };
         }
-        setImageSrc(null);
-        void getImageDataUrl(data as ImageData)
+
+        const imageData = latestImageDataRef.current;
+        if (!imageData) {
+            lastImageKeyRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (lastImageKeyRef.current === imageKey) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        setImageSrc(prev => (prev === null ? prev : null));
+
+        void getImageDataUrl(imageData)
             .then((src) => {
-                if (!cancelled) setImageSrc(src);
+                if (!cancelled) {
+                    setImageSrc(prev => (prev === src ? prev : src));
+                    lastImageKeyRef.current = imageKey;
+                }
             })
             .catch((err) => console.error('Failed to resolve image for rough path', err));
+
         return () => {
             cancelled = true;
         };
-    }, [data]);
+    }, [imageKey]);
 
     const nodeString = useMemo(() => {
         if (!rc || data.tool === 'group') return '';
