@@ -246,6 +246,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       <svg
         ref={svgRef}
         className="w-full h-full touch-none"
+        data-whiteboard-canvas="true"
         onPointerDown={onPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={onPointerUp}

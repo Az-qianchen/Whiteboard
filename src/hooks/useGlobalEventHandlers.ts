@@ -3,13 +3,28 @@
  * 它负责处理整个应用的键盘快捷键（hotkeys）和剪贴板事件（如复制、粘贴、剪切）。
  */
 
-import React, { useEffect, Dispatch, SetStateAction, useRef } from 'react';
+import React, { useEffect, Dispatch, SetStateAction, useRef, useCallback } from 'react';
 import hotkeys from 'hotkeys-js';
-import type { AnyPath, DrawingShape, ImageData, Point, Tool, VectorPathData, SelectionMode } from '../types';
-import { movePath } from '../lib/drawing';
+import type { AnyPath, DrawingShape, ImageData, Point, Tool, VectorPathData, SelectionMode, GroupData } from '../types';
+import { movePath, getPathsBoundingBox, scalePathUniformWithStyles } from '@/lib/drawing';
 import { useAppContext } from '../context/AppContext';
 import { useFilesStore } from '@/context/filesStore';
 import { getCachedImage } from '@/lib/imageCache';
+import { recursivelyUpdatePaths } from '@/hooks/selection-logic/utils';
+
+
+type KeyboardScaleState = {
+  pathIds: string[];
+  originalPaths: AnyPath[];
+  pivot: Point;
+  initialDistance: number;
+  pointerScale: number;
+  currentScale: number;
+  inputBuffer: string;
+  pointerLocked: boolean;
+  applyScale: (scale: number, options?: { fromPointer?: boolean }) => void;
+  cleanup: () => void;
+};
 
 
 const useGlobalEventHandlers = () => {
@@ -38,6 +53,268 @@ const useGlobalEventHandlers = () => {
   const nudgeTimeoutRef = useRef<number | null>(null);
   const cropNudgeTimeoutRef = useRef<number | null>(null);
   const cropHistoryPendingRef = useRef(false);
+  const keyboardScaleRef = useRef<KeyboardScaleState | null>(null);
+
+  const finishKeyboardScale = useCallback((commit: boolean) => {
+    const state = keyboardScaleRef.current;
+    if (!state) {
+      return;
+    }
+
+    keyboardScaleRef.current = null;
+    state.cleanup();
+
+    if (!commit) {
+      const originalMap = new Map(state.originalPaths.map(path => [path.id, path]));
+      setActivePaths((currentPaths: AnyPath[]) =>
+        recursivelyUpdatePaths(currentPaths, (path: AnyPath) => originalMap.get(path.id) || null),
+      );
+    } else {
+      state.applyScale(state.currentScale);
+    }
+
+    endCoalescing();
+  }, [setActivePaths, endCoalescing]);
+
+  const finishKeyboardScaleRef = useRef(finishKeyboardScale);
+  useEffect(() => {
+    finishKeyboardScaleRef.current = finishKeyboardScale;
+  }, [finishKeyboardScale]);
+
+  const startKeyboardScale = useCallback(() => {
+    if (keyboardScaleRef.current) {
+      return;
+    }
+    if (tool !== 'selection' || selectionMode !== 'move') {
+      return;
+    }
+    if (croppingState) {
+      return;
+    }
+    if (selectedPathIds.length === 0) {
+      return;
+    }
+
+    const idSet = new Set(selectedPathIds);
+    const collected = new Map<string, AnyPath>();
+    const collectPaths = (paths: AnyPath[]) => {
+      paths.forEach(path => {
+        if (idSet.has(path.id)) {
+          collected.set(path.id, path);
+        }
+        if (path.tool === 'group') {
+          collectPaths((path as GroupData).children);
+        }
+      });
+    };
+    collectPaths(activePaths);
+
+    const orderedPaths: AnyPath[] = [];
+    selectedPathIds.forEach(id => {
+      const found = collected.get(id);
+      if (found) {
+        orderedPaths.push(found);
+      }
+    });
+
+    if (orderedPaths.length === 0) {
+      return;
+    }
+
+    const bbox = getPathsBoundingBox(orderedPaths, false);
+    if (!bbox) {
+      return;
+    }
+
+    const pivot = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
+    const fallbackRadius = Math.max(bbox.width, bbox.height, 1);
+    const initialPointer = lastPointerPosition ?? { x: pivot.x + fallbackRadius, y: pivot.y };
+    let initialDistance = Math.hypot(initialPointer.x - pivot.x, initialPointer.y - pivot.y);
+    if (!Number.isFinite(initialDistance) || initialDistance < 1e-6) {
+      initialDistance = 1;
+    }
+
+    const state: KeyboardScaleState = {
+      pathIds: [...selectedPathIds],
+      originalPaths: orderedPaths,
+      pivot,
+      initialDistance,
+      pointerScale: 1,
+      currentScale: 1,
+      inputBuffer: '',
+      pointerLocked: false,
+      applyScale: () => {},
+      cleanup: () => {},
+    };
+
+    const applyScale = (scale: number, options?: { fromPointer?: boolean }) => {
+      const fromPointer = options?.fromPointer ?? false;
+      const magnitude = Math.max(Math.abs(scale), 0.01);
+      if (fromPointer) {
+        state.pointerScale = magnitude;
+      }
+      if (Math.abs(magnitude - state.currentScale) < 1e-4) {
+        state.currentScale = magnitude;
+        return;
+      }
+      state.currentScale = magnitude;
+
+      const scaledPaths = state.originalPaths.map(path => scalePathUniformWithStyles(path, pivot, magnitude));
+      const transformed = new Map(scaledPaths.map(path => [path.id, path]));
+      setActivePaths((currentPaths: AnyPath[]) =>
+        recursivelyUpdatePaths(currentPaths, (path: AnyPath) => transformed.get(path.id) || null),
+      );
+    };
+    state.applyScale = applyScale;
+
+    const ensureCanvas = (): SVGSVGElement | null => {
+      const svg = document.querySelector('svg[data-whiteboard-canvas]');
+      return svg instanceof SVGSVGElement ? svg : null;
+    };
+
+    const pointerMoveListener = (event: PointerEvent) => {
+      if (!keyboardScaleRef.current) {
+        return;
+      }
+      if (state.pointerLocked) {
+        return;
+      }
+      const svg = ensureCanvas();
+      if (!svg) {
+        return;
+      }
+      const point = getPointerPosition({ clientX: event.clientX, clientY: event.clientY }, svg);
+      const distance = Math.hypot(point.x - pivot.x, point.y - pivot.y);
+      const ratio = distance / state.initialDistance;
+      state.inputBuffer = '';
+      state.applyScale(Number.isFinite(ratio) && ratio > 0 ? ratio : 0.01, { fromPointer: true });
+    };
+
+    const pointerDownListener = (event: PointerEvent) => {
+      if (!keyboardScaleRef.current) {
+        return;
+      }
+      if (event.button === 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        finishKeyboardScale(true);
+      } else if (event.button === 2) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        finishKeyboardScale(false);
+      }
+    };
+
+    const contextMenuListener = (event: MouseEvent) => {
+      if (!keyboardScaleRef.current) {
+        return;
+      }
+      event.preventDefault();
+    };
+
+    const updateFromBuffer = () => {
+      if (!state.inputBuffer) {
+        return;
+      }
+      const numeric = Number.parseFloat(state.inputBuffer);
+      if (Number.isNaN(numeric)) {
+        return;
+      }
+      state.applyScale(numeric);
+    };
+
+    const keyDownListener = (event: KeyboardEvent) => {
+      if (!keyboardScaleRef.current) {
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        finishKeyboardScale(false);
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        finishKeyboardScale(true);
+        return;
+      }
+      if (event.key === 'Backspace') {
+        if (state.inputBuffer.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        state.inputBuffer = state.inputBuffer.slice(0, -1);
+        if (state.inputBuffer.length === 0) {
+          state.pointerLocked = false;
+          state.applyScale(state.pointerScale);
+        } else {
+          updateFromBuffer();
+        }
+        return;
+      }
+      if (event.key === '.' || event.key === ',') {
+        if (state.inputBuffer.includes('.')) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        state.inputBuffer += '.';
+        state.pointerLocked = true;
+        updateFromBuffer();
+        return;
+      }
+      if (/^[0-9]$/.test(event.key)) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        state.inputBuffer += event.key;
+        state.pointerLocked = true;
+        updateFromBuffer();
+      }
+    };
+
+    state.cleanup = () => {
+      window.removeEventListener('pointermove', pointerMoveListener);
+      window.removeEventListener('pointerdown', pointerDownListener, true);
+      window.removeEventListener('keydown', keyDownListener, true);
+      window.removeEventListener('contextmenu', contextMenuListener, true);
+    };
+
+    window.addEventListener('pointermove', pointerMoveListener);
+    window.addEventListener('pointerdown', pointerDownListener, true);
+    window.addEventListener('keydown', keyDownListener, true);
+    window.addEventListener('contextmenu', contextMenuListener, true);
+
+    keyboardScaleRef.current = state;
+    beginCoalescing();
+  }, [
+    keyboardScaleRef,
+    tool,
+    selectionMode,
+    croppingState,
+    selectedPathIds,
+    activePaths,
+    lastPointerPosition,
+    getPointerPosition,
+    setActivePaths,
+    finishKeyboardScale,
+    beginCoalescing,
+  ]);
 
   // Handle keyboard shortcuts using hotkeys-js library
   useEffect(() => {
@@ -45,6 +322,12 @@ const useGlobalEventHandlers = () => {
     // These will NOT fire when an INPUT, SELECT, or TEXTAREA is focused.
     hotkeys('v,m,b,p,r,o,l,a,escape,enter,backspace,delete,t,f', (event, handler) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        if (handler.key === 'escape') {
+          finishKeyboardScale(false);
+        }
+        return;
+      }
       switch (handler.key) {
         case 'v': setTool('selection'); setSelectionMode('edit'); break;
         case 'm': setTool('selection'); setSelectionMode('move'); break;
@@ -84,11 +367,28 @@ const useGlobalEventHandlers = () => {
 
     hotkeys('g', (event) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
       setIsGridVisible(!isGridVisible);
+    });
+
+    hotkeys('s', (event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
+      startKeyboardScale();
     });
 
     hotkeys('],[,shift+],shift+[', (event, handler) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
       switch (handler.key) {
         case ']': handleBringForward(); break;
         case '[': handleSendBackward(); break;
@@ -99,11 +399,17 @@ const useGlobalEventHandlers = () => {
 
     hotkeys('command+g, ctrl+g', (event) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
       handleGroup();
     });
 
     hotkeys('command+shift+g, ctrl+shift+g', (event) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
       handleUngroup();
     });
 
@@ -119,6 +425,10 @@ const useGlobalEventHandlers = () => {
       }
 
       event.preventDefault();
+
+      if (keyboardScaleRef.current) {
+        return;
+      }
 
       const unlockedIds = activePaths
         .filter(path => path.isLocked !== true)
@@ -140,21 +450,34 @@ const useGlobalEventHandlers = () => {
 
     hotkeys('command+z, ctrl+z', (event) => {
         event.preventDefault();
+        if (keyboardScaleRef.current) {
+          finishKeyboardScale(false);
+          return;
+        }
         handleUndo();
     });
 
     hotkeys('command+shift+z, ctrl+shift+z', (event) => {
         event.preventDefault();
+        if (keyboardScaleRef.current) {
+          return;
+        }
         handleRedo();
     });
-    
+
     hotkeys('command+i, ctrl+i', (event) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
       handleImportClick();
     });
 
     hotkeys('command+s, ctrl+s', (event) => {
       event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
       void handleSaveFile();
     });
     
@@ -165,6 +488,9 @@ const useGlobalEventHandlers = () => {
       const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
       if (!isInput) {
         event.preventDefault();
+        if (keyboardScaleRef.current) {
+          return;
+        }
         void handleCut();
       }
     });
@@ -174,6 +500,9 @@ const useGlobalEventHandlers = () => {
       const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
       if (!isInput) {
         event.preventDefault();
+        if (keyboardScaleRef.current) {
+          return;
+        }
         void handleCopy();
       }
     });
@@ -185,6 +514,7 @@ const useGlobalEventHandlers = () => {
     return () => {
       hotkeys.unbind('v,m,b,p,r,o,l,a,escape,enter,backspace,delete,t,f');
       hotkeys.unbind('g');
+      hotkeys.unbind('s');
       hotkeys.unbind('],[,shift+],shift+[');
       hotkeys.unbind('command+z, ctrl+z');
       hotkeys.unbind('command+shift+z, ctrl+shift+z');
@@ -217,6 +547,8 @@ const useGlobalEventHandlers = () => {
     handlePaste,
     handleImportClick,
     handleSaveFile,
+    startKeyboardScale,
+    finishKeyboardScale,
     handleBringForward,
     handleSendBackward,
     handleBringToFront,
@@ -231,6 +563,42 @@ const useGlobalEventHandlers = () => {
     cancelCrop,
     activePaths,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (keyboardScaleRef.current) {
+        finishKeyboardScaleRef.current(false);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!keyboardScaleRef.current) {
+      return;
+    }
+    if (tool !== 'selection' || selectionMode !== 'move') {
+      finishKeyboardScale(false);
+    }
+  }, [tool, selectionMode, finishKeyboardScale]);
+
+  useEffect(() => {
+    if (!keyboardScaleRef.current) {
+      return;
+    }
+    if (croppingState) {
+      finishKeyboardScale(false);
+    }
+  }, [croppingState, finishKeyboardScale]);
+
+  useEffect(() => {
+    const state = keyboardScaleRef.current;
+    if (!state) {
+      return;
+    }
+    if (state.pathIds.length !== selectedPathIds.length || !state.pathIds.every(id => selectedPathIds.includes(id))) {
+      finishKeyboardScale(false);
+    }
+  }, [selectedPathIds, finishKeyboardScale]);
 
   // Nudge selected items with arrow keys using a native event listener for reliability
   useEffect(() => {
@@ -249,6 +617,10 @@ const useGlobalEventHandlers = () => {
 
       const activeElement = target as HTMLElement;
       if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable) {
+        return;
+      }
+
+      if (keyboardScaleRef.current) {
         return;
       }
 
