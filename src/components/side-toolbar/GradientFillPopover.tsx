@@ -274,6 +274,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
   const endColor = fillGradient ? gradientStopColor(fillGradient, 1) : startColor;
   const isSolidType = gradientType === 'solid';
   const startPickerLabel = isSolidType ? solidColorLabel : startLabel;
+  const panelWidthClass = isSolidType ? 'w-52' : 'w-64';
 
   return (
     <div className={`flex flex-col items-center w-14 transition-opacity ${className}`} title={label}>
@@ -299,7 +300,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
           leaveFrom="opacity-100 translate-y-0"
           leaveTo="opacity-0 translate-y-1"
         >
-          <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-3">
+          <Popover.Panel className={`absolute bottom-0 mb-0 right-full mr-2 ${panelWidthClass} bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-3`}>
             <div className="flex flex-col gap-2 text-[var(--text-primary)]">
               <span className="text-sm font-medium">{label}</span>
 
@@ -336,7 +337,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                 </div>
               </div>
 
-              <div className="flex justify-center gap-4">
+              <div className={`flex gap-4 ${isSolidType ? 'justify-start' : 'justify-center'}`}>
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-xs text-[var(--text-secondary)]">{startPickerLabel}</span>
                   <StopPicker
@@ -347,17 +348,19 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                     endCoalescing={endCoalescing}
                   />
                 </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
-                  <StopPicker
-                    label={endLabel}
-                    color={endColor}
-                    onChange={(value) => handleStopChange(1, value)}
-                    beginCoalescing={beginCoalescing}
-                    endCoalescing={endCoalescing}
-                    disabled={isSolidType || !fillGradient}
-                  />
-                </div>
+                {!isSolidType && (
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xs text-[var(--text-secondary)]">{endLabel}</span>
+                    <StopPicker
+                      label={endLabel}
+                      color={endColor}
+                      onChange={(value) => handleStopChange(1, value)}
+                      beginCoalescing={beginCoalescing}
+                      endCoalescing={endCoalescing}
+                      disabled={isSolidType || !fillGradient}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </Popover.Panel>
