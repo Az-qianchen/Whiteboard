@@ -19,7 +19,7 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
 import { measureText, rotatePoint, dist } from '@/lib/drawing';
-import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, type MagicWandMask } from '@/lib/image';
+import { removeBackground, createMaskFromPolygon, combineMasks, applyMaskToImage, createMaskFromBrushStroke, type MagicWandMask } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
@@ -161,6 +161,25 @@ interface UiState {
   onionSkinOpacity: number;
 }
 
+type CropManualDraft =
+  | {
+      mode: 'freehand';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+    }
+  | {
+      mode: 'polygon';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+      previewPoint?: Point;
+    }
+  | {
+      mode: 'brush';
+      operation: 'add' | 'subtract' | 'replace';
+      points: Point[];
+      brushSize: number;
+    };
+
 interface AppState {
   contextMenu: { isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null;
   styleClipboard: StyleClipboardData | null;
@@ -177,14 +196,10 @@ interface AppState {
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
-  cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
+  cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
   cropSelectionOperation: 'add' | 'subtract' | 'replace';
-  cropManualDraft: {
-    mode: 'freehand' | 'polygon';
-    operation: 'add' | 'subtract' | 'replace';
-    points: Point[];
-    previewPoint?: Point;
-  } | null;
+  cropBrushSize: number;
+  cropManualDraft: CropManualDraft | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -238,6 +253,7 @@ const getInitialAppState = (): AppState => ({
   cropPendingCutoutSrc: null,
   cropSelectionMode: 'magic-wand',
   cropSelectionOperation: 'replace',
+  cropBrushSize: 40,
   cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
@@ -269,11 +285,7 @@ export const useAppStore = () => {
   const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
   const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
-  const cropManualDraftRef = useRef<{
-    mode: 'freehand' | 'polygon';
-    operation: 'add' | 'subtract' | 'replace';
-    points: Point[];
-  } | null>(null);
+  const cropManualDraftRef = useRef<CropManualDraft | null>(null);
 
   const pathState = usePathsStore();
   const { paths, frames, setCurrentFrameIndex, setSelectedPathIds } = pathState;
@@ -385,6 +397,12 @@ export const useAppStore = () => {
     clearManualDraftState();
     setAppState(s => ({ ...s, cropSelectionMode: mode }));
   }, [clearManualDraftState]);
+  const setCropBrushSize = useCallback((size: number) => {
+    setAppState(s => ({
+      ...s,
+      cropBrushSize: Math.min(200, Math.max(4, Math.round(size))),
+    }));
+  }, []);
   const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
   }, []);
@@ -506,6 +524,54 @@ export const useAppStore = () => {
     if (deduped.length < 3) return;
 
     const mask = createMaskFromPolygon(cache.naturalWidth, cache.naturalHeight, deduped);
+    if (!mask) {
+      if (operation === 'replace') {
+        updateMagicWandSelection(null);
+      }
+      return;
+    }
+
+    let nextMask: MagicWandMask | null = null;
+    if (operation === 'replace') {
+      nextMask = mask;
+    } else if (!cropMagicWandMaskRef.current) {
+      if (operation === 'add') {
+        nextMask = mask;
+      } else {
+        return;
+      }
+    } else {
+      nextMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
+    }
+
+    updateMagicWandSelection(nextMask);
+    cropMagicWandSampleRef.current = null;
+  }, [appState.croppingState, appState.cropTool, updateMagicWandSelection]);
+
+  const applyBrushSelection = useCallback((points: Point[], brushSize: number, operation: 'add' | 'subtract' | 'replace') => {
+    const cropping = appState.croppingState;
+    if (!cropping || appState.cropTool !== 'magic-wand') return;
+    const cache = cropImageCacheRef.current;
+    if (!cache) return;
+
+    const pixelPoints = points
+      .map(pt => mapWorldPointToImagePixel(pt, cropping.originalPath, cache.naturalWidth, cache.naturalHeight))
+      .filter((pt): pt is { x: number; y: number } => pt !== null);
+
+    if (pixelPoints.length === 0) return;
+
+    const radiusWorld = Math.max(0, brushSize / 2);
+    if (radiusWorld === 0) return;
+
+    const scaleX = cache.naturalWidth / cropping.originalPath.width;
+    const scaleY = cache.naturalHeight / cropping.originalPath.height;
+    const scaleSamples = [scaleX, scaleY].filter((value) => Number.isFinite(value) && value > 0);
+    const averageScale = scaleSamples.length > 0
+      ? scaleSamples.reduce((sum, value) => sum + value, 0) / scaleSamples.length
+      : 1;
+    const pixelRadius = Math.max(1, Math.round(radiusWorld * averageScale));
+
+    const mask = createMaskFromBrushStroke(cache.naturalWidth, cache.naturalHeight, pixelPoints, pixelRadius);
     if (!mask) {
       if (operation === 'replace') {
         updateMagicWandSelection(null);
@@ -890,6 +956,18 @@ export const useAppStore = () => {
       return;
     }
 
+    if (appState.cropSelectionMode === 'brush') {
+      const brushDraft: CropManualDraft = {
+        mode: 'brush',
+        operation,
+        points: [point],
+        brushSize: appState.cropBrushSize,
+      };
+      cropManualDraftRef.current = brushDraft;
+      setAppState(s => ({ ...s, cropManualDraft: brushDraft }));
+      return;
+    }
+
     const existing = cropManualDraftRef.current;
     if (!existing || existing.mode !== 'polygon') {
       const draft = { mode: 'polygon' as const, operation, points: [point] };
@@ -917,7 +995,15 @@ export const useAppStore = () => {
       clearManualDraftState();
       applyManualSelection(normalizedPoints, operation);
     }
-  }, [appState.cropSelectionMode, appState.cropSelectionOperation, applyManualSelection, clearManualDraftState, setAppState, viewTransform.viewTransform.scale]);
+  }, [
+    appState.cropBrushSize,
+    appState.cropSelectionMode,
+    appState.cropSelectionOperation,
+    applyManualSelection,
+    clearManualDraftState,
+    setAppState,
+    viewTransform.viewTransform.scale,
+  ]);
 
   const handleCropManualPointerMove = useCallback((point: Point) => {
     const draft = cropManualDraftRef.current;
@@ -929,6 +1015,19 @@ export const useAppStore = () => {
       const nextPoints = [...draft.points, point];
       cropManualDraftRef.current = { ...draft, points: nextPoints };
       setAppState(s => ({ ...s, cropManualDraft: { mode: 'freehand', operation: draft.operation, points: nextPoints } }));
+      return;
+    }
+
+    if (draft.mode === 'brush') {
+      const last = draft.points[draft.points.length - 1];
+      const threshold = Math.max(1, draft.brushSize / 8);
+      if (last && dist(last, point) < threshold) {
+        return;
+      }
+      const nextPoints = [...draft.points, point];
+      const nextDraft: CropManualDraft = { ...draft, points: nextPoints };
+      cropManualDraftRef.current = nextDraft;
+      setAppState(s => ({ ...s, cropManualDraft: nextDraft }));
       return;
     }
 
@@ -953,12 +1052,22 @@ export const useAppStore = () => {
       return;
     }
 
+    if (draft.mode === 'brush') {
+      const points = draft.points;
+      const brushSize = draft.brushSize;
+      const operation = draft.operation;
+      clearManualDraftState();
+      if (points.length === 0) return;
+      applyBrushSelection(points, brushSize, operation);
+      return;
+    }
+
     setAppState(s => {
       const current = s.cropManualDraft;
       if (!current || current.mode !== 'polygon' || !current.previewPoint) return s;
       return { ...s, cropManualDraft: { ...current, previewPoint: undefined } };
     });
-  }, [applyManualSelection, clearManualDraftState, setAppState]);
+  }, [applyBrushSelection, applyManualSelection, clearManualDraftState, setAppState]);
 
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
@@ -1343,6 +1452,7 @@ export const useAppStore = () => {
       setCropTool,
       setCropMagicWandOptions,
       setCropSelectionMode,
+      setCropBrushSize,
       setCropSelectionOperation,
       selectMagicWandAt,
       applyMagicWandSelection,

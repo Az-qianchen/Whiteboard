@@ -14,8 +14,10 @@ interface CropToolbarProps {
   setCropTool: (tool: 'crop' | 'magic-wand') => void;
   cropMagicWandOptions: { threshold: number; contiguous: boolean };
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
-  cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon';
-  setCropSelectionMode: (mode: 'magic-wand' | 'freehand' | 'polygon') => void;
+  cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
+  setCropSelectionMode: (mode: 'magic-wand' | 'freehand' | 'polygon' | 'brush') => void;
+  cropBrushSize: number;
+  setCropBrushSize: (size: number) => void;
   cropSelectionOperation: 'add' | 'subtract' | 'replace';
   setCropSelectionOperation: (op: 'add' | 'subtract' | 'replace') => void;
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
@@ -37,6 +39,8 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   setCropMagicWandOptions,
   cropSelectionMode,
   setCropSelectionMode,
+  cropBrushSize,
+  setCropBrushSize,
   cropSelectionOperation,
   setCropSelectionOperation,
   cropSelectionContours,
@@ -71,6 +75,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
   const handleContiguousToggle = () => {
     setCropMagicWandOptions({ contiguous: !cropMagicWandOptions.contiguous });
+  };
+
+  const brushSizeMin = 4;
+  const brushSizeMax = 200;
+  const clampBrushSize = (value: number) => Math.min(brushSizeMax, Math.max(brushSizeMin, Math.round(value)));
+  const handleBrushSizeChange = (value: number) => {
+    if (Number.isNaN(value)) {
+      return;
+    }
+    setCropBrushSize(clampBrushSize(value));
   };
 
   const segmentedButtonBase =
@@ -176,6 +190,21 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               type="button"
               variant="unstyled"
               className={`${segmentedButtonBase} ${
+                cropSelectionMode === 'brush'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropSelectionMode('brush')}
+              aria-pressed={cropSelectionMode === 'brush'}
+              title={t('cropMagicWandBrush')}
+            >
+              {ICONS.BRUSH}
+              <span>{t('cropMagicWandBrush')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
                 cropSelectionMode === 'freehand'
                   ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -203,6 +232,41 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               <span>{t('cropMagicWandPolygon')}</span>
             </PanelButton>
           </div>
+
+          {cropSelectionMode === 'brush' && (
+            <div className="flex items-center gap-2">
+              <label
+                className="text-sm text-[var(--text-secondary)]"
+                htmlFor="magic-wand-brush-size-slider"
+              >
+                {t('cropMagicWandBrushSize')}
+              </label>
+              <input
+                id="magic-wand-brush-size-slider"
+                type="range"
+                min={brushSizeMin}
+                max={brushSizeMax}
+                step={1}
+                value={cropBrushSize}
+                onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
+                className="w-28 h-2 accent-[var(--accent-primary)]"
+              />
+              <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+                <input
+                  id="magic-wand-brush-size"
+                  type="number"
+                  min={brushSizeMin}
+                  max={brushSizeMax}
+                  value={cropBrushSize}
+                  onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
+                  inputMode="numeric"
+                  aria-label={t('cropMagicWandBrushSize')}
+                  className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                />
+              </div>
+              <span className="text-xs text-[var(--text-secondary)]">px</span>
+            </div>
+          )}
 
           <div className={PANEL_CLASSES.segmentGroup}>
             <PanelButton
