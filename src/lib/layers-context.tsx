@@ -8,6 +8,31 @@ import { usePaths } from '../hooks/usePaths';
 // 从 usePaths hook 的返回类型推断 Context 的状态类型
 export type LayersContextValue = ReturnType<typeof usePaths>;
 
+type LayersSnapshot = Pick<
+  LayersContextValue,
+  | 'frames'
+  | 'currentFrameIndex'
+  | 'paths'
+  | 'selectedPathIds'
+  | 'currentBrushPath'
+  | 'currentPenPath'
+  | 'currentLinePath'
+  | 'canUndo'
+  | 'canRedo'
+>;
+
+const toSnapshot = (source: LayersContextValue): LayersSnapshot => ({
+  frames: source.frames,
+  currentFrameIndex: source.currentFrameIndex,
+  paths: source.paths,
+  selectedPathIds: source.selectedPathIds,
+  currentBrushPath: source.currentBrushPath,
+  currentPenPath: source.currentPenPath,
+  currentLinePath: source.currentLinePath,
+  canUndo: source.canUndo,
+  canRedo: source.canRedo,
+});
+
 // 创建一个具有未定义初始值的 Context
 const LayersContext = createContext<LayersContextValue | undefined>(undefined);
 
@@ -22,31 +47,15 @@ interface LayersProviderProps {
  * @param props - 包含图层状态、操作函数以及子组件。
  */
 export const LayersProvider: React.FC<LayersProviderProps> = ({ children, value }) => {
-  if (value) {
-    const valueRef = React.useRef<LayersContextValue>({ ...value });
-    const snapshotRef = React.useRef<{
-      frames: LayersContextValue['frames'];
-      currentFrameIndex: LayersContextValue['currentFrameIndex'];
-      paths: LayersContextValue['paths'];
-      selectedPathIds: LayersContextValue['selectedPathIds'];
-      currentBrushPath: LayersContextValue['currentBrushPath'];
-      currentPenPath: LayersContextValue['currentPenPath'];
-      currentLinePath: LayersContextValue['currentLinePath'];
-      canUndo: LayersContextValue['canUndo'];
-      canRedo: LayersContextValue['canRedo'];
-    } | null>(null);
+  const valueRef = React.useRef<LayersContextValue | null>(value ? { ...value } : null);
+  const snapshotRef = React.useRef<LayersSnapshot | null>(value ? toSnapshot(value) : null);
 
-    const snapshot = {
-      frames: value.frames,
-      currentFrameIndex: value.currentFrameIndex,
-      paths: value.paths,
-      selectedPathIds: value.selectedPathIds,
-      currentBrushPath: value.currentBrushPath,
-      currentPenPath: value.currentPenPath,
-      currentLinePath: value.currentLinePath,
-      canUndo: value.canUndo,
-      canRedo: value.canRedo,
-    } as const;
+  if (value) {
+    if (valueRef.current === null) {
+      valueRef.current = { ...value };
+    }
+
+    const snapshot = toSnapshot(value);
 
     const snapshotChanged =
       snapshotRef.current === null ||
@@ -66,7 +75,7 @@ export const LayersProvider: React.FC<LayersProviderProps> = ({ children, value 
     }
 
     return (
-      <LayersContext.Provider value={valueRef.current}>
+      <LayersContext.Provider value={valueRef.current!}>
         {children}
       </LayersContext.Provider>
     );
