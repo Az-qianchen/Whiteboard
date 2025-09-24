@@ -286,6 +286,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
   const isSolidType = gradientType === 'solid';
   const startPickerLabel = isSolidType ? solidColorLabel : startLabel;
   const panelWidthClass = 'w-52';
+  const typeButtonBaseClass = 'px-2 py-1 rounded-md border border-transparent text-xs transition-colors';
 
   return (
     <div className={`flex flex-col items-center w-14 transition-opacity ${className}`} title={label}>
@@ -320,27 +321,33 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
                 <div className="flex gap-1">
                   <button
                     type="button"
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'solid'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                      : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                    className={`${typeButtonBaseClass} ${
+                      gradientType === 'solid'
+                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                    }`}
                     onClick={() => handleTypeChange('solid')}
                   >
                     {solidTypeLabel}
                   </button>
                   <button
                     type="button"
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'linear'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                      : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                    className={`${typeButtonBaseClass} ${
+                      gradientType === 'linear'
+                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                    }`}
                     onClick={() => handleTypeChange('linear')}
                   >
                     {linearTypeLabel}
                   </button>
                   <button
                     type="button"
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${gradientType === 'radial'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                      : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
+                    className={`${typeButtonBaseClass} ${
+                      gradientType === 'radial'
+                        ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                    }`}
                     onClick={() => handleTypeChange('radial')}
                   >
                     {radialTypeLabel}
