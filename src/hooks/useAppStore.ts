@@ -25,6 +25,7 @@ import {
   removeBackground,
   createMaskFromPolygon,
   combineMasks,
+  invertMask,
   applyMaskToImage,
   createMaskFromBrushStroke,
   getOpaqueBounds,
@@ -682,6 +683,41 @@ export const useAppStore = () => {
     updateMagicWandSelection(nextMask);
     cropMagicWandSampleRef.current = null;
   }, [appState.croppingState, appState.cropTool, updateMagicWandSelection]);
+
+  const invertMagicWandSelection = useCallback(() => {
+    const cropping = appState.croppingState;
+    if (!cropping || appState.cropTool !== 'magic-wand') return;
+    const cache = cropImageCacheRef.current;
+    if (!cache) return;
+
+    clearManualDraftState();
+
+    let nextMask: MagicWandMask | null = null;
+    if (!cropMagicWandMaskRef.current) {
+      const { naturalWidth, naturalHeight } = cache;
+      if (naturalWidth <= 0 || naturalHeight <= 0) {
+        return;
+      }
+      const data = new Uint8Array(naturalWidth * naturalHeight);
+      data.fill(1);
+      nextMask = {
+        data,
+        width: naturalWidth,
+        height: naturalHeight,
+        bounds: { minX: 0, minY: 0, maxX: naturalWidth - 1, maxY: naturalHeight - 1 },
+      };
+    } else {
+      nextMask = invertMask(cropMagicWandMaskRef.current);
+    }
+
+    updateMagicWandSelection(nextMask);
+    cropMagicWandSampleRef.current = null;
+  }, [
+    appState.cropTool,
+    appState.croppingState,
+    clearManualDraftState,
+    updateMagicWandSelection,
+  ]);
 
   const selectMagicWandAt = useCallback((point: Point) => {
     const cropping = appState.croppingState;
@@ -1590,6 +1626,7 @@ export const useAppStore = () => {
       setCropBrushSize,
       setCropSelectionOperation,
       selectMagicWandAt,
+      invertMagicWandSelection,
       applyMagicWandSelection,
       cutMagicWandSelection,
       confirmCrop,
@@ -1690,6 +1727,7 @@ export const useAppStore = () => {
       setCropMagicWandOptions,
       setCropSelectionMode,
       setCropSelectionOperation,
+      invertMagicWandSelection,
       selectMagicWandAt,
       applyMagicWandSelection,
       cutMagicWandSelection,

@@ -103,6 +103,7 @@ export const CanvasOverlays: React.FC = () => {
         cropSelectionOperation,
         setCropSelectionOperation,
         cropSelectionContours,
+        invertMagicWandSelection,
         applyMagicWandSelection,
         cutMagicWandSelection,
         confirmCrop,
@@ -214,6 +215,7 @@ export const CanvasOverlays: React.FC = () => {
                     cropSelectionOperation={cropSelectionOperation}
                     setCropSelectionOperation={setCropSelectionOperation}
                     cropSelectionContours={cropSelectionContours}
+                    invertMagicWandSelection={invertMagicWandSelection}
                     applyMagicWandSelection={applyMagicWandSelection}
                     cutMagicWandSelection={cutMagicWandSelection}
                     trimTransparentEdges={trimTransparentEdges}
