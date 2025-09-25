@@ -40,7 +40,7 @@ const useGlobalEventHandlers = () => {
     handleCut, handleCopy, handleCopyAsPng, handlePaste, handleImportClick, handleFileImport, handleSaveFile,
     handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack,
     handleGroup, handleUngroup,
-    getPointerPosition, viewTransform: vt, lastPointerPosition,
+    getPointerPosition, viewTransform: vt,
     groupIsolationPath, handleExitGroup, activePathState,
     croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
@@ -128,7 +128,8 @@ const useGlobalEventHandlers = () => {
 
     const pivot = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
     const fallbackRadius = Math.max(bbox.width, bbox.height, 1);
-    const initialPointer = lastPointerPosition ?? { x: pivot.x + fallbackRadius, y: pivot.y };
+    const pointerFromStore = vt.getLastPointerPosition?.();
+    const initialPointer = pointerFromStore ?? { x: pivot.x + fallbackRadius, y: pivot.y };
     let initialDistance = Math.hypot(initialPointer.x - pivot.x, initialPointer.y - pivot.y);
     if (!Number.isFinite(initialDistance) || initialDistance < 1e-6) {
       initialDistance = 1;
@@ -309,7 +310,6 @@ const useGlobalEventHandlers = () => {
     croppingState,
     selectedPathIds,
     activePaths,
-    lastPointerPosition,
     getPointerPosition,
     setActivePaths,
     finishKeyboardScale,
@@ -764,8 +764,9 @@ const useGlobalEventHandlers = () => {
                     const cached = await getCachedImage({ fileId: metadata.id });
 
                     let pasteAt: Point;
-                    if (lastPointerPosition) {
-                      pasteAt = lastPointerPosition;
+                    const pointer = vt.getLastPointerPosition?.();
+                    if (pointer) {
+                      pasteAt = pointer;
                     } else {
                       const svg = document.querySelector('svg');
                       if (!svg) return;
@@ -814,8 +815,9 @@ const useGlobalEventHandlers = () => {
                     event.preventDefault();
                     item.getAsString((str) => {
                         let pasteAt: Point | undefined;
-                        if (lastPointerPosition) {
-                            pasteAt = lastPointerPosition;
+                        const pointer = vt.getLastPointerPosition?.();
+                        if (pointer) {
+                            pasteAt = pointer;
                         } else {
                             const svg = document.querySelector('svg');
                             if (svg) {
@@ -843,8 +845,9 @@ const useGlobalEventHandlers = () => {
              if (!clipboardText) return;
 
              // Paste to the last known mouse position, or fallback to viewport center
-             if (lastPointerPosition) {
-                 void handlePaste({ pasteAt: lastPointerPosition, clipboardText });
+             const pointer = vt.getLastPointerPosition?.();
+             if (pointer) {
+                 void handlePaste({ pasteAt: pointer, clipboardText });
              } else {
                  const svg = document.querySelector('svg');
                  if (svg) {
@@ -864,7 +867,7 @@ const useGlobalEventHandlers = () => {
     return () => {
         document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [handlePaste, getPointerPosition, setActivePaths, setSelectedPathIds, setTool, vt.scale, lastPointerPosition]);
+  }, [handlePaste, getPointerPosition, setActivePaths, setSelectedPathIds, setTool, vt.scale, vt.getLastPointerPosition]);
 };
 
 export default useGlobalEventHandlers;

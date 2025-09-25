@@ -19,8 +19,8 @@ export const useViewTransform = () => {
   const handleTouchEnd = useViewTransformStore(s => s.handleTouchEnd);
   const isPinching = useViewTransformStore(s => s.isPinching);
   const getPointerPosition = useViewTransformStore(s => s.getPointerPosition);
-  const lastPointerPosition = useViewTransformStore(s => s.lastPointerPosition);
   const setLastPointerPosition = useViewTransformStore(s => s.setLastPointerPosition);
+  const getLastPointerPosition = React.useCallback(() => useViewTransformStore.getState().lastPointerPosition, []);
 
   return React.useMemo(
     () => ({
@@ -34,8 +34,8 @@ export const useViewTransform = () => {
       handleTouchEnd,
       isPinching,
       getPointerPosition,
-      lastPointerPosition,
       setLastPointerPosition,
+      getLastPointerPosition,
     }),
     [
       viewTransform,
@@ -48,8 +48,8 @@ export const useViewTransform = () => {
       handleTouchEnd,
       isPinching,
       getPointerPosition,
-      lastPointerPosition,
       setLastPointerPosition,
+      getLastPointerPosition,
     ]
   );
 };
