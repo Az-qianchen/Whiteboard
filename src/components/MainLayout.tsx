@@ -54,7 +54,6 @@ export const MainLayout: React.FC = () => {
         gridSize,
         gridSubdivisions,
         gridOpacity,
-        editingTextPathId,
         croppingState,
         currentCropRect,
         cropTool,
@@ -144,7 +143,7 @@ export const MainLayout: React.FC = () => {
                 if (selectionMode === 'move') return selectionInteraction.isHoveringMovable ? 'grab' : 'default';
                 if (selectionMode === 'edit') return selectionInteraction.isHoveringEditable ? 'pointer' : 'default';
                 return 'default';
-            case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': case 'text': return 'crosshair';
+            case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
             default: return 'default';
         }
     }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, cropTool]);
@@ -234,7 +233,6 @@ export const MainLayout: React.FC = () => {
                             gridSubdivisions={gridSubdivisions}
                             gridOpacity={gridOpacity}
                             dragState={selectionInteraction.dragState}
-                            editingTextPathId={editingTextPathId}
                             croppingState={croppingState}
                             currentCropRect={currentCropRect}
                             cropTool={cropTool}

@@ -76,18 +76,6 @@ export interface ToolbarState {
   drawingDisableMultiStrokeFill: boolean;
   setDrawingDisableMultiStrokeFill: (v: boolean) => void;
 
-  drawingText: string;
-  setDrawingText: (v: string) => void;
-
-  drawingFontFamily: string;
-  setDrawingFontFamily: (v: string) => void;
-
-  drawingFontSize: number;
-  setDrawingFontSize: (v: number) => void;
-
-  drawingTextAlign: 'left' | 'center' | 'right';
-  setDrawingTextAlign: (v: 'left' | 'center' | 'right') => void;
-
   drawingBlur: number;
   setDrawingBlur: (v: number) => void;
 
@@ -181,18 +169,6 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingDisableMultiStrokeFill: DEFAULT_DISABLE_MULTI_STROKE_FILL,
       setDrawingDisableMultiStrokeFill: (v) => set({ drawingDisableMultiStrokeFill: v }),
-
-      drawingText: '文本',
-      setDrawingText: (v) => set({ drawingText: v }),
-
-      drawingFontFamily: 'Excalifont',
-      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
-
-      drawingFontSize: 24,
-      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
-
-      drawingTextAlign: 'left',
-      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
 
       drawingBlur: 0,
       setDrawingBlur: (v) => set({ drawingBlur: v }),

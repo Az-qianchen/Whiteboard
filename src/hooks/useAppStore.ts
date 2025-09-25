@@ -18,8 +18,8 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, TextData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
-import { measureText, rotatePoint, dist } from '@/lib/drawing';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
+import { rotatePoint, dist } from '@/lib/drawing';
 
 import {
   removeBackground,
@@ -217,7 +217,6 @@ interface AppState {
   styleClipboard: StyleClipboardData | null;
   styleLibrary: StyleClipboardData[];
   materialLibrary: MaterialData[];
-  editingTextPathId: string | null;
   activeFileHandle: FileSystemFileHandle | null;
   activeFileName: string | null;
   isLoading: boolean;
@@ -272,8 +271,7 @@ const getInitialAppState = (): AppState => ({
   styleClipboard: null,
   styleLibrary: getLocalStorageItem('whiteboard_styleLibrary', []),
   materialLibrary: getLocalStorageItem('whiteboard_materialLibrary', []),
-  editingTextPathId: null,
-  activeFileHandle: null,
+      activeFileHandle: null,
   activeFileName: null,
   isLoading: true,
   confirmationDialog: null,
@@ -459,7 +457,6 @@ export const useAppStore = () => {
   const setStyleClipboard = useCallback((val: AppState['styleClipboard'] | ((prev: AppState['styleClipboard']) => AppState['styleClipboard'])) => setAppState(s => ({ ...s, styleClipboard: typeof val === 'function' ? val(s.styleClipboard) : val })), []);
   const setStyleLibrary = useCallback((val: AppState['styleLibrary'] | ((prev: AppState['styleLibrary']) => AppState['styleLibrary'])) => setAppState(s => ({ ...s, styleLibrary: typeof val === 'function' ? val(s.styleLibrary) : val })), []);
   const setMaterialLibrary = useCallback((val: AppState['materialLibrary'] | ((prev: AppState['materialLibrary']) => AppState['materialLibrary'])) => setAppState(s => ({ ...s, materialLibrary: typeof val === 'function' ? val(s.materialLibrary) : val })), []);
-  const setEditingTextPathId = useCallback((val: AppState['editingTextPathId'] | ((prev: AppState['editingTextPathId']) => AppState['editingTextPathId'])) => setAppState(s => ({ ...s, editingTextPathId: typeof val === 'function' ? val(s.editingTextPathId) : val })), []);
   const setActiveFileHandle = useCallback((val: AppState['activeFileHandle'] | ((prev: AppState['activeFileHandle']) => AppState['activeFileHandle'])) => setAppState(s => ({ ...s, activeFileHandle: typeof val === 'function' ? val(s.activeFileHandle) : val })), []);
   const setActiveFileName = useCallback((val: AppState['activeFileName'] | ((prev: AppState['activeFileName']) => AppState['activeFileName'])) => setAppState(s => ({ ...s, activeFileName: typeof val === 'function' ? val(s.activeFileName) : val })), []);
   const setIsLoading = useCallback((val: AppState['isLoading'] | ((prev: AppState['isLoading']) => AppState['isLoading'])) => setAppState(s => ({ ...s, isLoading: typeof val === 'function' ? val(s.isLoading) : val })), []);
@@ -1224,11 +1221,6 @@ export const useAppStore = () => {
     );
   }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
 
-  const handleTextChange = useCallback((pathId: string, newText: string) => {
-      activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
-  }, [activePathState]);
-  const handleTextEditCommit = useCallback(() => { endCoalescing(); setEditingTextPathId(null); }, [endCoalescing, setEditingTextPathId]);
-  
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
     const { pathId, originalPath } = appState.croppingState;
@@ -1377,8 +1369,7 @@ export const useAppStore = () => {
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
-      if (path.tool === 'text') { setEditingTextPathId(path.id); beginCoalescing(); }
-      else if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
+      if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
       else if (path.tool === 'image') {
           beginCoalescing();
           clearCropSelection();
@@ -1393,7 +1384,6 @@ export const useAppStore = () => {
     toolbarState.selectionMode,
     beginCoalescing,
     groupIsolation,
-    setEditingTextPathId,
     setCroppingState,
     setCurrentCropRect,
     clearCropSelection,
@@ -1611,7 +1601,6 @@ export const useAppStore = () => {
       setStyleClipboard,
       setStyleLibrary,
       setMaterialLibrary,
-      setEditingTextPathId,
       setActiveFileHandle,
       setActiveFileName,
       setIsLoading,
@@ -1632,8 +1621,6 @@ export const useAppStore = () => {
       confirmCrop,
       trimTransparentEdges,
       cancelCrop,
-      handleTextChange,
-      handleTextEditCommit,
       handleSetTool,
       handleToggleStyleLibrary,
       handleClear,
@@ -1714,7 +1701,6 @@ export const useAppStore = () => {
       setStyleClipboard,
       setStyleLibrary,
       setMaterialLibrary,
-      setEditingTextPathId,
       setActiveFileHandle,
       setActiveFileName,
       setIsLoading,
@@ -1734,8 +1720,6 @@ export const useAppStore = () => {
       confirmCrop,
       trimTransparentEdges,
       cancelCrop,
-      handleTextChange,
-      handleTextEditCommit,
       handleSetTool,
       handleToggleStyleLibrary,
       handleClear,

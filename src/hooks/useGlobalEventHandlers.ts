@@ -337,7 +337,6 @@ const useGlobalEventHandlers = () => {
         case 'o': setTool('ellipse'); break;
         case 'l': setTool('line'); break;
         case 'a': setTool('arc'); break;
-        case 't': setTool('text'); break;
         case 'f': setTool('frame'); break;
         case 'escape':
           if (croppingState) {

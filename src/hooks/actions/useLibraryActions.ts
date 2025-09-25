@@ -4,7 +4,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fileOpen, fileSave } from 'browser-fs-access';
-import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, TextData, Point, GroupData, ArcData } from '@/types';
+import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, Point, GroupData, ArcData } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
 import type { AppActionsProps } from './useAppActions';
 
@@ -52,8 +52,6 @@ export const useLibraryActions = ({
         disableMultiStrokeFill: path.disableMultiStrokeFill,
         borderRadius: (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') ? (path as RectangleData | ImageData | PolygonData).borderRadius : undefined,
         sides: path.tool === 'polygon' ? (path as PolygonData).sides : undefined,
-        fontSize: path.tool === 'text' ? (path as TextData).fontSize : undefined,
-        textAlign: path.tool === 'text' ? (path as TextData).textAlign : undefined,
     });
   }, [paths, selectedPathIds, setStyleClipboard]);
   
@@ -70,55 +68,30 @@ export const useLibraryActions = ({
                 const updatedChildren = path.children.map(child => applyStyleRecursively(child, style));
                 return { ...path, ...styleProps, tool: 'group', children: updatedChildren };
             }
-            case 'text':
-                delete (styleProps as Partial<RectangleData>).borderRadius;
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, tool: 'text' };
             case 'rectangle':
                 delete (styleProps as Partial<PolygonData>).sides;
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, tool: 'rectangle' };
             case 'polygon':
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, tool: 'polygon' };
             case 'image':
                 delete (styleProps as Partial<PolygonData>).sides;
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, tool: 'image' };
             case 'pen':
             case 'line':
                 delete (styleProps as Partial<RectangleData>).borderRadius;
                 delete (styleProps as Partial<PolygonData>).sides;
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, tool: path.tool };
             case 'brush':
                 delete (styleProps as Partial<RectangleData>).borderRadius;
                 delete (styleProps as Partial<PolygonData>).sides;
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, tool: 'brush' };
             case 'ellipse':
                 delete (styleProps as Partial<RectangleData>).borderRadius;
                 delete (styleProps as Partial<PolygonData>).sides;
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, tool: 'ellipse' };
             case 'arc':
                 delete (styleProps as Partial<RectangleData>).borderRadius;
                 delete (styleProps as Partial<PolygonData>).sides;
-                delete (styleProps as Partial<TextData>).fontFamily;
-                delete (styleProps as Partial<TextData>).fontSize;
-                delete (styleProps as Partial<TextData>).textAlign;
                 return { ...path, ...styleProps, points: path.points, tool: 'arc' };
         }
     };

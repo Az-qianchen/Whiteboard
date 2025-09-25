@@ -33,7 +33,6 @@ export const getToolIcon = (tool: AnyPath['tool'], path?: AnyPath) => {
     case 'arc': return withLayerIconSize(ICONS.ARC);
     case 'image': return withLayerIconSize(ICONS.IMAGE);
     case 'group': return withLayerIconSize(ICONS.GROUP);
-    case 'text': return withLayerIconSize(ICONS.TEXT);
     case 'frame': return withLayerIconSize(ICONS.FRAME);
     default: return null;
   }

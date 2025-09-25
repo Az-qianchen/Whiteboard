@@ -4,8 +4,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, TextData, FrameData } from '../types';
-import { snapAngle, dist, measureText } from '../lib/drawing';
+import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData } from '../types';
+import { snapAngle, dist } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
 
@@ -54,7 +54,6 @@ export const useDrawing = ({
     isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
     curveTightness, curveStepCount, preserveVertices,
     disableMultiStroke, disableMultiStrokeFill,
-    fontSize, textAlign, text, fontFamily,
   } = toolbarState;
 
   // Effect to clear the preview line when the pen/line path is finalized or cancelled.
@@ -153,33 +152,6 @@ export const useDrawing = ({
           ...sharedProps,
         };
         setDrawingShape(newShape);
-        break;
-      }
-      case 'text': {
-        const defaultText = text || '文本';
-        const { width, height } = measureText(defaultText, fontSize, fontFamily);
-
-        const newText: TextData = {
-            id,
-            tool: 'text',
-            text: defaultText,
-            x: snappedPoint.x,
-            y: snappedPoint.y,
-            width,
-            height,
-            fontFamily,
-            fontSize,
-            textAlign,
-            ...sharedProps,
-            // Text specific overrides
-            fill: 'transparent',
-            fillGradient: null,
-            fillStyle: 'solid',
-            strokeWidth: 0,
-        };
-        setPaths((prev: AnyPath[]) => [...prev, newText]);
-        toolbarState.setTool('selection');
-        pathState.setSelectedPathIds([id]);
         break;
       }
       case 'arc': {

@@ -49,7 +49,6 @@ interface WhiteboardProps {
   gridSubdivisions: number;
   gridOpacity: number;
   dragState: DragState | null;
-  editingTextPathId: string | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
@@ -108,7 +107,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   gridSubdivisions,
   gridOpacity,
   dragState,
-  editingTextPathId,
   croppingState,
   currentCropRect,
   cropTool,
@@ -156,24 +154,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     return paths.filter(p => selectedPathIds.includes(p.id));
   }, [paths, selectedPathIds]);
   
-  // 记忆化计算可见的路径，排除不可见和正在编辑的文本路径
-  const visiblePaths = useMemo(() => {
-      // 检查当前正在编辑的文本路径是否也正在被移动。
-      const isMovingEditedPath =
-        dragState?.type === 'move' &&
-        editingTextPathId &&
-        'pathIds' in dragState &&
-        (dragState as any).pathIds.includes(editingTextPathId);
-
-      // 过滤规则：
-      // 1. 路径必须是可见的。
-      // 2. 如果一个路径不是正在编辑的文本，则它是可见的。
-      // 3. 如果一个路径是正在编辑的文本，并且正在被移动，我们也会让它“可见”。
-      //    这是为了防止在移动时选择高亮（这是SVG的一部分）消失，这种消失会被感知为“闪烁”。
-      //    HTML <textarea> 编辑器会渲染在它的上面。虽然这可能会导致文本看起来更粗，
-      //    但在拖动操作期间，这是一个可接受的折衷方案，以换取更流畅的视觉反馈。
-      return paths.filter(p => p.isVisible !== false && (p.id !== editingTextPathId || isMovingEditedPath));
-  }, [paths, editingTextPathId, dragState]);
+  // 记忆化计算可见的路径，仅排除显式隐藏的路径
+  const visiblePaths = useMemo(() => paths.filter(p => p.isVisible !== false), [paths]);
 
   return (
     <div

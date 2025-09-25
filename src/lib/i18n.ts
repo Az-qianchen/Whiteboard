@@ -59,7 +59,6 @@ const resources = {
       toolEllipse: 'Ellipse (O)',
       toolLine: 'Line (L)',
       toolArc: 'Arc (A)',
-      toolText: 'Text (T)',
       toolFrame: 'Frame (F)',
       gridSettings: 'Grid settings',
       showGrid: 'Show grid',
@@ -123,7 +122,6 @@ const resources = {
         borderRadius: 'Corner radius',
         strokeWidth: 'Stroke width',
         strokeColor: 'Stroke color',
-        textColor: 'Text color',
         fillColor: 'Fill color',
         styleLibrary: 'Style library',
         colorControl: {
@@ -218,24 +216,6 @@ const resources = {
           saturation: 'Saturation',
           value: 'Value',
         },
-        textProperties: {
-          placeholder: 'Text',
-          fontSize: 'Font size',
-          alignment: 'Alignment',
-          fontOptions: {
-            Excalifont: 'Hand-drawn',
-            'Xiaolai SC': 'Xiaolai',
-            Kalam: 'Kalam',
-            Lora: 'Serif',
-            'Noto Sans SC': 'Sans serif (CN)',
-            'Roboto Mono': 'Monospace',
-          },
-          align: {
-            left: 'Align left',
-            center: 'Align center',
-            right: 'Align right',
-          },
-        },
         styleLibraryPanel: {
           tabs: {
             styles: 'Styles',
@@ -309,7 +289,6 @@ const resources = {
       toolEllipse: '椭圆 (O)',
       toolLine: '线条 (L)',
       toolArc: '圆弧 (A)',
-      toolText: '文字 (T)',
       toolFrame: '画框 (F)',
       gridSettings: '网格设置',
       showGrid: '显示网格',
@@ -373,7 +352,6 @@ const resources = {
         borderRadius: '圆角',
         strokeWidth: '宽度',
         strokeColor: '描边色',
-        textColor: '文字颜色',
         fillColor: '背景色',
         styleLibrary: '样式库',
         colorControl: {
@@ -467,24 +445,6 @@ const resources = {
           hue: '色相',
           saturation: '饱和度',
           value: '明度',
-        },
-        textProperties: {
-          placeholder: '文本',
-          fontSize: '字号',
-          alignment: '对齐',
-          fontOptions: {
-            Excalifont: '手绘',
-            'Xiaolai SC': '小赖',
-            Kalam: '书法',
-            Lora: '衬线',
-            'Noto Sans SC': '无衬线 (中)',
-            'Roboto Mono': '等宽',
-          },
-          align: {
-            left: '左对齐',
-            center: '居中对齐',
-            right: '右对齐',
-          },
         },
         styleLibraryPanel: {
           tabs: {
