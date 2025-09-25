@@ -68,10 +68,13 @@
   /* Canvas Specific */
   --grid-line: rgba(var(--oc-gray-7-rgb), 0.5);
   --subgrid-line: rgba(var(--oc-gray-6-rgb), 0.7);
-  --accent-highlight-fill: rgba(var(--oc-blue-6-rgb), 0.1);
-  --accent-highlight-stroke: rgba(var(--oc-blue-6-rgb), 0.7);
+  --accent-highlight-fill: rgba(var(--oc-blue-6-rgb), 0.24);
+  --accent-highlight-stroke: rgba(var(--oc-blue-6-rgb), 0.85);
   --accent-primary-muted: var(--oc-blue-8);
   --accent-primary-highlight: rgba(var(--oc-blue-6-rgb), 0.2);
+  --magic-wand-selection-fill: rgba(var(--oc-blue-6-rgb), 0.32);
+  --magic-wand-ants-dark: rgba(0, 0, 0, 0.92);
+  --magic-wand-ants-light: rgba(255, 255, 255, 0.98);
 
   /* Custom Scrollbar for Style Library */
   --scrollbar-bg: transparent;
