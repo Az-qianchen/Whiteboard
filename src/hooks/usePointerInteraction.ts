@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import type { Tool } from '../types';
+import type { AnyPath, Tool } from '../types';
+import { findDeepestHitPath } from '@/lib/hit-testing';
 
 interface InteractionHandlers {
   onPointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -16,6 +17,7 @@ interface InteractionHandlers {
 interface PointerInteractionProps {
   tool: Tool;
   viewTransform: {
+    viewTransform: { scale: number };
     isPanning: boolean;
     setIsPanning: (v: boolean) => void;
     handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -23,9 +25,14 @@ interface PointerInteractionProps {
     handleTouchMove: (e: React.PointerEvent<SVGSVGElement>) => void;
     handleTouchEnd: (e: React.PointerEvent<SVGSVGElement>) => void;
     isPinching: boolean;
+    getPointerPosition: (e: { clientX: number; clientY: number }, svg: SVGSVGElement) => { x: number; y: number };
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  paths: AnyPath[];
+  setStrokeColor: (color: string) => void;
+  setFillColor: (color: string) => void;
+  backgroundColor: string;
 }
 
 /**
@@ -37,6 +44,10 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  paths,
+  setStrokeColor,
+  setFillColor,
+  backgroundColor,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -47,8 +58,51 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchStart(e);
       if (viewTransform.isPinching) return;
     }
+    if (e.altKey) {
+      const svg = e.currentTarget;
+      const point = viewTransform.getPointerPosition(
+        { clientX: e.clientX, clientY: e.clientY },
+        svg
+      );
+      const scale = viewTransform.viewTransform.scale || 1;
+      const hitPath = findDeepestHitPath(point, paths, scale);
+
+      const resolveFillColor = (path: AnyPath | null): string | null => {
+        if (!path) {
+          return backgroundColor;
+        }
+        if (path.fillGradient && path.fillGradient.stops?.length) {
+          return path.fillGradient.stops[0]?.color ?? null;
+        }
+        const rawFill = path.fill ?? '';
+        if (rawFill.trim() && rawFill.toLowerCase() !== 'none') {
+          return rawFill;
+        }
+        return path.color ?? null;
+      };
+
+      const resolveStrokeColor = (path: AnyPath | null): string | null => {
+        if (!path) {
+          return backgroundColor;
+        }
+        return path.color ?? null;
+      };
+
+      const sampledColor = e.shiftKey
+        ? resolveFillColor(hitPath)
+        : resolveStrokeColor(hitPath);
+
+      if (sampledColor) {
+        if (e.shiftKey) {
+          setFillColor(sampledColor);
+        } else {
+          setStrokeColor(sampledColor);
+        }
+      }
+      return;
+    }
     // Middle-mouse-button panning is always available
-    if (e.button === 1 || (e.altKey && tool !== 'selection')) {
+    if (e.button === 1) {
       e.currentTarget.setPointerCapture(e.pointerId);
       setIsPanning(true);
       return;

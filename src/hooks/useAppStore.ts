@@ -1421,7 +1421,16 @@ export const useAppStore = () => {
     onCropManualPointerUp: handleCropManualPointerUp,
     cropManualDraft: appState.cropManualDraft,
   });
-  const pointerInteraction = usePointerInteraction({ tool: toolbarState.tool, viewTransform, drawingInteraction, selectionInteraction });
+  const pointerInteraction = usePointerInteraction({
+    tool: toolbarState.tool,
+    viewTransform,
+    drawingInteraction,
+    selectionInteraction,
+    paths: activePaths,
+    setStrokeColor: toolbarState.setColor,
+    setFillColor: toolbarState.setFill,
+    backgroundColor: uiState.backgroundColor,
+  });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
