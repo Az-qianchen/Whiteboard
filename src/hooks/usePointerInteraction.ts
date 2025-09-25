@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { AnyPath, Tool } from '../types';
+import type { AnyPath, Point, Tool } from '../types';
 import { findDeepestHitPath } from '@/lib/hit-testing';
 
 interface InteractionHandlers {
@@ -33,6 +33,7 @@ interface PointerInteractionProps {
   setStrokeColor: (color: string) => void;
   setFillColor: (color: string) => void;
   backgroundColor: string;
+  sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
 }
 
 /**
@@ -48,6 +49,7 @@ export const usePointerInteraction = ({
   setStrokeColor,
   setFillColor,
   backgroundColor,
+  sampleImageColorAtPoint,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -59,6 +61,7 @@ export const usePointerInteraction = ({
       if (viewTransform.isPinching) return;
     }
     if (e.altKey) {
+      const isShiftSampling = e.shiftKey;
       const svg = e.currentTarget;
       const point = viewTransform.getPointerPosition(
         { clientX: e.clientX, clientY: e.clientY },
@@ -66,6 +69,18 @@ export const usePointerInteraction = ({
       );
       const scale = viewTransform.viewTransform.scale || 1;
       const hitPath = findDeepestHitPath(point, paths, scale);
+
+      if (hitPath?.tool === 'image') {
+        void sampleImageColorAtPoint(point, hitPath).then(sampledColor => {
+          if (!sampledColor) return;
+          if (isShiftSampling) {
+            setFillColor(sampledColor);
+          } else {
+            setStrokeColor(sampledColor);
+          }
+        });
+        return;
+      }
 
       const resolveFillColor = (path: AnyPath | null): string | null => {
         if (!path) {
@@ -88,12 +103,12 @@ export const usePointerInteraction = ({
         return path.color ?? null;
       };
 
-      const sampledColor = e.shiftKey
+      const sampledColor = isShiftSampling
         ? resolveFillColor(hitPath)
         : resolveStrokeColor(hitPath);
 
       if (sampledColor) {
-        if (e.shiftKey) {
+        if (isShiftSampling) {
           setFillColor(sampledColor);
         } else {
           setStrokeColor(sampledColor);

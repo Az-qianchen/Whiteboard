@@ -32,7 +32,7 @@ import {
   type MagicWandMask,
 } from '@/lib/image';
 
-import { getImageDataUrl } from '@/lib/imageCache';
+import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
 import { createDocumentSignature } from '@/lib/document';
@@ -1421,6 +1421,48 @@ export const useAppStore = () => {
     onCropManualPointerUp: handleCropManualPointerUp,
     cropManualDraft: appState.cropManualDraft,
   });
+  const sampleImageColorAtPoint = useCallback(async (point: Point, path: AnyPath) => {
+    if (path.tool !== 'image') {
+      return null;
+    }
+
+    try {
+      const imagePath = path as PathImageData;
+      const pixelData = await getImagePixelData(imagePath);
+      const pixel = mapWorldPointToImagePixel(point, imagePath, pixelData.width, pixelData.height);
+      if (!pixel) {
+        return null;
+      }
+
+      const { x, y } = pixel;
+      if (x < 0 || x >= pixelData.width || y < 0 || y >= pixelData.height) {
+        return null;
+      }
+
+      const offset = (y * pixelData.width + x) * 4;
+      const data = pixelData.data;
+      const r = data[offset];
+      const g = data[offset + 1];
+      const b = data[offset + 2];
+      const alpha = data[offset + 3] / 255;
+
+      if (!Number.isFinite(alpha)) {
+        return null;
+      }
+
+      if (alpha >= 0.999) {
+        const toHex = (value: number) => value.toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+      }
+
+      const normalizedAlpha = Math.round(alpha * 1000) / 1000;
+      return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha})`;
+    } catch (error) {
+      console.error('Failed to sample image color', error);
+      return null;
+    }
+  }, []);
+
   const pointerInteraction = usePointerInteraction({
     tool: toolbarState.tool,
     viewTransform,
@@ -1430,6 +1472,7 @@ export const useAppStore = () => {
     setStrokeColor: toolbarState.setColor,
     setFillColor: toolbarState.setFill,
     backgroundColor: uiState.backgroundColor,
+    sampleImageColorAtPoint,
   });
   
   const handleSetTool = useCallback((newTool: Tool) => {
