@@ -177,11 +177,8 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
       if (!fillGradient) return;
       const next = updateGradientStopColor(fillGradient, index, color);
       setFillGradient(next);
-      if (index === 0) {
-        setFill(color);
-      }
     },
-    [fillGradient, setFillGradient, setFill],
+    [fillGradient, setFillGradient],
   );
 
   const handleTypeChange = useCallback(
@@ -215,9 +212,6 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
             ? (createDefaultLinearGradient(baseColor) as LinearGradientFill)
             : (createDefaultRadialGradient(baseColor) as RadialGradientFill);
           setFillGradient(nextBase);
-          if (nextBase.stops.length > 0) {
-            setFill(nextBase.stops[0].color);
-          }
         } finally {
           endCoalescing();
         }
@@ -243,9 +237,6 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
           }
           const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
           setFillGradient(next);
-          if (next.stops.length > 0) {
-            setFill(next.stops[0].color);
-          }
           return;
         }
 
@@ -262,9 +253,6 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         }
         const next: GradientFill = { ...configured, stops: currentStops ?? configured.stops };
         setFillGradient(next);
-        if (next.stops.length > 0) {
-          setFill(next.stops[0].color);
-        }
       } finally {
         endCoalescing();
       }
