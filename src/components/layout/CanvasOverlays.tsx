@@ -19,6 +19,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, TextData, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { recursivelyFindPathById } from '@/hooks/frame-management-logic';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -116,10 +117,13 @@ export const CanvasOverlays: React.FC = () => {
         setIsTimelineCollapsed,
     } = store;
 
-    const editingPath = useMemo(() => 
-        paths.find((p: AnyPath) => p.id === activeEditingTextPathId && p.tool === 'text') as TextData | undefined,
-        [paths, activeEditingTextPathId]
-    );
+    const editingPath = useMemo(() => {
+        if (!activeEditingTextPathId) {
+            return undefined;
+        }
+        const match = recursivelyFindPathById(paths, activeEditingTextPathId);
+        return match && match.tool === 'text' ? (match as TextData) : undefined;
+    }, [paths, activeEditingTextPathId]);
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);

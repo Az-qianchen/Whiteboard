@@ -15,6 +15,7 @@ import { useSelection } from './useSelection';
 import { usePointerInteraction } from './usePointerInteraction';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
+import { recursivelyDeletePaths, recursivelyFindPathById, recursivelyUpdatePath } from '@/hooks/frame-management-logic';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
@@ -1187,22 +1188,28 @@ export const useAppStore = () => {
   }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
 
   const handleTextChange = useCallback((pathId: string, newText: string) => {
-      activePathState.setPaths(prev => prev.map(p => (p.id === pathId && p.tool === 'text') ? { ...p, text: newText, ...measureText(newText, (p as TextData).fontSize, (p as TextData).fontFamily) } : p));
+    activePathState.setPaths(prev =>
+      recursivelyUpdatePath(prev, pathId, (path) => {
+        if (path.tool !== 'text') {
+          return path;
+        }
+        const textPath = path as TextData;
+        const metrics = measureText(newText, textPath.fontSize, textPath.fontFamily);
+        return { ...textPath, text: newText, ...metrics };
+      })
+    );
   }, [activePathState]);
   const handleTextEditCommit = useCallback(() => {
     const editingId = appState.editingTextPathId;
     if (editingId) {
       let removed = false;
       setPaths(prev => {
-        const index = prev.findIndex(p => p.id === editingId);
-        if (index === -1) return prev;
-        const path = prev[index];
-        if (path.tool !== 'text') return prev;
+        const path = recursivelyFindPathById(prev, editingId);
+        if (!path || path.tool !== 'text') return prev;
         const textContent = (path as TextData).text.replace(/\s+/g, '');
         if (textContent.length === 0) {
           removed = true;
-          const next = [...prev.slice(0, index), ...prev.slice(index + 1)];
-          return next;
+          return recursivelyDeletePaths(prev, [editingId]);
         }
         return prev;
       });

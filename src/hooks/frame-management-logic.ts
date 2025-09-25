@@ -146,3 +146,24 @@ export const recursivelyReorderPaths = (paths: AnyPath[], draggedId: string, tar
   const finalTree = findAndInsert(treeWithoutDragged);
   return finalTree || paths;
 };
+
+/**
+ * Recursively finds a path with the provided ID within the path tree.
+ * @param paths - The current array of paths.
+ * @param pathId - The ID to search for.
+ * @returns The matching path if found, otherwise null.
+ */
+export const recursivelyFindPathById = (paths: AnyPath[], pathId: string): AnyPath | null => {
+  for (const path of paths) {
+    if (path.id === pathId) {
+      return path;
+    }
+    if (path.tool === 'group') {
+      const childMatch = recursivelyFindPathById((path as GroupData).children, pathId);
+      if (childMatch) {
+        return childMatch;
+      }
+    }
+  }
+  return null;
+};
