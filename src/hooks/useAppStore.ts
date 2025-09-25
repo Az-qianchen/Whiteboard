@@ -224,7 +224,7 @@ interface AppState {
   croppingState: { pathId: string; originalPath: PathImageData } | null;
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
-  cropMagicWandOptions: { threshold: number; contiguous: boolean };
+  cropMagicWandOptions: { threshold: number; contiguous: boolean; featherRadius: number };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
@@ -278,7 +278,7 @@ const getInitialAppState = (): AppState => ({
   croppingState: null,
   currentCropRect: null,
   cropTool: 'crop',
-  cropMagicWandOptions: { threshold: 20, contiguous: true },
+  cropMagicWandOptions: { threshold: 20, contiguous: true, featherRadius: 0 },
   cropSelectionContours: null,
   cropPendingCutoutSrc: null,
   cropSelectionMode: 'magic-wand',
@@ -520,7 +520,8 @@ export const useAppStore = () => {
         return;
       }
 
-      const { image, contours } = applyMaskToImage(cache.imageData, normalizedMask);
+      const { featherRadius } = appState.cropMagicWandOptions;
+      const { image, contours } = applyMaskToImage(cache.imageData, normalizedMask, { featherRadius });
       const previewCanvas = document.createElement('canvas');
       previewCanvas.width = cache.naturalWidth;
       previewCanvas.height = cache.naturalHeight;
@@ -542,7 +543,7 @@ export const useAppStore = () => {
         cropPendingCutoutSrc: newSrc,
       }));
     },
-    [appState.croppingState, setAppState]
+    [appState.cropMagicWandOptions, appState.croppingState, setAppState]
   );
   const clearCropSelection = useCallback(() => {
     cropManualDraftRef.current = null;
@@ -557,8 +558,14 @@ export const useAppStore = () => {
     const cache = cropImageCacheRef.current;
     if (!cache) return;
 
-    const { threshold, contiguous } = appState.cropMagicWandOptions;
-    const result = removeBackground(cache.imageData, { x: pixel.x, y: pixel.y, threshold, contiguous });
+    const { threshold, contiguous, featherRadius } = appState.cropMagicWandOptions;
+    const result = removeBackground(cache.imageData, {
+      x: pixel.x,
+      y: pixel.y,
+      threshold,
+      contiguous,
+      featherRadius,
+    });
     clearManualDraftState();
 
     const operation = appState.cropSelectionOperation;

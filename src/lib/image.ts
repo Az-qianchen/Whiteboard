@@ -29,6 +29,8 @@ export interface MattingOptions {
   threshold?: number;
   /** 是否只抠除连续区域，默认 true */
   contiguous?: boolean;
+  /** 抠图后的羽化半径，像素单位，默认 0 */
+  featherRadius?: number;
 }
 
 /**
@@ -74,7 +76,7 @@ export function removeBackground(
   imageData: ImageData,
   options: MattingOptions
 ): MattingResult {
-  const { x, y, threshold = 10, contiguous = true } = options;
+  const { x, y, threshold = 10, contiguous = true, featherRadius = 0 } = options;
   const { width, height } = imageData;
   const src = new Uint8Array(imageData.data);
   if (x < 0 || y < 0 || x >= width || y >= height) {
@@ -135,8 +137,29 @@ export function removeBackground(
 
   const result = new Uint8ClampedArray(src);
   const m = mask.data;
-  for (let i = 0; i < m.length; i++) {
-    if (m[i]) result[i * 4 + 3] = 0;
+  const radius = Math.max(0, featherRadius);
+
+  if (radius <= 0) {
+    for (let i = 0; i < m.length; i++) {
+      if (m[i]) {
+        result[i * 4 + 3] = 0;
+      }
+    }
+  } else {
+    const distances = computeDistanceMap(m, width, height);
+    for (let i = 0; i < m.length; i++) {
+      const alphaIndex = i * 4 + 3;
+      if (m[i]) {
+        result[alphaIndex] = 0;
+        continue;
+      }
+      const distance = distances[i];
+      if (!Number.isFinite(distance) || distance > radius) {
+        continue;
+      }
+      const ratio = Math.min(1, Math.max(0, distance / radius));
+      result[alphaIndex] = Math.round(result[alphaIndex] * ratio);
+    }
   }
 
   const { minX, minY, maxX, maxY } = mask.bounds;
@@ -153,6 +176,50 @@ export function removeBackground(
   }
 
   return { image: new ImageData(result, width, height), region, mask, contours };
+}
+
+function computeDistanceMap(data: Uint8Array, width: number, height: number): Float32Array {
+  const size = width * height;
+  const distances = new Float32Array(size);
+  const inf = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < size; i++) {
+    distances[i] = data[i] ? 0 : inf;
+  }
+
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) {
+      const idx = rowOffset + x;
+      if (data[idx]) {
+        continue;
+      }
+      let best = distances[idx];
+      if (x > 0) best = Math.min(best, distances[idx - 1] + 1);
+      if (y > 0) best = Math.min(best, distances[idx - width] + 1);
+      if (x > 0 && y > 0) best = Math.min(best, distances[idx - width - 1] + Math.SQRT2);
+      if (x < width - 1 && y > 0) best = Math.min(best, distances[idx - width + 1] + Math.SQRT2);
+      distances[idx] = best;
+    }
+  }
+
+  for (let y = height - 1; y >= 0; y--) {
+    const rowOffset = y * width;
+    for (let x = width - 1; x >= 0; x--) {
+      const idx = rowOffset + x;
+      if (data[idx]) {
+        continue;
+      }
+      let best = distances[idx];
+      if (x < width - 1) best = Math.min(best, distances[idx + 1] + 1);
+      if (y < height - 1) best = Math.min(best, distances[idx + width] + 1);
+      if (x < width - 1 && y < height - 1) best = Math.min(best, distances[idx + width + 1] + Math.SQRT2);
+      if (x > 0 && y < height - 1) best = Math.min(best, distances[idx + width - 1] + Math.SQRT2);
+      distances[idx] = best;
+    }
+  }
+
+  return distances;
 }
 
 function computeMaskBounds(data: Uint8Array, width: number, height: number): MagicWandMask['bounds'] | null {
@@ -342,7 +409,8 @@ export function invertMask(mask: MagicWandMask | null): MagicWandMask | null {
 
 export function applyMaskToImage(
   imageData: ImageData,
-  mask: MagicWandMask | null
+  mask: MagicWandMask | null,
+  options: { featherRadius?: number } = {}
 ): { image: ImageData; contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> } {
   const result = new Uint8ClampedArray(imageData.data);
 
@@ -350,9 +418,29 @@ export function applyMaskToImage(
     return { image: new ImageData(result, imageData.width, imageData.height), contours: [] };
   }
 
-  for (let i = 0; i < mask.data.length; i++) {
-    if (mask.data[i]) {
-      result[i * 4 + 3] = 0;
+  const radius = Math.max(0, options.featherRadius ?? 0);
+  const data = mask.data;
+
+  if (radius <= 0) {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i]) {
+        result[i * 4 + 3] = 0;
+      }
+    }
+  } else {
+    const distances = computeDistanceMap(data, mask.width, mask.height);
+    for (let i = 0; i < data.length; i++) {
+      const alphaIndex = i * 4 + 3;
+      if (data[i]) {
+        result[alphaIndex] = 0;
+        continue;
+      }
+      const distance = distances[i];
+      if (!Number.isFinite(distance) || distance > radius) {
+        continue;
+      }
+      const ratio = Math.min(1, Math.max(0, distance / radius));
+      result[alphaIndex] = Math.round(result[alphaIndex] * ratio);
     }
   }
 
