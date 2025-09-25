@@ -92,20 +92,37 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
     }
 
     const accent = 'var(--accent-primary)';
-    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
-    const dashArray = isMultiSelect ? `${3 / scale} ${3 / scale}` : `${4 / scale} ${4 / scale}`;
-    
+    const highlightFill = 'var(--accent-highlight-fill)';
+    const highlightStroke = 'var(--accent-highlight-stroke)';
+    const baseStrokeWidth = Math.max(1.5, 1 / scale);
+    const haloStrokeWidth = baseStrokeWidth + Math.max(0.75, 0.6 / scale);
+    const dashArray = isMultiSelect ? `${3 / scale} ${3 / scale}` : `${5 / scale} ${3 / scale}`;
+
     return (
-        <path
-            d={d}
-            transform={transform}
-            fill="none"
-            stroke={accent}
-            strokeOpacity={isMultiSelect ? "0.9" : "1"}
-            strokeWidth={scaledStroke(1)}
-            strokeDasharray={dashArray}
-            className="pointer-events-none"
-        />
+        <g className="pointer-events-none">
+            <path d={d} transform={transform} fill={highlightFill} />
+            <path
+                d={d}
+                transform={transform}
+                fill="none"
+                stroke={highlightStroke}
+                strokeWidth={haloStrokeWidth}
+                strokeDasharray={dashArray}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d={d}
+                transform={transform}
+                fill="none"
+                stroke={accent}
+                strokeOpacity={isMultiSelect ? 0.95 : 1}
+                strokeWidth={baseStrokeWidth}
+                strokeDasharray={dashArray}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </g>
     );
 });
 
