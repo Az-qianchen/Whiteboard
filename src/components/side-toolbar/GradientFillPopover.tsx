@@ -55,7 +55,7 @@ const StopPicker: React.FC<StopPickerProps> = ({ label, color, onChange, beginCo
     return (
       <PanelButton
         variant="unstyled"
-        className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
+        className="h-7 w-7 rounded-full transition-transform transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
         style={buttonStyle}
         aria-label={label}
         title={label}
@@ -77,7 +77,7 @@ const StopPicker: React.FC<StopPickerProps> = ({ label, color, onChange, beginCo
           variant="unstyled"
           ref={ref as any}
           onClick={onClick}
-          className="h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110"
+          className="h-7 w-7 rounded-full transition-transform transform hover:scale-110"
           style={buttonStyle}
           aria-label={label}
           title={label}
@@ -294,9 +294,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
-          className={`h-7 w-7 rounded-full ring-1 ring-inset ring-white/10 transition-transform transform hover:scale-110${
-            isGradientActive ? ' outline outline-2 outline-[var(--accent-primary)]/60' : ''
-          }`}
+          className="h-7 w-7 rounded-full transition-transform transform hover:scale-110"
           style={previewStyle}
           title={selectLabel}
           aria-label={selectLabel}
