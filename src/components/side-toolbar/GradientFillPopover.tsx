@@ -294,9 +294,7 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
-          className={`h-7 w-7 rounded-full transition-transform transform hover:scale-110${
-            isGradientActive ? ' outline outline-2 outline-[var(--accent-primary)]/60' : ''
-          }`}
+          className="h-7 w-7 rounded-full transition-transform transform hover:scale-110"
           style={previewStyle}
           title={selectLabel}
           aria-label={selectLabel}
