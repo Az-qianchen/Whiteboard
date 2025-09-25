@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -90,57 +90,6 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
 };
 
 /**
- * 将 TextData 对象渲染为 SVG <g> 元素，其中包含一个 <text> 元素。
- * @param data - 要渲染的文本数据对象。
- * @returns 包含渲染后文本的 SVG <g> 元素。
- */
-function renderText(data: TextData): SVGElement {
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const g = document.createElementNS(svgNS, 'g');
-    const textEl = document.createElementNS(svgNS, 'text');
-
-    const fontFamily = data.fontFamily || 'Excalifont';
-    // 当字体名称包含空格时，应将其用引号括起来以确保 CSS 正确解析。
-    const familyWithQuotes = fontFamily.includes(' ') ? `'${fontFamily}'` : fontFamily;
-
-    textEl.setAttribute('font-size', `${data.fontSize}px`);
-    textEl.style.fontFamily = familyWithQuotes;
-    textEl.setAttribute('fill', data.color);
-    textEl.style.whiteSpace = 'pre'; // 尊重空格
-
-    // 垂直对齐：将 y 设置为边界框的顶部
-    textEl.setAttribute('y', String(data.y));
-
-    // 水平对齐
-    let x = data.x;
-    if (data.textAlign === 'center') {
-        x += data.width / 2;
-        textEl.setAttribute('text-anchor', 'middle');
-    } else if (data.textAlign === 'right') {
-        x += data.width;
-        textEl.setAttribute('text-anchor', 'end');
-    }
-    textEl.setAttribute('x', String(x));
-
-    const lines = data.text.split('\n');
-    const lineHeight = data.fontSize * 1.25;
-
-    lines.forEach((line, index) => {
-        const tspan = document.createElementNS(svgNS, 'tspan');
-        tspan.textContent = line;
-        tspan.setAttribute('x', String(x));
-        // 使用 dy 实现换行。第一行需要特殊处理以进行垂直对齐。
-        const dy = index === 0 ? `${data.fontSize * 0.8}px` : `${lineHeight}px`; // 0.8 是基线的经验值
-        tspan.setAttribute('dy', dy);
-        textEl.appendChild(tspan);
-    });
-
-    g.appendChild(textEl);
-    return g;
-}
-
-
-/**
  * 使用给定的 RoughJS 实例将 AnyPath 对象渲染为 SVGElement。
  * 这是主画板和导出函数共享的实用工具。
  * @param rc - 用于渲染的 RoughSVG 实例。
@@ -151,9 +100,6 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     let node: SVGElement | null = null;
     const capNodes: SVGElement[] = [];
 
-    if (data.tool === 'text') {
-        node = renderText(data as TextData);
-    } else {
         const isRough = data.isRough ?? true;
         if (!isRough && data.tool !== 'image') {
             return createSmoothPathNode(data);
@@ -271,7 +217,6 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 node = renderRoughShape(rc, data as RectangleData | EllipseData | PolygonData | FrameData, options);
             }
         }
-    }
     
     if (!node) return null;
 
@@ -321,8 +266,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'text' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }

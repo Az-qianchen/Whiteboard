@@ -7,5 +7,4 @@ export * from './StylePropertiesPopover';
 export * from './DashControl';
 export * from './shared';
 export * from './StyleLibraryPopover';
-export * from './TextProperties';
 export * from './EffectsPopover';

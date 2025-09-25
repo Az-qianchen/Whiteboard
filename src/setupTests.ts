@@ -23,7 +23,6 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     rotate: () => undefined,
     arc: () => undefined,
     fill: () => undefined,
-    measureText: () => ({ width: 0 }),
   }),
 });
 

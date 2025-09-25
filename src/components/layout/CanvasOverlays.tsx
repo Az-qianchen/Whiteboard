@@ -10,13 +10,12 @@ import { CONTROL_BUTTON_CLASS, getTimelinePanelBottomOffset } from '@/constants'
 import { Toolbar } from '../Toolbar';
 import { SelectionToolbar } from '../SelectionToolbar';
 import { ContextMenu } from '../ContextMenu';
-import { TextEditor } from '../TextEditor';
 import { StyleLibraryPopover } from '../side-toolbar';
 import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
-import type { AnyPath, TextData, MaterialData } from '@/types';
+import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 
@@ -88,9 +87,6 @@ export const CanvasOverlays: React.FC = () => {
         handleTraceImage,
         confirmationDialog,
         hideConfirmation,
-        editingTextPathId: activeEditingTextPathId, // rename to avoid conflict
-        handleTextChange,
-        handleTextEditCommit,
         croppingState,
         cropTool,
         setCropTool,
@@ -116,11 +112,6 @@ export const CanvasOverlays: React.FC = () => {
         isTimelineCollapsed,
         setIsTimelineCollapsed,
     } = store;
-
-    const editingPath = useMemo(() => 
-        paths.find((p: AnyPath) => p.id === activeEditingTextPathId && p.tool === 'text') as TextData | undefined,
-        [paths, activeEditingTextPathId]
-    );
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);
@@ -224,13 +215,6 @@ export const CanvasOverlays: React.FC = () => {
                 />
             )}
 
-            {editingPath && (
-                <TextEditor
-                    path={editingPath} viewTransform={store.viewTransform}
-                    onUpdate={(newText) => handleTextChange(editingPath.id, newText)} onCommit={handleTextEditCommit}
-                />
-            )}
-            
             <StyleLibraryPopover
                 isOpen={isStyleLibraryOpen} onClose={() => setIsStyleLibraryOpen(false)}
                 position={styleLibraryPosition} onPositionChange={setStyleLibraryPosition}

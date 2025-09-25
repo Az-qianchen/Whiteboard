@@ -1,9 +1,8 @@
 import { useMemo, useCallback } from 'react';
-import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, TextData, GradientFill } from '../types';
+import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
-import { measureText } from '../lib/drawing';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 import { updateGradientStopColor } from '@/lib/gradient';
 
@@ -53,10 +52,6 @@ export const useToolbarState = (
   const { drawingPreserveVertices, setDrawingPreserveVertices } = P.useDrawingPreserveVertices();
   const { drawingDisableMultiStroke, setDrawingDisableMultiStroke } = P.useDrawingDisableMultiStroke();
   const { drawingDisableMultiStrokeFill, setDrawingDisableMultiStrokeFill } = P.useDrawingDisableMultiStrokeFill();
-  const { drawingText, setDrawingText } = P.useDrawingText();
-  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
-  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
-  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
   const { drawingBlur, setDrawingBlur } = P.useDrawingBlur();
   const { drawingShadowEnabled, setDrawingShadowEnabled } = P.useDrawingShadowEnabled();
   const { drawingShadowOffsetX, setDrawingShadowOffsetX } = P.useDrawingShadowOffsetX();
@@ -85,12 +80,6 @@ export const useToolbarState = (
       if (path.tool !== 'polygon') {
           delete (finalProps as any).sides;
       }
-      if (path.tool !== 'text') {
-          delete (finalProps as any).textAlign;
-          delete (finalProps as any).fontSize;
-          delete (finalProps as any).fontFamily;
-      }
-      
       if (path.tool === 'group') {
           const updatedChildren = path.children.map(child => applyRecursiveUpdate(child, propsToUpdate));
           return { ...path, ...finalProps, tool: 'group', children: updatedChildren };
@@ -117,14 +106,14 @@ export const useToolbarState = (
     if (firstSelectedPath) {
         updateSelectedPaths(p => {
             const updates: Partial<AnyPath> = { color: newColor };
-            if (p.strokeWidth === 0 && p.tool !== 'text') {
+            if (p.strokeWidth === 0) {
                 updates.strokeWidth = 1;
             }
             return updates;
         });
     } else {
         setDrawingColor(newColor);
-        if (drawingStrokeWidth === 0 && tool !== 'text') {
+        if (drawingStrokeWidth === 0) {
             setDrawingStrokeWidth(1);
         }
     }
@@ -204,61 +193,6 @@ export const useToolbarState = (
     }
   };
 
-  const setText = (newText: string) => {
-    if (firstSelectedPath?.tool === 'text') {
-        updateSelectedPaths((p) => {
-            if (p.tool === 'text') {
-                const { width, height } = measureText(newText, p.fontSize, p.fontFamily);
-                return { text: newText, width, height };
-            }
-            return {};
-        });
-    } else {
-        setDrawingText(newText);
-    }
-  };
-
-  const setFontFamily = (newFamily: string) => {
-    if (firstSelectedPath?.tool === 'text') {
-        updateSelectedPaths((p) => {
-            if (p.tool === 'text') {
-                const { width, height } = measureText(p.text, p.fontSize, newFamily);
-                return { fontFamily: newFamily, width, height };
-            }
-            return {};
-        });
-    } else {
-        setDrawingFontFamily(newFamily);
-    }
-  };
-
-  const setFontSize = (newSize: number) => {
-    if (firstSelectedPath?.tool === 'text') {
-        updateSelectedPaths((p) => {
-            if (p.tool === 'text') {
-                const { width, height } = measureText(p.text, newSize, p.fontFamily);
-                return { fontSize: newSize, width, height };
-            }
-            return {};
-        });
-    } else {
-        setDrawingFontSize(newSize);
-    }
-  };
-
-  const setTextAlign = (align: 'left' | 'center' | 'right') => {
-    if (firstSelectedPath?.tool === 'text') {
-      updateSelectedPaths((p) => {
-        if (p.tool === 'text') {
-          return { textAlign: align };
-        }
-        return {};
-      });
-    } else {
-      setDrawingTextAlign(align);
-    }
-  };
-
   const setBorderRadius = (newRadius: number) => {
     if (selectedPaths.some(p => p.tool === 'rectangle' || p.tool === 'image' || p.tool === 'polygon')) {
       updateSelectedPaths(() => ({ borderRadius: Math.max(0, newRadius) }));
@@ -307,11 +241,6 @@ export const useToolbarState = (
   const shadowBlur = displayValue('shadowBlur', drawingShadowBlur);
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
   
-  const text = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).text ?? drawingText) : drawingText;
-  const fontFamily = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).fontFamily ?? drawingFontFamily) : drawingFontFamily;
-  const fontSize = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).fontSize ?? drawingFontSize) : drawingFontSize;
-  const textAlign = (firstSelectedPath?.tool === 'text') ? ((firstSelectedPath as TextData).textAlign ?? drawingTextAlign) : drawingTextAlign;
-
   const firstSelectedRectImageOrPolygon = useMemo(() => {
     if (selectedPathIds.length !== 1) return null;
     const path = paths.find(p => p.id === selectedPathIds[0] && (p.tool === 'rectangle' || p.tool === 'image' || p.tool === 'polygon'));
@@ -351,10 +280,6 @@ export const useToolbarState = (
     setDrawingPreserveVertices(DEFAULT_PRESERVE_VERTICES);
     setDrawingDisableMultiStroke(DEFAULT_DISABLE_MULTI_STROKE);
     setDrawingDisableMultiStrokeFill(DEFAULT_DISABLE_MULTI_STROKE_FILL);
-    setDrawingText('文本');
-    setDrawingFontFamily('Excalifont');
-    setDrawingFontSize(24);
-    setDrawingTextAlign('left');
     setDrawingBlur(0);
     setDrawingShadowEnabled(false);
     setDrawingShadowOffsetX(2);
@@ -368,8 +293,7 @@ export const useToolbarState = (
     setDrawingStrokeLineCapEnd, setDrawingEndpointSize, setDrawingEndpointFill, setDrawingIsRough,
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
     setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
-    setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingText, setDrawingFontFamily,
-    setDrawingFontSize, setDrawingTextAlign, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
+    setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
     setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
   ]);
 
@@ -407,10 +331,6 @@ export const useToolbarState = (
     shadowOffsetY, setShadowOffsetY,
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
-    text, setText,
-    fontFamily, setFontFamily,
-    fontSize, setFontSize,
-    textAlign, setTextAlign,
     ...pathActions,
     firstSelectedPath,
     resetState,

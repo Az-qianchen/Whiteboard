@@ -6,7 +6,6 @@ import type {
   BrushPathData,
   ArcData,
   GroupData,
-  TextData,
   RectangleData,
   ImageData,
   PolygonData,
@@ -117,10 +116,9 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
     }
     case 'frame':
     case 'rectangle':
-    case 'image':
-    case 'text': {
+    case 'image': {
       const { x, y, width, height } = path;
-      const matrix = getShapeTransformMatrix(path as RectangleData | ImageData | TextData | FrameData);
+      const matrix = getShapeTransformMatrix(path as RectangleData | ImageData | FrameData);
       const corners = [
         { x, y },
         { x: x + width, y },

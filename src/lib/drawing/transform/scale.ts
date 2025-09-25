@@ -1,4 +1,4 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
 
 /**
  * 缩放图形。
@@ -30,8 +30,7 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
     case 'rectangle':
     case 'ellipse':
     case 'image':
-    case 'polygon':
-    case 'text': {
+    case 'polygon': {
       const scaledX = pivot.x + (path.x - pivot.x) * scaleX;
       const scaledY = pivot.y + (path.y - pivot.y) * scaleY;
       const scaledWidth = path.width * scaleX;
@@ -97,10 +96,6 @@ const applyUniformStyleScaling = <T extends AnyPath>(original: T, scaled: T, sca
   }
 
   let result: AnyPath = { ...scaled, ...styleUpdates };
-
-  if (original.tool === 'text' && (original as TextData).fontSize != null) {
-    (result as TextData).fontSize = (original as TextData).fontSize * magnitude;
-  }
 
   if (original.tool === 'group' && scaled.tool === 'group') {
     const originalChildren = (original as GroupData).children;

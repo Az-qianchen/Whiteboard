@@ -243,7 +243,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                     return;
                 }
                 const path = selected[0];
-                const isSimpleShape = selected.length === 1 && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame');
+                const isSimpleShape = selected.length === 1 && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame');
 
                 if (isSimpleShape) {
                     if (e.ctrlKey || e.metaKey) {
@@ -273,7 +273,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
             } else if (handle === 'border-radius' && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon')) setDragState({ type: 'border-radius', pathId, originalPath: path, initialPointerPos: point });
             else if (handle === 'arc' && path.tool === 'arc' && target.dataset.pointIndex) setDragState({ type: 'arc', pathId, pointIndex: parseInt(target.dataset.pointIndex, 10) as 0 | 1 | 2 });
             else if (handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
-                if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'text' || path.tool === 'frame') setDragState({ type: 'resize', pathId, handle, originalPath: path as any, initialPointerPos: point });
+                if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame') setDragState({ type: 'resize', pathId, handle, originalPath: path as any, initialPointerPos: point });
             }
         } return;
     }

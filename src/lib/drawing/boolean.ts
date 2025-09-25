@@ -33,9 +33,8 @@ function ensureVectorPath(path: AnyPath): VectorPathData | null {
       return brushToVectorPath(path);
     case 'arc':
         return arcToVectorPath(path);
-    case 'text':
     case 'image':
-        // 将文本和图像的边界框转换为路径
+        // 将图像的边界框转换为路径
         return rectangleToVectorPath({
             ...path,
             tool: 'rectangle',

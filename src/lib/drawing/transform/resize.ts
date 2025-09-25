@@ -1,4 +1,4 @@
-import type { Point, RectangleData, EllipseData, ImageData, PolygonData, TextData, FrameData, ResizeHandlePosition } from '@/types';
+import type { Point, RectangleData, EllipseData, ImageData, PolygonData, FrameData, ResizeHandlePosition } from '@/types';
 import { rotatePoint } from '../geom';
 import { scalePath } from './scale';
 import { movePath } from './move';
@@ -14,13 +14,13 @@ import { movePath } from './move';
  * @returns 返回一个调整大小后的新图形对象。
  */
 export function resizePath(
-  originalPath: RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData,
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData,
   handle: ResizeHandlePosition,
   currentPos: Point,
   initialPos: Point,
   keepAspectRatio: boolean,
   rotationCenter?: Point,
-): RectangleData | EllipseData | ImageData | PolygonData | TextData | FrameData {
+): RectangleData | EllipseData | ImageData | PolygonData | FrameData {
   const { rotation } = originalPath;
 
   const defaultCenter = {

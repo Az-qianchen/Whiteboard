@@ -34,7 +34,6 @@ export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T 
     case 'ellipse':
     case 'image':
     case 'polygon':
-    case 'text':
       return { ...path, x: path.x + dx, y: path.y + dy };
     case 'group': {
       const groupPath = path as GroupData;

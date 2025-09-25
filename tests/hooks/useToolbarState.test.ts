@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useToolbarState } from '@/hooks/useToolbarState';
 import { COLORS, DEFAULT_BOWING, DEFAULT_CURVE_STEP_COUNT, DEFAULT_CURVE_TIGHTNESS, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_PRESERVE_VERTICES, DEFAULT_ROUGHNESS } from '@/constants';
-import type { AnyPath, RectangleData, TextData } from '@/types';
+import type { AnyPath, RectangleData } from '@/types';
 import type { Dispatch, SetStateAction } from 'react';
 
 const drawingColorSetter = vi.fn();
@@ -30,10 +30,6 @@ const drawingCurveStepCountSetter = vi.fn();
 const drawingPreserveVerticesSetter = vi.fn();
 const drawingDisableMultiStrokeSetter = vi.fn();
 const drawingDisableMultiStrokeFillSetter = vi.fn();
-const drawingTextSetter = vi.fn();
-const drawingFontFamilySetter = vi.fn();
-const drawingFontSizeSetter = vi.fn();
-const drawingTextAlignSetter = vi.fn();
 const drawingBlurSetter = vi.fn();
 const drawingShadowEnabledSetter = vi.fn();
 const drawingShadowOffsetXSetter = vi.fn();
@@ -66,10 +62,6 @@ vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
   useDrawingPreserveVertices: () => ({ drawingPreserveVertices: DEFAULT_PRESERVE_VERTICES, setDrawingPreserveVertices: drawingPreserveVerticesSetter }),
   useDrawingDisableMultiStroke: () => ({ drawingDisableMultiStroke: DEFAULT_DISABLE_MULTI_STROKE, setDrawingDisableMultiStroke: drawingDisableMultiStrokeSetter }),
   useDrawingDisableMultiStrokeFill: () => ({ drawingDisableMultiStrokeFill: DEFAULT_DISABLE_MULTI_STROKE_FILL, setDrawingDisableMultiStrokeFill: drawingDisableMultiStrokeFillSetter }),
-  useDrawingText: () => ({ drawingText: '文本', setDrawingText: drawingTextSetter }),
-  useDrawingFontFamily: () => ({ drawingFontFamily: 'Excalifont', setDrawingFontFamily: drawingFontFamilySetter }),
-  useDrawingFontSize: () => ({ drawingFontSize: 24, setDrawingFontSize: drawingFontSizeSetter }),
-  useDrawingTextAlign: () => ({ drawingTextAlign: 'left', setDrawingTextAlign: drawingTextAlignSetter }),
   useDrawingBlur: () => ({ drawingBlur: 0, setDrawingBlur: drawingBlurSetter }),
   useDrawingShadowEnabled: () => ({ drawingShadowEnabled: false, setDrawingShadowEnabled: drawingShadowEnabledSetter }),
   useDrawingShadowOffsetX: () => ({ drawingShadowOffsetX: 2, setDrawingShadowOffsetX: drawingShadowOffsetXSetter }),
@@ -80,7 +72,7 @@ vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
 
 const setToolMock = vi.fn();
 const setSelectionModeMock = vi.fn();
-let currentTool: 'brush' | 'selection' | 'pen' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'text' | 'frame' = 'brush';
+let currentTool: 'brush' | 'selection' | 'pen' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'frame' = 'brush';
 let currentSelectionMode: 'move' | 'edit' | 'lasso' = 'move';
 const useToolManagementMock = vi.fn(() => ({
   tool: currentTool,
@@ -99,16 +91,6 @@ const usePathActionsMock = vi.fn(() => pathActions);
 vi.mock('@/hooks/toolbar-state/usePathActions', () => ({
   usePathActions: (...args: unknown[]) => usePathActionsMock(...args),
 }));
-
-const drawingMocks = vi.hoisted(() => ({
-  measureTextMock: vi.fn(() => ({ width: 80, height: 40 })),
-}));
-
-vi.mock('@/lib/drawing', () => ({
-  measureText: drawingMocks.measureTextMock,
-}));
-
-const { measureTextMock } = drawingMocks;
 
 type HookProps = {
   paths: AnyPath[];
@@ -135,30 +117,6 @@ describe('useToolbarState', () => {
     curveTightness: 0,
     curveStepCount: 0,
   } as RectangleData;
-
-  const textBase: TextData = {
-    id: 'text-1',
-    tool: 'text',
-    text: 'hello',
-    fontFamily: 'Excalifont',
-    fontSize: 24,
-    textAlign: 'left',
-    x: 10,
-    y: 20,
-    width: 60,
-    height: 40,
-    color: '#000000',
-    fill: 'transparent',
-    fillStyle: 'hachure',
-    strokeWidth: 1,
-    roughness: 0,
-    bowing: 0,
-    fillWeight: 0,
-    hachureAngle: 0,
-    hachureGap: 0,
-    curveTightness: 0,
-    curveStepCount: 0,
-  } as TextData;
 
   let currentPaths: AnyPath[];
   let currentSelectedIds: string[];
@@ -205,10 +163,6 @@ describe('useToolbarState', () => {
     drawingPreserveVerticesSetter,
     drawingDisableMultiStrokeSetter,
     drawingDisableMultiStrokeFillSetter,
-    drawingTextSetter,
-    drawingFontFamilySetter,
-    drawingFontSizeSetter,
-    drawingTextAlignSetter,
     drawingBlurSetter,
     drawingShadowEnabledSetter,
     drawingShadowOffsetXSetter,
@@ -222,8 +176,6 @@ describe('useToolbarState', () => {
     currentSelectedIds = [];
     currentTool = 'brush';
     currentSelectionMode = 'move';
-    measureTextMock.mockReset();
-    measureTextMock.mockReturnValue({ width: 80, height: 40 });
     setterMocks.forEach(mock => mock.mockReset());
     setToolMock.mockReset();
     setSelectionModeMock.mockReset();
@@ -267,26 +219,6 @@ describe('useToolbarState', () => {
     expect(drawingStrokeWidthSetter).toHaveBeenCalledWith(1);
   });
 
-  it('updates text geometry using measureText for selected text paths', () => {
-    currentPaths = [structuredClone(textBase)];
-    currentSelectedIds = ['text-1'];
-    measureTextMock.mockReturnValueOnce({ width: 120, height: 60 });
-    const { result, rerender } = render({ paths: currentPaths, selectedPathIds: currentSelectedIds });
-
-    act(() => {
-      result.current.setText('new content');
-    });
-
-    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
-
-    const updated = currentPaths[0] as TextData;
-    expect(updated.text).toBe('new content');
-    expect(updated.width).toBe(120);
-    expect(updated.height).toBe(60);
-    expect(measureTextMock).toHaveBeenCalledWith('new content', textBase.fontSize, textBase.fontFamily);
-    expect(drawingTextSetter).not.toHaveBeenCalled();
-  });
-
   it('resets drawing defaults and tool state', () => {
     currentPaths = [];
     currentSelectedIds = [];
@@ -320,10 +252,6 @@ describe('useToolbarState', () => {
     expect(drawingPreserveVerticesSetter).toHaveBeenCalledWith(DEFAULT_PRESERVE_VERTICES);
     expect(drawingDisableMultiStrokeSetter).toHaveBeenCalledWith(DEFAULT_DISABLE_MULTI_STROKE);
     expect(drawingDisableMultiStrokeFillSetter).toHaveBeenCalledWith(DEFAULT_DISABLE_MULTI_STROKE_FILL);
-    expect(drawingTextSetter).toHaveBeenCalledWith('文本');
-    expect(drawingFontFamilySetter).toHaveBeenCalledWith('Excalifont');
-    expect(drawingFontSizeSetter).toHaveBeenCalledWith(24);
-    expect(drawingTextAlignSetter).toHaveBeenCalledWith('left');
     expect(drawingBlurSetter).toHaveBeenCalledWith(0);
     expect(drawingShadowEnabledSetter).toHaveBeenCalledWith(false);
     expect(drawingShadowOffsetXSetter).toHaveBeenCalledWith(2);
