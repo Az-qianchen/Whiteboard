@@ -50,6 +50,7 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
   const hasDraft = Boolean(draft && draft.points.length > 0);
   if (!contours.length && !hasDraft) return null;
 
+  const overlayPathD = contours.length > 0 ? contours.map(contour => contour.d).join(' ') : null;
   let draftPath: string | null = null;
   let draftShouldClose = false;
   let draftFill = 'none';
@@ -66,6 +67,9 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
   const markerInnerRadius = 3 / safeScale;
   const markerOuterStroke = 1.5;
   const markerInnerStroke = 0.75;
+  const antsStrokeWidth = 1.5;
+  const antsDash = '6 3';
+  const antsDashOffset = antsStrokeWidth * 2;
 
   if (hasDraft && draft) {
     if (draft.mode === 'brush') {
@@ -116,26 +120,38 @@ export const MagicWandOverlay: React.FC<MagicWandOverlayProps> = ({ contours, dr
 
   return (
     <g className="pointer-events-none">
+      {overlayPathD && (
+        <path
+          d={overlayPathD}
+          fill="var(--magic-wand-selection-fill)"
+          fillRule="evenodd"
+          vectorEffect="non-scaling-stroke"
+          pointerEvents="none"
+        />
+      )}
+
       {contours.map((contour, index) => (
         <g key={`${index}-${contour.inner ? 'inner' : 'outer'}`}>
           <path
             d={contour.d}
             fill="none"
-            stroke="rgba(0,0,0,0.85)"
-            strokeWidth={1}
-            strokeDasharray="4 4"
+            stroke="var(--magic-wand-ants-dark)"
+            strokeWidth={antsStrokeWidth}
+            strokeDasharray={antsDash}
             className="magic-wand-ants"
             vectorEffect="non-scaling-stroke"
+            strokeLinecap="square"
           />
           <path
             d={contour.d}
             fill="none"
-            stroke="rgba(255,255,255,0.95)"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            strokeDashoffset={2}
+            stroke="var(--magic-wand-ants-light)"
+            strokeWidth={antsStrokeWidth}
+            strokeDasharray={antsDash}
+            strokeDashoffset={antsDashOffset}
             className="magic-wand-ants"
             vectorEffect="non-scaling-stroke"
+            strokeLinecap="square"
           />
         </g>
       ))}
