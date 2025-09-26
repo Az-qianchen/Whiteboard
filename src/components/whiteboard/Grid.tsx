@@ -49,7 +49,8 @@ export const Grid: React.FC<GridProps> = React.memo(({ isGridVisible, gridSize, 
               fill="none"
               stroke="var(--subgrid-line)"
               strokeWidth="1.5"
-              strokeDasharray="3 3"
+              strokeDasharray="8 6"
+              strokeOpacity={0.4}
             />
           </pattern>
         )}
