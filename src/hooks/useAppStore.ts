@@ -224,7 +224,7 @@ interface AppState {
   croppingState: { pathId: string; originalPath: PathImageData } | null;
   currentCropRect: BBox | null;
   cropTool: 'crop' | 'magic-wand';
-  cropMagicWandOptions: { threshold: number; contiguous: boolean };
+  cropMagicWandOptions: { threshold: number; contiguous: boolean; featherRadius: number };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
@@ -278,7 +278,7 @@ const getInitialAppState = (): AppState => ({
   croppingState: null,
   currentCropRect: null,
   cropTool: 'crop',
-  cropMagicWandOptions: { threshold: 20, contiguous: true },
+  cropMagicWandOptions: { threshold: 20, contiguous: true, featherRadius: 0 },
   cropSelectionContours: null,
   cropPendingCutoutSrc: null,
   cropSelectionMode: 'magic-wand',
@@ -476,7 +476,13 @@ export const useAppStore = () => {
   }, [clearManualDraftState]);
   const setCropMagicWandOptions = useCallback((val: Partial<AppState['cropMagicWandOptions']>) => setAppState(s => ({
     ...s,
-    cropMagicWandOptions: { ...s.cropMagicWandOptions, ...val },
+    cropMagicWandOptions: {
+      ...s.cropMagicWandOptions,
+      ...val,
+      featherRadius: val.featherRadius !== undefined
+        ? Math.min(100, Math.max(0, Math.round(val.featherRadius)))
+        : s.cropMagicWandOptions.featherRadius,
+    },
   })), []);
   const setCropSelectionMode = useCallback((mode: AppState['cropSelectionMode']) => {
     clearManualDraftState();
@@ -520,7 +526,11 @@ export const useAppStore = () => {
         return;
       }
 
-      const { image, contours } = applyMaskToImage(cache.imageData, normalizedMask);
+      const { image, contours } = applyMaskToImage(
+        cache.imageData,
+        normalizedMask,
+        appState.cropMagicWandOptions.featherRadius,
+      );
       const previewCanvas = document.createElement('canvas');
       previewCanvas.width = cache.naturalWidth;
       previewCanvas.height = cache.naturalHeight;
@@ -542,7 +552,7 @@ export const useAppStore = () => {
         cropPendingCutoutSrc: newSrc,
       }));
     },
-    [appState.croppingState, setAppState]
+    [appState.croppingState, appState.cropMagicWandOptions.featherRadius, setAppState]
   );
   const clearCropSelection = useCallback(() => {
     cropManualDraftRef.current = null;
@@ -739,6 +749,17 @@ export const useAppStore = () => {
     appState.croppingState,
     appState.cropSelectionOperation,
     performMagicWandSelection,
+  ]);
+
+  useEffect(() => {
+    if (!appState.croppingState || appState.cropTool !== 'magic-wand') return;
+    if (!cropMagicWandMaskRef.current) return;
+    updateMagicWandSelection(cropMagicWandMaskRef.current, { saveToHistory: false });
+  }, [
+    appState.cropMagicWandOptions.featherRadius,
+    appState.cropTool,
+    appState.croppingState,
+    updateMagicWandSelection,
   ]);
 
   const applyMagicWandSelection = useCallback(() => {
