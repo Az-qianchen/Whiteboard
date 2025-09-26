@@ -12,8 +12,8 @@ interface CropToolbarProps {
   isTimelineCollapsed: boolean;
   cropTool: 'crop' | 'magic-wand';
   setCropTool: (tool: 'crop' | 'magic-wand') => void;
-  cropMagicWandOptions: { threshold: number; contiguous: boolean };
-  setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean }>) => void;
+  cropMagicWandOptions: { threshold: number; contiguous: boolean; featherRadius: number };
+  setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean; featherRadius: number }>) => void;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
   setCropSelectionMode: (mode: 'magic-wand' | 'freehand' | 'polygon' | 'brush') => void;
   cropBrushSize: number;
@@ -77,6 +77,17 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
   const handleContiguousToggle = () => {
     setCropMagicWandOptions({ contiguous: !cropMagicWandOptions.contiguous });
+  };
+
+  const handleFeatherRadiusChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const parsedValue = Number(event.target.value);
+
+    if (Number.isNaN(parsedValue)) {
+      return;
+    }
+
+    const clampedValue = Math.min(100, Math.max(0, parsedValue));
+    setCropMagicWandOptions({ featherRadius: clampedValue });
   };
 
   const brushSizeMin = 4;
@@ -147,6 +158,23 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                 step={1}
                 value={cropMagicWandOptions.threshold}
                 onChange={handleThresholdChange}
+                inputMode="numeric"
+                className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+              />
+            </div>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-feather-radius">
+            {t('featherRadius')}
+            <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+              <input
+                id="magic-wand-feather-radius"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={cropMagicWandOptions.featherRadius}
+                onChange={handleFeatherRadiusChange}
                 inputMode="numeric"
                 className={`${PANEL_CLASSES.input} hide-spinners text-right`}
               />

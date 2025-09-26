@@ -340,9 +340,71 @@ export function invertMask(mask: MagicWandMask | null): MagicWandMask | null {
   return { data: nextData, width, height, bounds };
 }
 
+function featherMask(mask: MagicWandMask, radius: number): Float32Array {
+  const { width, height, data } = mask;
+  const total = width * height;
+  const base = new Float32Array(total);
+  for (let i = 0; i < total; i++) {
+    base[i] = data[i] ? 1 : 0;
+  }
+
+  const effectiveRadius = Math.max(0, Math.floor(radius));
+  if (effectiveRadius === 0) {
+    return base;
+  }
+
+  return boxBlurFloat32(base, width, height, effectiveRadius);
+}
+
+function boxBlurFloat32(data: Float32Array, width: number, height: number, radius: number): Float32Array {
+  const kernelSize = radius * 2 + 1;
+  const horizontal = new Float32Array(width * height);
+  const output = new Float32Array(width * height);
+
+  const sampleRow = (rowOffset: number, x: number) => {
+    const clamped = Math.min(width - 1, Math.max(0, x));
+    return data[rowOffset + clamped];
+  };
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    let sum = 0;
+    for (let x = -radius; x <= radius; x++) {
+      sum += sampleRow(rowOffset, x);
+    }
+    horizontal[rowOffset] = sum / kernelSize;
+    for (let x = 1; x < width; x++) {
+      const addIndex = x + radius;
+      const removeIndex = x - radius - 1;
+      sum += sampleRow(rowOffset, addIndex) - sampleRow(rowOffset, removeIndex);
+      horizontal[rowOffset + x] = sum / kernelSize;
+    }
+  }
+
+  const sampleColumn = (x: number, y: number) => {
+    const clamped = Math.min(height - 1, Math.max(0, y));
+    return horizontal[clamped * width + x];
+  };
+  for (let x = 0; x < width; x++) {
+    let sum = 0;
+    for (let y = -radius; y <= radius; y++) {
+      sum += sampleColumn(x, y);
+    }
+    output[x] = sum / kernelSize;
+    for (let y = 1; y < height; y++) {
+      const addIndex = y + radius;
+      const removeIndex = y - radius - 1;
+      sum += sampleColumn(x, addIndex) - sampleColumn(x, removeIndex);
+      output[y * width + x] = sum / kernelSize;
+    }
+  }
+
+  return output;
+}
+
 export function applyMaskToImage(
   imageData: ImageData,
-  mask: MagicWandMask | null
+  mask: MagicWandMask | null,
+  featherRadius = 0
 ): { image: ImageData; contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> } {
   const result = new Uint8ClampedArray(imageData.data);
 
@@ -350,10 +412,17 @@ export function applyMaskToImage(
     return { image: new ImageData(result, imageData.width, imageData.height), contours: [] };
   }
 
+  const effectiveRadius = Math.max(0, Math.floor(featherRadius));
+  const featherData = effectiveRadius > 0 ? featherMask(mask, effectiveRadius) : null;
+
   for (let i = 0; i < mask.data.length; i++) {
-    if (mask.data[i]) {
-      result[i * 4 + 3] = 0;
+    const strength = featherData ? featherData[i] : mask.data[i] ? 1 : 0;
+    if (strength <= 0) {
+      continue;
     }
+    const alphaIndex = i * 4 + 3;
+    const normalized = Math.max(0, Math.min(1, strength));
+    result[alphaIndex] = Math.round(result[alphaIndex] * (1 - normalized));
   }
 
   let contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> = [];
