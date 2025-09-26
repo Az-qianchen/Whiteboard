@@ -268,7 +268,7 @@ export const useObjectActions = ({
   /**
    * 开始抠图模式，等待用户在图像上点击选区。
    */
-  const beginRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean }) => {
+  const beginRemoveBackground = useCallback((opts: { threshold: number; contiguous: boolean; featherRadius: number }) => {
     if (selectedPathIds.length !== 1) return;
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
@@ -300,7 +300,13 @@ export const useObjectActions = ({
       const imgData = imagePath as ImageData;
       const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
       const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
-      const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
+      const { image: newData, region } = removeBackground(data, {
+        x: localX,
+        y: localY,
+        threshold: opts.threshold,
+        contiguous: opts.contiguous,
+        featherRadius: opts.featherRadius,
+      });
       ctx.putImageData(newData, 0, 0);
       const newSrc = canvas.toDataURL();
       const filesStore = useFilesStore.getState();

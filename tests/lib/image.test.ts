@@ -42,6 +42,29 @@ test('魔法棒抠除连续区域', () => {
   expect(nonContiguous.region).toEqual({ x: 0, y: 0, width: 3, height: 1 });
 });
 
+test('魔法棒抠除可应用羽化过渡', () => {
+  const pixels = new Uint8ClampedArray([
+    255, 255, 255, 255,
+    255, 255, 255, 255,
+    0, 0, 0, 255,
+    255, 255, 255, 255,
+    255, 255, 255, 255,
+  ]);
+  const imageData = new ImageData(pixels, 5, 1);
+  const result = removeBackground(imageData, {
+    x: 2,
+    y: 0,
+    threshold: 10,
+    contiguous: true,
+    featherRadius: 2,
+  });
+
+  expect(result.image.data[11]).toBe(0); // 中心像素被完全抠除
+  expect(result.image.data[7]).toBe(128); // 左侧相邻像素出现半透明渐变
+  expect(result.image.data[15]).toBe(128); // 右侧相邻像素出现半透明渐变
+  expect(result.image.data[19]).toBe(255); // 更远像素保持不变
+});
+
 test('获取不透明区域边界', () => {
   const pixels = new Uint8ClampedArray([
     0, 0, 0, 0,
