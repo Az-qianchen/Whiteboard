@@ -26,6 +26,7 @@ import {
   SquareDashed,
   RotateCcw,
   Crop,
+  Type,
 } from 'lucide-react';
 
 
@@ -59,6 +60,11 @@ export const DEFAULT_CURVE_STEP_COUNT = 1;
 export const DEFAULT_PRESERVE_VERTICES = false;
 export const DEFAULT_DISABLE_MULTI_STROKE = false;
 export const DEFAULT_DISABLE_MULTI_STROKE_FILL = false;
+
+export const DEFAULT_TEXT_FONT_FAMILY = 'Virgil, "Segoe UI", sans-serif';
+export const DEFAULT_TEXT_FONT_SIZE = 24;
+export const DEFAULT_TEXT_LINE_HEIGHT = 1.25;
+export const DEFAULT_TEXT_ALIGN: 'left' | 'center' | 'right' = 'left';
 
 const ENDPOINT_ICONS = {
   NONE: (
@@ -134,6 +140,7 @@ export const ICONS = {
   CLEAR: <Trash2 className="h-5 w-5" />,
   PEN: <PenTool className="h-5 w-5" />,
   BRUSH: <Pencil className="h-5 w-5" />,
+  TEXT: <Type className="h-5 w-5" />,
   CHECK: <Check className="h-5 w-5" />,
   SELECTION: <MousePointer2 className="h-5 w-5" />,
   EDIT: <Spline className="h-5 w-5" />,

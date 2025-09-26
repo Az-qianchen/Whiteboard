@@ -4,10 +4,12 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData } from '../types';
+import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData, TextData } from '../types';
 import { snapAngle, dist } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
+import { DEFAULT_TEXT_ALIGN, DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
+import { measureTextDimensions } from '@/lib/text';
 
 // Props definition
 interface DrawingInteractionProps {
@@ -17,6 +19,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  startTextEditing: (draft: TextData, options?: { isExisting?: boolean }) => void;
 }
 
 /**
@@ -31,6 +34,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  startTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -113,6 +117,59 @@ export const useDrawing = ({
           ...sharedProps,
         };
         setCurrentBrushPath(newPath);
+        break;
+      }
+      case 'text': {
+        if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        const fontSize = toolbarState.fontSize ?? DEFAULT_TEXT_FONT_SIZE;
+        const fontFamily = toolbarState.fontFamily ?? DEFAULT_TEXT_FONT_FAMILY;
+        const lineHeight = toolbarState.lineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+        const initialText = toolbarState.text ?? '';
+        const metrics = measureTextDimensions(initialText || ' ', {
+          fontSize,
+          fontFamily,
+          lineHeight,
+        });
+        const textShape: TextData = {
+          id,
+          tool: 'text',
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          width: metrics.width,
+          height: metrics.height,
+          text: initialText,
+          fontSize,
+          fontFamily,
+          textAlign: toolbarState.textAlign ?? DEFAULT_TEXT_ALIGN,
+          lineHeight: metrics.lineHeight,
+          baseline: metrics.baseline,
+          color,
+          fill: 'transparent',
+          fillGradient: null,
+          fillStyle,
+          strokeWidth: 0,
+          opacity,
+          strokeLineDash,
+          strokeLineCapStart,
+          strokeLineCapEnd,
+          strokeLineJoin,
+          endpointSize,
+          endpointFill,
+          isRough: false,
+          roughness: 0,
+          bowing: 0,
+          fillWeight: 0,
+          hachureAngle: 0,
+          hachureGap: 0,
+          curveTightness: 0,
+          curveStepCount: 0,
+          preserveVertices,
+          disableMultiStroke: true,
+          disableMultiStrokeFill: true,
+        };
+        startTextEditing(textShape, { isExisting: false });
         break;
       }
       case 'frame': {

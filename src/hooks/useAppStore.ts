@@ -18,8 +18,10 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
+import { measureTextDimensions } from '@/lib/text';
+import { DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
 
 import {
   removeBackground,
@@ -169,6 +171,12 @@ const areMasksEqual = (a: MagicWandMask | null, b: MagicWandMask | null): boolea
   return true;
 };
 
+const getLineHeightRatio = (fontSize: number, lineHeight?: number) => {
+  const safeFontSize = fontSize > 0 ? fontSize : DEFAULT_TEXT_FONT_SIZE;
+  const resolvedLineHeight = lineHeight ?? safeFontSize * DEFAULT_TEXT_LINE_HEIGHT;
+  return resolvedLineHeight / safeFontSize;
+};
+
 // --- State Type Definitions ---
 
 interface UiState {
@@ -217,6 +225,7 @@ interface AppState {
   styleClipboard: StyleClipboardData | null;
   styleLibrary: StyleClipboardData[];
   materialLibrary: MaterialData[];
+  editingTextPathId: string | null;
   activeFileHandle: FileSystemFileHandle | null;
   activeFileName: string | null;
   isLoading: boolean;
@@ -271,7 +280,8 @@ const getInitialAppState = (): AppState => ({
   styleClipboard: null,
   styleLibrary: getLocalStorageItem('whiteboard_styleLibrary', []),
   materialLibrary: getLocalStorageItem('whiteboard_materialLibrary', []),
-      activeFileHandle: null,
+  editingTextPathId: null,
+  activeFileHandle: null,
   activeFileName: null,
   isLoading: true,
   confirmationDialog: null,
@@ -457,6 +467,7 @@ export const useAppStore = () => {
   const setStyleClipboard = useCallback((val: AppState['styleClipboard'] | ((prev: AppState['styleClipboard']) => AppState['styleClipboard'])) => setAppState(s => ({ ...s, styleClipboard: typeof val === 'function' ? val(s.styleClipboard) : val })), []);
   const setStyleLibrary = useCallback((val: AppState['styleLibrary'] | ((prev: AppState['styleLibrary']) => AppState['styleLibrary'])) => setAppState(s => ({ ...s, styleLibrary: typeof val === 'function' ? val(s.styleLibrary) : val })), []);
   const setMaterialLibrary = useCallback((val: AppState['materialLibrary'] | ((prev: AppState['materialLibrary']) => AppState['materialLibrary'])) => setAppState(s => ({ ...s, materialLibrary: typeof val === 'function' ? val(s.materialLibrary) : val })), []);
+  const setEditingTextPathId = useCallback((val: AppState['editingTextPathId'] | ((prev: AppState['editingTextPathId']) => AppState['editingTextPathId'])) => setAppState(s => ({ ...s, editingTextPathId: typeof val === 'function' ? val(s.editingTextPathId) : val })), []);
   const setActiveFileHandle = useCallback((val: AppState['activeFileHandle'] | ((prev: AppState['activeFileHandle']) => AppState['activeFileHandle'])) => setAppState(s => ({ ...s, activeFileHandle: typeof val === 'function' ? val(s.activeFileHandle) : val })), []);
   const setActiveFileName = useCallback((val: AppState['activeFileName'] | ((prev: AppState['activeFileName']) => AppState['activeFileName'])) => setAppState(s => ({ ...s, activeFileName: typeof val === 'function' ? val(s.activeFileName) : val })), []);
   const setIsLoading = useCallback((val: AppState['isLoading'] | ((prev: AppState['isLoading']) => AppState['isLoading'])) => setAppState(s => ({ ...s, isLoading: typeof val === 'function' ? val(s.isLoading) : val })), []);
@@ -1221,6 +1232,60 @@ export const useAppStore = () => {
     );
   }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
 
+  const startTextEditing = useCallback((draft: TextData, options?: { isExisting?: boolean }) => {
+    const { isExisting = false } = options ?? {};
+    if (isExisting) {
+      beginCoalescing();
+      setEditingTextPathId(draft.id);
+      return;
+    }
+
+    beginCoalescing();
+    activePathState.setPaths(prev => [...prev, draft]);
+    setSelectedPathIds([draft.id]);
+    toolbarState.setTool('selection');
+    setEditingTextPathId(draft.id);
+  }, [activePathState, setSelectedPathIds, toolbarState, setEditingTextPathId, beginCoalescing]);
+
+  const handleTextChange = useCallback((pathId: string, newText: string) => {
+    activePathState.setPaths(prev => prev.map(p => {
+      if (p.id !== pathId || p.tool !== 'text') {
+        return p;
+      }
+      const textPath = p as TextData;
+      const metrics = measureTextDimensions(newText || ' ', {
+        fontSize: textPath.fontSize,
+        fontFamily: textPath.fontFamily,
+        lineHeight: getLineHeightRatio(textPath.fontSize, textPath.lineHeight),
+      });
+      return {
+        ...textPath,
+        text: newText,
+        width: metrics.width,
+        height: metrics.height,
+        baseline: metrics.baseline,
+        lineHeight: metrics.lineHeight,
+      };
+    }));
+  }, [activePathState]);
+
+  const handleTextEditCommit = useCallback(() => {
+    const pathId = appState.editingTextPathId;
+    if (!pathId) {
+      return;
+    }
+
+    setEditingTextPathId(null);
+
+    const textPath = activePaths.find(p => p.id === pathId && p.tool === 'text') as TextData | undefined;
+    if (!textPath || textPath.text.trim() === '') {
+      activePathState.setPaths(prev => prev.filter(p => p.id !== pathId));
+      setSelectedPathIds(prev => prev.filter(id => id !== pathId));
+    }
+
+    endCoalescing();
+  }, [appState.editingTextPathId, activePaths, activePathState, setEditingTextPathId, setSelectedPathIds, endCoalescing]);
+
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
     const { pathId, originalPath } = appState.croppingState;
@@ -1369,8 +1434,11 @@ export const useAppStore = () => {
 
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
-      if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
-      else if (path.tool === 'image') {
+      if (path.tool === 'text') {
+        startTextEditing(path as TextData, { isExisting: true });
+      } else if (path.tool === 'group') {
+        groupIsolation.handleGroupDoubleClick(path.id);
+      } else if (path.tool === 'image') {
           beginCoalescing();
           clearCropSelection();
           setCropEditedSrc(null);
@@ -1382,17 +1450,19 @@ export const useAppStore = () => {
       }
   }, [
     toolbarState.selectionMode,
-    beginCoalescing,
+    startTextEditing,
     groupIsolation,
-    setCroppingState,
-    setCurrentCropRect,
+    beginCoalescing,
     clearCropSelection,
     setCropTool,
+    setCroppingState,
+    setCurrentCropRect,
     setCropEditedSrc,
+    setCropHistory,
     setSelectedPathIds,
   ]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState, startTextEditing });
   const selectionInteraction = useSelection({
     pathState: activePathState,
     toolbarState,
@@ -1653,6 +1723,7 @@ export const useAppStore = () => {
       setStyleClipboard,
       setStyleLibrary,
       setMaterialLibrary,
+      setEditingTextPathId,
       setActiveFileHandle,
       setActiveFileName,
       setIsLoading,
@@ -1678,6 +1749,9 @@ export const useAppStore = () => {
       handleClear,
       handleClearAllData,
       handleResetPreferences,
+      startTextEditing,
+      handleTextChange,
+      handleTextEditCommit,
       canClear,
       canClearAllData,
       setIsOnionSkinEnabled,
@@ -1753,6 +1827,7 @@ export const useAppStore = () => {
       setStyleClipboard,
       setStyleLibrary,
       setMaterialLibrary,
+      setEditingTextPathId,
       setActiveFileHandle,
       setActiveFileName,
       setIsLoading,
@@ -1777,6 +1852,9 @@ export const useAppStore = () => {
       handleClear,
       handleClearAllData,
       handleResetPreferences,
+      startTextEditing,
+      handleTextChange,
+      handleTextEditCommit,
       canClear,
       canClearAllData,
       setIsOnionSkinEnabled,
