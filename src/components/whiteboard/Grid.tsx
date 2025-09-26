@@ -14,13 +14,18 @@ interface GridProps {
 }
 
 export const Grid: React.FC<GridProps> = React.memo(({ isGridVisible, gridSize, viewTransform, gridSubdivisions, gridOpacity }) => {
-  if (!isGridVisible) {
+  if (!isGridVisible || gridSize <= 0) {
     return null;
   }
 
   const SUBGRID_VISIBILITY_THRESHOLD = 5; // 如果二级网格线之间的距离小于5像素，则隐藏它们。
   const scaledGridSize = gridSize * viewTransform.scale;
-  const scaledSubGridSize = scaledGridSize / gridSubdivisions;
+  if (scaledGridSize <= 0) {
+    return null;
+  }
+
+  const effectiveSubdivisions = gridSubdivisions > 0 ? gridSubdivisions : 1;
+  const scaledSubGridSize = scaledGridSize / effectiveSubdivisions;
   const showSubgrid = gridSubdivisions > 1 && scaledSubGridSize >= SUBGRID_VISIBILITY_THRESHOLD;
 
   // 使用模运算使网格相对于画布原点保持静止。
