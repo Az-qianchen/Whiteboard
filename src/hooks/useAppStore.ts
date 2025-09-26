@@ -21,7 +21,7 @@ import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
 import { measureTextDimensions } from '@/lib/text';
-import { DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
+import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
 
 import {
   removeBackground,
