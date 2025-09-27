@@ -69,8 +69,12 @@ export const useDrawing = ({
    * @returns 吸附到网格后的新点。
    */
   const snapToGrid = useCallback((point: Point): Point => {
-    if (!isGridVisible) return point;
-    const snapSize = gridSubdivisions > 1 ? gridSize / gridSubdivisions : gridSize;
+    if (!isGridVisible || gridSize <= 0) return point;
+    const subdivisions = gridSubdivisions > 1 ? gridSubdivisions : 1;
+    const snapSize = gridSize / subdivisions;
+    if (!Number.isFinite(snapSize) || snapSize <= 0) {
+      return point;
+    }
     return {
       x: Math.round(point.x / snapSize) * snapSize,
       y: Math.round(point.y / snapSize) * snapSize,

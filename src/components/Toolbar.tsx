@@ -114,11 +114,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <input
                   id="grid-size"
                   type="number"
-                  min="5"
+                  min="0"
                   max="200"
                   step="5"
                   value={gridSize}
-                  onChange={(e) => setGridSize(Math.max(5, Number(e.target.value)))}
+                  onChange={(e) => {
+                    const nextValue = Number(e.target.value);
+                    if (Number.isNaN(nextValue)) {
+                      setGridSize(0);
+                      return;
+                    }
+                    setGridSize(Math.max(0, Math.min(200, nextValue)));
+                  }}
                   className={`${PANEL_CLASSES.input} hide-spinners`}
                   disabled={!isGridVisible}
                 />
@@ -130,11 +137,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <input
                   id="grid-subdivisions"
                   type="number"
-                  min="2"
+                  min="0"
                   max="10"
                   step="1"
                   value={gridSubdivisions}
-                  onChange={(e) => setGridSubdivisions(Math.max(2, Number(e.target.value)))}
+                  onChange={(e) => {
+                    const nextValue = Number(e.target.value);
+                    if (Number.isNaN(nextValue)) {
+                      setGridSubdivisions(0);
+                      return;
+                    }
+                    setGridSubdivisions(Math.max(0, Math.min(10, Math.round(nextValue))));
+                  }}
                   className={`${PANEL_CLASSES.input} hide-spinners`}
                   disabled={!isGridVisible}
                 />
