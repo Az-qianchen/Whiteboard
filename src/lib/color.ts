@@ -114,6 +114,11 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
  * @returns {HSLA} - 包含 H, S, L, A 值的对象。
  */
 export function parseColor(color: string): HSLA {
+  const normalized = color.trim().toLowerCase();
+  if (normalized === 'transparent') {
+    return { h: 0, s: 0, l: 0, a: 0 };
+  }
+
   if (color.startsWith('#')) {
     const [r, g, b] = parseHex(color);
     const [h, s, l] = rgbToHsl(r, g, b);

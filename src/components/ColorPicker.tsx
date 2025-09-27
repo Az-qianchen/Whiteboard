@@ -47,8 +47,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
    * 处理 HSLA 值的变化。
    * @param {Partial<HSLA>} newHsla - 新的 HSLA 部分值。
    */
-  const handleHslaChange = (newHsla: Partial<HSLA>) => {
-    const updatedHsla = { ...hsla, ...newHsla };
+  const handleHslaChange = (newHsla: Partial<HSLA>, options?: { preserveAlpha?: boolean }) => {
+    const preserveAlpha = options?.preserveAlpha ?? true;
+    let nextAlpha: number;
+
+    if (newHsla.a !== undefined) {
+      nextAlpha = newHsla.a;
+    } else if (preserveAlpha) {
+      nextAlpha = hsla.a === 0 ? 1 : hsla.a;
+    } else {
+      nextAlpha = hsla.a;
+    }
+
+    const updatedHsla: HSLA = { ...hsla, ...newHsla, a: nextAlpha };
     setHsla(updatedHsla);
     setHexInput(hslaToHex(updatedHsla));
     onChange(hslaToHslaString(updatedHsla));
@@ -67,9 +78,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
    */
   const handleHexInputCommit = () => {
     const newHsla = parseColor(hexInput);
-    const finalHsla = {...newHsla, a: hsla.a};
-    setHsla(finalHsla);
-    onChange(hslaToHslaString(finalHsla));
+    const targetAlpha = hsla.a === 0 ? 1 : hsla.a;
+    handleHslaChange({ ...newHsla, a: targetAlpha }, { preserveAlpha: false });
   };
   
   /**
@@ -236,8 +246,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
             key={c}
             onClick={() => {
                 const newHsla = parseColor(c);
-                // When selecting a preset, preserve the current alpha
-                handleHslaChange({...newHsla, a: hsla.a});
+                const targetAlpha = hsla.a === 0 ? 1 : hsla.a;
+                handleHslaChange({ ...newHsla, a: targetAlpha }, { preserveAlpha: false });
             }}
             className="w-full aspect-square rounded-full ring-1 ring-inset ring-white/10"
             style={{ backgroundColor: c }}
