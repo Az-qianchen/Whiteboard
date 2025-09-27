@@ -363,30 +363,49 @@ export const useObjectActions = ({
   /**
    * 调整选中图片的 HSV，支持跨域图片。
    */
+  const adjustImageHsvRequestRef = useRef<{ pathId: string | null; requestId: number }>({ pathId: null, requestId: 0 });
+
   const handleAdjustImageHsv = useCallback(async (adj: HsvAdjustment) => {
     if (selectedPathIds.length !== 1) return;
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
 
+    const request = adjustImageHsvRequestRef.current;
+    if (request.pathId !== imagePath.id) {
+      request.pathId = imagePath.id;
+      request.requestId = 0;
+    }
+    const currentRequestId = ++request.requestId;
+
     pathState.beginCoalescing();
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = await getImageDataUrl(imagePath as ImageData);
-    await new Promise(resolve => { img.onload = resolve; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) { pathState.endCoalescing(); return; }
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const newData = adjustHsv(data, adj);
-    ctx.putImageData(newData, 0, 0);
-    const newSrc = canvas.toDataURL();
-    const filesStore = useFilesStore.getState();
-    const { fileId } = await filesStore.ingestDataUrl(newSrc);
-    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
-    pathState.endCoalescing();
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = await getImageDataUrl(imagePath as ImageData);
+      await new Promise(resolve => { img.onload = resolve; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { return; }
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const newData = adjustHsv(data, adj);
+      ctx.putImageData(newData, 0, 0);
+      const newSrc = canvas.toDataURL();
+      const filesStore = useFilesStore.getState();
+      const { fileId } = await filesStore.ingestDataUrl(newSrc);
+
+      const latestRequest = adjustImageHsvRequestRef.current;
+      if (latestRequest.pathId !== imagePath.id || latestRequest.requestId !== currentRequestId) {
+        void filesStore.deleteFiles([fileId]);
+        return;
+      }
+
+      pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
+    } finally {
+      pathState.endCoalescing();
+    }
   }, [paths, selectedPathIds, pathState]);
 
   /**
