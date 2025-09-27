@@ -11,7 +11,7 @@ import type { HsvAdjustment } from '@/lib/image';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 
-import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, EffectsPopover, GradientFillPopover } from './side-toolbar';
+import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, TextProperties, EffectsPopover, GradientFillPopover } from './side-toolbar';
 import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
 
 interface SideToolbarProps {
@@ -69,6 +69,16 @@ interface SideToolbarProps {
   firstSelectedPath: AnyPath | null;
   onToggleStyleLibrary: (event: React.MouseEvent<HTMLButtonElement>) => void;
   isStyleLibraryOpen: boolean;
+  text: string;
+  setText: (text: string) => void;
+  fontFamily: string;
+  setFontFamily: (family: string) => void;
+  fontSize: number;
+  setFontSize: (size: number) => void;
+  lineHeight: number;
+  setLineHeight: (value: number) => void;
+  textAlign: 'left' | 'center' | 'right';
+  setTextAlign: (align: 'left' | 'center' | 'right') => void;
   // Effects
   blur: number;
   setBlur: (b: number) => void;
@@ -105,6 +115,11 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     beginCoalescing, endCoalescing,
     onToggleStyleLibrary,
     isStyleLibraryOpen,
+    text, setText,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    lineHeight, setLineHeight,
+    textAlign, setTextAlign,
     onAdjustImageHsv,
   } = props;
 
@@ -114,9 +129,14 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const borderRadiusLabel = t('sideToolbar.borderRadius');
   const strokeWidthLabel = t('sideToolbar.strokeWidth');
   const strokeColorLabel = t('sideToolbar.strokeColor');
+  const textColorLabel = t('sideToolbar.textColor');
   const fillColorLabel = t('sideToolbar.fillColor');
   const framePropertiesLabel = t('sideToolbar.frameProperties');
   const styleLibraryLabel = t('sideToolbar.styleLibrary');
+
+  const isTextMode = useMemo(() => {
+    return tool === 'text' || firstSelectedPath?.tool === 'text';
+  }, [tool, firstSelectedPath]);
 
   const isEndpointControlVisible = useMemo(() => {
     if (firstSelectedPath) {
@@ -130,12 +150,12 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     }
     return ['pen', 'line', 'brush', 'arc'].includes(tool);
   }, [tool, firstSelectedPath]);
-  
+
   const isDashControlVisible = useMemo(() => {
     if (firstSelectedPath) {
-      return true;
+      return firstSelectedPath.tool !== 'text';
     }
-    return tool !== 'selection';
+    return tool !== 'selection' && tool !== 'text';
   }, [tool, firstSelectedPath]);
 
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
@@ -145,6 +165,21 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-1.5 flex flex-col items-center gap-1.5 text-[var(--text-primary)]">
       {isFrameSelected ? (
         <div className="text-center text-sm text-[var(--text-secondary)]">{framePropertiesLabel}</div>
+      ) : isTextMode ? (
+        <TextProperties
+          text={text}
+          setText={setText}
+          fontFamily={fontFamily}
+          setFontFamily={setFontFamily}
+          fontSize={fontSize}
+          setFontSize={setFontSize}
+          lineHeight={lineHeight}
+          setLineHeight={setLineHeight}
+          textAlign={textAlign}
+          setTextAlign={setTextAlign}
+          beginCoalescing={beginCoalescing}
+          endCoalescing={endCoalescing}
+        />
       ) : (
         <>
           <NumericInput
@@ -202,36 +237,40 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       {!isFrameSelected && (
         <>
           <ColorControl
-              label={strokeColorLabel}
+            label={isTextMode ? textColorLabel : strokeColorLabel}
             color={color}
             setColor={setColor}
             beginCoalescing={beginCoalescing}
             endCoalescing={endCoalescing}
           />
 
-          <GradientFillPopover
-            label={fillColorLabel}
-            fill={fill}
-            fillGradient={fillGradient}
-            setFill={setFill}
-            setFillGradient={setFillGradient}
-            fillStyle={fillStyle}
-            setFillStyle={setFillStyle}
-            beginCoalescing={beginCoalescing}
-            endCoalescing={endCoalescing}
-            className="mt-2"
-          />
-          <FillStyleControl
-            fillStyle={fillStyle}
-            setFillStyle={setFillStyle}
-            disabled={isGradientActive}
-          />
+          {!isTextMode && (
+            <>
+              <GradientFillPopover
+                label={fillColorLabel}
+                fill={fill}
+                fillGradient={fillGradient}
+                setFill={setFill}
+                setFillGradient={setFillGradient}
+                fillStyle={fillStyle}
+                setFillStyle={setFillStyle}
+                beginCoalescing={beginCoalescing}
+                endCoalescing={endCoalescing}
+                className="mt-2"
+              />
+              <FillStyleControl
+                fillStyle={fillStyle}
+                setFillStyle={setFillStyle}
+                disabled={isGradientActive}
+              />
+            </>
+          )}
 
-          {isDashControlVisible && (
+          {!isTextMode && isDashControlVisible && (
             <DashControl {...props} />
           )}
 
-          {isEndpointControlVisible && (
+          {!isTextMode && isEndpointControlVisible && (
             <EndpointPopover {...props} />
           )}
 
@@ -244,7 +283,8 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
           )}
 
           <EffectsPopover {...props} />
-          <StylePropertiesPopover {...props} />
+
+          {!isTextMode && <StylePropertiesPopover {...props} />}
         </>
       )}
 

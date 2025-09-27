@@ -1,10 +1,35 @@
-import { useMemo, useCallback } from 'react';
-import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
+import { useMemo, useCallback, useEffect } from 'react';
+import type {
+  AnyPath,
+  ImageData,
+  RectangleData,
+  PolygonData,
+  GroupData,
+  VectorPathData,
+  TextData,
+  GradientFill,
+} from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
-import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
+import {
+  COLORS,
+  DEFAULT_ROUGHNESS,
+  DEFAULT_BOWING,
+  DEFAULT_CURVE_TIGHTNESS,
+  DEFAULT_FILL_WEIGHT,
+  DEFAULT_HACHURE_ANGLE,
+  DEFAULT_HACHURE_GAP,
+  DEFAULT_CURVE_STEP_COUNT,
+  DEFAULT_PRESERVE_VERTICES,
+  DEFAULT_DISABLE_MULTI_STROKE,
+  DEFAULT_DISABLE_MULTI_STROKE_FILL,
+  DEFAULT_TEXT_FONT_FAMILY,
+  DEFAULT_TEXT_FONT_SIZE,
+  DEFAULT_TEXT_LINE_HEIGHT,
+} from '../constants';
 import { updateGradientStopColor } from '@/lib/gradient';
+import { measureTextDimensions } from '@/lib/text';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -18,8 +43,8 @@ import { updateGradientStopColor } from '@/lib/gradient';
  * @returns 返回一个包含所有工具栏状态和设置函数的对象。
  */
 export const useToolbarState = (
-  paths: AnyPath[], 
-  selectedPathIds: string[], 
+  paths: AnyPath[],
+  selectedPathIds: string[],
   setPaths: React.Dispatch<React.SetStateAction<AnyPath[]>>,
   setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>,
   beginCoalescing: () => void,
@@ -52,6 +77,11 @@ export const useToolbarState = (
   const { drawingPreserveVertices, setDrawingPreserveVertices } = P.useDrawingPreserveVertices();
   const { drawingDisableMultiStroke, setDrawingDisableMultiStroke } = P.useDrawingDisableMultiStroke();
   const { drawingDisableMultiStrokeFill, setDrawingDisableMultiStrokeFill } = P.useDrawingDisableMultiStrokeFill();
+  const { drawingText, setDrawingText } = P.useDrawingText();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
+  const { drawingLineHeight, setDrawingLineHeight } = P.useDrawingLineHeight();
   const { drawingBlur, setDrawingBlur } = P.useDrawingBlur();
   const { drawingShadowEnabled, setDrawingShadowEnabled } = P.useDrawingShadowEnabled();
   const { drawingShadowOffsetX, setDrawingShadowOffsetX } = P.useDrawingShadowOffsetX();
@@ -60,6 +90,33 @@ export const useToolbarState = (
   const { drawingShadowColor, setDrawingShadowColor } = P.useDrawingShadowColor();
 
   const pathActions = usePathActions({ paths, selectedPathIds, setPaths, beginCoalescing, endCoalescing });
+
+  const ensurePositiveFontSize = (value: number) => (value > 0 ? value : DEFAULT_TEXT_FONT_SIZE);
+  const getLineHeightRatioFromPx = (fontSizeValue: number, lineHeightPx?: number) => {
+    const safeFontSize = ensurePositiveFontSize(fontSizeValue);
+    const resolvedLineHeight = lineHeightPx ?? safeFontSize * DEFAULT_TEXT_LINE_HEIGHT;
+    return resolvedLineHeight / safeFontSize;
+  };
+
+  useEffect(() => {
+    if (drawingLineHeight > 5) {
+      const safeFontSize = ensurePositiveFontSize(drawingFontSize);
+      setDrawingLineHeight(drawingLineHeight / safeFontSize);
+    } else if (drawingLineHeight <= 0) {
+      setDrawingLineHeight(DEFAULT_TEXT_LINE_HEIGHT);
+    }
+  }, [drawingLineHeight, drawingFontSize, setDrawingLineHeight]);
+
+  const normalizedDrawingLineHeight = useMemo(() => {
+    if (drawingLineHeight > 5) {
+      const safeFontSize = ensurePositiveFontSize(drawingFontSize);
+      return drawingLineHeight / safeFontSize;
+    }
+    if (drawingLineHeight <= 0) {
+      return DEFAULT_TEXT_LINE_HEIGHT;
+    }
+    return drawingLineHeight;
+  }, [drawingLineHeight, drawingFontSize]);
 
   const selectedPaths = useMemo(() => {
     if (selectedPathIds.length === 0) return [];
@@ -70,22 +127,29 @@ export const useToolbarState = (
 
   const updateSelectedPaths = (updater: (path: AnyPath) => Partial<AnyPath>) => {
     if (selectedPathIds.length === 0) return;
-    
+
     const applyRecursiveUpdate = (path: AnyPath, propsToUpdate: Partial<AnyPath>): AnyPath => {
       let finalProps = { ...propsToUpdate };
       // Prevent applying non-applicable props to certain shapes
       if (path.tool !== 'rectangle' && path.tool !== 'image' && path.tool !== 'polygon') {
-          delete (finalProps as any).borderRadius;
+        delete (finalProps as any).borderRadius;
       }
       if (path.tool !== 'polygon') {
-          delete (finalProps as any).sides;
+        delete (finalProps as any).sides;
       }
+      if (path.tool !== 'text') {
+        delete (finalProps as any).textAlign;
+        delete (finalProps as any).fontSize;
+        delete (finalProps as any).fontFamily;
+        delete (finalProps as any).lineHeight;
+        delete (finalProps as any).baseline;
+      }
+
       if (path.tool === 'group') {
-          const updatedChildren = path.children.map(child => applyRecursiveUpdate(child, propsToUpdate));
-          return { ...path, ...finalProps, tool: 'group', children: updatedChildren };
+        const updatedChildren = path.children.map(child => applyRecursiveUpdate(child, propsToUpdate));
+        return { ...path, ...finalProps, tool: 'group', children: updatedChildren };
       }
-      
-      // Cast the return type to AnyPath to avoid union type widening from the spread operator.
+
       return { ...path, ...finalProps } as AnyPath;
     };
 
@@ -99,23 +163,23 @@ export const useToolbarState = (
       })
     );
   };
-  
+
   // --- Setter Functions ---
-  
+
   const setColor = (newColor: string) => {
     if (firstSelectedPath) {
-        updateSelectedPaths(p => {
-            const updates: Partial<AnyPath> = { color: newColor };
-            if (p.strokeWidth === 0) {
-                updates.strokeWidth = 1;
-            }
-            return updates;
-        });
-    } else {
-        setDrawingColor(newColor);
-        if (drawingStrokeWidth === 0) {
-            setDrawingStrokeWidth(1);
+      updateSelectedPaths(p => {
+        const updates: Partial<AnyPath> = { color: newColor };
+        if (p.strokeWidth === 0 && p.tool !== 'text') {
+          updates.strokeWidth = 1;
         }
+        return updates;
+      });
+    } else {
+      setDrawingColor(newColor);
+      if (drawingStrokeWidth === 0 && tool !== 'text') {
+        setDrawingStrokeWidth(1);
+      }
     }
   };
 
@@ -193,6 +257,144 @@ export const useToolbarState = (
     }
   };
 
+  const getTextMetrics = (
+    textValue: string,
+    fontSizeValue: number,
+    fontFamilyValue: string,
+    lineHeightRatio?: number,
+  ) => {
+    const safeFontSize = ensurePositiveFontSize(fontSizeValue);
+    const measurement = measureTextDimensions(textValue, {
+      fontSize: safeFontSize,
+      fontFamily: fontFamilyValue,
+      lineHeight: lineHeightRatio ?? DEFAULT_TEXT_LINE_HEIGHT,
+    });
+    return {
+      width: measurement.width,
+      height: measurement.height,
+      baseline: measurement.baseline,
+      lineHeight: measurement.lineHeight,
+    };
+  };
+
+  const setText = (newText: string) => {
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths((path) => {
+        if (path.tool !== 'text') {
+          return {};
+        }
+        const textPath = path as TextData;
+        const metrics = getTextMetrics(
+          newText,
+          textPath.fontSize,
+          textPath.fontFamily,
+          getLineHeightRatioFromPx(textPath.fontSize, textPath.lineHeight),
+        );
+        return {
+          text: newText,
+          width: metrics.width,
+          height: metrics.height,
+          baseline: metrics.baseline,
+          lineHeight: metrics.lineHeight,
+        };
+      });
+    } else {
+      setDrawingText(newText);
+      const safeFontSize = ensurePositiveFontSize(drawingFontSize);
+      const metrics = getTextMetrics(newText, drawingFontSize, drawingFontFamily, normalizedDrawingLineHeight);
+      setDrawingLineHeight(metrics.lineHeight / safeFontSize);
+    }
+  };
+
+  const setFontFamily = (newFamily: string) => {
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths((path) => {
+        if (path.tool !== 'text') {
+          return {};
+        }
+        const textPath = path as TextData;
+        const metrics = getTextMetrics(
+          textPath.text,
+          textPath.fontSize,
+          newFamily,
+          getLineHeightRatioFromPx(textPath.fontSize, textPath.lineHeight),
+        );
+        return {
+          fontFamily: newFamily,
+          width: metrics.width,
+          height: metrics.height,
+          baseline: metrics.baseline,
+          lineHeight: metrics.lineHeight,
+        };
+      });
+    } else {
+      setDrawingFontFamily(newFamily);
+      const safeFontSize = ensurePositiveFontSize(drawingFontSize);
+      const metrics = getTextMetrics(drawingText, drawingFontSize, newFamily, normalizedDrawingLineHeight);
+      setDrawingLineHeight(metrics.lineHeight / safeFontSize);
+    }
+  };
+
+  const setFontSize = (newSize: number) => {
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths((path) => {
+        if (path.tool !== 'text') {
+          return {};
+        }
+        const textPath = path as TextData;
+        const safeNewSize = ensurePositiveFontSize(newSize);
+        const metrics = getTextMetrics(
+          textPath.text,
+          safeNewSize,
+          textPath.fontFamily,
+          getLineHeightRatioFromPx(textPath.fontSize, textPath.lineHeight),
+        );
+        return {
+          fontSize: safeNewSize,
+          width: metrics.width,
+          height: metrics.height,
+          baseline: metrics.baseline,
+          lineHeight: metrics.lineHeight,
+        };
+      });
+    } else {
+      const safeNewSize = ensurePositiveFontSize(newSize);
+      setDrawingFontSize(safeNewSize);
+      const metrics = getTextMetrics(drawingText, safeNewSize, drawingFontFamily, normalizedDrawingLineHeight);
+      setDrawingLineHeight(metrics.lineHeight / safeNewSize);
+    }
+  };
+
+  const setLineHeight = (newRatio: number) => {
+    const ratio = newRatio > 0 ? newRatio : DEFAULT_TEXT_LINE_HEIGHT;
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths((path) => {
+        if (path.tool !== 'text') {
+          return {};
+        }
+        const textPath = path as TextData;
+        const safeFontSize = ensurePositiveFontSize(textPath.fontSize);
+        const metrics = getTextMetrics(textPath.text, safeFontSize, textPath.fontFamily, ratio);
+        return {
+          width: metrics.width,
+          height: metrics.height,
+          baseline: metrics.baseline,
+          lineHeight: metrics.lineHeight,
+        };
+      });
+    } else {
+      setDrawingLineHeight(ratio);
+    }
+  };
+
+  const setTextAlign = (align: 'left' | 'center' | 'right') => {
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths((path) => (path.tool === 'text' ? { textAlign: align } : {}));
+    } else {
+      setDrawingTextAlign(align);
+    }
+  };
+
   const setBorderRadius = (newRadius: number) => {
     if (selectedPaths.some(p => p.tool === 'rectangle' || p.tool === 'image' || p.tool === 'polygon')) {
       updateSelectedPaths(() => ({ borderRadius: Math.max(0, newRadius) }));
@@ -210,7 +412,7 @@ export const useToolbarState = (
     const selectedValue = firstSelectedPath[selectedProp] as T | undefined;
     return selectedValue === undefined ? drawingValue : selectedValue;
   };
-  
+
   const color = displayValue('color', drawingColor);
   const fill = displayValue('fill', drawingFill);
   const fillStyle = displayValue('fillStyle', drawingFillStyle);
@@ -240,7 +442,26 @@ export const useToolbarState = (
   const shadowOffsetY = displayValue('shadowOffsetY', drawingShadowOffsetY);
   const shadowBlur = displayValue('shadowBlur', drawingShadowBlur);
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
-  
+
+  const text = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).text
+    : drawingText;
+  const fontFamily = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).fontFamily
+    : drawingFontFamily;
+  const fontSize = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).fontSize
+    : drawingFontSize;
+  const textAlign = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).textAlign
+    : drawingTextAlign;
+  const lineHeight = firstSelectedPath?.tool === 'text'
+    ? getLineHeightRatioFromPx(
+        (firstSelectedPath as TextData).fontSize,
+        (firstSelectedPath as TextData).lineHeight,
+      )
+    : normalizedDrawingLineHeight;
+
   const firstSelectedRectImageOrPolygon = useMemo(() => {
     if (selectedPathIds.length !== 1) return null;
     const path = paths.find(p => p.id === selectedPathIds[0] && (p.tool === 'rectangle' || p.tool === 'image' || p.tool === 'polygon'));
@@ -250,7 +471,7 @@ export const useToolbarState = (
   const borderRadius = (firstSelectedRectImageOrPolygon || tool === 'rectangle' || tool === 'polygon')
     ? (firstSelectedRectImageOrPolygon?.borderRadius ?? drawingBorderRadius)
     : null;
-    
+
   const sides = (firstSelectedPath?.tool === 'polygon' || tool === 'polygon')
     ? ((firstSelectedPath as PolygonData)?.sides ?? drawingSides)
     : null;
@@ -280,6 +501,11 @@ export const useToolbarState = (
     setDrawingPreserveVertices(DEFAULT_PRESERVE_VERTICES);
     setDrawingDisableMultiStroke(DEFAULT_DISABLE_MULTI_STROKE);
     setDrawingDisableMultiStrokeFill(DEFAULT_DISABLE_MULTI_STROKE_FILL);
+    setDrawingText('');
+    setDrawingFontFamily(DEFAULT_TEXT_FONT_FAMILY);
+    setDrawingFontSize(DEFAULT_TEXT_FONT_SIZE);
+    setDrawingTextAlign('left');
+    setDrawingLineHeight(DEFAULT_TEXT_LINE_HEIGHT);
     setDrawingBlur(0);
     setDrawingShadowEnabled(false);
     setDrawingShadowOffsetX(2);
@@ -293,8 +519,9 @@ export const useToolbarState = (
     setDrawingStrokeLineCapEnd, setDrawingEndpointSize, setDrawingEndpointFill, setDrawingIsRough,
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
     setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
-    setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
-    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
+    setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingText, setDrawingFontFamily,
+    setDrawingFontSize, setDrawingTextAlign, setDrawingLineHeight, setDrawingBlur, setDrawingShadowEnabled,
+    setDrawingShadowOffsetX, setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
   ]);
 
   return {
@@ -325,15 +552,19 @@ export const useToolbarState = (
     preserveVertices, setPreserveVertices,
     disableMultiStroke, setDisableMultiStroke,
     disableMultiStrokeFill, setDisableMultiStrokeFill,
+    lineHeight, setLineHeight,
     blur, setBlur,
     shadowEnabled, setShadowEnabled,
     shadowOffsetX, setShadowOffsetX,
     shadowOffsetY, setShadowOffsetY,
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
+    text, setText,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
     ...pathActions,
     firstSelectedPath,
     resetState,
   };
 };
-

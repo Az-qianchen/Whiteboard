@@ -4,6 +4,7 @@ export * from './FillStyleControl';
 export * from './GradientFillPopover';
 export * from './StrokeStylePopover';
 export * from './StylePropertiesPopover';
+export * from './TextProperties';
 export * from './DashControl';
 export * from './shared';
 export * from './StyleLibraryPopover';

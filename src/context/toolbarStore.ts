@@ -1,6 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '@/constants';
+import {
+  COLORS,
+  DEFAULT_ROUGHNESS,
+  DEFAULT_BOWING,
+  DEFAULT_CURVE_TIGHTNESS,
+  DEFAULT_FILL_WEIGHT,
+  DEFAULT_HACHURE_ANGLE,
+  DEFAULT_HACHURE_GAP,
+  DEFAULT_CURVE_STEP_COUNT,
+  DEFAULT_PRESERVE_VERTICES,
+  DEFAULT_DISABLE_MULTI_STROKE,
+  DEFAULT_DISABLE_MULTI_STROKE_FILL,
+  DEFAULT_TEXT_FONT_FAMILY,
+  DEFAULT_TEXT_FONT_SIZE,
+  DEFAULT_TEXT_ALIGN,
+  DEFAULT_TEXT_LINE_HEIGHT,
+} from '@/constants';
 import type { EndpointStyle, GradientFill } from '@/types';
 
 export interface ToolbarState {
@@ -75,6 +91,21 @@ export interface ToolbarState {
 
   drawingDisableMultiStrokeFill: boolean;
   setDrawingDisableMultiStrokeFill: (v: boolean) => void;
+
+  drawingText: string;
+  setDrawingText: (v: string) => void;
+
+  drawingFontFamily: string;
+  setDrawingFontFamily: (v: string) => void;
+
+  drawingFontSize: number;
+  setDrawingFontSize: (v: number) => void;
+
+  drawingTextAlign: 'left' | 'center' | 'right';
+  setDrawingTextAlign: (v: 'left' | 'center' | 'right') => void;
+
+  drawingLineHeight: number;
+  setDrawingLineHeight: (v: number) => void;
 
   drawingBlur: number;
   setDrawingBlur: (v: number) => void;
@@ -169,6 +200,21 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingDisableMultiStrokeFill: DEFAULT_DISABLE_MULTI_STROKE_FILL,
       setDrawingDisableMultiStrokeFill: (v) => set({ drawingDisableMultiStrokeFill: v }),
+
+      drawingText: '',
+      setDrawingText: (v) => set({ drawingText: v }),
+
+      drawingFontFamily: DEFAULT_TEXT_FONT_FAMILY,
+      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
+
+      drawingFontSize: DEFAULT_TEXT_FONT_SIZE,
+      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
+
+      drawingTextAlign: DEFAULT_TEXT_ALIGN,
+      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
+
+      drawingLineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+      setDrawingLineHeight: (v) => set({ drawingLineHeight: v }),
 
       drawingBlur: 0,
       setDrawingBlur: (v) => set({ drawingBlur: v }),

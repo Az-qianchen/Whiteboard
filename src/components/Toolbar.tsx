@@ -48,6 +48,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { name: 'selection', title: t('toolSelect'), icon: ICONS.SELECTION },
     { name: 'pen', title: t('toolPen'), icon: ICONS.PEN },
     { name: 'brush', title: t('toolBrush'), icon: ICONS.BRUSH },
+    { name: 'text', title: t('toolText'), icon: ICONS.TEXT },
     { name: 'polygon', title: t('toolPolygon'), icon: ICONS.POLYGON },
     { name: 'rectangle', title: t('toolRectangle'), icon: ICONS.RECTANGLE },
     { name: 'ellipse', title: t('toolEllipse'), icon: ICONS.ELLIPSE },

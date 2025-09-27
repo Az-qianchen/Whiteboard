@@ -4,7 +4,7 @@
  * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
 import { gradientHasVisibleColor } from './gradient';
@@ -122,8 +122,9 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         }
         case 'image':
         case 'frame':
-        case 'rectangle': {
-            const { x, y, width, height, rotation } = path as RectangleData | ImageData;
+        case 'rectangle':
+        case 'text': {
+            const { x, y, width, height, rotation } = path as RectangleData | ImageData | TextData;
             let testPoint = point;
 
             if (rotation) {
@@ -131,7 +132,10 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 testPoint = rotatePoint(point, center, -rotation);
             }
 
-            const isFillVisible = hasVisibleFill(path);
+            let isFillVisible = hasVisibleFill(path);
+            if (path.tool === 'text') {
+                isFillVisible = true;
+            }
 
             // Check for hit on the fill area first.
             const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
@@ -317,6 +321,7 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
       break;
     case 'rectangle':
     case 'image':
+    case 'text':
     case 'polygon': {
         // For shapes, checking their vertices is a good approximation for intersection
         const vertices = (path.tool === 'polygon')
@@ -421,7 +426,8 @@ export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): bo
         case 'rectangle':
         case 'image':
         case 'ellipse':
-        case 'polygon': {
+        case 'polygon':
+        case 'text': {
             const { x, y, width, height, rotation } = path;
 
             if (path.tool === 'ellipse') {
