@@ -1070,6 +1070,7 @@ export const useAppStore = () => {
   const { activePaths, activePathState } = groupIsolation;
 
   const viewTransform = useViewTransform();
+  const polygonCloseScale = viewTransform.viewTransform?.scale ?? 1;
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, selectedPathIds, activePathState.setPaths, setSelectedPathIds, beginCoalescing, endCoalescing);
 
@@ -1108,8 +1109,7 @@ export const useAppStore = () => {
     }
 
     const nextPoints = [...existing.points, point];
-    const scale = viewTransform.viewTransform.scale || 1;
-    const closeThreshold = 12 / Math.max(scale, 0.001);
+    const closeThreshold = 12 / Math.max(polygonCloseScale, 0.001);
     const firstPoint = nextPoints[0];
     const shouldCloseByDistance = nextPoints.length >= 3 && dist(point, firstPoint) <= closeThreshold;
     const shouldCloseByDoubleClick = event.detail >= 2;
@@ -1133,7 +1133,7 @@ export const useAppStore = () => {
     applyManualSelection,
     clearManualDraftState,
     setAppState,
-    viewTransform.viewTransform.scale,
+    polygonCloseScale,
   ]);
 
   const handleCropManualPointerMove = useCallback((point: Point) => {
