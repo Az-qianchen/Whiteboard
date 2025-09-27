@@ -26,6 +26,7 @@ export const useObjectActions = ({
   getPointerPosition,
 }: AppActionsProps) => {
   const { t } = useTranslation();
+  const hsvAdjustmentStateRef = useRef<{ requestId: number; pathId: string | null }>({ requestId: 0, pathId: null });
 
   /**
    * 沿指定轴翻转选中的图形。
@@ -368,6 +369,8 @@ export const useObjectActions = ({
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
 
+    const currentRequestId = hsvAdjustmentStateRef.current.requestId + 1;
+    hsvAdjustmentStateRef.current = { requestId: currentRequestId, pathId: imagePath.id };
     pathState.beginCoalescing();
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -385,6 +388,11 @@ export const useObjectActions = ({
     const newSrc = canvas.toDataURL();
     const filesStore = useFilesStore.getState();
     const { fileId } = await filesStore.ingestDataUrl(newSrc);
+    const latestState = hsvAdjustmentStateRef.current;
+    if (latestState.requestId !== currentRequestId || latestState.pathId !== imagePath.id) {
+      pathState.endCoalescing();
+      return;
+    }
     pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
     pathState.endCoalescing();
   }, [paths, selectedPathIds, pathState]);
