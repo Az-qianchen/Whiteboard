@@ -1,14 +1,14 @@
 /**
  * 本文件定义了一个自定义 Hook，用于封装画布上对象的变换和组织操作。
  */
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '@/lib/drawing';
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TraceOptions } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData as PathImageData, TraceOptions } from '@/types';
 import type { AppActionsProps } from './useAppActions';
 import { importSvg } from '@/lib/import';
 import { removeBackground, adjustHsv, type HsvAdjustment } from '@/lib/image';
-import { getImageDataUrl } from '@/lib/imageCache';
+import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'divide';
@@ -265,6 +265,34 @@ export const useObjectActions = ({
     targetId?: string;
   } | null>(null);
 
+  const hsvCacheRef = useRef<{
+    pathId: string;
+    fileId: string;
+    baseImageData: ImageData;
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+  } | null>(null);
+
+  const disposeHsvCache = useCallback(() => {
+    const cache = hsvCacheRef.current;
+    if (cache) {
+      cache.canvas.width = 0;
+      cache.canvas.height = 0;
+    }
+    hsvCacheRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (selectedPathIds.length !== 1) {
+      disposeHsvCache();
+      return;
+    }
+    const selected = paths.find(p => p.id === selectedPathIds[0]);
+    if (!selected || selected.tool !== 'image') {
+      disposeHsvCache();
+    }
+  }, [paths, selectedPathIds, disposeHsvCache]);
+
   /**
    * 开始抠图模式，等待用户在图像上点击选区。
    */
@@ -286,7 +314,7 @@ export const useObjectActions = ({
 
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = await getImageDataUrl(imagePath as ImageData);
+      img.src = await getImageDataUrl(imagePath as PathImageData);
       await new Promise(resolve => { img.onload = resolve; });
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
@@ -297,7 +325,7 @@ export const useObjectActions = ({
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const svg = document.querySelector('svg') as SVGSVGElement;
       const world = getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
-      const imgData = imagePath as ImageData;
+      const imgData = imagePath as PathImageData;
       const localX = Math.floor((world.x - imgData.x) / imgData.width * img.width);
       const localY = Math.floor((world.y - imgData.y) / imgData.height * img.height);
       const { image: newData, region } = removeBackground(data, { x: localX, y: localY, threshold: opts.threshold, contiguous: opts.contiguous });
@@ -368,26 +396,53 @@ export const useObjectActions = ({
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
     if (!imagePath || imagePath.tool !== 'image') return;
 
+    const pathId = imagePath.id;
+    let cache = hsvCacheRef.current;
+
+    if (cache && cache.pathId !== pathId) {
+      disposeHsvCache();
+      cache = null;
+    }
+
+    const ensureCache = async (): Promise<typeof cache> => {
+      const current = hsvCacheRef.current;
+      if (current && current.pathId === pathId && current.fileId === imagePath.fileId) {
+        return current;
+      }
+
+      const baseImageData = await getImagePixelData(imagePath as PathImageData);
+      const canvas = current?.canvas ?? document.createElement('canvas');
+      canvas.width = baseImageData.width;
+      canvas.height = baseImageData.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        disposeHsvCache();
+        return null;
+      }
+      ctx.putImageData(baseImageData, 0, 0);
+      const nextCache = { pathId, fileId: imagePath.fileId, baseImageData, canvas, ctx } as const;
+      hsvCacheRef.current = nextCache;
+      return nextCache;
+    };
+
+    cache = await ensureCache();
+    if (!cache) {
+      return;
+    }
+
     pathState.beginCoalescing();
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = await getImageDataUrl(imagePath as ImageData);
-    await new Promise(resolve => { img.onload = resolve; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) { pathState.endCoalescing(); return; }
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const newData = adjustHsv(data, adj);
-    ctx.putImageData(newData, 0, 0);
-    const newSrc = canvas.toDataURL();
-    const filesStore = useFilesStore.getState();
-    const { fileId } = await filesStore.ingestDataUrl(newSrc);
-    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
-    pathState.endCoalescing();
-  }, [paths, selectedPathIds, pathState]);
+    try {
+      const newData = adjustHsv(cache.baseImageData, adj);
+      cache.ctx.putImageData(newData, 0, 0);
+      const newSrc = cache.canvas.toDataURL();
+      const filesStore = useFilesStore.getState();
+      const { fileId } = await filesStore.ingestDataUrl(newSrc);
+      pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
+      hsvCacheRef.current = { ...cache, baseImageData: newData, fileId };
+    } finally {
+      pathState.endCoalescing();
+    }
+  }, [paths, selectedPathIds, pathState, disposeHsvCache]);
 
   /**
    * 将选中的图片转换为矢量图形。
@@ -398,7 +453,7 @@ export const useObjectActions = ({
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
 
     if (!imagePath || imagePath.tool !== 'image') return;
-    const imagePathData = imagePath as ImageData;
+    const imagePathData = imagePath as PathImageData;
 
     const ImageTracer = (await import('imagetracerjs')).default;
 
