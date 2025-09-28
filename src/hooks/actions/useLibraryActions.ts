@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { fileOpen, fileSave } from 'browser-fs-access';
 import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, Point, GroupData, ArcData } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
+import { useToolbarStore } from '@/context/toolbarStore';
 import type { AppActionsProps } from './useAppActions';
 
 /**
@@ -26,7 +27,7 @@ export const useLibraryActions = ({
     if (selectedPathIds.length !== 1) return;
     const path = paths.find(p => p.id === selectedPathIds[0]);
     if (!path) return;
-    setStyleClipboard({
+    const copiedStyle: StyleClipboardData = {
         color: path.color,
         fill: path.fill,
         fillGradient: path.fillGradient,
@@ -52,6 +53,17 @@ export const useLibraryActions = ({
         disableMultiStrokeFill: path.disableMultiStrokeFill,
         borderRadius: (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') ? (path as RectangleData | ImageData | PolygonData).borderRadius : undefined,
         sides: path.tool === 'polygon' ? (path as PolygonData).sides : undefined,
+    };
+
+    setStyleClipboard(copiedStyle);
+    const toolbarStore = useToolbarStore.getState() as Record<string, unknown>;
+    Object.entries(copiedStyle).forEach(([key, value]) => {
+        if (value === undefined) return;
+        const setterName = `setDrawing${key.charAt(0).toUpperCase() + key.slice(1)}`;
+        const setter = toolbarStore[setterName];
+        if (typeof setter === 'function') {
+            (setter as (val: unknown) => void)(value);
+        }
     });
   }, [paths, selectedPathIds, setStyleClipboard]);
   
