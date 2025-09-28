@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -11,8 +11,14 @@ import {
   DEFAULT_HACHURE_GAP,
   DEFAULT_CURVE_TIGHTNESS,
   DEFAULT_CURVE_STEP_COUNT,
+  DEFAULT_TEXT_FONT_FAMILY,
+  DEFAULT_TEXT_FONT_SIZE,
+  DEFAULT_TEXT_LINE_HEIGHT,
+  DEFAULT_TEXT_PADDING_X,
+  DEFAULT_TEXT_PADDING_Y,
 } from '@/constants';
 import { useFilesStore } from '@/context/filesStore';
+import { measureTextDimensions } from '@/lib/text';
 
 interface ExcalidrawElement {
   type: string;
@@ -41,6 +47,22 @@ const VECTOR_STROKE_TYPES: ReadonlySet<string> = new Set([
   'draw',
   'freedraw',
 ]);
+
+const EXCALIDRAW_FONT_FAMILIES: Record<string | number, string> = {
+  1: 'Virgil, Segoe UI Emoji',
+  2: 'Helvetica, Arial, sans-serif',
+  3: 'Cascadia, Segoe UI Emoji',
+};
+
+const resolveFontFamily = (font: string | number | undefined): string => {
+  if (typeof font === 'string' && font.trim().length > 0) {
+    return font;
+  }
+  if (font !== undefined) {
+    return EXCALIDRAW_FONT_FAMILIES[font] ?? DEFAULT_TEXT_FONT_FAMILY;
+  }
+  return DEFAULT_TEXT_FONT_FAMILY;
+};
 
 const sharedProps = (el: ExcalidrawElement) => ({
   id: `${Date.now()}-${Math.random()}`,
@@ -122,6 +144,32 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text') {
+      const text = el.text ?? '';
+      const fontSize = el.fontSize ?? DEFAULT_TEXT_FONT_SIZE;
+      const fontFamily = resolveFontFamily(el.fontFamily);
+      const metrics = measureTextDimensions(text, {
+        fontFamily,
+        fontSize,
+        lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+        paddingX: DEFAULT_TEXT_PADDING_X,
+        paddingY: DEFAULT_TEXT_PADDING_Y,
+      });
+      paths.push({
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: metrics.width,
+        height: metrics.height,
+        text,
+        fontSize,
+        fontFamily,
+        lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+        paddingX: DEFAULT_TEXT_PADDING_X,
+        paddingY: DEFAULT_TEXT_PADDING_Y,
+        textAlign: el.textAlign ?? 'left',
+      } as TextData);
     }
   }
 

@@ -1,4 +1,4 @@
-import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, RectangleData, EllipseData, PolygonData, GroupData } from '@/types';
+import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, RectangleData, EllipseData, PolygonData, GroupData, TextData } from '@/types';
 import { rectangleToVectorPath, ellipseToVectorPath, polygonToVectorPath } from '../convert';
 import { getCachedImage } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
@@ -76,6 +76,21 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
       const newRotation = -(rotation ?? 0);
 
       return { ...imgPath, x: newX, y: newY, rotation: newRotation, fileId: metadata.id };
+    }
+    case 'text': {
+      const textPath = path as TextData;
+      const { x, y, width, height } = textPath;
+      const rotation = textPath.rotation ?? 0;
+      const center = { x: x + width / 2, y: y + height / 2 };
+      const newCenter = flipPoint(center);
+      const newX = newCenter.x - width / 2;
+      const newY = newCenter.y - height / 2;
+      const newRotation = -rotation;
+      let newAlign = textPath.textAlign;
+      if (axis === 'horizontal') {
+        newAlign = newAlign === 'left' ? 'right' : newAlign === 'right' ? 'left' : newAlign;
+      }
+      return { ...textPath, x: newX, y: newY, rotation: newRotation, textAlign: newAlign };
     }
     case 'frame':
     case 'rectangle':

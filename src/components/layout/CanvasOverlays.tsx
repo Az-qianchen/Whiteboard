@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { TextEditorOverlay } from '../TextEditorOverlay';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -169,6 +170,7 @@ export const CanvasOverlays: React.FC = () => {
 
     return (
         <>
+            <TextEditorOverlay />
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                 <Toolbar tool={tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} gridSubdivisions={gridSubdivisions} setGridSubdivisions={setGridSubdivisions} gridOpacity={gridOpacity} setGridOpacity={setGridOpacity} />
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}

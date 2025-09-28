@@ -34,6 +34,7 @@ interface PointerInteractionProps {
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  onTextToolPointerDown?: (point: Point, event: React.PointerEvent<SVGSVGElement>) => void;
 }
 
 /**
@@ -50,6 +51,7 @@ export const usePointerInteraction = ({
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  onTextToolPointerDown,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -124,6 +126,13 @@ export const usePointerInteraction = ({
     }
     if (e.button !== 0) return;
 
+    if (tool === 'text') {
+      const svg = e.currentTarget;
+      const point = viewTransform.getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      onTextToolPointerDown?.(point, e);
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
     } else {
@@ -139,6 +148,10 @@ export const usePointerInteraction = ({
     }
     if (isPanning) {
       viewTransform.handlePanMove(e);
+      return;
+    }
+
+    if (tool === 'text') {
       return;
     }
 
@@ -163,6 +176,10 @@ export const usePointerInteraction = ({
       return;
     }
 
+    if (tool === 'text') {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
     } else {
@@ -184,6 +201,10 @@ export const usePointerInteraction = ({
       return;
     }
     
+    if (tool === 'text') {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
     } else {

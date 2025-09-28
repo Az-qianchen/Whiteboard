@@ -122,8 +122,9 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         }
         case 'image':
         case 'frame':
-        case 'rectangle': {
-            const { x, y, width, height, rotation } = path as RectangleData | ImageData;
+        case 'rectangle':
+        case 'text': {
+            const { x, y, width, height, rotation } = path as RectangleData | ImageData | TextData;
             let testPoint = point;
 
             if (rotation) {
@@ -131,7 +132,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 testPoint = rotatePoint(point, center, -rotation);
             }
 
-            const isFillVisible = hasVisibleFill(path);
+            const isFillVisible = path.tool === 'text' ? true : hasVisibleFill(path);
 
             // Check for hit on the fill area first.
             const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
