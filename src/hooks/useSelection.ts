@@ -131,7 +131,7 @@ export const useSelection = ({
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = getPointerPosition(e, e.currentTarget);
-    
+
     if (croppingState && cropTool === 'magic-wand' && (cropSelectionMode && cropSelectionMode !== 'magic-wand')) {
       onCropManualPointerDown?.(point, e);
       return;
@@ -143,6 +143,7 @@ export const useSelection = ({
 
     handlePointerDownLogic({
       e, point, setDragState, setMarquee, setLassoPath,
+      snapToGrid,
       pathState, toolbarState, viewTransform,
       onDoubleClick, lastClickRef, croppingState,
       currentCropRect, cropTool, onMagicWandSample,
