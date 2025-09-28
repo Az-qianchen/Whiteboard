@@ -14,6 +14,9 @@ import { useFilesStore } from '@/context/filesStore';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
 
+const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle =>
+  typeof value === 'object' && value !== null && 'createWritable' in value;
+
 /**
  * 封装文件相关操作的 Hook。
  * @param props - 从主状态 Hook 传递的应用状态和操作。
@@ -72,18 +75,15 @@ export const useFileActions = ({
         });
 
         if (fileHandle) {
-            // 检查返回的对象是否包含 'handle' 属性，
-            // 这表明成功使用了 File System Access API。
-            if ('handle' in fileHandle) {
-                const handle = (fileHandle as unknown as FileWithHandle).handle;
-                setActiveFileHandle(handle);
+            if (isFileSystemFileHandle(fileHandle)) {
+                setActiveFileHandle(fileHandle);
                 setActiveFileName(fileHandle.name);
-                await idb.set('last-active-file-handle', handle);
+                await idb.set('last-active-file-handle', fileHandle);
             } else {
-                // 如果没有 'handle'，说明使用了备用下载方法。
-                // 我们无法保留直接保存的引用，因此清除任何现有的引用。
+                const downloadedFile = fileHandle as File;
+                // 如果没有 File System Access 句柄，我们只能依赖传统下载方式。
                 setActiveFileHandle(null);
-                setActiveFileName(fileHandle.name);
+                setActiveFileName(downloadedFile.name);
                 await idb.del('last-active-file-handle');
             }
             markDocumentSaved(createDocumentSignature(frames, backgroundColor, fps));
