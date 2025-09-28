@@ -186,3 +186,52 @@ describe('handlePointerMoveLogic axis locking', () => {
     movePathSpy.mockRestore();
   });
 });
+
+describe('handlePointerMoveLogic grid snapping tolerance', () => {
+  const snappingFn = (point: { x: number; y: number }) => ({
+    x: Math.round(point.x / 10) * 10,
+    y: Math.round(point.y / 10) * 10,
+  });
+
+  it('keeps resize handles stable until pointer crosses snap cell boundary', () => {
+    const baseRect = { ...createRectangle(), x: 3, y: 0, width: 50, height: 40 };
+    let currentPaths: AnyPath[] = [baseRect];
+    const initialPointerPos = { x: baseRect.x, y: baseRect.y + baseRect.height / 2 };
+    const dragState: DragState = {
+      type: 'resize',
+      pathId: baseRect.id,
+      handle: 'left',
+      originalPath: baseRect,
+      initialPointerPos,
+    };
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    handlePointerMoveLogic({
+      e: { shiftKey: false } as ReactPointerEvent<SVGSVGElement>,
+      movePoint: { ...initialPointerPos },
+      dragState,
+      setDragState: noop,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingFn,
+      setCurrentCropRect: noop,
+    });
+
+    const resizedRect = currentPaths[0] as RectangleData;
+    expect(resizedRect.x).toBe(baseRect.x);
+    expect(resizedRect.width).toBe(baseRect.width);
+  });
+});

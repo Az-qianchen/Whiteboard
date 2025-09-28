@@ -269,9 +269,24 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                         } return null;
                     }));
                     endCoalescing();
-                 } else setDragState({ type: (e.shiftKey && type === 'anchor' ? 'handleOut' : type), pathId, anchorIndex });
+                 } else {
+                    const vectorPath = 'anchors' in path ? path as VectorPathData : null;
+                    if (!vectorPath || !vectorPath.anchors || !vectorPath.anchors[anchorIndex]) {
+                        endCoalescing();
+                        return;
+                    }
+                    const anchorData = vectorPath.anchors[anchorIndex];
+                    const initialPoint = type === 'anchor'
+                        ? anchorData.point
+                        : (type === 'handleIn' ? anchorData.handleIn : anchorData.handleOut);
+                    setDragState({ type: (e.shiftKey && type === 'anchor' ? 'handleOut' : type), pathId, anchorIndex, initialPoint });
+                 }
             } else if (handle === 'border-radius' && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon')) setDragState({ type: 'border-radius', pathId, originalPath: path, initialPointerPos: point });
-            else if (handle === 'arc' && path.tool === 'arc' && target.dataset.pointIndex) setDragState({ type: 'arc', pathId, pointIndex: parseInt(target.dataset.pointIndex, 10) as 0 | 1 | 2 });
+            else if (handle === 'arc' && path.tool === 'arc' && target.dataset.pointIndex) {
+                const pointIndex = parseInt(target.dataset.pointIndex, 10) as 0 | 1 | 2;
+                const arcPoint = path.points[pointIndex];
+                setDragState({ type: 'arc', pathId, pointIndex, initialPoint: arcPoint });
+            }
             else if (handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
                 if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame') setDragState({ type: 'resize', pathId, handle, originalPath: path as any, initialPointerPos: point });
             }
