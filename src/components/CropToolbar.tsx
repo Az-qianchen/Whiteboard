@@ -101,9 +101,9 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   };
 
   const segmentedButtonBase =
-    'flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors';
+    'flex items-center justify-center gap-2 h-[34px] px-3 rounded-lg text-sm font-medium transition-colors';
   const textButtonBase =
-    'flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+    'flex items-center justify-center gap-2 h-[34px] px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
 
   return (
     <div
