@@ -178,7 +178,7 @@ export function TextEditorOverlay(): JSX.Element | null {
             onKeyDown={handleKeyDown}
             spellCheck={false}
             wrap="off"
-            className="pointer-events-auto h-full resize-x border border-dashed border-[var(--accent-primary)] bg-[var(--ui-panel-bg)]/80 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] rounded-md shadow-lg backdrop-blur-sm"
+            className="pointer-events-auto h-full resize-x border border-dashed border-[var(--accent-primary)] bg-transparent text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
             style={{
               padding: `${textEditor.paddingY}px ${textEditor.paddingX}px`,
               fontSize: `${textEditor.fontSize}px`,
