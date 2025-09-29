@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useCallback, type CSSProperties } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback, useState, type CSSProperties } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { measureTextDimensions } from '@/lib/text';
+import { MIN_TEXT_BOX_WIDTH } from '@/constants';
 
 export function TextEditorOverlay(): JSX.Element | null {
   const {
@@ -14,6 +15,11 @@ export function TextEditorOverlay(): JSX.Element | null {
   } = useAppContext();
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [editorWidth, setEditorWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    setEditorWidth(null);
+  }, [textEditor]);
 
   const canvasTransform = useMemo<CSSProperties>(() => {
     const { scale = 1, translateX = 0, translateY = 0 } = canvasViewTransform ?? {};
@@ -33,8 +39,9 @@ export function TextEditorOverlay(): JSX.Element | null {
       lineHeight: textEditor.lineHeight,
       paddingX: textEditor.paddingX,
       paddingY: textEditor.paddingY,
+      minWidth: editorWidth ?? MIN_TEXT_BOX_WIDTH,
     });
-  }, [textEditor]);
+  }, [editorWidth, textEditor]);
 
   useEffect(() => {
     if (!textEditor) {
@@ -54,6 +61,38 @@ export function TextEditorOverlay(): JSX.Element | null {
       }
     });
     return () => cancelAnimationFrame(focusHandle);
+  }, [textEditor?.mode, textEditor?.pathId]);
+
+  useEffect(() => {
+    if (!metrics) {
+      return;
+    }
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+    const width = editorWidth ?? metrics.width;
+    textarea.style.width = `${width}px`;
+    textarea.style.height = `${metrics.height}px`;
+  }, [editorWidth, metrics]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const nextWidth = entry.contentRect.width;
+        if (!Number.isNaN(nextWidth) && nextWidth > 0) {
+          setEditorWidth(nextWidth);
+        }
+      }
+    });
+
+    observer.observe(textarea);
+    return () => observer.disconnect();
   }, [textEditor?.mode, textEditor?.pathId]);
 
   const handleChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -91,7 +130,7 @@ export function TextEditorOverlay(): JSX.Element | null {
     return null;
   }
 
-  const width = metrics.width;
+  const width = editorWidth ?? metrics.width;
   const height = metrics.height;
   const centerX = width / 2;
   const centerY = height / 2;
@@ -138,7 +177,8 @@ export function TextEditorOverlay(): JSX.Element | null {
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             spellCheck={false}
-            className="pointer-events-auto w-full h-full resize-none border border-dashed border-[var(--accent-primary)] bg-[var(--ui-panel-bg)]/80 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] rounded-md shadow-lg backdrop-blur-sm"
+            wrap="off"
+            className="pointer-events-auto h-full resize-x border border-dashed border-[var(--accent-primary)] bg-[var(--ui-panel-bg)]/80 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] rounded-md shadow-lg backdrop-blur-sm"
             style={{
               padding: `${textEditor.paddingY}px ${textEditor.paddingX}px`,
               fontSize: `${textEditor.fontSize}px`,
@@ -146,8 +186,8 @@ export function TextEditorOverlay(): JSX.Element | null {
               lineHeight: textEditor.lineHeight,
               textAlign: textEditor.textAlign,
               color: textEditor.color,
-              whiteSpace: 'pre-wrap',
-              overflow: 'hidden',
+              whiteSpace: 'pre',
+              overflow: 'auto',
             }}
           />
         </div>
