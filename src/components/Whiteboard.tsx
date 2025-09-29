@@ -7,7 +7,19 @@
 import React, { useRef, useEffect, useState, useMemo, useLayoutEffect } from 'react';
 import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '../types';
+import type {
+  AnyPath,
+  VectorPathData,
+  LivePath,
+  Point,
+  DrawingShape,
+  Tool,
+  DragState,
+  SelectionMode,
+  ImageData,
+  BBox,
+  GroupData,
+} from '../types';
 import { getPointerPosition } from '../lib/utils';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 import { getPathsBoundingBox } from '@/lib/drawing';
@@ -61,6 +73,22 @@ interface WhiteboardProps {
     previewPoint?: Point;
   } | null;
 }
+
+const collectSelectedPaths = (paths: AnyPath[], selectedIds: Set<string>): AnyPath[] => {
+  const result: AnyPath[] = [];
+
+  for (const path of paths) {
+    if (selectedIds.has(path.id)) {
+      result.push(path);
+    }
+
+    if (path.tool === 'group') {
+      result.push(...collectSelectedPaths((path as GroupData).children, selectedIds));
+    }
+  }
+
+  return result;
+};
 
 /**
  * 白板的核心渲染和交互组件。
@@ -169,7 +197,12 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
   // 记忆化计算选中的路径，以避免不必要的重渲染
   const selectedPaths = useMemo(() => {
-    return paths.filter(p => selectedPathIds.includes(p.id));
+    if (selectedPathIds.length === 0) {
+      return [];
+    }
+
+    const selectedIds = new Set(selectedPathIds);
+    return collectSelectedPaths(paths, selectedIds);
   }, [paths, selectedPathIds]);
   
   // 记忆化计算可见的路径，仅排除显式隐藏的路径

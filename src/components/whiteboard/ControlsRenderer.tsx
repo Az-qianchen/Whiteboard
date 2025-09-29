@@ -76,8 +76,50 @@ const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragSt
 });
 
 const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: boolean }> = React.memo(({ path, scale, isMultiSelect = false }) => {
+    const accent = 'var(--accent-primary)';
+    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
+    const dashArray = isMultiSelect ? `${3 / scale} ${3 / scale}` : `${4 / scale} ${4 / scale}`;
+
     if (path.tool === 'group') {
-        return <g>{(path as GroupData).children.map(child => <PathHighlight key={child.id} path={child} scale={scale} isMultiSelect={isMultiSelect} />)}</g>;
+        const group = path as GroupData;
+        const visibleChildren = group.children.filter(child => child.isVisible !== false);
+        const childHighlights = (group.mask === 'clip' ? visibleChildren.slice(0, -1) : visibleChildren).map(child => (
+            <PathHighlight
+                key={child.id}
+                path={child}
+                scale={scale}
+                isMultiSelect={isMultiSelect}
+            />
+        ));
+
+        let boundingBox: BBox | null = null;
+        if (group.mask === 'clip') {
+            const maskShape = group.children[group.children.length - 1];
+            boundingBox = maskShape ? getPathBoundingBox(maskShape, false) : null;
+        } else if (visibleChildren.length > 0) {
+            boundingBox = getPathsBoundingBox(visibleChildren, false);
+        }
+
+        return (
+            <g>
+                {childHighlights}
+                {boundingBox && (
+                    <rect
+                        x={boundingBox.x}
+                        y={boundingBox.y}
+                        width={boundingBox.width}
+                        height={boundingBox.height}
+                        fill="none"
+                        stroke={accent}
+                        strokeOpacity={isMultiSelect ? '0.9' : '1'}
+                        strokeWidth={scaledStroke(1)}
+                        strokeDasharray={dashArray}
+                        vectorEffect="non-scaling-stroke"
+                        className="pointer-events-none"
+                    />
+                )}
+            </g>
+        );
     }
 
     const d = getPathD(path);
@@ -91,17 +133,13 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
         }
     }
 
-    const accent = 'var(--accent-primary)';
-    const scaledStroke = (width: number) => Math.max(0.5, width / scale);
-    const dashArray = isMultiSelect ? `${3 / scale} ${3 / scale}` : `${4 / scale} ${4 / scale}`;
-    
     return (
         <path
             d={d}
             transform={transform}
             fill="none"
             stroke={accent}
-            strokeOpacity={isMultiSelect ? "0.9" : "1"}
+            strokeOpacity={isMultiSelect ? '0.9' : '1'}
             strokeWidth={scaledStroke(1)}
             strokeDasharray={dashArray}
             className="pointer-events-none"
