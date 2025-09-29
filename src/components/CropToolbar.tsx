@@ -30,7 +30,7 @@ interface CropToolbarProps {
 }
 
 /**
- * 裁剪模式下显示的工具栏组件，提供裁剪、抠图及确认/取消裁剪等操作。
+ * 裁剪模式下显示的工具栏组件，提供裁剪与抠图相关的操作。
  */
 export const CropToolbar: React.FC<CropToolbarProps> = ({
   isTimelineCollapsed,
@@ -49,8 +49,8 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   applyMagicWandSelection,
   cutMagicWandSelection,
   trimTransparentEdges,
-  confirmCrop,
-  cancelCrop,
+  confirmCrop: _confirmCrop,
+  cancelCrop: _cancelCrop,
 }) => {
   const { t } = useTranslation();
 
@@ -348,20 +348,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             variant="unstyled"
             onClick={applyMagicWandSelection}
             disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
             {ICONS.CHECK}
             <span>{t('subtractSelection')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={invertMagicWandSelection}
-            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
-            title={t('cropSelectionInvert')}
-          >
-            <span className="font-semibold">⇆</span>
-            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
           <PanelButton
             type="button"
@@ -372,6 +362,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           >
             {ICONS.CUT}
             <span>{t('cutSelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={invertMagicWandSelection}
+            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
+            title={t('cropSelectionInvert')}
+          >
+            <span className="font-semibold">⇆</span>
+            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
         </div>
       )}
@@ -389,26 +389,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             <span>{t('trimTransparent')}</span>
           </PanelButton>
         )}
-        <PanelButton
-          type="button"
-          title={t('cancel')}
-          onClick={cancelCrop}
-          variant="unstyled"
-          className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
-        >
-          {ICONS.X}
-          <span>{t('cancel')}</span>
-        </PanelButton>
-        <PanelButton
-          type="button"
-          title={t('confirm')}
-          onClick={confirmCrop}
-          variant="unstyled"
-          className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-        >
-          {ICONS.CHECK}
-          <span>{t('confirm')}</span>
-        </PanelButton>
       </div>
     </div>
   );
