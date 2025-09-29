@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -10,6 +10,7 @@ import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
+import { getTextAnchorX } from '@/lib/text';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -107,6 +108,35 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
 
         if (data.tool === 'image') {
             node = renderImage(data as ImageData);
+        } else if (data.tool === 'text') {
+            const textData = data as TextData;
+            const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            const anchor = getTextAnchorX(textData);
+            textElement.setAttribute('x', String(anchor));
+            textElement.setAttribute('y', String(textData.y));
+            textElement.setAttribute('fill', textData.color || '#000');
+            textElement.setAttribute('font-family', textData.fontFamily);
+            textElement.setAttribute('font-size', String(textData.fontSize));
+            textElement.setAttribute('dominant-baseline', 'hanging');
+            const anchorValue = textData.textAlign === 'center' ? 'middle' : textData.textAlign === 'right' ? 'end' : 'start';
+            textElement.setAttribute('text-anchor', anchorValue);
+
+            const lines = textData.text.split(/\r?\n/);
+            const lineHeight = textData.lineHeight ?? textData.fontSize * 1.25;
+
+            if (lines.length <= 1) {
+                textElement.textContent = lines[0] ?? '';
+            } else {
+                lines.forEach((line, index) => {
+                    const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                    tspan.setAttribute('x', String(anchor));
+                    tspan.setAttribute('dy', index === 0 ? '0' : String(lineHeight));
+                    tspan.textContent = line.length === 0 ? ' ' : line;
+                    textElement.appendChild(tspan);
+                });
+            }
+
+            node = textElement;
         } else if (data.tool === 'group') {
             const groupData = data as GroupData;
             const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');

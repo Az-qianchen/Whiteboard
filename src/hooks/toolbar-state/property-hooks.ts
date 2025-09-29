@@ -83,6 +83,24 @@ export const useDrawingEndpointFill = () => {
   return { drawingEndpointFill, setDrawingEndpointFill };
 };
 
+export const useDrawingFontFamily = () => {
+  const drawingFontFamily = useToolbarStore(s => s.drawingFontFamily);
+  const setDrawingFontFamily = useToolbarStore(s => s.setDrawingFontFamily);
+  return { drawingFontFamily, setDrawingFontFamily };
+};
+
+export const useDrawingFontSize = () => {
+  const drawingFontSize = useToolbarStore(s => s.drawingFontSize);
+  const setDrawingFontSize = useToolbarStore(s => s.setDrawingFontSize);
+  return { drawingFontSize, setDrawingFontSize };
+};
+
+export const useDrawingTextAlign = () => {
+  const drawingTextAlign = useToolbarStore(s => s.drawingTextAlign);
+  const setDrawingTextAlign = useToolbarStore(s => s.setDrawingTextAlign);
+  return { drawingTextAlign, setDrawingTextAlign };
+};
+
 export const useDrawingIsRough = () => {
   const drawingIsRough = useToolbarStore(s => s.drawingIsRough);
   const setDrawingIsRough = useToolbarStore(s => s.setDrawingIsRough);

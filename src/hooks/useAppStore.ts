@@ -18,8 +18,9 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
+import { measureTextSize } from '@/lib/text';
 
 import {
   removeBackground,
@@ -233,6 +234,19 @@ interface AppState {
   cropManualDraft: CropManualDraft | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
+  activeTextEditor: {
+    pathId: string | null;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text: string;
+    fontFamily: string;
+    fontSize: number;
+    textAlign: 'left' | 'center' | 'right';
+    rotation: number;
+    lineHeight: number;
+  } | null;
 }
 
 // --- Initial State Loaders ---
@@ -287,6 +301,7 @@ const getInitialAppState = (): AppState => ({
   cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
+  activeTextEditor: null,
 });
 
 
@@ -1083,6 +1098,148 @@ export const useAppStore = () => {
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, selectedPathIds, activePathState.setPaths, setSelectedPathIds, beginCoalescing, endCoalescing);
 
+  const cancelTextEditing = useCallback(() => {
+    setAppState(prev => (prev.activeTextEditor ? { ...prev, activeTextEditor: null } : prev));
+  }, []);
+
+  const beginTextEditing = useCallback((position: Point, options?: { pathId?: string }) => {
+    const targetId = options?.pathId ?? null;
+    let existing: TextData | null = null;
+    if (targetId) {
+      const found = activePaths.find((p): p is TextData => p.id === targetId && p.tool === 'text');
+      if (!found) {
+        return;
+      }
+      existing = found;
+    }
+
+    const baseFontFamily = existing?.fontFamily ?? toolbarState.fontFamily;
+    const baseFontSize = existing?.fontSize ?? toolbarState.fontSize;
+    const baseTextAlign = existing?.textAlign ?? toolbarState.textAlign;
+    const baseLineHeightPx = existing?.lineHeight ?? baseFontSize * 1.25;
+    const textValue = existing?.text ?? '';
+    const startX = existing?.x ?? position.x;
+    const startY = existing?.y ?? position.y;
+    const measurement = measureTextSize(textValue || ' ', {
+      fontFamily: baseFontFamily,
+      fontSize: baseFontSize,
+      lineHeight: baseLineHeightPx / baseFontSize,
+    });
+
+    const initialWidth = existing?.width ?? Math.max(measurement.width, baseFontSize * 4);
+    const initialHeight = existing?.height ?? measurement.height;
+    const rotation = existing?.rotation ?? 0;
+
+    setAppState(prev => ({
+      ...prev,
+      activeTextEditor: {
+        pathId: targetId,
+        x: startX,
+        y: startY,
+        width: initialWidth,
+        height: initialHeight,
+        text: textValue,
+        fontFamily: baseFontFamily,
+        fontSize: baseFontSize,
+        textAlign: baseTextAlign,
+        rotation,
+        lineHeight: measurement.lineHeight,
+      },
+    }));
+
+    if (targetId) {
+      setSelectedPathIds([targetId]);
+    } else {
+      setSelectedPathIds([]);
+    }
+  }, [activePaths, toolbarState.fontFamily, toolbarState.fontSize, toolbarState.textAlign, setAppState, setSelectedPathIds]);
+
+  const commitTextEditing = useCallback((value: string) => {
+    const editor = appState.activeTextEditor;
+    if (!editor) return;
+
+    const normalized = value.replace(/\r\n/g, '\n');
+    const measurement = measureTextSize(normalized || ' ', {
+      fontFamily: editor.fontFamily,
+      fontSize: editor.fontSize,
+      lineHeight: editor.lineHeight / editor.fontSize,
+    });
+
+    const nextWidth = Math.max(editor.width, measurement.width);
+    const nextHeight = measurement.height;
+
+    if (editor.pathId) {
+      if (normalized.trim().length === 0) {
+        setPaths(prev => prev.filter(p => p.id !== editor.pathId));
+        setSelectedPathIds([]);
+      } else {
+        setPaths(prev => prev.map(p => {
+          if (p.id !== editor.pathId || p.tool !== 'text') return p;
+          const textPath = p as TextData;
+          return {
+            ...textPath,
+            text: normalized,
+            width: nextWidth,
+            height: nextHeight,
+            fontFamily: editor.fontFamily,
+            fontSize: editor.fontSize,
+            textAlign: editor.textAlign,
+            lineHeight: measurement.lineHeight,
+          };
+        }));
+      }
+    } else if (normalized.trim().length > 0) {
+      const id = Date.now().toString();
+      const newText: TextData = {
+        id,
+        tool: 'text',
+        x: editor.x,
+        y: editor.y,
+        width: nextWidth,
+        height: nextHeight,
+        text: normalized,
+        fontFamily: editor.fontFamily,
+        fontSize: editor.fontSize,
+        textAlign: editor.textAlign,
+        lineHeight: measurement.lineHeight,
+        rotation: editor.rotation,
+        color: toolbarState.color,
+        fill: 'transparent',
+        fillGradient: null,
+        fillStyle: 'solid',
+        strokeWidth: 0,
+        strokeLineDash: undefined,
+        strokeLineCapStart: toolbarState.strokeLineCapStart,
+        strokeLineCapEnd: toolbarState.strokeLineCapEnd,
+        strokeLineJoin: toolbarState.strokeLineJoin,
+        endpointSize: toolbarState.endpointSize,
+        endpointFill: toolbarState.endpointFill,
+        isRough: false,
+        roughness: 0,
+        bowing: 0,
+        fillWeight: 0,
+        hachureAngle: 0,
+        hachureGap: 0,
+        curveTightness: 0,
+        curveStepCount: 0,
+        preserveVertices: false,
+        disableMultiStroke: true,
+        disableMultiStrokeFill: true,
+        opacity: toolbarState.opacity ?? 1,
+        blur: toolbarState.blur ?? 0,
+        shadowEnabled: toolbarState.shadowEnabled,
+        shadowOffsetX: toolbarState.shadowOffsetX,
+        shadowOffsetY: toolbarState.shadowOffsetY,
+        shadowBlur: toolbarState.shadowBlur,
+        shadowColor: toolbarState.shadowColor,
+      };
+      setPaths(prev => [...prev, newText]);
+      setSelectedPathIds([id]);
+    }
+
+    setAppState(prev => ({ ...prev, activeTextEditor: null }));
+  }, [appState.activeTextEditor, setAppState, setPaths, setSelectedPathIds, toolbarState]);
+
   const handleCropManualPointerDown = useCallback((point: Point, event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
     if (appState.cropSelectionMode === 'magic-wand') return;
@@ -1400,17 +1557,21 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           setSelectedPathIds([path.id]);
+      } else if (path.tool === 'text') {
+          beginTextEditing({ x: path.x, y: path.y }, { pathId: path.id });
       }
   }, [
     toolbarState.selectionMode,
-    beginCoalescing,
     groupIsolation,
+    beginCoalescing,
+    clearCropSelection,
+    setCropEditedSrc,
+    setCropTool,
     setCroppingState,
     setCurrentCropRect,
-    clearCropSelection,
-    setCropTool,
-    setCropEditedSrc,
+    setCropHistory,
     setSelectedPathIds,
+    beginTextEditing,
   ]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
@@ -1484,11 +1645,14 @@ export const useAppStore = () => {
     setFillColor: toolbarState.setFill,
     backgroundColor: uiState.backgroundColor,
     sampleImageColorAtPoint,
+    onBeginTextEditing: beginTextEditing,
+    isTextEditing: Boolean(appState.activeTextEditor),
   });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
     if (appState.croppingState) cancelCrop();
+    if (appState.activeTextEditor) cancelTextEditing();
     if (drawingInteraction.drawingShape) drawingInteraction.cancelDrawingShape();
     if (currentPenPath) handleCancelPenPath();
     if (currentLinePath) handleCancelLinePath();
@@ -1498,7 +1662,9 @@ export const useAppStore = () => {
     toolbarState,
     drawingInteraction,
     appState.croppingState,
+    appState.activeTextEditor,
     cancelCrop,
+    cancelTextEditing,
     currentPenPath,
     handleCancelPenPath,
     currentLinePath,

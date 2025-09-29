@@ -4,7 +4,7 @@
  * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
 import { gradientHasVisibleColor } from './gradient';
@@ -54,6 +54,10 @@ export function isPointInPolygon(point: Point, vs: Point[]): boolean {
 
 function hasVisibleFill(path: AnyPath): boolean {
     if (path.tool === 'image') {
+        return true;
+    }
+
+    if (path.tool === 'text') {
         return true;
     }
 
@@ -122,8 +126,9 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         }
         case 'image':
         case 'frame':
-        case 'rectangle': {
-            const { x, y, width, height, rotation } = path as RectangleData | ImageData;
+        case 'rectangle':
+        case 'text': {
+            const { x, y, width, height, rotation } = path as RectangleData | ImageData | TextData;
             let testPoint = point;
 
             if (rotation) {
@@ -317,7 +322,8 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
       break;
     case 'rectangle':
     case 'image':
-    case 'polygon': {
+    case 'polygon':
+    case 'text': {
         // For shapes, checking their vertices is a good approximation for intersection
         const vertices = (path.tool === 'polygon')
             ? getPolygonVertices(path.x, path.y, path.width, path.height, (path as PolygonData).sides)
@@ -421,7 +427,8 @@ export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): bo
         case 'rectangle':
         case 'image':
         case 'ellipse':
-        case 'polygon': {
+        case 'polygon':
+        case 'text': {
             const { x, y, width, height, rotation } = path;
 
             if (path.tool === 'ellipse') {
