@@ -264,24 +264,12 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           </div>
 
           {cropSelectionMode === 'brush' && (
-            <div className="flex items-center gap-2">
-              <label
-                className="text-sm text-[var(--text-secondary)]"
-                htmlFor="magic-wand-brush-size-slider"
-              >
-                {t('cropMagicWandBrushSize')}
-              </label>
-              <input
-                id="magic-wand-brush-size-slider"
-                type="range"
-                min={brushSizeMin}
-                max={brushSizeMax}
-                step={1}
-                value={cropBrushSize}
-                onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
-                className="w-28 h-2 accent-[var(--accent-primary)]"
-              />
-              <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+            <label
+              className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+              htmlFor="magic-wand-brush-size"
+            >
+              {t('cropMagicWandBrushSize')}
+              <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
                 <input
                   id="magic-wand-brush-size"
                   type="number"
@@ -290,12 +278,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                   value={cropBrushSize}
                   onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
                   inputMode="numeric"
-                  aria-label={t('cropMagicWandBrushSize')}
                   className={`${PANEL_CLASSES.input} hide-spinners text-right`}
                 />
+                <span className={PANEL_CLASSES.inputSuffix}>px</span>
               </div>
-              <span className="text-xs text-[var(--text-secondary)]">px</span>
-            </div>
+            </label>
           )}
 
           <div className={PANEL_CLASSES.segmentGroup}>
