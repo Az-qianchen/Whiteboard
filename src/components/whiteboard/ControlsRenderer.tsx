@@ -82,29 +82,39 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
 
     if (path.tool === 'group') {
         const group = path as GroupData;
-        const groupBoundingBox = getPathBoundingBox(group, false);
+        const visibleChildren = group.children.filter(child => child.isVisible !== false);
+        const childHighlights = (group.mask === 'clip' ? visibleChildren.slice(0, -1) : visibleChildren).map(child => (
+            <PathHighlight
+                key={child.id}
+                path={child}
+                scale={scale}
+                isMultiSelect={isMultiSelect}
+            />
+        ));
+
+        let boundingBox: BBox | null = null;
+        if (group.mask === 'clip') {
+            const maskShape = group.children[group.children.length - 1];
+            boundingBox = maskShape ? getPathBoundingBox(maskShape, false) : null;
+        } else if (visibleChildren.length > 0) {
+            boundingBox = getPathsBoundingBox(visibleChildren, false);
+        }
 
         return (
             <g>
-                {group.children.map(child => (
-                    <PathHighlight
-                        key={child.id}
-                        path={child}
-                        scale={scale}
-                        isMultiSelect={isMultiSelect}
-                    />
-                ))}
-                {groupBoundingBox && (
+                {childHighlights}
+                {boundingBox && (
                     <rect
-                        x={groupBoundingBox.x}
-                        y={groupBoundingBox.y}
-                        width={groupBoundingBox.width}
-                        height={groupBoundingBox.height}
+                        x={boundingBox.x}
+                        y={boundingBox.y}
+                        width={boundingBox.width}
+                        height={boundingBox.height}
                         fill="none"
                         stroke={accent}
                         strokeOpacity={isMultiSelect ? '0.9' : '1'}
                         strokeWidth={scaledStroke(1)}
                         strokeDasharray={dashArray}
+                        vectorEffect="non-scaling-stroke"
                         className="pointer-events-none"
                     />
                 )}
