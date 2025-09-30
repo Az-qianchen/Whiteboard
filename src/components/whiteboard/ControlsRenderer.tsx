@@ -707,6 +707,7 @@ const getGuideForPath = (path: AnyPath): DimensionGuide | null => {
     case 'image':
     case 'polygon':
     case 'frame':
+    case 'text':
       return getGuideForTransformableShape(path);
     default:
       return getGuideFromBBox(
@@ -961,6 +962,15 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
         const gradientHandles = selectedPath.fillGradient ? (
           <GradientHandles path={selectedPath} scale={scale} />
         ) : null;
+
+        if (selectedPath.tool === 'text') {
+            return (
+                <>
+                    <PathHighlight path={selectedPath} scale={scale} />
+                    {dimensionLabel}
+                </>
+            );
+        }
 
         if ((selectedPath.tool === 'rectangle' || selectedPath.tool === 'ellipse' || selectedPath.tool === 'image' || selectedPath.tool === 'polygon' || selectedPath.tool === 'frame') && !selectedPath.isLocked) {
             return (

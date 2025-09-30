@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -10,6 +10,7 @@ import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
+import { getTextAnchorX } from '@/lib/text';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -101,7 +102,7 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     const capNodes: SVGElement[] = [];
 
         const isRough = data.isRough ?? true;
-        if (!isRough && data.tool !== 'image') {
+        if (!isRough && data.tool !== 'image' && data.tool !== 'text') {
             return createSmoothPathNode(data);
         }
 
@@ -215,9 +216,34 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 }
             } else if (data.tool === 'ellipse' || data.tool === 'rectangle' || data.tool === 'polygon' || data.tool === 'frame') {
                 node = renderRoughShape(rc, data as RectangleData | EllipseData | PolygonData | FrameData, options);
+            } else if (data.tool === 'text') {
+                const textData = data as TextData;
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                const anchorX = getTextAnchorX(textData);
+                const textAnchor = textData.textAlign === 'center' ? 'middle' : textData.textAlign === 'right' ? 'end' : 'start';
+                textElement.setAttribute('x', anchorX.toString());
+                textElement.setAttribute('y', textData.y.toString());
+                textElement.setAttribute('text-anchor', textAnchor);
+                textElement.setAttribute('dominant-baseline', 'hanging');
+                textElement.setAttribute('font-size', textData.fontSize.toString());
+                textElement.setAttribute('font-family', textData.fontFamily);
+                textElement.setAttribute('fill', textData.color);
+                textElement.setAttribute('xml:space', 'preserve');
+                const lines = textData.text.split(/\r?\n/);
+                const lineHeightPx = textData.fontSize * textData.lineHeight;
+                lines.forEach((line, index) => {
+                    const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                    if (index > 0) {
+                        tspan.setAttribute('x', anchorX.toString());
+                        tspan.setAttribute('dy', lineHeightPx.toString());
+                    }
+                    tspan.textContent = line.length > 0 ? line : '\u200B';
+                    textElement.appendChild(tspan);
+                });
+                node = textElement;
             }
         }
-    
+
     if (!node) return null;
 
     const pathIsVector = data.tool === 'pen' || data.tool === 'line';
@@ -266,8 +292,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame' || data.tool === 'text')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }

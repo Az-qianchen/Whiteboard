@@ -144,6 +144,7 @@ export const MainLayout: React.FC = () => {
                 if (selectionMode === 'edit') return selectionInteraction.isHoveringEditable ? 'pointer' : 'default';
                 return 'default';
             case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
+            case 'text': return 'text';
             default: return 'default';
         }
     }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, cropTool]);
