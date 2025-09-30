@@ -139,10 +139,17 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     [ensureWorker],
   );
 
-  const revokePreviewUrl = useCallback((state: ActivePreviewState | null) => {
-    if (state?.objectUrl) {
-      URL.revokeObjectURL(state.objectUrl);
+  const scheduleObjectUrlRevoke = useCallback((url: string | null) => {
+    if (!url) {
+      return;
     }
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => URL.revokeObjectURL(url));
+      });
+      return;
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 32);
   }, []);
 
   const cancelPreview = useCallback(async () => {
@@ -151,7 +158,9 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
       return;
     }
 
-    revokePreviewUrl(active);
+    const urlToRevoke = active.objectUrl;
+    active.objectUrl = null;
+
     setPreviewSrcById(prev => {
       if (!(active.pathId in prev)) {
         return prev;
@@ -164,12 +173,14 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     activePreviewRef.current = null;
     latestAdjustRequestRef.current = null;
 
+    scheduleObjectUrlRevoke(urlToRevoke);
+
     try {
       await callWorker({ type: 'reset' }).promise;
     } catch (error) {
       console.error('Failed to reset HSV preview worker', error);
     }
-  }, [callWorker, revokePreviewUrl]);
+  }, [callWorker, scheduleObjectUrlRevoke]);
 
   const beginPreview = useCallback(async () => {
     const path = getActiveImagePath();
@@ -248,16 +259,19 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
         const blob = await imageDataToBlob(imageData);
         active.lastBlob = blob;
         const nextUrl = URL.createObjectURL(blob);
-        revokePreviewUrl(active);
+        const previousUrl = active.objectUrl;
         active.objectUrl = nextUrl;
         setPreviewSrcById(prev => ({ ...prev, [active.pathId]: nextUrl }));
+        if (previousUrl && previousUrl !== nextUrl) {
+          scheduleObjectUrlRevoke(previousUrl);
+        }
       } catch (error) {
         console.error('Failed to materialize HSV preview blob', error);
       }
     } catch (error) {
       console.error('Failed to update HSV preview', error);
     }
-  }, [callWorker, revokePreviewUrl, bumpPreviewRequestVersion]);
+  }, [callWorker, scheduleObjectUrlRevoke, bumpPreviewRequestVersion]);
 
   const commitPreview = useCallback(async (adjustment: HsvAdjustment) => {
     const active = activePreviewRef.current;

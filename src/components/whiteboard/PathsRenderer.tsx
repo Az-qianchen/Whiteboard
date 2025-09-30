@@ -50,10 +50,7 @@ const PathComponent: React.FC<{
     const imageKey = previewSrc ?? baseImageKey;
 
     latestImageDataRef.current = data.tool === 'image' ? (data as ImageData) : null;
-
-    useEffect(() => {
-        previewVersionRef.current = previewRequestVersion ?? 0;
-    }, [previewRequestVersion]);
+    previewVersionRef.current = previewRequestVersion ?? 0;
 
     useEffect(() => {
         let cancelled = false;
