@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { TextEditorOverlay } from '../TextEditorOverlay';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -111,6 +112,10 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        textEditor,
+        updateTextEditor,
+        finalizeTextEditor,
+        viewTransform,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
@@ -214,6 +219,14 @@ export const CanvasOverlays: React.FC = () => {
                     cancelCrop={cancelCrop}
                 />
             )}
+
+            <TextEditorOverlay
+                editor={textEditor}
+                onChange={updateTextEditor}
+                onCommit={finalizeTextEditor}
+                onCancel={() => finalizeTextEditor({ cancel: true })}
+                viewTransform={viewTransform.viewTransform}
+            />
 
             <StyleLibraryPopover
                 isOpen={isStyleLibraryOpen} onClose={() => setIsStyleLibraryOpen(false)}
