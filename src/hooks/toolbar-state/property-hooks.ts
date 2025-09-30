@@ -3,7 +3,7 @@
  * This replaces the previous localStorage + useState approach.
  */
 import { useToolbarStore } from '@/context/toolbarStore';
-import type { EndpointStyle } from '@/types';
+import type { EndpointStyle, TextAlignment } from '@/types';
 
 export const useDrawingColor = () => {
   const drawingColor = useToolbarStore(s => s.drawingColor);
@@ -183,5 +183,29 @@ export const useDrawingShadowColor = () => {
   const drawingShadowColor = useToolbarStore(s => s.drawingShadowColor);
   const setDrawingShadowColor = useToolbarStore(s => s.setDrawingShadowColor);
   return { drawingShadowColor, setDrawingShadowColor };
+};
+
+export const useDrawingFontFamily = () => {
+  const drawingFontFamily = useToolbarStore(s => s.drawingFontFamily);
+  const setDrawingFontFamily = useToolbarStore(s => s.setDrawingFontFamily);
+  return { drawingFontFamily, setDrawingFontFamily };
+};
+
+export const useDrawingFontSize = () => {
+  const drawingFontSize = useToolbarStore(s => s.drawingFontSize);
+  const setDrawingFontSize = useToolbarStore(s => s.setDrawingFontSize);
+  return { drawingFontSize, setDrawingFontSize };
+};
+
+export const useDrawingTextAlign = () => {
+  const drawingTextAlign = useToolbarStore(s => s.drawingTextAlign as TextAlignment);
+  const setDrawingTextAlign = useToolbarStore(s => s.setDrawingTextAlign);
+  return { drawingTextAlign, setDrawingTextAlign };
+};
+
+export const useDrawingLineHeight = () => {
+  const drawingLineHeight = useToolbarStore(s => s.drawingLineHeight);
+  const setDrawingLineHeight = useToolbarStore(s => s.setDrawingLineHeight);
+  return { drawingLineHeight, setDrawingLineHeight };
 };
 

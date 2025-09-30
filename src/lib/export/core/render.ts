@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -11,6 +11,7 @@ import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
+import { textAlignmentToAnchor } from '@/lib/text';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -99,6 +100,67 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
 export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     let node: SVGElement | null = null;
     const capNodes: SVGElement[] = [];
+
+        if (data.tool === 'text') {
+            const textData = data as TextData;
+            const textElement = document.createElementNS(SVG_NS, 'text');
+            const anchor = textAlignmentToAnchor(textData.textAlign);
+            const baseX = anchor === 'start'
+              ? textData.x
+              : anchor === 'middle'
+                ? textData.x + textData.width / 2
+                : textData.x + textData.width;
+            const baseline = textData.baseline ?? textData.fontSize;
+            const lineHeight = textData.lineHeight ?? 1.25;
+            const lines = textData.text.split('\n');
+
+            textElement.setAttribute('fill', textData.color || '#000000');
+            textElement.setAttribute('stroke', 'none');
+            textElement.setAttribute('font-family', textData.fontFamily);
+            textElement.setAttribute('font-size', `${textData.fontSize}`);
+            textElement.setAttribute('text-anchor', anchor);
+            textElement.setAttribute('xml:space', 'preserve');
+
+            lines.forEach((line, index) => {
+                const tspan = document.createElementNS(SVG_NS, 'tspan');
+                tspan.setAttribute('x', `${baseX}`);
+                const y = textData.y + baseline + index * textData.fontSize * lineHeight;
+                tspan.setAttribute('y', `${y}`);
+                tspan.textContent = line.length > 0 ? line : ' ';
+                textElement.appendChild(tspan);
+            });
+
+            let finalElement: SVGElement = textElement;
+
+            const hasEffects = (textData.blur ?? 0) > 0 || textData.shadowEnabled === true;
+            if (hasEffects) {
+                const filter = createEffectsFilter(textData);
+                if (filter) {
+                    const defs = document.createElementNS(SVG_NS, 'defs');
+                    defs.appendChild(filter);
+                    const wrapper = document.createElementNS(SVG_NS, 'g');
+                    wrapper.appendChild(defs);
+                    textElement.setAttribute('filter', `url(#${filter.id})`);
+                    wrapper.appendChild(textElement);
+                    finalElement = wrapper;
+                }
+            }
+
+            if (textData.fillGradient && textData.fillGradient.stops && textData.fillGradient.stops.length > 0) {
+                finalElement = applyGradientFill(finalElement, textElement, textData.fillGradient, textData.id);
+            }
+
+            if (textData.opacity !== undefined && textData.opacity < 1) {
+                finalElement.setAttribute('opacity', String(textData.opacity));
+            }
+
+            const matrix = getShapeTransformMatrix(textData);
+            if (!isIdentityMatrix(matrix)) {
+                finalElement.setAttribute('transform', matrixToString(matrix));
+            }
+
+            return finalElement;
+        }
 
         const isRough = data.isRough ?? true;
         if (!isRough && data.tool !== 'image') {

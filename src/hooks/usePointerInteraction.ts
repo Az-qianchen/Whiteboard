@@ -29,6 +29,7 @@ interface PointerInteractionProps {
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  textInteraction: InteractionHandlers;
   paths: AnyPath[];
   setStrokeColor: (color: string) => void;
   setFillColor: (color: string) => void;
@@ -45,6 +46,7 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  textInteraction,
   paths,
   setStrokeColor,
   setFillColor,
@@ -126,9 +128,15 @@ export const usePointerInteraction = ({
 
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
-    } else {
-      drawingInteraction.onPointerDown(e);
+      return;
     }
+
+    if (tool === 'text') {
+      textInteraction.onPointerDown(e);
+      return;
+    }
+
+    drawingInteraction.onPointerDown(e);
   };
 
   // 处理指针移动
@@ -144,9 +152,15 @@ export const usePointerInteraction = ({
 
     if (tool === 'selection') {
       selectionInteraction.onPointerMove(e);
-    } else {
-      drawingInteraction.onPointerMove(e);
+      return;
     }
+
+    if (tool === 'text') {
+      textInteraction.onPointerMove(e);
+      return;
+    }
+
+    drawingInteraction.onPointerMove(e);
   };
 
   // 处理指针抬起
@@ -165,9 +179,15 @@ export const usePointerInteraction = ({
 
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
-    } else {
-      drawingInteraction.onPointerUp(e);
+      return;
     }
+
+    if (tool === 'text') {
+      textInteraction.onPointerUp(e);
+      return;
+    }
+
+    drawingInteraction.onPointerUp(e);
   };
   
   // 处理指针离开画布
@@ -186,9 +206,15 @@ export const usePointerInteraction = ({
     
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
-    } else {
-      drawingInteraction.onPointerLeave(e);
+      return;
     }
+
+    if (tool === 'text') {
+      textInteraction.onPointerLeave(e);
+      return;
+    }
+
+    drawingInteraction.onPointerLeave(e);
   };
 
   return {

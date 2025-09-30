@@ -58,6 +58,10 @@ export const useToolbarState = (
   const { drawingShadowOffsetY, setDrawingShadowOffsetY } = P.useDrawingShadowOffsetY();
   const { drawingShadowBlur, setDrawingShadowBlur } = P.useDrawingShadowBlur();
   const { drawingShadowColor, setDrawingShadowColor } = P.useDrawingShadowColor();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
+  const { drawingLineHeight, setDrawingLineHeight } = P.useDrawingLineHeight();
 
   const pathActions = usePathActions({ paths, selectedPathIds, setPaths, beginCoalescing, endCoalescing });
 
@@ -184,6 +188,10 @@ export const useToolbarState = (
   const setShadowOffsetY = simpleSetter('shadowOffsetY', setDrawingShadowOffsetY);
   const setShadowBlur = simpleSetter('shadowBlur', setDrawingShadowBlur);
   const setShadowColor = simpleSetter('shadowColor', setDrawingShadowColor);
+  const setFontFamily = simpleSetter('fontFamily', setDrawingFontFamily);
+  const setFontSize = simpleSetter('fontSize', setDrawingFontSize);
+  const setTextAlign = simpleSetter('textAlign', setDrawingTextAlign);
+  const setLineHeight = simpleSetter('lineHeight', setDrawingLineHeight);
 
   const setSides = (newSides: number) => {
     if (firstSelectedPath && firstSelectedPath.tool === 'polygon') {
@@ -240,6 +248,10 @@ export const useToolbarState = (
   const shadowOffsetY = displayValue('shadowOffsetY', drawingShadowOffsetY);
   const shadowBlur = displayValue('shadowBlur', drawingShadowBlur);
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
+  const fontFamily = displayValue('fontFamily', drawingFontFamily);
+  const fontSize = displayValue('fontSize', drawingFontSize);
+  const textAlign = displayValue('textAlign', drawingTextAlign);
+  const lineHeight = displayValue('lineHeight', drawingLineHeight);
   
   const firstSelectedRectImageOrPolygon = useMemo(() => {
     if (selectedPathIds.length !== 1) return null;
@@ -286,6 +298,10 @@ export const useToolbarState = (
     setDrawingShadowOffsetY(2);
     setDrawingShadowBlur(4);
     setDrawingShadowColor('rgba(0,0,0,0.5)');
+    setDrawingFontFamily('Excalifont, "Segoe UI", sans-serif');
+    setDrawingFontSize(28);
+    setDrawingTextAlign('left');
+    setDrawingLineHeight(1.25);
     setTool('brush');
   }, [
     setDrawingColor, setDrawingFill, setDrawingFillGradient, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
@@ -294,7 +310,8 @@ export const useToolbarState = (
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
     setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
     setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
-    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
+    setDrawingShadowOffsetX, setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor,
+    setDrawingFontFamily, setDrawingFontSize, setDrawingTextAlign, setDrawingLineHeight, setTool
   ]);
 
   return {
@@ -331,6 +348,10 @@ export const useToolbarState = (
     shadowOffsetY, setShadowOffsetY,
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
+    lineHeight, setLineHeight,
     ...pathActions,
     firstSelectedPath,
     resetState,

@@ -18,6 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { TextEditorOverlay } from '../whiteboard/TextEditor';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -111,7 +112,15 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        textEditor,
+        updateTextEditorText,
+        commitTextEditing,
+        cancelTextEditing,
+        canvasElement,
+        viewTransform,
     } = store;
+
+    const canvasBounds = canvasElement?.getBoundingClientRect() ?? null;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);
@@ -168,11 +177,30 @@ export const CanvasOverlays: React.FC = () => {
     );
 
     return (
-        <>
+        <> 
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                 <Toolbar tool={tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} gridSubdivisions={gridSubdivisions} setGridSubdivisions={setGridSubdivisions} gridOpacity={gridOpacity} setGridOpacity={setGridOpacity} />
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}
             </div>
+
+            <TextEditorOverlay
+                isOpen={Boolean(textEditor)}
+                text={textEditor?.text ?? ''}
+                x={textEditor?.x ?? 0}
+                y={textEditor?.y ?? 0}
+                width={textEditor?.width ?? 0}
+                height={textEditor?.height ?? 0}
+                fontFamily={textEditor?.fontFamily ?? 'Excalifont, "Segoe UI", sans-serif'}
+                fontSize={textEditor?.fontSize ?? 28}
+                lineHeight={textEditor?.lineHeight ?? 1.25}
+                textAlign={textEditor?.textAlign ?? 'left'}
+                color={textEditor?.color ?? '#ffffff'}
+                canvasBounds={canvasBounds}
+                viewTransform={viewTransform.viewTransform}
+                onChange={updateTextEditorText}
+                onCommit={commitTextEditing}
+                onCancel={cancelTextEditing}
+            />
 
             {tool === 'selection' && !croppingState && (
                 <div

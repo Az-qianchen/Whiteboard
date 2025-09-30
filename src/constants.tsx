@@ -26,6 +26,7 @@ import {
   SquareDashed,
   RotateCcw,
   Crop,
+  Type,
 } from 'lucide-react';
 
 
@@ -134,6 +135,7 @@ export const ICONS = {
   CLEAR: <Trash2 className="h-5 w-5" />,
   PEN: <PenTool className="h-5 w-5" />,
   BRUSH: <Pencil className="h-5 w-5" />,
+  TEXT: <Type className="h-5 w-5" />,
   CHECK: <Check className="h-5 w-5" />,
   SELECTION: <MousePointer2 className="h-5 w-5" />,
   EDIT: <Spline className="h-5 w-5" />,
