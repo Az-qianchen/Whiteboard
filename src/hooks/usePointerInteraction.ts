@@ -29,11 +29,13 @@ interface PointerInteractionProps {
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  textInteraction: InteractionHandlers;
   paths: AnyPath[];
   setStrokeColor: (color: string) => void;
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  isTextEditing: boolean;
 }
 
 /**
@@ -45,11 +47,13 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  textInteraction,
   paths,
   setStrokeColor,
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  isTextEditing,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -124,6 +128,15 @@ export const usePointerInteraction = ({
     }
     if (e.button !== 0) return;
 
+    if (isTextEditing && tool !== 'text') {
+      return;
+    }
+
+    if (tool === 'text') {
+      textInteraction.onPointerDown(e);
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
     } else {
@@ -139,6 +152,15 @@ export const usePointerInteraction = ({
     }
     if (isPanning) {
       viewTransform.handlePanMove(e);
+      return;
+    }
+
+    if (isTextEditing && tool !== 'text') {
+      return;
+    }
+
+    if (tool === 'text') {
+      textInteraction.onPointerMove(e);
       return;
     }
 
@@ -163,6 +185,15 @@ export const usePointerInteraction = ({
       return;
     }
 
+    if (isTextEditing && tool !== 'text') {
+      return;
+    }
+
+    if (tool === 'text') {
+      textInteraction.onPointerUp(e);
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
     } else {
@@ -184,6 +215,15 @@ export const usePointerInteraction = ({
       return;
     }
     
+    if (isTextEditing && tool !== 'text') {
+      return;
+    }
+
+    if (tool === 'text') {
+      textInteraction.onPointerLeave(e);
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
     } else {

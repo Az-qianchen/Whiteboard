@@ -11,6 +11,7 @@ import { LayersProvider, type LayersContextValue } from '../lib/layers-context';
 import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import type { MaterialData, AnyPath } from '../types';
+import { TextEditor } from './whiteboard/TextEditor';
 
 // Import new layout components
 import { MainMenuPanel } from './layout/MainMenuPanel';
@@ -59,6 +60,10 @@ export const MainLayout: React.FC = () => {
         cropTool,
         cropSelectionContours,
         cropManualDraft,
+        textEditor,
+        updateTextEditor,
+        commitTextEditor,
+        cancelTextEditor,
         // Drop handler props
         getPointerPosition,
         handleApplyMaterial,
@@ -239,6 +244,15 @@ export const MainLayout: React.FC = () => {
                             cropSelectionContours={cropSelectionContours}
                             cropManualDraft={cropManualDraft}
                         />
+                        {textEditor && (
+                            <TextEditor
+                                editor={textEditor}
+                                viewTransform={viewTransform.viewTransform ?? { scale: 1, translateX: 0, translateY: 0 }}
+                                onChange={(value) => updateTextEditor({ text: value })}
+                                onCommit={commitTextEditor}
+                                onCancel={cancelTextEditor}
+                            />
+                        )}
                     </div>
                     <TimelinePanel />
                 </main>

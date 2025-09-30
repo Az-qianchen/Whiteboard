@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -104,6 +104,38 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
         anchors,
         isClosed: Boolean(el.closed),
       } as VectorPathData);
+    } else if (el.type === 'text' && typeof el.text === 'string') {
+      const fontSize = el.fontSize ?? 32;
+      let fontFamily = 'Excalifont, Inter, system-ui, sans-serif';
+      if (typeof el.fontFamily === 'string') {
+        fontFamily = el.fontFamily;
+      } else if (el.fontFamily === 1) {
+        fontFamily = 'Virgil, Excalifont, Inter, system-ui, sans-serif';
+      } else if (el.fontFamily === 2) {
+        fontFamily = 'Helvetica, Arial, sans-serif';
+      } else if (el.fontFamily === 3) {
+        fontFamily = 'Cascadia Mono, monospace';
+      }
+      const textPath: TextData = {
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        text: el.text,
+        fontSize,
+        fontFamily,
+        textAlign: el.textAlign ?? 'left',
+        lineHeight: 1.25,
+        color: el.strokeColor ?? '#000000',
+        fill: 'transparent',
+        fillGradient: null,
+        fillStyle: 'solid',
+        strokeWidth: 0,
+        isRough: false,
+      };
+      paths.push(textPath);
     } else if (el.type === 'image' && el.fileId) {
       const file = files[el.fileId];
       const src = file?.dataURL;

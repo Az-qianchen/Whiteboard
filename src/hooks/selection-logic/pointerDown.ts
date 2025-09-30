@@ -9,6 +9,11 @@ import type {
   VectorPathData,
   ResizeHandlePosition,
   ImageData,
+  RectangleData,
+  EllipseData,
+  PolygonData,
+  FrameData,
+  TextData,
   BBox,
   SelectionPathState,
   SelectionToolbarState,
@@ -20,6 +25,28 @@ import { isPointHittingPath, findDeepestHitPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10; // 点击命中控制点的半径
+
+type BoundedShape = RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData;
+type SkewableShape = RectangleData | EllipseData | ImageData | PolygonData | FrameData;
+type BorderRadiusShape = RectangleData | ImageData | PolygonData;
+
+const isBoundedShape = (path: AnyPath): path is BoundedShape =>
+  path.tool === 'rectangle' ||
+  path.tool === 'ellipse' ||
+  path.tool === 'image' ||
+  path.tool === 'polygon' ||
+  path.tool === 'frame' ||
+  path.tool === 'text';
+
+const isSkewableShape = (path: AnyPath): path is SkewableShape =>
+  path.tool === 'rectangle' ||
+  path.tool === 'ellipse' ||
+  path.tool === 'image' ||
+  path.tool === 'polygon' ||
+  path.tool === 'frame';
+
+const isBorderRadiusShape = (path: AnyPath): path is BorderRadiusShape =>
+  path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon';
 
 /**
  * 处理在“移动/变换”模式下的指针按下事件。
@@ -236,20 +263,23 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                 setDragState({ type: 'rotate', pathIds: selectedPathIds, originalPaths: selected, center, initialAngle: startAngle });
             } else if (handle === 'border-radius' && selected.length === 1) {
                 const path = selected[0];
-                if (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') setDragState({ type: 'border-radius', pathId: path.id, originalPath: path as any, initialPointerPos: point });
+                if (isBorderRadiusShape(path)) {
+                  setDragState({ type: 'border-radius', pathId: path.id, originalPath: path, initialPointerPos: point });
+                }
             } else if (handle !== 'border-radius' && handle !== 'arc') {
                 if (selected.length === 0) {
                     endCoalescing();
                     return;
                 }
                 const path = selected[0];
-                const isSimpleShape = selected.length === 1 && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame');
+                const isSimpleShape = selected.length === 1 && isBoundedShape(path);
+                const supportsSkew = path.tool !== 'text';
 
                 if (isSimpleShape) {
-                    if (e.ctrlKey || e.metaKey) {
-                        setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
-                    } else {
-                        setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
+                    if (supportsSkew && (e.ctrlKey || e.metaKey) && isSkewableShape(path)) {
+                        setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path, initialPointerPos: point });
+                    } else if (isBoundedShape(path)) {
+                        setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path, initialPointerPos: point });
                     }
                 } else {
                     if (!bbox) { endCoalescing(); return; }
@@ -270,10 +300,10 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                     }));
                     endCoalescing();
                  } else setDragState({ type: (e.shiftKey && type === 'anchor' ? 'handleOut' : type), pathId, anchorIndex });
-            } else if (handle === 'border-radius' && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon')) setDragState({ type: 'border-radius', pathId, originalPath: path, initialPointerPos: point });
+            } else if (handle === 'border-radius' && isBorderRadiusShape(path)) setDragState({ type: 'border-radius', pathId, originalPath: path, initialPointerPos: point });
             else if (handle === 'arc' && path.tool === 'arc' && target.dataset.pointIndex) setDragState({ type: 'arc', pathId, pointIndex: parseInt(target.dataset.pointIndex, 10) as 0 | 1 | 2 });
-            else if (handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
-                if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame') setDragState({ type: 'resize', pathId, handle, originalPath: path as any, initialPointerPos: point });
+            else if (handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc' && isBoundedShape(path)) {
+                setDragState({ type: 'resize', pathId, handle, originalPath: path, initialPointerPos: point });
             }
         } return;
     }

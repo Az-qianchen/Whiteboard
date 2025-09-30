@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -107,6 +107,51 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
 
         if (data.tool === 'image') {
             node = renderImage(data as ImageData);
+        } else if (data.tool === 'text') {
+            const textData = data as TextData;
+            const textElement = document.createElementNS(SVG_NS, 'text');
+
+            const align = textData.textAlign ?? 'left';
+            let anchor: 'start' | 'middle' | 'end' = 'start';
+            let x = textData.x;
+            if (align === 'center') {
+                anchor = 'middle';
+                x = textData.x + textData.width / 2;
+            } else if (align === 'right') {
+                anchor = 'end';
+                x = textData.x + textData.width;
+            }
+
+            textElement.setAttribute('x', x.toString());
+            textElement.setAttribute('y', textData.y.toString());
+            textElement.setAttribute('fill', textData.color ?? '#000000');
+            textElement.setAttribute('font-size', textData.fontSize.toString());
+            textElement.setAttribute('font-family', textData.fontFamily);
+            textElement.setAttribute('text-anchor', anchor);
+            textElement.setAttribute('dominant-baseline', 'hanging');
+            if (typeof textData.opacity === 'number') {
+                textElement.setAttribute('opacity', clamp(textData.opacity, 0, 1).toString());
+            }
+
+            const rotation = textData.rotation ?? 0;
+            if (rotation) {
+                const cx = textData.x + textData.width / 2;
+                const cy = textData.y + textData.height / 2;
+                textElement.setAttribute('transform', `rotate(${(rotation * 180) / Math.PI}, ${cx}, ${cy})`);
+            }
+
+            const lines = textData.text.split('\n');
+            lines.forEach((line, index) => {
+                const tspan = document.createElementNS(SVG_NS, 'tspan');
+                if (index > 0) {
+                    tspan.setAttribute('x', x.toString());
+                    tspan.setAttribute('dy', (textData.fontSize * textData.lineHeight).toString());
+                }
+                tspan.textContent = line.length > 0 ? line : '\u00A0';
+                textElement.appendChild(tspan);
+            });
+
+            node = textElement;
         } else if (data.tool === 'group') {
             const groupData = data as GroupData;
             const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');

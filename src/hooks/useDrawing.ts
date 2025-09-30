@@ -94,6 +94,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (tool === 'text') {
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
@@ -242,6 +245,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (tool === 'text') {
+      return;
+    }
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
 
@@ -352,6 +358,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (tool === 'text') {
+      return;
+    }
     if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -380,6 +389,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (tool === 'text') {
+      return;
+    }
     // If the mouse leaves while drawing, we treat it like a pointer up to finalize the shape.
     if (currentBrushPath || (isDrawingShape && drawingShape.tool !== 'arc')) {
       onPointerUp(e);

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, FrameData, BBox } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, FrameData, BBox, TextData } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearHandles } from '@/lib/gradient';
@@ -89,6 +89,14 @@ const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: bo
         if (!isIdentityMatrix(matrix)) {
             transform = matrixToString(matrix);
         }
+    } else if (path.tool === 'text') {
+        const textPath = path as TextData;
+        const rotation = textPath.rotation ?? 0;
+        if (rotation) {
+            const cx = textPath.x + textPath.width / 2;
+            const cy = textPath.y + textPath.height / 2;
+            transform = `rotate(${(rotation * 180) / Math.PI}, ${cx}, ${cy})`;
+        }
     }
 
     const accent = 'var(--accent-primary)';
@@ -136,7 +144,7 @@ const getHandleCursor = (handle: ResizeHandlePosition, useSkewCursor: boolean) =
     useSkewCursor ? SKEW_HANDLE_CURSORS[handle] : DEFAULT_HANDLE_CURSORS[handle];
 
 const ShapeControls: React.FC<{
-    path: RectangleData | EllipseData | ImageData | PolygonData | FrameData;
+    path: RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData;
     scale: number;
     isSelectedAlone: boolean;
     dragState: DragState | null;
@@ -707,6 +715,7 @@ const getGuideForPath = (path: AnyPath): DimensionGuide | null => {
     case 'image':
     case 'polygon':
     case 'frame':
+    case 'text':
       return getGuideForTransformableShape(path);
     default:
       return getGuideFromBBox(
@@ -927,7 +936,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
           if (path.tool === 'pen' || path.tool === 'line') {
             return <VectorPathControls key={path.id} data={path as VectorPathData} scale={scale} dragState={dragState} hoveredPoint={hoveredPoint} />;
           }
-          if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame') {
+          if (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame' || path.tool === 'text') {
             return (
               <ShapeControls
                 key={path.id}
@@ -935,7 +944,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
                 scale={scale}
                 isSelectedAlone={selectedPaths.length === 1}
                 dragState={dragState}
-                allowSkew={false}
+                allowSkew={path.tool !== 'text'}
               />
             );
           }
@@ -962,7 +971,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
           <GradientHandles path={selectedPath} scale={scale} />
         ) : null;
 
-        if ((selectedPath.tool === 'rectangle' || selectedPath.tool === 'ellipse' || selectedPath.tool === 'image' || selectedPath.tool === 'polygon' || selectedPath.tool === 'frame') && !selectedPath.isLocked) {
+        if ((selectedPath.tool === 'rectangle' || selectedPath.tool === 'ellipse' || selectedPath.tool === 'image' || selectedPath.tool === 'polygon' || selectedPath.tool === 'frame' || selectedPath.tool === 'text') && !selectedPath.isLocked) {
             return (
                 <>
                     <ShapeControls
@@ -970,7 +979,7 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
                         scale={scale}
                         isSelectedAlone={true}
                         dragState={dragState}
-                        allowSkew={true}
+                        allowSkew={selectedPath.tool !== 'text'}
                         showMeasurements={true}
                     />
                     {gradientHandles}

@@ -11,6 +11,7 @@ import type {
   PolygonData,
   EllipseData,
   FrameData,
+  TextData,
 } from '@/types';
 import { rotatePoint } from './geom';
 import { samplePath } from './path';
@@ -130,6 +131,36 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const minY = Math.min(...corners.map(p => p.y));
       const maxX = Math.max(...corners.map(p => p.x));
       const maxY = Math.max(...corners.map(p => p.y));
+
+      return {
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
+      };
+    }
+    case 'text': {
+      const textPath = path as TextData;
+      const { x, y, width, height } = textPath;
+      const rotation = textPath.rotation ?? 0;
+      const corners = [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+
+      const rotatedCorners = rotation
+        ? corners.map(point => rotatePoint(point, { x: x + width / 2, y: y + height / 2 }, rotation))
+        : corners;
+
+      const xs = rotatedCorners.map(p => p.x);
+      const ys = rotatedCorners.map(p => p.y);
+
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs);
+      const maxY = Math.max(...ys);
 
       return {
         x: minX - margin,

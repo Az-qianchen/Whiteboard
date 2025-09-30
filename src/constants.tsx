@@ -26,6 +26,7 @@ import {
   SquareDashed,
   RotateCcw,
   Crop,
+  Type as TypeIcon,
 } from 'lucide-react';
 
 
@@ -204,6 +205,7 @@ export const ICONS = {
   REWIND: <Rewind className="h-5 w-5" />,
   TRACE_IMAGE: <Wand2 className="h-5 w-5" />,
   HSV: <Sliders className="h-5 w-5" />,
+  TEXT: <TypeIcon className="h-5 w-5" />,
   BOOLEAN_UNION: <SquaresUnite className="h-5 w-5" />,
   BOOLEAN_SUBTRACT: <SquaresSubtract className="h-5 w-5" />,
   BOOLEAN_INTERSECT: <SquaresIntersect className="h-5 w-5" />,
