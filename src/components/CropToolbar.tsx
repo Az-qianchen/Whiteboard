@@ -30,7 +30,7 @@ interface CropToolbarProps {
 }
 
 /**
- * 裁剪模式下显示的工具栏组件，提供裁剪、抠图及确认/取消裁剪等操作。
+ * 裁剪模式下显示的工具栏组件，提供裁剪与抠图相关的操作。
  */
 export const CropToolbar: React.FC<CropToolbarProps> = ({
   isTimelineCollapsed,
@@ -49,8 +49,8 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   applyMagicWandSelection,
   cutMagicWandSelection,
   trimTransparentEdges,
-  confirmCrop,
-  cancelCrop,
+  confirmCrop: _confirmCrop,
+  cancelCrop: _cancelCrop,
 }) => {
   const { t } = useTranslation();
 
@@ -146,64 +146,12 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       </div>
       
       {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-threshold">
-            {t('threshold')}
-            <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
-              <input
-                id="magic-wand-threshold"
-                type="number"
-                min={1}
-                max={120}
-                step={1}
-                value={cropMagicWandOptions.threshold}
-                onChange={handleThresholdChange}
-                inputMode="numeric"
-                className={`${PANEL_CLASSES.input} hide-spinners text-right`}
-              />
-            </div>
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-feather-radius">
-            {t('featherRadius')}
-            <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
-              <input
-                id="magic-wand-feather-radius"
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={cropMagicWandOptions.featherRadius}
-                onChange={handleFeatherRadiusChange}
-                inputMode="numeric"
-                className={`${PANEL_CLASSES.input} hide-spinners text-right`}
-              />
-            </div>
-          </label>
-
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={handleContiguousToggle}
-            className={`${segmentedButtonBase} ${
-              cropMagicWandOptions.contiguous
-                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-            }`}
-            aria-pressed={cropMagicWandOptions.contiguous}
-            title={t('contiguous')}
-          >
-            <span>{t('contiguous')}</span>
-          </PanelButton>
-        </div>
-      )}
-
-      {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className={PANEL_CLASSES.segmentGroup}>
-            <PanelButton
-              type="button"
-              variant="unstyled"
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className={PANEL_CLASSES.segmentGroup}>
+              <PanelButton
+                type="button"
+                variant="unstyled"
               className={`${segmentedButtonBase} ${
                 cropSelectionMode === 'magic-wand'
                   ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
@@ -261,41 +209,82 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               {ICONS.POLYGON}
               <span>{t('cropMagicWandPolygon')}</span>
             </PanelButton>
-          </div>
+            </div>
 
-          {cropSelectionMode === 'brush' && (
-            <div className="flex items-center gap-2">
+            {cropSelectionMode === 'brush' && (
               <label
-                className="text-sm text-[var(--text-secondary)]"
-                htmlFor="magic-wand-brush-size-slider"
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+                htmlFor="magic-wand-brush-size"
               >
                 {t('cropMagicWandBrushSize')}
+                <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
+                  <input
+                    id="magic-wand-brush-size"
+                    type="number"
+                    min={brushSizeMin}
+                    max={brushSizeMax}
+                    value={cropBrushSize}
+                    onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
+                    inputMode="numeric"
+                    className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                  />
+                  <span className={PANEL_CLASSES.inputSuffix}>px</span>
+                </div>
               </label>
-              <input
-                id="magic-wand-brush-size-slider"
-                type="range"
-                min={brushSizeMin}
-                max={brushSizeMax}
-                step={1}
-                value={cropBrushSize}
-                onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
-                className="w-28 h-2 accent-[var(--accent-primary)]"
-              />
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={handleContiguousToggle}
+              className={`${segmentedButtonBase} ${
+                cropMagicWandOptions.contiguous
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              aria-pressed={cropMagicWandOptions.contiguous}
+              title={t('contiguous')}
+            >
+              <span>{t('contiguous')}</span>
+            </PanelButton>
+
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-feather-radius">
+              {t('featherRadius')}
               <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
                 <input
-                  id="magic-wand-brush-size"
+                  id="magic-wand-feather-radius"
                   type="number"
-                  min={brushSizeMin}
-                  max={brushSizeMax}
-                  value={cropBrushSize}
-                  onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={cropMagicWandOptions.featherRadius}
+                  onChange={handleFeatherRadiusChange}
                   inputMode="numeric"
-                  aria-label={t('cropMagicWandBrushSize')}
                   className={`${PANEL_CLASSES.input} hide-spinners text-right`}
                 />
               </div>
-              <span className="text-xs text-[var(--text-secondary)]">px</span>
-            </div>
+            </label>
+          </div>
+
+          {cropSelectionMode === 'magic-wand' && (
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-threshold">
+              {t('threshold')}
+              <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+                <input
+                  id="magic-wand-threshold"
+                  type="number"
+                  min={1}
+                  max={120}
+                  step={1}
+                  value={cropMagicWandOptions.threshold}
+                  onChange={handleThresholdChange}
+                  inputMode="numeric"
+                  className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                />
+              </div>
+            </label>
           )}
 
           <div className={PANEL_CLASSES.segmentGroup}>
@@ -345,12 +334,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               <span>{t('cropSelectionSubtract')}</span>
             </PanelButton>
           </div>
-
-          {cropSelectionMode === 'polygon' && (
-            <p className="w-full max-w-[240px] text-xs leading-snug text-[var(--text-secondary)]">
-              {t('cropMagicWandPolygonHint')}
-            </p>
-          )}
         </div>
       )}
 
@@ -361,20 +344,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             variant="unstyled"
             onClick={applyMagicWandSelection}
             disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
             {ICONS.CHECK}
             <span>{t('subtractSelection')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={invertMagicWandSelection}
-            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
-            title={t('cropSelectionInvert')}
-          >
-            <span className="font-semibold">⇆</span>
-            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
           <PanelButton
             type="button"
@@ -385,6 +358,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           >
             {ICONS.CUT}
             <span>{t('cutSelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={invertMagicWandSelection}
+            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
+            title={t('cropSelectionInvert')}
+          >
+            <span className="font-semibold">⇆</span>
+            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
         </div>
       )}
@@ -402,26 +385,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             <span>{t('trimTransparent')}</span>
           </PanelButton>
         )}
-        <PanelButton
-          type="button"
-          title={t('cancel')}
-          onClick={cancelCrop}
-          variant="unstyled"
-          className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
-        >
-          {ICONS.X}
-          <span>{t('cancel')}</span>
-        </PanelButton>
-        <PanelButton
-          type="button"
-          title={t('confirm')}
-          onClick={confirmCrop}
-          variant="unstyled"
-          className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-        >
-          {ICONS.CHECK}
-          <span>{t('confirm')}</span>
-        </PanelButton>
       </div>
     </div>
   );
