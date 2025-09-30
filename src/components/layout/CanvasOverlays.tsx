@@ -18,6 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { TextEditorOverlay } from '../whiteboard/TextEditorOverlay';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -111,6 +112,11 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        textEditor,
+        setTextEditorText,
+        commitTextEditing,
+        cancelTextEditing,
+        viewTransform,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
@@ -173,6 +179,20 @@ export const CanvasOverlays: React.FC = () => {
                 <Toolbar tool={tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} gridSubdivisions={gridSubdivisions} setGridSubdivisions={setGridSubdivisions} gridOpacity={gridOpacity} setGridOpacity={setGridOpacity} />
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}
             </div>
+
+            {textEditor && (
+                <TextEditorOverlay
+                    editor={textEditor}
+                    viewTransform={viewTransform.viewTransform}
+                    onChange={setTextEditorText}
+                    onCommit={commitTextEditing}
+                    onCancel={cancelTextEditing}
+                    placeholder={t('text.placeholder')}
+                    confirmLabel={t('text.confirm')}
+                    cancelLabel={t('text.cancel')}
+                    hint={t('text.multilineHint', { primary: isMac ? '⌘' : 'Ctrl' })}
+                />
+            )}
 
             {tool === 'selection' && !croppingState && (
                 <div

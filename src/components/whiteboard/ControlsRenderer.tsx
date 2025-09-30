@@ -9,6 +9,7 @@ import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPa
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearHandles } from '@/lib/gradient';
 import { getGradientHandleSpace } from '@/lib/gradientHandles';
+import { measureTextWidth } from '@/lib/text';
 
 
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
@@ -553,25 +554,6 @@ type DimensionGuide = {
   rotation?: number;
   cornerRadius?: number;
 };
-
-const measureTextWidth = (() => {
-  let canvas: HTMLCanvasElement | null = null;
-  let context: CanvasRenderingContext2D | null = null;
-  return (text: string, font: string) => {
-    if (typeof document === 'undefined') {
-      return text.length * 7;
-    }
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      context = canvas.getContext('2d');
-    }
-    if (!context) {
-      return text.length * 7;
-    }
-    context.font = font;
-    return context.measureText(text).width;
-  };
-})();
 
 const formatDimensionValue = (value: number) => {
   if (!isFinite(value)) {

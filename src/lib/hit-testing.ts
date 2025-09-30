@@ -211,6 +211,20 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             }
             return false;
         }
+        case 'text': {
+            const { x, y, width, height, rotation } = path as TextData;
+            let testPoint = point;
+            if (rotation) {
+                const center = { x: x + width / 2, y: y + height / 2 };
+                testPoint = rotatePoint(point, center, -rotation);
+            }
+            return (
+                testPoint.x >= x &&
+                testPoint.x <= x + width &&
+                testPoint.y >= y &&
+                testPoint.y <= y + height
+            );
+        }
         case 'pen':
         case 'line': {
             const vectorPath = path as VectorPathData;
@@ -331,6 +345,23 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
         }
         // Also check the center point for large shapes
         pathSamples.push({x: path.x + path.width/2, y: path.y + path.height/2});
+        break;
+    }
+    case 'text': {
+        const textPath = path as TextData;
+        const corners = [
+            { x: textPath.x, y: textPath.y },
+            { x: textPath.x + textPath.width, y: textPath.y },
+            { x: textPath.x + textPath.width, y: textPath.y + textPath.height },
+            { x: textPath.x, y: textPath.y + textPath.height },
+        ];
+        if (textPath.rotation) {
+            const center = { x: textPath.x + textPath.width / 2, y: textPath.y + textPath.height / 2 };
+            pathSamples = corners.map(pt => rotatePoint(pt, center, textPath.rotation ?? 0));
+        } else {
+            pathSamples = corners;
+        }
+        pathSamples.push({ x: textPath.x + textPath.width / 2, y: textPath.y + textPath.height / 2 });
         break;
     }
     case 'ellipse': {

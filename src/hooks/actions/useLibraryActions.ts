@@ -4,10 +4,11 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fileOpen, fileSave } from 'browser-fs-access';
-import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, Point, GroupData, ArcData } from '@/types';
+import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, Point, GroupData, ArcData, TextData } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
 import { useToolbarStore } from '@/context/toolbarStore';
 import type { AppActionsProps } from './useAppActions';
+import { measureTextMetrics } from '@/lib/text';
 
 /**
  * 封装样式库和素材库相关操作的 Hook。
@@ -54,6 +55,14 @@ export const useLibraryActions = ({
         borderRadius: (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') ? (path as RectangleData | ImageData | PolygonData).borderRadius : undefined,
         sides: path.tool === 'polygon' ? (path as PolygonData).sides : undefined,
     };
+
+    if (path.tool === 'text') {
+      const textPath = path as TextData;
+      copiedStyle.fontFamily = textPath.fontFamily;
+      copiedStyle.fontSize = textPath.fontSize;
+      copiedStyle.textAlign = textPath.textAlign;
+      copiedStyle.lineHeight = textPath.lineHeight;
+    }
 
     setStyleClipboard(copiedStyle);
     const toolbarStore = useToolbarStore.getState() as Record<string, unknown>;
@@ -105,6 +114,14 @@ export const useLibraryActions = ({
                 delete (styleProps as Partial<RectangleData>).borderRadius;
                 delete (styleProps as Partial<PolygonData>).sides;
                 return { ...path, ...styleProps, points: path.points, tool: 'arc' };
+            case 'text': {
+                const { borderRadius: _borderRadius, sides: _sides, ...rest } = style;
+                const textPath = path as TextData;
+                const textStyle = rest as Partial<TextData>;
+                const merged: TextData = { ...textPath, ...textStyle, tool: 'text' };
+                const metrics = measureTextMetrics(merged.text, merged.fontSize, merged.fontFamily, merged.lineHeight);
+                return { ...merged, width: metrics.width, height: metrics.height };
+            }
         }
     };
     
@@ -118,7 +135,7 @@ export const useLibraryActions = ({
       if (selectedPathIds.length !== 1) return;
       const path = paths.find(p => p.id === selectedPathIds[0]);
       if (!path) return;
-      
+
       const newStyle: StyleClipboardData = {
           color: path.color,
           fill: path.fill,
@@ -126,6 +143,14 @@ export const useLibraryActions = ({
           fillStyle: path.fillStyle,
           strokeWidth: path.strokeWidth,
       };
+
+      if (path.tool === 'text') {
+          const textPath = path as TextData;
+          newStyle.fontFamily = textPath.fontFamily;
+          newStyle.fontSize = textPath.fontSize;
+          newStyle.textAlign = textPath.textAlign;
+          newStyle.lineHeight = textPath.lineHeight;
+      }
       setStyleLibrary(prev => [...prev, newStyle]);
   }, [paths, selectedPathIds, setStyleLibrary]);
   
@@ -136,10 +161,23 @@ export const useLibraryActions = ({
   const handleApplyStyle = useCallback((style: StyleClipboardData) => {
       if (selectedPathIds.length > 0) {
           const applyStyleRecursively = (path: AnyPath, style: StyleClipboardData): AnyPath => {
-              let updatedPath: AnyPath = { ...path, ...style };
-              if (updatedPath.tool === 'group') {
-                  updatedPath.children = (updatedPath as GroupData).children.map(child => applyStyleRecursively(child, style));
+              if (path.tool === 'group') {
+                  return {
+                      ...path,
+                      ...style,
+                      tool: 'group',
+                      children: (path as GroupData).children.map(child => applyStyleRecursively(child, style)),
+                  } as GroupData;
               }
+              if (path.tool === 'text') {
+                  const { borderRadius: _borderRadius, sides: _sides, ...rest } = style;
+                  const textPath = path as TextData;
+                  const textStyle = rest as Partial<TextData>;
+                  const merged: TextData = { ...textPath, ...textStyle, tool: 'text' };
+                  const metrics = measureTextMetrics(merged.text, merged.fontSize, merged.fontFamily, merged.lineHeight);
+                  return { ...merged, width: metrics.width, height: metrics.height };
+              }
+              const updatedPath: AnyPath = { ...path, ...style };
               return updatedPath;
           };
           pathState.setPaths(prev => prev.map(p => selectedPathIds.includes(p.id) ? applyStyleRecursively(p, style) : p));

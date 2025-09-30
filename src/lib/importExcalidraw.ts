@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -13,6 +13,7 @@ import {
   DEFAULT_CURVE_STEP_COUNT,
 } from '@/constants';
 import { useFilesStore } from '@/context/filesStore';
+import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT, measureTextMetrics } from '@/lib/text';
 
 interface ExcalidrawElement {
   type: string;
@@ -41,6 +42,12 @@ const VECTOR_STROKE_TYPES: ReadonlySet<string> = new Set([
   'draw',
   'freedraw',
 ]);
+
+const EXCALIDRAW_FONT_FAMILIES: Record<string, string> = {
+  '1': 'Virgil, Segoe UI, sans-serif',
+  '2': 'Helvetica, Arial, sans-serif',
+  '3': 'Cascadia, Menlo, monospace',
+};
 
 const sharedProps = (el: ExcalidrawElement) => ({
   id: `${Date.now()}-${Math.random()}`,
@@ -104,6 +111,30 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
         anchors,
         isClosed: Boolean(el.closed),
       } as VectorPathData);
+    } else if (el.type === 'text' && typeof el.text === 'string') {
+      const fontFamilyKey = String(el.fontFamily ?? '');
+      const fontFamily = EXCALIDRAW_FONT_FAMILIES[fontFamilyKey] ?? DEFAULT_FONT_FAMILY;
+      const fontSize = el.fontSize ?? DEFAULT_FONT_SIZE;
+      const metrics = measureTextMetrics(el.text, fontSize, fontFamily, DEFAULT_TEXT_LINE_HEIGHT);
+      const width = el.width ?? metrics.width;
+      const height = el.height ?? metrics.height;
+
+      paths.push({
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width,
+        height,
+        text: el.text,
+        fontFamily,
+        fontSize,
+        textAlign: el.textAlign ?? 'left',
+        lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+        fill: 'transparent',
+        strokeWidth: 0,
+        isRough: false,
+      } as TextData);
     } else if (el.type === 'image' && el.fileId) {
       const file = files[el.fileId];
       const src = file?.dataURL;

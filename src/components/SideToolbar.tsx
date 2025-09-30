@@ -82,6 +82,15 @@ interface SideToolbarProps {
   setShadowBlur: (sb: number) => void;
   shadowColor: string;
   setShadowColor: (sc: string) => void;
+  fontFamily: string;
+  setFontFamily: (family: string) => void;
+  fontSize: number;
+  setFontSize: (size: number) => void;
+  textAlign: 'left' | 'center' | 'right';
+  setTextAlign: (align: 'left' | 'center' | 'right') => void;
+  lineHeight: number;
+  setLineHeight: (value: number) => void;
+  isTextEditing: boolean;
   onAdjustImageHsv: (adj: HsvAdjustment) => void;
 }
 
@@ -105,6 +114,11 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     beginCoalescing, endCoalescing,
     onToggleStyleLibrary,
     isStyleLibraryOpen,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
+    lineHeight, setLineHeight,
+    isTextEditing,
     onAdjustImageHsv,
   } = props;
 
@@ -117,6 +131,13 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const fillColorLabel = t('sideToolbar.fillColor');
   const framePropertiesLabel = t('sideToolbar.frameProperties');
   const styleLibraryLabel = t('sideToolbar.styleLibrary');
+  const fontFamilyLabel = t('text.fontFamily');
+  const fontSizeLabel = t('text.fontSize');
+  const lineHeightLabel = t('text.lineHeight');
+  const alignmentLabel = t('text.alignment');
+  const alignLeftLabel = t('alignLeft');
+  const alignCenterLabel = t('alignHorizontalCenter');
+  const alignRightLabel = t('alignRight');
 
   const isEndpointControlVisible = useMemo(() => {
     if (firstSelectedPath) {
@@ -130,7 +151,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     }
     return ['pen', 'line', 'brush', 'arc'].includes(tool);
   }, [tool, firstSelectedPath]);
-  
+
   const isDashControlVisible = useMemo(() => {
     if (firstSelectedPath) {
       return true;
@@ -140,6 +161,33 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
   const isGradientActive = !!fillGradient;
+  const isTextContext = firstSelectedPath?.tool === 'text' || tool === 'text';
+  const disableTextControls = isTextEditing && isTextContext;
+
+  const fontFamilyOptions = useMemo(
+    () => [
+      { value: 'Virgil, Segoe UI, sans-serif', label: 'Virgil' },
+      { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
+      { value: 'Cascadia, Menlo, monospace', label: 'Cascadia' },
+    ],
+    []
+  );
+
+  const resolvedFontFamilyOptions = useMemo(() => {
+    if (fontFamilyOptions.some(option => option.value === fontFamily)) {
+      return fontFamilyOptions;
+    }
+    return [...fontFamilyOptions, { value: fontFamily, label: fontFamily }];
+  }, [fontFamily, fontFamilyOptions]);
+
+  const alignmentOptions: Array<{ value: 'left' | 'center' | 'right'; label: string; icon: React.ReactNode }> = useMemo(
+    () => [
+      { value: 'left', label: alignLeftLabel, icon: ICONS.ALIGN_LEFT },
+      { value: 'center', label: alignCenterLabel, icon: ICONS.ALIGN_HORIZONTAL_CENTER },
+      { value: 'right', label: alignRightLabel, icon: ICONS.ALIGN_RIGHT },
+    ],
+    [alignCenterLabel, alignLeftLabel, alignRightLabel]
+  );
 
   return (
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-1.5 flex flex-col items-center gap-1.5 text-[var(--text-primary)]">
@@ -201,8 +249,78 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
       {!isFrameSelected && (
         <>
+          {isTextContext && (
+            <div className="flex w-full justify-center">
+              <div className="flex w-40 flex-col gap-2 rounded-lg border border-[var(--ui-panel-border)]/60 bg-[var(--ui-element-bg)]/40 p-2">
+                <label className="text-xs font-medium text-[var(--text-secondary)]">{fontFamilyLabel}</label>
+                <select
+                  className="w-full rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-sm text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  value={fontFamily}
+                  onChange={event => setFontFamily(event.target.value)}
+                  disabled={disableTextControls}
+                >
+                  {resolvedFontFamilyOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex items-center justify-between gap-2">
+                  <NumericInput
+                    label={fontSizeLabel}
+                    value={fontSize}
+                    setValue={setFontSize}
+                    min={1}
+                    max={512}
+                    step={1}
+                    unit="px"
+                    beginCoalescing={beginCoalescing}
+                    endCoalescing={endCoalescing}
+                  />
+                  <NumericInput
+                    label={lineHeightLabel}
+                    value={lineHeight}
+                    setValue={setLineHeight}
+                    min={0.5}
+                    max={5}
+                    step={5}
+                    unit="%"
+                    valueTransformer={{
+                      toDisplay: v => Math.round(v * 100),
+                      fromDisplay: v => v / 100,
+                    }}
+                    beginCoalescing={beginCoalescing}
+                    endCoalescing={endCoalescing}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">{alignmentLabel}</span>
+                  <div className="flex items-center gap-1">
+                    {alignmentOptions.map(option => (
+                      <PanelButton
+                        key={option.value}
+                        variant="unstyled"
+                        onClick={() => setTextAlign(option.value)}
+                        disabled={disableTextControls}
+                        className={`h-8 w-8 rounded-md transition-colors ${
+                          textAlign === option.value
+                            ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                        }`}
+                        title={option.label}
+                        aria-label={option.label}
+                      >
+                        <div className="flex h-full w-full items-center justify-center">{option.icon}</div>
+                      </PanelButton>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ColorControl
-              label={strokeColorLabel}
+            label={strokeColorLabel}
             color={color}
             setColor={setColor}
             beginCoalescing={beginCoalescing}

@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react';
-import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
+import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill, TextData } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 import { updateGradientStopColor } from '@/lib/gradient';
+import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT, measureTextMetrics } from '@/lib/text';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -58,6 +59,10 @@ export const useToolbarState = (
   const { drawingShadowOffsetY, setDrawingShadowOffsetY } = P.useDrawingShadowOffsetY();
   const { drawingShadowBlur, setDrawingShadowBlur } = P.useDrawingShadowBlur();
   const { drawingShadowColor, setDrawingShadowColor } = P.useDrawingShadowColor();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
+  const { drawingLineHeight, setDrawingLineHeight } = P.useDrawingLineHeight();
 
   const pathActions = usePathActions({ paths, selectedPathIds, setPaths, beginCoalescing, endCoalescing });
 
@@ -185,6 +190,58 @@ export const useToolbarState = (
   const setShadowBlur = simpleSetter('shadowBlur', setDrawingShadowBlur);
   const setShadowColor = simpleSetter('shadowColor', setDrawingShadowColor);
 
+  const normalizeFontFamily = (value: string) => {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : DEFAULT_FONT_FAMILY;
+  };
+
+  const setFontFamily = (newFamily: string) => {
+    const normalized = normalizeFontFamily(newFamily);
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths(path => {
+        if (path.tool !== 'text') return {};
+        const metrics = computeTextMetrics(path as TextData, { fontFamily: normalized });
+        return { fontFamily: normalized, ...metrics };
+      });
+    } else {
+      setDrawingFontFamily(normalized);
+    }
+  };
+
+  const setFontSize = (newSize: number) => {
+    const normalized = Math.max(1, newSize);
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths(path => {
+        if (path.tool !== 'text') return {};
+        const metrics = computeTextMetrics(path as TextData, { fontSize: normalized });
+        return { fontSize: normalized, ...metrics };
+      });
+    } else {
+      setDrawingFontSize(normalized);
+    }
+  };
+
+  const setTextAlign = (align: 'left' | 'center' | 'right') => {
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths(path => (path.tool === 'text' ? { textAlign: align } : {}));
+    } else {
+      setDrawingTextAlign(align);
+    }
+  };
+
+  const setLineHeight = (newLineHeight: number) => {
+    const normalized = Math.max(0.5, Math.min(newLineHeight, 5));
+    if (firstSelectedPath?.tool === 'text') {
+      updateSelectedPaths(path => {
+        if (path.tool !== 'text') return {};
+        const metrics = computeTextMetrics(path as TextData, { lineHeight: normalized });
+        return { lineHeight: normalized, ...metrics };
+      });
+    } else {
+      setDrawingLineHeight(normalized);
+    }
+  };
+
   const setSides = (newSides: number) => {
     if (firstSelectedPath && firstSelectedPath.tool === 'polygon') {
       updateSelectedPaths(() => ({ sides: Math.max(3, newSides) }));
@@ -240,6 +297,16 @@ export const useToolbarState = (
   const shadowOffsetY = displayValue('shadowOffsetY', drawingShadowOffsetY);
   const shadowBlur = displayValue('shadowBlur', drawingShadowBlur);
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
+  const fontFamily = displayValue('fontFamily', drawingFontFamily);
+  const fontSize = displayValue('fontSize', drawingFontSize);
+  const textAlign = displayValue('textAlign', drawingTextAlign);
+  const lineHeight = displayValue('lineHeight', drawingLineHeight);
+
+  const computeTextMetrics = useCallback((path: TextData, overrides: Partial<TextData>) => {
+    const next: TextData = { ...path, ...overrides };
+    const metrics = measureTextMetrics(next.text, next.fontSize, next.fontFamily, next.lineHeight);
+    return { width: metrics.width, height: metrics.height };
+  }, []);
   
   const firstSelectedRectImageOrPolygon = useMemo(() => {
     if (selectedPathIds.length !== 1) return null;
@@ -286,6 +353,10 @@ export const useToolbarState = (
     setDrawingShadowOffsetY(2);
     setDrawingShadowBlur(4);
     setDrawingShadowColor('rgba(0,0,0,0.5)');
+    setDrawingFontFamily(DEFAULT_FONT_FAMILY);
+    setDrawingFontSize(DEFAULT_FONT_SIZE);
+    setDrawingTextAlign('left');
+    setDrawingLineHeight(DEFAULT_TEXT_LINE_HEIGHT);
     setTool('brush');
   }, [
     setDrawingColor, setDrawingFill, setDrawingFillGradient, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
@@ -294,7 +365,8 @@ export const useToolbarState = (
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
     setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
     setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
-    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
+    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setDrawingFontFamily, setDrawingFontSize,
+    setDrawingTextAlign, setDrawingLineHeight, setTool
   ]);
 
   return {
@@ -331,6 +403,10 @@ export const useToolbarState = (
     shadowOffsetY, setShadowOffsetY,
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
+    lineHeight, setLineHeight,
     ...pathActions,
     firstSelectedPath,
     resetState,
