@@ -137,71 +137,19 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             }`}
             onClick={() => setCropTool('magic-wand')}
             aria-pressed={cropTool === 'magic-wand'}
-            title={t('cropMagicWand')}
+            title={t('cropCutout')}
           >
             {ICONS.TRACE_IMAGE}
-            <span>{t('cropMagicWand')}</span>
+            <span>{t('cropCutout')}</span>
           </PanelButton>
         </div>
       </div>
       
       {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-threshold">
-            {t('threshold')}
-            <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
-              <input
-                id="magic-wand-threshold"
-                type="number"
-                min={1}
-                max={120}
-                step={1}
-                value={cropMagicWandOptions.threshold}
-                onChange={handleThresholdChange}
-                inputMode="numeric"
-                className={`${PANEL_CLASSES.input} hide-spinners text-right`}
-              />
-            </div>
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]" htmlFor="magic-wand-feather-radius">
-            {t('featherRadius')}
-            <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
-              <input
-                id="magic-wand-feather-radius"
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={cropMagicWandOptions.featherRadius}
-                onChange={handleFeatherRadiusChange}
-                inputMode="numeric"
-                className={`${PANEL_CLASSES.input} hide-spinners text-right`}
-              />
-            </div>
-          </label>
-
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={handleContiguousToggle}
-            className={`${segmentedButtonBase} ${
-              cropMagicWandOptions.contiguous
-                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-            }`}
-            aria-pressed={cropMagicWandOptions.contiguous}
-            title={t('contiguous')}
-          >
-            <span>{t('contiguous')}</span>
-          </PanelButton>
-        </div>
-      )}
-
-      {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className={PANEL_CLASSES.segmentGroup}>
-            <PanelButton
+        <div className="flex w-full flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className={PANEL_CLASSES.segmentGroup}>
+              <PanelButton
               type="button"
               variant="unstyled"
               className={`${segmentedButtonBase} ${
@@ -335,7 +283,68 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               <span>{t('cropSelectionSubtract')}</span>
             </PanelButton>
           </div>
+          </div>
 
+          <div className="flex flex-wrap items-center gap-3">
+            <label
+              className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+              htmlFor="magic-wand-feather-radius"
+            >
+              {t('featherRadius')}
+              <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+                <input
+                  id="magic-wand-feather-radius"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={cropMagicWandOptions.featherRadius}
+                  onChange={handleFeatherRadiusChange}
+                  inputMode="numeric"
+                  className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                />
+              </div>
+            </label>
+
+            {cropSelectionMode === 'magic-wand' && (
+              <>
+                <label
+                  className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+                  htmlFor="magic-wand-threshold"
+                >
+                  {t('threshold')}
+                  <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+                    <input
+                      id="magic-wand-threshold"
+                      type="number"
+                      min={1}
+                      max={120}
+                      step={1}
+                      value={cropMagicWandOptions.threshold}
+                      onChange={handleThresholdChange}
+                      inputMode="numeric"
+                      className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                    />
+                  </div>
+                </label>
+
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  onClick={handleContiguousToggle}
+                  className={`${segmentedButtonBase} ${
+                    cropMagicWandOptions.contiguous
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  aria-pressed={cropMagicWandOptions.contiguous}
+                  title={t('contiguous')}
+                >
+                  <span>{t('contiguous')}</span>
+                </PanelButton>
+              </>
+            )}
+          </div>
         </div>
       )}
 
