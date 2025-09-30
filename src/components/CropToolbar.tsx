@@ -346,11 +346,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             </PanelButton>
           </div>
 
-          {cropSelectionMode === 'polygon' && (
-            <p className="w-full max-w-[240px] text-xs leading-snug text-[var(--text-secondary)]">
-              {t('cropMagicWandPolygonHint')}
-            </p>
-          )}
         </div>
       )}
 
