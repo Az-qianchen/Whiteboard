@@ -137,10 +137,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             }`}
             onClick={() => setCropTool('magic-wand')}
             aria-pressed={cropTool === 'magic-wand'}
-            title={t('cropMagicWand')}
+            title={t('cropCutout')}
           >
             {ICONS.TRACE_IMAGE}
-            <span>{t('cropMagicWand')}</span>
+            <span>{t('cropCutout')}</span>
           </PanelButton>
         </div>
       </div>
