@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyPath, Frame, ImageData } from '@/types';
+import type { AnyPath, Frame, FrameInput, ImageData } from '@/types';
 import {
   recursivelyDeletePaths,
   recursivelyReorderPaths,
@@ -12,22 +12,45 @@ import { useFilesStore } from './filesStore';
 
 type FrameState = { frames: Frame[]; currentFrameIndex: number };
 
-const collectFileIdsFromFrames = (frames: Frame[]): Set<string> => {
+const createFrameId = (): string => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `frame_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+};
+
+export const createFrame = (paths: AnyPath[] = [], id?: string): Frame => ({
+  id: id ?? createFrameId(),
+  paths: [...paths],
+});
+
+export const normalizeFrames = (rawFrames: FrameInput[]): Frame[] => {
+  const frames = rawFrames.map(frame => createFrame(frame.paths, frame.id));
+  return frames.length > 0 ? frames : [createFrame()];
+};
+
+const collectFileIdsFromPaths = (paths: AnyPath[]): Set<string> => {
+  const ids = new Set<string>();
+  paths.forEach(path => {
+    if (path.tool === 'image') {
+      const image = path as ImageData;
+      if (image.fileId) {
+        ids.add(image.fileId);
+      }
+    } else if (path.tool === 'group') {
+      const children = (path as any).children as AnyPath[] | undefined;
+      if (children) {
+        collectFileIdsFromPaths(children).forEach(id => ids.add(id));
+      }
+    }
+  });
+  return ids;
+};
+
+const collectFileIdsFromFrames = (frames: FrameInput[]): Set<string> => {
   const ids = new Set<string>();
   frames.forEach(frame => {
-    frame.paths.forEach(path => {
-      if (path.tool === 'image') {
-        const image = path as ImageData;
-        if (image.fileId) {
-          ids.add(image.fileId);
-        }
-      } else if (path.tool === 'group') {
-        const children = (path as any).children as AnyPath[] | undefined;
-        if (children) {
-          collectFileIdsFromFrames([{ paths: children }]).forEach(id => ids.add(id));
-        }
-      }
-    });
+    collectFileIdsFromPaths(frame.paths).forEach(id => ids.add(id));
   });
   return ids;
 };
@@ -47,9 +70,9 @@ const syncBinaryFileReferences = () => {
   }
 };
 
-const migratePathImages = async (frames: Frame[]): Promise<Frame[]> => {
+const migratePathImages = async (frames: FrameInput[]): Promise<FrameInput[]> => {
   const store = useFilesStore.getState();
-  const upgradedFrames: Frame[] = [];
+  const upgradedFrames: FrameInput[] = [];
   for (const frame of frames) {
     const upgradedPaths: AnyPath[] = [];
     for (const path of frame.paths) {
@@ -91,7 +114,7 @@ interface PathsStore extends FrameState {
   setPaths: (updater: React.SetStateAction<AnyPath[]>) => void;
 
   // Frame/file ops
-  handleLoadFile: (newFrames: Frame[], newFrameIndex?: number) => void;
+  handleLoadFile: (newFrames: FrameInput[], newFrameIndex?: number) => void;
   addFrame: () => void;
   copyFrame: (index: number) => void;
   deleteFrame: (index: number) => void;
@@ -113,7 +136,7 @@ export const usePathsStore = create<PathsStore>()(
   persist(
     (set, get) => ({
       // Initial present
-      frames: [{ paths: [] }],
+      frames: [createFrame()],
       currentFrameIndex: 0,
       // History
       past: [],
@@ -176,7 +199,9 @@ export const usePathsStore = create<PathsStore>()(
 
       handleLoadFile: (newFrames, newFrameIndex = 0) => {
         const { setFramesState } = get();
-        setFramesState({ frames: newFrames, currentFrameIndex: Math.max(0, Math.min(newFrameIndex, Math.max(0, newFrames.length - 1))) });
+        const framesWithIds = normalizeFrames(newFrames);
+        const nextIndex = Math.max(0, Math.min(newFrameIndex, Math.max(0, framesWithIds.length - 1)));
+        setFramesState({ frames: framesWithIds, currentFrameIndex: nextIndex });
       },
 
       handleDeletePaths: (ids) => {
@@ -209,7 +234,7 @@ export const usePathsStore = create<PathsStore>()(
         setFramesState((prev) => {
           const currentPaths = prev.frames[prev.currentFrameIndex]?.paths ?? [];
           const masterFrameList = currentPaths.filter((p) => p.tool === 'frame');
-          const newFrames = [...prev.frames, { paths: [...masterFrameList] }];
+          const newFrames = [...prev.frames, createFrame(masterFrameList)];
           return { frames: newFrames, currentFrameIndex: newFrames.length - 1 };
         });
       },
@@ -220,7 +245,8 @@ export const usePathsStore = create<PathsStore>()(
           const frameToCopy = prev.frames[index];
           if (!frameToCopy) return prev;
           const newFrames = [...prev.frames];
-          newFrames.splice(index + 1, 0, JSON.parse(JSON.stringify(frameToCopy)));
+          const clonedPaths = JSON.parse(JSON.stringify(frameToCopy.paths)) as AnyPath[];
+          newFrames.splice(index + 1, 0, createFrame(clonedPaths));
           return { frames: newFrames, currentFrameIndex: index + 1 };
         });
       },
@@ -297,11 +323,19 @@ export const usePathsStore = create<PathsStore>()(
     }),
     {
       name: 'whiteboard_paths_state',
-      version: 2,
+      version: 3,
       migrate: async (persistedState: any) => {
         if (!persistedState?.frames) return persistedState;
-        const frames = await migratePathImages(persistedState.frames as Frame[]);
-        return { ...persistedState, frames };
+        const migratedFrames = await migratePathImages(persistedState.frames as FrameInput[]);
+        const frames = normalizeFrames(migratedFrames);
+        const persistedIndex = typeof persistedState.currentFrameIndex === 'number'
+          ? persistedState.currentFrameIndex
+          : 0;
+        const currentFrameIndex = Math.max(
+          0,
+          Math.min(persistedIndex, Math.max(0, frames.length - 1))
+        );
+        return { ...persistedState, frames, currentFrameIndex };
       },
       partialize: (s) => ({ frames: s.frames, currentFrameIndex: s.currentFrameIndex }),
       onRehydrateStorage: () => (state) => {

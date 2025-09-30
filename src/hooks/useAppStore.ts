@@ -18,8 +18,9 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
+import { normalizeFrames, createFrame } from '@/context/pathsStore';
 
 import {
   removeBackground,
@@ -1067,7 +1068,7 @@ export const useAppStore = () => {
       '清空数据',
       '确定要清空所有动画帧中的数据吗？此操作无法撤销。',
       () => {
-        const resetFrames = [{ paths: [] } as Frame];
+        const resetFrames = [createFrame()];
         // Reset the timeline to a single empty frame so no leftover thumbnails remain
         handleLoadFile(resetFrames, 0);
         setSelectedPathIds([]);
@@ -1600,7 +1601,8 @@ export const useAppStore = () => {
 
         const data: WhiteboardData = JSON.parse(contents);
         if (data?.type === 'whiteboard/shapes' && (data.frames || data.paths)) {
-          const framesToLoad = data.frames || [{ paths: data.paths ?? [] }];
+          const rawFrames = data.frames || [{ paths: data.paths ?? [] }];
+          const framesToLoad = normalizeFrames(rawFrames);
           const nextBackground = data.backgroundColor ?? '#212529';
           const nextFps = data.fps ?? initialFpsRef.current;
           handleLoadFile(framesToLoad);

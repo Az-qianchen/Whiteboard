@@ -269,8 +269,11 @@ export interface GroupData extends ShapeBase {
 export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData;
 
 export interface Frame {
+  id: string;
   paths: AnyPath[];
 }
+
+export type FrameInput = Omit<Frame, 'id'> & { id?: string };
 
 export interface WhiteboardData {
   type: 'whiteboard/shapes';
