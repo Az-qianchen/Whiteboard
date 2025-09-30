@@ -11,6 +11,7 @@ import { createDocumentSignature } from '@/lib/document';
 import type { AppActionsProps } from './useAppActions';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
+import { normalizeFrames } from '@/context/pathsStore';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
 
@@ -173,7 +174,8 @@ export const useFileActions = ({
                     })
                 );
             }
-            const framesToLoad = data.frames || [{ paths: data.paths ?? [] }];
+            const rawFrames = data.frames || [{ paths: data.paths ?? [] }];
+            const framesToLoad = normalizeFrames(rawFrames);
             const nextBackgroundColor = data.backgroundColor ?? '#212529';
             const nextFps = data.fps ?? fps;
             pathState.handleLoadFile(framesToLoad);

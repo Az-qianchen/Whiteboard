@@ -9,7 +9,7 @@ import { useExportActions } from './useExportActions';
 import { useFileActions } from './useFileActions';
 import { useLibraryActions } from './useLibraryActions';
 import { useObjectActions } from './useObjectActions';
-import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, AnimationExportOptions } from '@/types';
+import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, FrameInput, AnimationExportOptions } from '@/types';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 
 // The props type is a combination of all props needed by the sub-hooks.
@@ -25,7 +25,7 @@ export interface AppActionsProps {
   pathState: {
     setPaths: (updater: React.SetStateAction<AnyPath[]>) => void;
     setSelectedPathIds: React.Dispatch<React.SetStateAction<string[]>>;
-    handleLoadFile: (newFrames: Frame[], newFrameIndex?: number) => void;
+    handleLoadFile: (newFrames: FrameInput[], newFrameIndex?: number) => void;
     handleReorder: (direction: 'forward' | 'backward' | 'front' | 'back') => void;
     beginCoalescing: () => void;
     endCoalescing: () => void;
