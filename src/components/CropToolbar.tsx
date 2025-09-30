@@ -147,7 +147,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       
       {cropTool === 'magic-wand' && (
         <div className="flex w-full flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-start gap-3">
             <div className={PANEL_CLASSES.segmentGroup}>
               <PanelButton
               type="button"
@@ -236,7 +236,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             </div>
           )}
 
-          <div className={PANEL_CLASSES.segmentGroup}>
+          <div className={`${PANEL_CLASSES.segmentGroup} self-start`}>
             <PanelButton
               type="button"
               variant="unstyled"
