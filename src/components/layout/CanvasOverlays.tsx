@@ -18,6 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { TextEditor } from '../TextEditor';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -111,6 +112,11 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        viewTransform,
+        textEditorState,
+        updateTextEditorDraft,
+        commitTextEditor,
+        cancelTextEditor,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
@@ -212,6 +218,16 @@ export const CanvasOverlays: React.FC = () => {
                     trimTransparentEdges={trimTransparentEdges}
                     confirmCrop={confirmCrop}
                     cancelCrop={cancelCrop}
+                />
+            )}
+
+            {textEditorState && (
+                <TextEditor
+                    editor={textEditorState}
+                    viewTransform={viewTransform.viewTransform}
+                    onChange={updateTextEditorDraft}
+                    onCommit={commitTextEditor}
+                    onCancel={cancelTextEditor}
                 />
             )}
 

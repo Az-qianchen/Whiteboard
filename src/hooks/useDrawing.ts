@@ -17,6 +17,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  onCreateText: (point: Point) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  onCreateText,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -94,7 +96,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    if (tool !== 'text') {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
     const id = Date.now().toString();
@@ -138,6 +142,10 @@ export const useDrawing = ({
           roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 0, curveTightness: 0, curveStepCount: 9,
         };
         setDrawingShape(newShape);
+        break;
+      }
+      case 'text': {
+        onCreateText(snappedPoint);
         break;
       }
       case 'rectangle':

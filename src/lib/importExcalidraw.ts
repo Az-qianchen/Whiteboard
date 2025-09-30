@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -11,8 +11,13 @@ import {
   DEFAULT_HACHURE_GAP,
   DEFAULT_CURVE_TIGHTNESS,
   DEFAULT_CURVE_STEP_COUNT,
+  DEFAULT_TEXT_FONT_FAMILY,
+  DEFAULT_TEXT_FONT_SIZE,
+  DEFAULT_TEXT_LINE_HEIGHT,
+  DEFAULT_TEXT_BASELINE,
 } from '@/constants';
 import { useFilesStore } from '@/context/filesStore';
+import { measureTextBlock } from '@/lib/text';
 
 interface ExcalidrawElement {
   type: string;
@@ -122,6 +127,62 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text') {
+      const fontSize = el.fontSize ?? DEFAULT_TEXT_FONT_SIZE;
+      const resolveFontFamily = (family: string | number | undefined): string => {
+        if (typeof family === 'string') {
+          return family;
+        }
+        switch (family) {
+          case 1:
+            return 'Virgil, "Segoe UI", sans-serif';
+          case 2:
+            return 'Helvetica, "Segoe UI", sans-serif';
+          case 3:
+            return 'Cascadia, "Segoe UI", monospace';
+          default:
+            return DEFAULT_TEXT_FONT_FAMILY;
+        }
+      };
+      const fontFamily = resolveFontFamily(el.fontFamily);
+      const text = el.text ?? '';
+      const lineHeight = DEFAULT_TEXT_LINE_HEIGHT;
+      const metrics = measureTextBlock(text, fontSize, fontFamily, lineHeight);
+      paths.push({
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: metrics.width,
+        height: metrics.height,
+        text,
+        fontFamily,
+        fontSize,
+        lineHeight,
+        textAlign: el.textAlign ?? 'left',
+        baseline: DEFAULT_TEXT_BASELINE,
+        color: el.strokeColor ?? '#000000',
+        fill: 'transparent',
+        fillGradient: null,
+        strokeWidth: 0,
+        strokeLineDash: undefined,
+        strokeLineCapStart: undefined,
+        strokeLineCapEnd: undefined,
+        strokeLineJoin: 'round',
+        endpointSize: undefined,
+        endpointFill: undefined,
+        isRough: false,
+        roughness: 0,
+        bowing: 0,
+        fillWeight: 0,
+        hachureAngle: 0,
+        hachureGap: 0,
+        curveTightness: 0,
+        curveStepCount: 0,
+        preserveVertices: false,
+        disableMultiStroke: true,
+        disableMultiStrokeFill: true,
+      } as TextData);
     }
   }
 

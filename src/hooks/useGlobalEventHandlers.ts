@@ -44,6 +44,8 @@ const useGlobalEventHandlers = () => {
     groupIsolationPath, handleExitGroup, activePathState,
     croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
+    textEditorState,
+    cancelTextEditor,
   } = useAppContext();
 
   const { setPaths: setActivePaths, paths: activePaths } = activePathState;
@@ -338,7 +340,12 @@ const useGlobalEventHandlers = () => {
         case 'l': setTool('line'); break;
         case 'a': setTool('arc'); break;
         case 'f': setTool('frame'); break;
+        case 't': setTool('text'); break;
         case 'escape':
+          if (textEditorState) {
+            cancelTextEditor();
+            break;
+          }
           if (croppingState) {
             cancelCrop();
           } else if (groupIsolationPath.length > 0) {
@@ -574,6 +581,8 @@ const useGlobalEventHandlers = () => {
     handleExitGroup,
     croppingState,
     cancelCrop,
+    textEditorState,
+    cancelTextEditor,
     activePaths,
   ]);
 

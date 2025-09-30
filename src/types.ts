@@ -96,6 +96,8 @@ export type GradientFill = LinearGradientFill | RadialGradientFill;
 
 export type GradientControlHandle = 'start' | 'end' | 'center' | 'edge';
 
+export type TextAlign = 'left' | 'center' | 'right';
+
 export type LibraryData = {
   type: 'whiteboard/library';
   version: 1;
@@ -258,6 +260,20 @@ export interface ArcData extends ShapeBase {
   points: [Point, Point, Point]; // start, end, via
 }
 
+export interface TextData extends ShapeBase {
+  tool: 'text';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  lineHeight?: number;
+  textAlign: TextAlign;
+  baseline?: 'top' | 'middle' | 'baseline';
+}
+
 export interface GroupData extends ShapeBase {
   tool: 'group';
   children: AnyPath[];
@@ -266,7 +282,7 @@ export interface GroupData extends ShapeBase {
 }
 
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData | TextData;
 
 export interface Frame {
   paths: AnyPath[];
@@ -299,7 +315,7 @@ export type DrawingShape = RectangleData | EllipseData | VectorPathData | Polygo
 // A brush path that is being drawn, represented by a series of points.
 export type BrushPathWithPoints = LivePath;
 
-export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'frame';
+export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'frame' | 'text';
 
 export type SelectionMode = 'move' | 'edit' | 'lasso';
 

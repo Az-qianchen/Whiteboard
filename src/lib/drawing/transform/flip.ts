@@ -1,4 +1,4 @@
-import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, RectangleData, EllipseData, PolygonData, GroupData } from '@/types';
+import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, RectangleData, EllipseData, PolygonData, GroupData, TextData, FrameData } from '@/types';
 import { rectangleToVectorPath, ellipseToVectorPath, polygonToVectorPath } from '../convert';
 import { getCachedImage } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
@@ -101,6 +101,25 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
 
       const { id, ...baseProps } = path as any;
       return { ...baseProps, id: path.id, tool: 'pen', anchors: flippedAnchors, isClosed: true } as VectorPathData;
+    }
+    case 'text': {
+      const textPath = path as TextData;
+      const { x, y, width, height } = textPath;
+      const centerPoint = { x: x + width / 2, y: y + height / 2 };
+      const flippedCenter = flipPoint(centerPoint);
+      const newX = flippedCenter.x - width / 2;
+      const newY = flippedCenter.y - height / 2;
+      const nextScaleX = axis === 'horizontal' ? -1 * (textPath.scaleX ?? 1) : textPath.scaleX ?? 1;
+      const nextScaleY = axis === 'vertical' ? -1 * (textPath.scaleY ?? 1) : textPath.scaleY ?? 1;
+      const nextRotation = -(textPath.rotation ?? 0);
+      return {
+        ...textPath,
+        x: newX,
+        y: newY,
+        rotation: nextRotation,
+        scaleX: nextScaleX,
+        scaleY: nextScaleY,
+      };
     }
     case 'group': {
       const groupPath = path as GroupData;
