@@ -355,7 +355,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             variant="unstyled"
             onClick={applyMagicWandSelection}
             disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90`}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
             {ICONS.CHECK}
             <span>{t('subtractSelection')}</span>
@@ -363,22 +363,22 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           <PanelButton
             type="button"
             variant="unstyled"
-            onClick={invertMagicWandSelection}
-            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
-            title={t('cropSelectionInvert')}
+            onClick={cutMagicWandSelection}
+            disabled={!hasSelection}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
-            <span className="font-semibold">⇆</span>
-            <span>{t('cropSelectionInvert')}</span>
+            {ICONS.CUT}
+            <span>{t('cutSelection')}</span>
           </PanelButton>
           <PanelButton
             type="button"
             variant="unstyled"
-            onClick={cutMagicWandSelection}
-            disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--danger-bg)] text-[var(--danger-text)] hover:opacity-90`}
+            onClick={invertMagicWandSelection}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            title={t('cropSelectionInvert')}
           >
-            {ICONS.CUT}
-            <span>{t('cutSelection')}</span>
+            <span className="font-semibold">⇆</span>
+            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
         </div>
       )}
