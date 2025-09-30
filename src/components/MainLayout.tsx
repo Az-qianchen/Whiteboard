@@ -240,6 +240,7 @@ export const MainLayout: React.FC = () => {
                             cropSelectionContours={cropSelectionContours}
                             cropManualDraft={cropManualDraft}
                             previewSrcById={handleAdjustImageHsv.previewSrcById}
+                            previewRequestVersion={handleAdjustImageHsv.previewRequestVersion}
                         />
                     </div>
                     <TimelinePanel />

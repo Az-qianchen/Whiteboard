@@ -32,6 +32,7 @@ type WorkerMessage =
 
 export interface ImageHsvPreviewController {
   previewSrcById: Record<string, string>;
+  previewRequestVersion: number;
   beginPreview: () => Promise<boolean>;
   updatePreview: (adjustment: HsvAdjustment) => Promise<void>;
   commitPreview: (adjustment: HsvAdjustment) => Promise<void>;
@@ -81,11 +82,19 @@ const imageDataToBlob = async (imageData: ImageData): Promise<Blob> => {
 
 export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: UseImageHsvPreviewOptions): ImageHsvPreviewController => {
   const [previewSrcById, setPreviewSrcById] = useState<Record<string, string>>({});
+  const [previewRequestVersion, setPreviewRequestVersion] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
   const pendingResponsesRef = useRef(new Map<number, { resolve: (payload: WorkerResponse) => void; reject: (error: Error) => void }>());
   const activePreviewRef = useRef<ActivePreviewState | null>(null);
   const latestAdjustRequestRef = useRef<number | null>(null);
+  const requestVersionRef = useRef(0);
+
+  const bumpPreviewRequestVersion = useCallback(() => {
+    requestVersionRef.current += 1;
+    setPreviewRequestVersion(requestVersionRef.current);
+    return requestVersionRef.current;
+  }, []);
 
   const ensureWorker = useCallback(() => {
     if (workerRef.current) {
@@ -218,6 +227,7 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     const normalized = normalizeAdjustment(adjustment);
     active.lastAdjustment = normalized;
 
+    bumpPreviewRequestVersion();
     const { requestId, promise } = callWorker({ type: 'adjust', adjustment: normalized });
     latestAdjustRequestRef.current = requestId;
 
@@ -247,7 +257,7 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     } catch (error) {
       console.error('Failed to update HSV preview', error);
     }
-  }, [callWorker, revokePreviewUrl]);
+  }, [callWorker, revokePreviewUrl, bumpPreviewRequestVersion]);
 
   const commitPreview = useCallback(async (adjustment: HsvAdjustment) => {
     const active = activePreviewRef.current;
@@ -272,6 +282,7 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
       await updatePreview(normalized);
     }
 
+    bumpPreviewRequestVersion();
     const imageData = active.lastImageData;
     if (!imageData) {
       return;
@@ -300,7 +311,7 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     } finally {
       await cancelPreview();
     }
-  }, [applyCommittedFile, cancelPreview, updatePreview]);
+  }, [applyCommittedFile, cancelPreview, updatePreview, bumpPreviewRequestVersion]);
 
   useEffect(() => () => {
     void cancelPreview();
@@ -310,9 +321,10 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
 
   return useMemo(() => ({
     previewSrcById,
+    previewRequestVersion,
     beginPreview,
     updatePreview,
     commitPreview,
     cancelPreview,
-  }), [previewSrcById, beginPreview, updatePreview, commitPreview, cancelPreview]);
+  }), [previewSrcById, previewRequestVersion, beginPreview, updatePreview, commitPreview, cancelPreview]);
 };
