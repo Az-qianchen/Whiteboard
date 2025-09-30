@@ -267,21 +267,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             <div className="flex items-center gap-2">
               <label
                 className="text-sm text-[var(--text-secondary)]"
-                htmlFor="magic-wand-brush-size-slider"
+                htmlFor="magic-wand-brush-size"
               >
                 {t('cropMagicWandBrushSize')}
               </label>
-              <input
-                id="magic-wand-brush-size-slider"
-                type="range"
-                min={brushSizeMin}
-                max={brushSizeMax}
-                step={1}
-                value={cropBrushSize}
-                onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
-                className="w-28 h-2 accent-[var(--accent-primary)]"
-              />
-              <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+              <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
                 <input
                   id="magic-wand-brush-size"
                   type="number"
@@ -291,10 +281,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                   onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
                   inputMode="numeric"
                   aria-label={t('cropMagicWandBrushSize')}
-                  className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                  className={`${PANEL_CLASSES.input} hide-spinners`}
                 />
+                <span className={PANEL_CLASSES.inputSuffix}>px</span>
               </div>
-              <span className="text-xs text-[var(--text-secondary)]">px</span>
             </div>
           )}
 
@@ -346,11 +336,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             </PanelButton>
           </div>
 
-          {cropSelectionMode === 'polygon' && (
-            <p className="w-full max-w-[240px] text-xs leading-snug text-[var(--text-secondary)]">
-              {t('cropMagicWandPolygonHint')}
-            </p>
-          )}
         </div>
       )}
 
