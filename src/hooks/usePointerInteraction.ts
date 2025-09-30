@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
-import type { AnyPath, Point, Tool } from '../types';
+import type { AnyPath, Point, Tool, TextData } from '../types';
 import { findDeepestHitPath } from '@/lib/hit-testing';
+import type { TextEditorState } from './useAppStore';
 
 interface InteractionHandlers {
   onPointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -17,7 +18,7 @@ interface InteractionHandlers {
 interface PointerInteractionProps {
   tool: Tool;
   viewTransform: {
-    viewTransform: { scale: number };
+    viewTransform: { scale: number; translateX: number; translateY: number };
     isPanning: boolean;
     setIsPanning: (v: boolean) => void;
     handlePanMove: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -34,6 +35,10 @@ interface PointerInteractionProps {
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  textEditor: TextEditorState | null;
+  beginTextEditing: (point: Point) => void;
+  beginEditingExistingText: (path: TextData) => void;
+  commitTextEditing: () => void;
 }
 
 /**
@@ -50,6 +55,10 @@ export const usePointerInteraction = ({
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  textEditor,
+  beginTextEditing,
+  beginEditingExistingText,
+  commitTextEditing,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -124,6 +133,27 @@ export const usePointerInteraction = ({
     }
     if (e.button !== 0) return;
 
+    if (textEditor && tool !== 'text') {
+      commitTextEditing();
+    }
+
+    if (tool === 'text') {
+      const svg = e.currentTarget;
+      const point = viewTransform.getPointerPosition(
+        { clientX: e.clientX, clientY: e.clientY },
+        svg
+      );
+      const scale = viewTransform.viewTransform.scale || 1;
+      const hitPath = findDeepestHitPath(point, paths, scale);
+
+      if (hitPath && hitPath.tool === 'text' && !hitPath.isLocked) {
+        beginEditingExistingText(hitPath as TextData);
+      } else {
+        beginTextEditing(point);
+      }
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
     } else {
@@ -139,6 +169,10 @@ export const usePointerInteraction = ({
     }
     if (isPanning) {
       viewTransform.handlePanMove(e);
+      return;
+    }
+
+    if (tool === 'text') {
       return;
     }
 
@@ -163,6 +197,10 @@ export const usePointerInteraction = ({
       return;
     }
 
+    if (tool === 'text') {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
     } else {
@@ -183,7 +221,11 @@ export const usePointerInteraction = ({
       setIsPanning(false);
       return;
     }
-    
+
+    if (tool === 'text') {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
     } else {
