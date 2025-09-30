@@ -15,16 +15,15 @@ import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib
  * @param paths - 要搜索的路径数组。
  * @returns 一个包含所有找到的画框对象的数组。
  */
-const getAllFrames = (paths: AnyPath[]): AnyPath[] => {
-  let allFrames: AnyPath[] = [];
+const getAllFrames = (paths: AnyPath[], accumulator: AnyPath[] = []): AnyPath[] => {
   for (const path of paths) {
     if (path.tool === 'frame') {
-      allFrames.push(path);
+      accumulator.push(path);
     } else if (path.tool === 'group') {
-      allFrames = [...allFrames, ...getAllFrames((path as GroupData).children)];
+      getAllFrames((path as GroupData).children, accumulator);
     }
   }
-  return allFrames;
+  return accumulator;
 };
 
 /**
