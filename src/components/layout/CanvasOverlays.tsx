@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { TextEditorOverlay } from '../TextEditorOverlay';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -105,6 +106,11 @@ export const CanvasOverlays: React.FC = () => {
         confirmCrop,
         trimTransparentEdges,
         cancelCrop,
+        viewTransform,
+        textEditor,
+        updateTextEditor,
+        commitTextEditor,
+        cancelTextEditor,
         undo: handleUndo,
         canUndo,
         redo: handleRedo,
@@ -191,7 +197,7 @@ export const CanvasOverlays: React.FC = () => {
                     />
                 </div>
             )}
-            
+
             {croppingState && (
                 <CropToolbar
                     isTimelineCollapsed={isTimelineCollapsed}
@@ -212,6 +218,16 @@ export const CanvasOverlays: React.FC = () => {
                     trimTransparentEdges={trimTransparentEdges}
                     confirmCrop={confirmCrop}
                     cancelCrop={cancelCrop}
+                />
+            )}
+
+            {textEditor && (
+                <TextEditorOverlay
+                    editor={textEditor}
+                    viewTransform={viewTransform}
+                    updateEditor={updateTextEditor}
+                    commitEditor={commitTextEditor}
+                    cancelEditor={cancelTextEditor}
                 />
             )}
 

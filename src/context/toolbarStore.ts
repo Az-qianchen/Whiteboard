@@ -22,6 +22,18 @@ export interface ToolbarState {
   drawingOpacity: number;
   setDrawingOpacity: (v: number) => void;
 
+  drawingFontFamily: string;
+  setDrawingFontFamily: (v: string) => void;
+
+  drawingFontSize: number;
+  setDrawingFontSize: (v: number) => void;
+
+  drawingTextAlign: 'left' | 'center' | 'right';
+  setDrawingTextAlign: (v: 'left' | 'center' | 'right') => void;
+
+  drawingLineHeight: number;
+  setDrawingLineHeight: (v: number) => void;
+
   drawingSides: number;
   setDrawingSides: (v: number) => void;
 
@@ -115,6 +127,18 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingOpacity: 1,
       setDrawingOpacity: (v) => set({ drawingOpacity: v }),
+
+      drawingFontFamily: 'Virgil, Segoe UI, sans-serif',
+      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
+
+      drawingFontSize: 32,
+      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
+
+      drawingTextAlign: 'left',
+      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
+
+      drawingLineHeight: 40,
+      setDrawingLineHeight: (v) => set({ drawingLineHeight: v }),
 
       drawingSides: 6,
       setDrawingSides: (v) => set({ drawingSides: v }),

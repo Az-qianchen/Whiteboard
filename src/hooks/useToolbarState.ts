@@ -34,6 +34,10 @@ export const useToolbarState = (
   const { drawingFillStyle, setDrawingFillStyle } = P.useDrawingFillStyle();
   const { drawingStrokeWidth, setDrawingStrokeWidth } = P.useDrawingStrokeWidth();
   const { drawingOpacity, setDrawingOpacity } = P.useDrawingOpacity();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
+  const { drawingLineHeight, setDrawingLineHeight } = P.useDrawingLineHeight();
   const { drawingSides, setDrawingSides } = P.useDrawingSides();
   const { drawingBorderRadius, setDrawingBorderRadius } = P.useDrawingBorderRadius();
   const { drawingStrokeLineDash, setDrawingStrokeLineDash } = P.useDrawingStrokeLineDash();
@@ -159,6 +163,36 @@ export const useToolbarState = (
       }
     }
   };
+  const setFontFamily = (newFamily: string) => {
+    if (selectedPathIds.length > 0) {
+      updateSelectedPaths((path) => (path.tool === 'text' ? { fontFamily: newFamily } : {}));
+    } else {
+      setDrawingFontFamily(newFamily);
+    }
+  };
+  const setFontSize = (newSize: number) => {
+    const clamped = Math.max(1, Math.round(newSize));
+    if (selectedPathIds.length > 0) {
+      updateSelectedPaths((path) => (path.tool === 'text' ? { fontSize: clamped } : {}));
+    } else {
+      setDrawingFontSize(clamped);
+    }
+  };
+  const setTextAlign = (align: 'left' | 'center' | 'right') => {
+    if (selectedPathIds.length > 0) {
+      updateSelectedPaths((path) => (path.tool === 'text' ? { textAlign: align } : {}));
+    } else {
+      setDrawingTextAlign(align);
+    }
+  };
+  const setLineHeight = (newLineHeight: number) => {
+    const clamped = Math.max(1, Math.round(newLineHeight));
+    if (selectedPathIds.length > 0) {
+      updateSelectedPaths((path) => (path.tool === 'text' ? { lineHeight: clamped } : {}));
+    } else {
+      setDrawingLineHeight(clamped);
+    }
+  };
   const setFillStyle = simpleSetter('fillStyle', setDrawingFillStyle);
   const setStrokeWidth = simpleSetter('strokeWidth', setDrawingStrokeWidth);
   const setStrokeLineDash = simpleSetter('strokeLineDash', setDrawingStrokeLineDash);
@@ -214,6 +248,10 @@ export const useToolbarState = (
   const color = displayValue('color', drawingColor);
   const fill = displayValue('fill', drawingFill);
   const fillStyle = displayValue('fillStyle', drawingFillStyle);
+  const fontFamily = displayValue('fontFamily', drawingFontFamily);
+  const fontSize = displayValue('fontSize', drawingFontSize);
+  const textAlign = displayValue('textAlign', drawingTextAlign);
+  const lineHeight = displayValue('lineHeight', drawingLineHeight);
   const fillGradient = displayValue('fillGradient', drawingFillGradient);
   const strokeWidth = displayValue('strokeWidth', drawingStrokeWidth);
   const strokeLineDash = displayValue('strokeLineDash', drawingStrokeLineDash);
@@ -262,6 +300,10 @@ export const useToolbarState = (
     setDrawingFillStyle('hachure');
     setDrawingStrokeWidth(8);
     setDrawingOpacity(1);
+    setDrawingFontFamily('Virgil, Segoe UI, sans-serif');
+    setDrawingFontSize(32);
+    setDrawingTextAlign('left');
+    setDrawingLineHeight(40);
     setDrawingSides(6);
     setDrawingBorderRadius(0);
     setDrawingStrokeLineDash(undefined);
@@ -289,6 +331,7 @@ export const useToolbarState = (
     setTool('brush');
   }, [
     setDrawingColor, setDrawingFill, setDrawingFillGradient, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
+    setDrawingFontFamily, setDrawingFontSize, setDrawingTextAlign, setDrawingLineHeight,
     setDrawingSides, setDrawingBorderRadius, setDrawingStrokeLineDash, setDrawingStrokeLineCapStart,
     setDrawingStrokeLineCapEnd, setDrawingEndpointSize, setDrawingEndpointFill, setDrawingIsRough,
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
@@ -304,6 +347,10 @@ export const useToolbarState = (
     fill, setFill,
     fillGradient, setFillGradient,
     fillStyle, setFillStyle,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
+    lineHeight, setLineHeight,
     strokeWidth, setStrokeWidth,
     strokeLineDash, setStrokeLineDash,
     strokeLineCapStart, setStrokeLineCapStart,

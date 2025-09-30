@@ -18,7 +18,7 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData, TextEditorState } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
 import { normalizeFrames, createFrame, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
 
@@ -234,6 +234,7 @@ interface AppState {
   cropManualDraft: CropManualDraft | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
+  textEditor: TextEditorState | null;
 }
 
 // --- Initial State Loaders ---
@@ -288,6 +289,7 @@ const getInitialAppState = (): AppState => ({
   cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
+  textEditor: null,
 });
 
 
@@ -1390,6 +1392,156 @@ export const useAppStore = () => {
     pathCanRedo ||
     (appState.croppingState !== null && (cropHistory.future.length > 0 || cropSelectionHistory.future.length > 0));
 
+  const beginTextEditing = useCallback((point: Point) => {
+    const id = `text-${Date.now().toString(36)}`;
+    const baseFontSize = toolbarState.fontSize ?? 32;
+    const baseLineHeight = toolbarState.lineHeight ?? Math.round(baseFontSize * 1.25);
+    const width = Math.max(baseFontSize * 6, 160);
+    const height = Math.max(baseLineHeight, baseFontSize);
+
+    setSelectedPathIds([]);
+    setAppState(prev => ({
+      ...prev,
+      textEditor: {
+        id,
+        isNew: true,
+        x: point.x,
+        y: point.y,
+        width,
+        height,
+        text: '',
+        fontFamily: toolbarState.fontFamily ?? 'Virgil, Segoe UI, sans-serif',
+        fontSize: baseFontSize,
+        textAlign: toolbarState.textAlign ?? 'left',
+        lineHeight: baseLineHeight,
+        color: toolbarState.color,
+        opacity: toolbarState.opacity ?? 1,
+      },
+    }));
+  }, [setAppState, toolbarState.fontFamily, toolbarState.fontSize, toolbarState.textAlign, toolbarState.lineHeight, toolbarState.color, toolbarState.opacity, setSelectedPathIds]);
+
+  const editTextPath = useCallback((path: TextData) => {
+    setAppState(prev => ({
+      ...prev,
+      textEditor: {
+        id: path.id,
+        isNew: false,
+        x: path.x,
+        y: path.y,
+        width: path.width,
+        height: path.height,
+        text: path.text,
+        fontFamily: path.fontFamily,
+        fontSize: path.fontSize,
+        textAlign: path.textAlign,
+        lineHeight: path.lineHeight,
+        color: path.color,
+        opacity: path.opacity ?? 1,
+      },
+    }));
+    setSelectedPathIds([path.id]);
+  }, [setAppState, setSelectedPathIds]);
+
+  const updateTextEditor = useCallback((updater: Partial<TextEditorState> | ((prev: TextEditorState) => TextEditorState)) => {
+    setAppState(prev => {
+      const editor = prev.textEditor;
+      if (!editor) return prev;
+      const next = typeof updater === 'function'
+        ? (updater as (prev: TextEditorState) => TextEditorState)(editor)
+        : { ...editor, ...updater };
+      return { ...prev, textEditor: next };
+    });
+  }, [setAppState]);
+
+  const commitTextEditor = useCallback(() => {
+    let editorState: TextEditorState | null = null;
+    setAppState(prev => {
+      editorState = prev.textEditor;
+      if (!editorState) return prev;
+      return { ...prev, textEditor: null };
+    });
+
+    if (!editorState) return;
+
+    const normalizedText = editorState.text.trim();
+    if (normalizedText.length === 0) {
+      if (!editorState.isNew) {
+        setPaths(prev => prev.filter(p => p.id !== editorState!.id));
+        setSelectedPathIds(prev => prev.filter(id => id !== editorState!.id));
+      }
+      return;
+    }
+
+    const width = Math.max(1, editorState.width);
+    const height = Math.max(editorState.lineHeight, editorState.height);
+
+    if (editorState.isNew) {
+      const textPath: TextData = {
+        id: editorState.id,
+        tool: 'text',
+        x: editorState.x,
+        y: editorState.y,
+        width,
+        height,
+        text: editorState.text,
+        fontFamily: editorState.fontFamily,
+        fontSize: editorState.fontSize,
+        textAlign: editorState.textAlign,
+        lineHeight: editorState.lineHeight,
+        color: editorState.color,
+        opacity: editorState.opacity,
+        fill: 'transparent',
+        fillStyle: 'solid',
+        strokeWidth: 0,
+        roughness: 0,
+        bowing: 0,
+        fillWeight: 0,
+        hachureAngle: 0,
+        hachureGap: 0,
+        curveTightness: 0,
+        curveStepCount: 0,
+        preserveVertices: false,
+        disableMultiStroke: true,
+        disableMultiStrokeFill: true,
+      };
+      setPaths(prev => [...prev, textPath]);
+      setSelectedPathIds([textPath.id]);
+      return;
+    }
+
+    setPaths(prev => prev.map(path => {
+      if (path.id !== editorState!.id) return path;
+      if (path.tool !== 'text') return path;
+      return {
+        ...path,
+        x: editorState!.x,
+        y: editorState!.y,
+        width,
+        height,
+        text: editorState!.text,
+        fontFamily: editorState!.fontFamily,
+        fontSize: editorState!.fontSize,
+        textAlign: editorState!.textAlign,
+        lineHeight: editorState!.lineHeight,
+        color: editorState!.color,
+        opacity: editorState!.opacity,
+      } as TextData;
+    }));
+    setSelectedPathIds([editorState.id]);
+  }, [setAppState, setPaths, setSelectedPathIds]);
+
+  const cancelTextEditor = useCallback(() => {
+    let editorState: TextEditorState | null = null;
+    setAppState(prev => {
+      editorState = prev.textEditor;
+      if (!editorState) return prev;
+      return { ...prev, textEditor: null };
+    });
+    if (editorState && !editorState.isNew) {
+      setSelectedPathIds([editorState.id]);
+    }
+  }, [setAppState, setSelectedPathIds]);
+
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
       if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
@@ -1402,6 +1554,8 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           setSelectedPathIds([path.id]);
+      } else if (path.tool === 'text') {
+          editTextPath(path as TextData);
       }
   }, [
     toolbarState.selectionMode,
@@ -1413,6 +1567,7 @@ export const useAppStore = () => {
     setCropTool,
     setCropEditedSrc,
     setSelectedPathIds,
+    editTextPath,
   ]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
@@ -1486,10 +1641,17 @@ export const useAppStore = () => {
     setFillColor: toolbarState.setFill,
     backgroundColor: uiState.backgroundColor,
     sampleImageColorAtPoint,
+    textTool: {
+      isEditing: appState.textEditor !== null,
+      begin: beginTextEditing,
+    },
   });
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
+    if (appState.textEditor) {
+      commitTextEditor();
+    }
     if (appState.croppingState) cancelCrop();
     if (drawingInteraction.drawingShape) drawingInteraction.cancelDrawingShape();
     if (currentPenPath) handleCancelPenPath();
@@ -1507,6 +1669,8 @@ export const useAppStore = () => {
     handleCancelLinePath,
     currentBrushPath,
     setCurrentBrushPath,
+    appState.textEditor,
+    commitTextEditor,
   ]);
 
   const handleToggleStyleLibrary = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1713,6 +1877,9 @@ export const useAppStore = () => {
       redo: handleRedo,
       canUndo,
       canRedo,
+      updateTextEditor,
+      commitTextEditor,
+      cancelTextEditor,
     }),
     [
       uiState,
@@ -1812,6 +1979,9 @@ export const useAppStore = () => {
       handleRedo,
       canUndo,
       canRedo,
+      updateTextEditor,
+      commitTextEditor,
+      cancelTextEditor,
     ]
   );
 
