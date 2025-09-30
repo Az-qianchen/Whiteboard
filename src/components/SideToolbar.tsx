@@ -7,7 +7,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Tool, AnyPath, VectorPathData, GradientFill } from '../types';
-import type { HsvAdjustment } from '@/lib/image';
+import type { ImageHsvPreviewController } from '@/hooks/useImageHsvPreview';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 
@@ -82,7 +82,7 @@ interface SideToolbarProps {
   setShadowBlur: (sb: number) => void;
   shadowColor: string;
   setShadowColor: (sc: string) => void;
-  onAdjustImageHsv: (adj: HsvAdjustment) => void;
+  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview'>;
 }
 
 /**
@@ -105,7 +105,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     beginCoalescing, endCoalescing,
     onToggleStyleLibrary,
     isStyleLibraryOpen,
-    onAdjustImageHsv,
+    imageHsvPreview,
   } = props;
 
   const { t } = useTranslation();
@@ -237,7 +237,9 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
           {firstSelectedPath?.tool === 'image' && (
             <ImageHsvPopover
-              onAdjust={onAdjustImageHsv}
+              beginPreview={imageHsvPreview.beginPreview}
+              updatePreview={imageHsvPreview.updatePreview}
+              commitPreview={imageHsvPreview.commitPreview}
               beginCoalescing={beginCoalescing}
               endCoalescing={endCoalescing}
             />
