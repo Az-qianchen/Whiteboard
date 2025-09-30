@@ -363,22 +363,22 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           <PanelButton
             type="button"
             variant="unstyled"
-            onClick={invertMagicWandSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-            title={t('cropSelectionInvert')}
-          >
-            <span className="font-semibold">⇆</span>
-            <span>{t('cropSelectionInvert')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
             onClick={cutMagicWandSelection}
             disabled={!hasSelection}
             className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
             {ICONS.CUT}
             <span>{t('cutSelection')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            onClick={invertMagicWandSelection}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            title={t('cropSelectionInvert')}
+          >
+            <span className="font-semibold">⇆</span>
+            <span>{t('cropSelectionInvert')}</span>
           </PanelButton>
         </div>
       )}
