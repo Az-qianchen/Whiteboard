@@ -263,10 +263,20 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 const snappedMin = snapToGrid({ x: targetMinX, y: targetMinY });
                 const snappedMax = snapToGrid({ x: targetMaxX, y: targetMaxY });
 
-                const desiredMinX = snapContext.snapX ? snappedMin.x : targetMinX;
-                const desiredMaxX = snapContext.snapX ? snappedMax.x : targetMaxX;
-                const desiredMinY = snapContext.snapY ? snappedMin.y : targetMinY;
-                const desiredMaxY = snapContext.snapY ? snappedMax.y : targetMaxY;
+                const horizontalChanged =
+                    Math.abs(targetMinX - initialMinX) > SNAP_EPSILON ||
+                    Math.abs(targetMaxX - initialMaxX) > SNAP_EPSILON;
+                const verticalChanged =
+                    Math.abs(targetMinY - initialMinY) > SNAP_EPSILON ||
+                    Math.abs(targetMaxY - initialMaxY) > SNAP_EPSILON;
+
+                const shouldSnapX = snapContext.snapX || horizontalChanged;
+                const shouldSnapY = snapContext.snapY || verticalChanged;
+
+                const desiredMinX = shouldSnapX ? snappedMin.x : targetMinX;
+                const desiredMaxX = shouldSnapX ? snappedMax.x : targetMaxX;
+                const desiredMinY = shouldSnapY ? snappedMin.y : targetMinY;
+                const desiredMaxY = shouldSnapY ? snappedMax.y : targetMaxY;
 
                 const finalWidth = desiredMaxX - desiredMinX;
                 const finalHeight = desiredMaxY - desiredMinY;

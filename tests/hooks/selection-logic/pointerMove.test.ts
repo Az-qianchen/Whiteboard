@@ -351,4 +351,63 @@ describe('handlePointerMoveLogic grid snapping tolerance', () => {
     expect(updatedBbox.x % 1).toBe(0);
     expect((updatedBbox.x + updatedBbox.width) % 1).toBe(0);
   });
+
+  it('realigns perpendicular edges when aspect-ratio scaling changes both axes', () => {
+    const rectA: RectangleData = { ...createRectangle(), id: 'rect-a', x: 9.4, y: 8.7, width: 86.8, height: 52.4 };
+    const rectB: RectangleData = { ...createRectangle(), id: 'rect-b', x: 124.9, y: 14.6, width: 63.2, height: 44.2 };
+    let currentPaths: AnyPath[] = [rectA, rectB];
+
+    const initialBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    const initialPointerPos = {
+      x: initialBbox.x + initialBbox.width / 2,
+      y: initialBbox.y,
+    };
+
+    const dragState: DragState = {
+      type: 'scale',
+      pathIds: ['rect-a', 'rect-b'],
+      handle: 'top',
+      originalPaths: currentPaths,
+      initialPointerPos,
+      initialSelectionBbox: initialBbox,
+    };
+
+    const snappingToUnit = (point: { x: number; y: number }) => ({
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+    });
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    const movePoint = { x: initialPointerPos.x, y: initialPointerPos.y - 17.35 };
+
+    handlePointerMoveLogic({
+      e: { shiftKey: true } as ReactPointerEvent<SVGSVGElement>,
+      movePoint,
+      dragState,
+      setDragState: noop,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths, dragState.pathIds),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingToUnit,
+      setCurrentCropRect: noop,
+    });
+
+    const updatedBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    expect(updatedBbox.x).toBeCloseTo(Math.round(updatedBbox.x));
+    expect(updatedBbox.x + updatedBbox.width).toBeCloseTo(Math.round(updatedBbox.x + updatedBbox.width));
+    expect(updatedBbox.y).toBeCloseTo(Math.round(updatedBbox.y));
+    expect(updatedBbox.y + updatedBbox.height).toBeCloseTo(Math.round(updatedBbox.y + updatedBbox.height));
+  });
 });
