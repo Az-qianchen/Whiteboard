@@ -66,6 +66,7 @@ export const MainLayout: React.FC = () => {
         // Pen/Line tool finishers for context menu
         handleFinishPenPath,
         handleFinishLinePath,
+        handleAdjustImageHsv,
     } = store;
 
     const layersValue = useMemo<LayersContextValue>(() => store.activePathState, [store.activePathState]);
@@ -238,6 +239,7 @@ export const MainLayout: React.FC = () => {
                             cropTool={cropTool}
                             cropSelectionContours={cropSelectionContours}
                             cropManualDraft={cropManualDraft}
+                            previewSrcById={handleAdjustImageHsv.previewSrcById}
                         />
                     </div>
                     <TimelinePanel />

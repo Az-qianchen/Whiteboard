@@ -73,6 +73,7 @@ interface WhiteboardProps {
         brushSize: number;
       }
   ) | null;
+  previewSrcById?: Record<string, string>;
 }
 
 /**
@@ -113,6 +114,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   cropTool,
   cropSelectionContours,
   cropManualDraft,
+  previewSrcById,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [rc, setRc] = useState<RoughSVG | null>(null);
@@ -178,9 +180,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         
         <g style={{ transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})` }}>
           
-          <PathsRenderer paths={backgroundPaths} rc={rc} isBackground />
-          <PathsRenderer paths={onionSkinPaths} rc={rc} />
-          <PathsRenderer paths={visiblePaths} rc={rc} />
+          <PathsRenderer paths={backgroundPaths} rc={rc} isBackground previewSrcById={previewSrcById} />
+          <PathsRenderer paths={onionSkinPaths} rc={rc} previewSrcById={previewSrcById} />
+          <PathsRenderer paths={visiblePaths} rc={rc} previewSrcById={previewSrcById} />
 
           <LivePreviewRenderer
             currentLivePath={currentLivePath}

@@ -1,15 +1,16 @@
 /**
  * 本文件定义了一个自定义 Hook，用于封装画布上对象的变换和组织操作。
  */
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { rectangleToVectorPath, ellipseToVectorPath, lineToVectorPath, brushToVectorPath, polygonToVectorPath, arcToVectorPath, flipPath, getPathsBoundingBox, alignPaths, distributePaths, performBooleanOperation, scalePath, movePath } from '@/lib/drawing';
 import type { AnyPath, RectangleData, EllipseData, VectorPathData, BrushPathData, PolygonData, ArcData, GroupData, Alignment, DistributeMode, ImageData, TraceOptions } from '@/types';
 import type { AppActionsProps } from './useAppActions';
 import { importSvg } from '@/lib/import';
-import { removeBackground, adjustHsv, type HsvAdjustment } from '@/lib/image';
+import { removeBackground, type HsvAdjustment } from '@/lib/image';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
+import { useImageHsvPreview } from '@/hooks/useImageHsvPreview';
 
 type BooleanOperation = 'unite' | 'subtract' | 'intersect' | 'exclude' | 'divide';
 
@@ -363,31 +364,37 @@ export const useObjectActions = ({
   /**
    * 调整选中图片的 HSV，支持跨域图片。
    */
-  const handleAdjustImageHsv = useCallback(async (adj: HsvAdjustment) => {
-    if (selectedPathIds.length !== 1) return;
+  const getActiveImagePath = useCallback(() => {
+    if (selectedPathIds.length !== 1) {
+      return null;
+    }
     const imagePath = paths.find(p => p.id === selectedPathIds[0]);
-    if (!imagePath || imagePath.tool !== 'image') return;
+    if (!imagePath || imagePath.tool !== 'image') {
+      return null;
+    }
+    return imagePath as ImageData;
+  }, [paths, selectedPathIds]);
 
-    pathState.beginCoalescing();
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = await getImageDataUrl(imagePath as ImageData);
-    await new Promise(resolve => { img.onload = resolve; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) { pathState.endCoalescing(); return; }
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const newData = adjustHsv(data, adj);
-    ctx.putImageData(newData, 0, 0);
-    const newSrc = canvas.toDataURL();
-    const filesStore = useFilesStore.getState();
-    const { fileId } = await filesStore.ingestDataUrl(newSrc);
-    pathState.setPaths(prev => prev.map(p => p.id === imagePath.id ? { ...p, fileId } : p));
-    pathState.endCoalescing();
-  }, [paths, selectedPathIds, pathState]);
+  const applyCommittedImageFile = useCallback((pathId: string, fileId: string) => {
+    pathState.setPaths(prev => prev.map(p => {
+      if (p.id !== pathId || p.tool !== 'image') {
+        return p;
+      }
+      return { ...p, fileId, src: undefined };
+    }));
+  }, [pathState]);
+
+  const imageHsvPreview = useImageHsvPreview({
+    getActiveImagePath,
+    applyCommittedFile: applyCommittedImageFile,
+  });
+
+  useEffect(() => {
+    const activeImage = getActiveImagePath();
+    if (!activeImage) {
+      void imageHsvPreview.cancelPreview();
+    }
+  }, [getActiveImagePath, imageHsvPreview]);
 
   /**
    * 将选中的图片转换为矢量图形。
@@ -458,5 +465,24 @@ export const useObjectActions = ({
 
   }, [paths, selectedPathIds, pathState, t]);
   
-  return { handleFlip, handleConvertToPath, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleGroup, handleUngroup, handleAlign, handleDistribute, handleBooleanOperation, handleMask, handleTraceImage, beginRemoveBackground, applyRemoveBackground, cancelRemoveBackground, handleAdjustImageHsv };
+  return {
+    handleFlip,
+    handleConvertToPath,
+    handleBringForward,
+    handleSendBackward,
+    handleBringToFront,
+    handleSendToBack,
+    handleGroup,
+    handleUngroup,
+    handleAlign,
+    handleDistribute,
+    handleBooleanOperation,
+    handleMask,
+    handleTraceImage,
+    beginRemoveBackground,
+    applyRemoveBackground,
+    cancelRemoveBackground,
+    handleAdjustImageHsv: imageHsvPreview,
+    imageHsvPreview,
+  };
 };

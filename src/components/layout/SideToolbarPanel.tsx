@@ -35,7 +35,7 @@ export const SideToolbarPanel: React.FC = () => {
                     transform: `translateY(-50%) ${isSideToolbarCollapsed ? 'translateX(calc(100% + 1rem))' : 'translateX(0)'}`,
                 }}
             >
-                <SideToolbar {...store} onToggleStyleLibrary={handleToggleStyleLibrary} onAdjustImageHsv={handleAdjustImageHsv} />
+                <SideToolbar {...store} onToggleStyleLibrary={handleToggleStyleLibrary} imageHsvPreview={handleAdjustImageHsv} />
             </div>
         </>
     );

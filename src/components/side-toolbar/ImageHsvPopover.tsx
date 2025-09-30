@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover, Transition } from '@headlessui/react';
 import { ICONS } from '@/constants';
@@ -6,48 +6,94 @@ import PanelButton from '@/components/PanelButton';
 import type { HsvAdjustment } from '@/lib/image';
 
 interface ImageHsvPopoverProps {
-  onAdjust: (adj: HsvAdjustment) => void;
+  beginPreview: () => Promise<boolean>;
+  updatePreview: (adj: HsvAdjustment) => Promise<void>;
+  commitPreview: (adj: HsvAdjustment) => Promise<void>;
   beginCoalescing: () => void;
   endCoalescing: () => void;
 }
 
-export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ onAdjust, beginCoalescing, endCoalescing }) => {
+export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ beginPreview, updatePreview, commitPreview, beginCoalescing, endCoalescing }) => {
   const [h, setH] = useState(0);
   const [s, setS] = useState(0);
   const [v, setV] = useState(0);
+  const latestAdjustmentRef = useRef<HsvAdjustment>({ h: 0, s: 0, v: 0 });
   const { t } = useTranslation();
   const title = t('sideToolbar.imageHsv.title');
   const hueLabel = t('sideToolbar.imageHsv.hue');
   const saturationLabel = t('sideToolbar.imageHsv.saturation');
   const valueLabel = t('sideToolbar.imageHsv.value');
 
-  const handleChange = (nh: number, ns: number, nv: number) => {
-    onAdjust({ h: nh, s: ns, v: nv });
-  };
+  useEffect(() => {
+    latestAdjustmentRef.current = { h, s, v };
+  }, [h, s, v]);
 
-  const createSliderHandler = (update: (p: number) => void) => (e: React.PointerEvent<HTMLDivElement>) => {
+  const createSliderHandler = (applyFraction: (fraction: number, current: { h: number; s: number; v: number }) => { h: number; s: number; v: number }) => (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     beginCoalescing();
     const slider = e.currentTarget;
     slider.setPointerCapture(e.pointerId);
     const rect = slider.getBoundingClientRect();
 
-    const updateValue = (ev: PointerEvent) => {
-      const x = Math.max(0, Math.min(ev.clientX - rect.left, rect.width));
-      update(x / rect.width);
+    const beginPromise = beginPreview().catch((error) => {
+      console.error('Failed to begin HSV preview', error);
+      return false;
+    });
+
+    const updateFromEvent = (clientX: number) => {
+      const clamped = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      const fraction = rect.width === 0 ? 0 : clamped / rect.width;
+      const next = applyFraction(fraction, {
+        h: typeof latestAdjustmentRef.current.h === 'number' ? latestAdjustmentRef.current.h : h,
+        s: typeof latestAdjustmentRef.current.s === 'number' ? latestAdjustmentRef.current.s : s,
+        v: typeof latestAdjustmentRef.current.v === 'number' ? latestAdjustmentRef.current.v : v,
+      });
+      setH(next.h);
+      setS(next.s);
+      setV(next.v);
+      latestAdjustmentRef.current = next;
+
+      void (async () => {
+        const ready = await beginPromise;
+        if (!ready) return;
+        try {
+          await updatePreview(next);
+        } catch (error) {
+          console.error('Failed to update HSV preview', error);
+        }
+      })();
     };
 
-    updateValue(e.nativeEvent);
+    updateFromEvent(e.nativeEvent.clientX);
 
-    const handleMove = (ev: PointerEvent) => updateValue(ev);
+    const handleMove = (ev: PointerEvent) => updateFromEvent(ev.clientX);
     const handleUp = () => {
       slider.releasePointerCapture(e.pointerId);
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
-      endCoalescing();
+      document.removeEventListener('pointercancel', handleUp);
+      const finalAdjustment = latestAdjustmentRef.current;
+      void (async () => {
+        try {
+          const ready = await beginPromise;
+          if (ready) {
+            await commitPreview({
+              h: typeof finalAdjustment.h === 'number' ? finalAdjustment.h : h,
+              s: typeof finalAdjustment.s === 'number' ? finalAdjustment.s : s,
+              v: typeof finalAdjustment.v === 'number' ? finalAdjustment.v : v,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to commit HSV preview', error);
+        } finally {
+          endCoalescing();
+        }
+      })();
     };
+
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
+    document.addEventListener('pointercancel', handleUp);
   };
 
   const hPos = ((h + 180) / 360) * 100;
@@ -77,21 +123,42 @@ export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ onAdjust, begi
               <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">{title}</h3>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[var(--text-primary)]">{hueLabel}</label>
-                <div className="relative h-4 cursor-pointer" onPointerDown={createSliderHandler(p => { const val = Math.round(p * 360) - 180; setH(val); handleChange(val, s, v); })}>
+                <div
+                  className="relative h-4 cursor-pointer"
+                  onPointerDown={createSliderHandler((fraction, current) => ({
+                    h: Math.round(fraction * 360) - 180,
+                    s: current.s,
+                    v: current.v,
+                  }))}
+                >
                   <div className="w-full h-2 rounded-lg absolute top-1/2 -translate-y-1/2" style={{ background: hueBg }} />
                   <div className="absolute w-4 h-4 -translate-y-1/2 -translate-x-1/2 top-1/2 rounded-full bg-white shadow-md ring-1 ring-white/20" style={{ left: `${hPos}%` }} />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[var(--text-primary)]">{saturationLabel}</label>
-                <div className="relative h-4 cursor-pointer" onPointerDown={createSliderHandler(p => { const val = Math.round(p * 200) - 100; setS(val); handleChange(h, val, v); })}>
+                <div
+                  className="relative h-4 cursor-pointer"
+                  onPointerDown={createSliderHandler((fraction, current) => ({
+                    h: current.h,
+                    s: Math.round(fraction * 200) - 100,
+                    v: current.v,
+                  }))}
+                >
                   <div className="w-full h-2 rounded-lg absolute top-1/2 -translate-y-1/2" style={{ background: satBg }} />
                   <div className="absolute w-4 h-4 -translate-y-1/2 -translate-x-1/2 top-1/2 rounded-full shadow-md ring-1 ring-white/20" style={{ left: `${sPos}%`, backgroundColor: `hsl(${baseHue}, ${sPos}%, ${baseV}%)` }} />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[var(--text-primary)]">{valueLabel}</label>
-                <div className="relative h-4 cursor-pointer" onPointerDown={createSliderHandler(p => { const val = Math.round(p * 200) - 100; setV(val); handleChange(h, s, val); })}>
+                <div
+                  className="relative h-4 cursor-pointer"
+                  onPointerDown={createSliderHandler((fraction, current) => ({
+                    h: current.h,
+                    s: current.s,
+                    v: Math.round(fraction * 200) - 100,
+                  }))}
+                >
                   <div className="w-full h-2 rounded-lg absolute top-1/2 -translate-y-1/2" style={{ background: valBg }} />
                   <div className="absolute w-4 h-4 -translate-y-1/2 -translate-x-1/2 top-1/2 rounded-full shadow-md ring-1 ring-white/20" style={{ left: `${vPos}%`, backgroundColor: `hsl(${baseHue}, ${baseS}%, ${vPos}%)` }} />
                 </div>

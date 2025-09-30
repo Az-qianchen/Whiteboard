@@ -31,14 +31,16 @@ const getAllFrames = (paths: AnyPath[], accumulator: AnyPath[] = []): AnyPath[] 
  * @description 对常规组进行递归渲染，以利用 React 的 diffing 算法，
  * 仅更新组内已更改的元素。遮罩组则被视为原子单元进行渲染。
  */
-const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.memo(({ rc, data }) => {
+const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcById?: Record<string, string>; }> = React.memo(({ rc, data, previewSrcById }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const lastImageKeyRef = useRef<string | null>(null);
     const latestImageDataRef = useRef<ImageData | null>(null);
 
-    const imageKey = data.tool === 'image'
+    const previewSrc = data.tool === 'image' ? previewSrcById?.[data.id] ?? null : null;
+    const baseImageKey = data.tool === 'image'
         ? (data.fileId ?? data.src ?? null)
         : null;
+    const imageKey = previewSrc ?? baseImageKey;
 
     latestImageDataRef.current = data.tool === 'image' ? (data as ImageData) : null;
 
@@ -56,6 +58,14 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
         const imageData = latestImageDataRef.current;
         if (!imageData) {
             lastImageKeyRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (previewSrc) {
+            lastImageKeyRef.current = imageKey;
+            setImageSrc(prev => (prev === previewSrc ? prev : previewSrc));
             return () => {
                 cancelled = true;
             };
@@ -81,14 +91,14 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = React.m
         return () => {
             cancelled = true;
         };
-    }, [imageKey]);
+    }, [imageKey, previewSrc]);
 
     // 如果路径是常规（非遮罩）组，则递归渲染其子项以获得性能优势。
     if (data.tool === 'group' && !(data as GroupData).mask) {
         return (
             <g>
                 {(data as GroupData).children.map(child => (
-                    <PathComponent key={child.id} rc={rc} data={child} />
+                    <PathComponent key={child.id} rc={rc} data={child} previewSrcById={previewSrcById} />
                 ))}
             </g>
         );
@@ -190,6 +200,7 @@ interface PathsRendererProps {
   paths: AnyPath[];
   rc: RoughSVG | null;
   isBackground?: boolean;
+  previewSrcById?: Record<string, string>;
 }
 
 
@@ -198,13 +209,13 @@ interface PathsRendererProps {
  * @description 它遍历顶层路径，并为每个路径渲染一个 `PathComponent`。
  * 递归由 `PathComponent` 内部处理。
  */
-export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground }) => {
+export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById }) => {
   // 预先计算画框列表，以便在其上方渲染编号。
   const frames = useMemo(() => getAllFrames(paths), [paths]);
   return (
     <g opacity={isBackground ? 0.3 : 1} style={{ pointerEvents: isBackground ? 'none' : 'auto' }}>
       {paths.map((path) => (
-        <PathComponent key={path.id} rc={rc} data={path} />
+        <PathComponent key={path.id} rc={rc} data={path} previewSrcById={previewSrcById} />
       ))}
       {/* 渲染所有路径后，在其上方渲染画框编号 */}
       {frames.map((frame, index) => {
