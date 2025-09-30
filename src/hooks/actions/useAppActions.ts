@@ -17,6 +17,7 @@ import type { FileSystemFileHandle } from 'wicg-file-system-access';
 export interface AppActionsProps {
   paths: AnyPath[];
   frames: Frame[];
+  revision: number;
   fps: number;
   setFps: (val: number | ((prev: number) => number)) => void;
   backgroundColor: string;

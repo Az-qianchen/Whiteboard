@@ -11,7 +11,7 @@ import { createDocumentSignature } from '@/lib/document';
 import type { AppActionsProps } from './useAppActions';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
-import { normalizeFrames } from '@/context/pathsStore';
+import { normalizeFrames, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
 
 type FileWithHandle = File & { handle: FileSystemFileHandle };
 
@@ -25,6 +25,7 @@ const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle =
  */
 export const useFileActions = ({
   frames,
+  revision,
   fps,
   setFps,
   backgroundColor,
@@ -87,7 +88,7 @@ export const useFileActions = ({
                 setActiveFileName(downloadedFile.name);
                 await idb.del('last-active-file-handle');
             }
-            markDocumentSaved(createDocumentSignature(frames, backgroundColor, fps));
+            markDocumentSaved(createDocumentSignature(revision, backgroundColor, fps));
         }
     } catch (err) {
         if ((err as Error).name === 'AbortError') {
@@ -96,7 +97,7 @@ export const useFileActions = ({
         }
         console.error("Error saving file as:", err);
     }
-  }, [frames, backgroundColor, fps, activeFileName, setActiveFileHandle, setActiveFileName, markDocumentSaved]);
+  }, [frames, revision, backgroundColor, fps, activeFileName, setActiveFileHandle, setActiveFileName, markDocumentSaved]);
 
   /**
    * 保存当前文件。
@@ -137,7 +138,7 @@ export const useFileActions = ({
             const data: WhiteboardData = { type: 'whiteboard/shapes', version: 3, frames, backgroundColor, fps, files: Object.keys(files).length ? files : undefined };
             await writable.write(JSON.stringify(data, null, 2));
             await writable.close();
-            markDocumentSaved(createDocumentSignature(frames, backgroundColor, fps));
+            markDocumentSaved(createDocumentSignature(revision, backgroundColor, fps));
         } catch (err) {
             console.error("Error saving file, falling back to 'Save As':", err);
             // 如果出现任何错误（例如权限被撤销），则回退到“另存为”
@@ -146,7 +147,7 @@ export const useFileActions = ({
     } else {
         await handleSaveAs();
     }
-  }, [activeFileHandle, frames, backgroundColor, fps, handleSaveAs, markDocumentSaved]);
+  }, [activeFileHandle, frames, revision, backgroundColor, fps, handleSaveAs, markDocumentSaved]);
 
   /**
    * 打开一个文件。
@@ -193,7 +194,8 @@ export const useFileActions = ({
                 setActiveFileName(file.name);
                 await idb.del('last-active-file-handle');
             }
-            markDocumentSaved(createDocumentSignature(framesToLoad, nextBackgroundColor, nextFps));
+            const { revision: updatedRevision } = usePathsStoreBase.getState();
+            markDocumentSaved(createDocumentSignature(updatedRevision, nextBackgroundColor, nextFps));
         } else {
             alert("Invalid whiteboard file.");
         }

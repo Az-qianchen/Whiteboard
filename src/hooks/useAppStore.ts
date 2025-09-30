@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUiStore } from '@/context/uiStore';
-import { usePathsStore } from './usePathsStore';
+import { usePathsStore as usePathsStoreHook } from './usePathsStore';
 import { useToolsStore } from './useToolsStore';
 import { useViewTransform } from './useViewTransform';
 import { useViewTransformStore } from '@/context/viewTransformStore';
@@ -20,7 +20,7 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
-import { normalizeFrames, createFrame } from '@/context/pathsStore';
+import { normalizeFrames, createFrame, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
 
 import {
   removeBackground,
@@ -338,10 +338,11 @@ export const useAppStore = () => {
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
   const cropManualDraftRef = useRef<CropManualDraft | null>(null);
 
-  const pathState = usePathsStore();
+  const pathState = usePathsStoreHook();
   const {
     paths,
     frames,
+    revision,
     setCurrentFrameIndex,
     setPaths,
     handleLoadFile,
@@ -378,8 +379,8 @@ export const useAppStore = () => {
   } = pathState;
 
   const currentDocumentSignature = useMemo(
-    () => createDocumentSignature(frames, uiState.backgroundColor, uiState.fps),
-    [frames, uiState.backgroundColor, uiState.fps]
+    () => createDocumentSignature(revision, uiState.backgroundColor, uiState.fps),
+    [revision, uiState.backgroundColor, uiState.fps]
   );
 
   useEffect(() => {
@@ -1544,7 +1545,7 @@ export const useAppStore = () => {
     toolbarState, viewTransform, getPointerPosition: viewTransform.getPointerPosition, ...appState,
     setActiveFileHandle, setActiveFileName, setBackgroundColor, setStyleClipboard, setStyleLibrary,
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
-    frames, fps: uiState.fps, setFps, requestFitToContent,
+    frames, revision, fps: uiState.fps, setFps, requestFitToContent,
     markDocumentSaved,
   });
 
@@ -1613,7 +1614,8 @@ export const useAppStore = () => {
 
           setActiveFileHandle(handle);
           setActiveFileName(handle.name);
-          markDocumentSaved(createDocumentSignature(framesToLoad, nextBackground, nextFps));
+          const { revision: updatedRevision } = usePathsStoreBase.getState();
+          markDocumentSaved(createDocumentSignature(updatedRevision, nextBackground, nextFps));
         }
       } catch (error) {
         console.error("Failed to load last session:", error);
