@@ -313,6 +313,7 @@ type VectorDragState = {
   type: 'anchor' | 'handleIn' | 'handleOut';
   pathId: string;
   anchorIndex: number;
+  initialPoint: Point;
 };
 
 // A drag state for moving shapes
@@ -374,6 +375,7 @@ type ArcDragState = {
   type: 'arc';
   pathId: string;
   pointIndex: 0 | 1 | 2;
+  initialPoint: Point;
 };
 
 type CropDragState = {

@@ -35,11 +35,12 @@ const createRectangle = (): RectangleData => ({
 
 const createPathState = (
   paths: AnyPath[],
-  setPaths: Dispatch<SetStateAction<AnyPath[]>>
+  setPaths: Dispatch<SetStateAction<AnyPath[]>>,
+  selectedPathIds: string[] = ['rect-1']
 ): SelectionPathState => ({
   paths,
   setPaths,
-  selectedPathIds: ['rect-1'],
+  selectedPathIds,
   setSelectedPathIds: vi.fn(),
   beginCoalescing: vi.fn(),
   endCoalescing: vi.fn(),
@@ -184,5 +185,229 @@ describe('handlePointerMoveLogic axis locking', () => {
     expect(lastCall?.[1]).toBe(0);
     expect(lastCall?.[2]).toBe(60);
     movePathSpy.mockRestore();
+  });
+});
+
+describe('handlePointerMoveLogic grid snapping tolerance', () => {
+  const snappingFn = (point: { x: number; y: number }) => ({
+    x: Math.round(point.x / 10) * 10,
+    y: Math.round(point.y / 10) * 10,
+  });
+
+  it('keeps resize handles stable until pointer crosses snap cell boundary', () => {
+    const baseRect = { ...createRectangle(), x: 3, y: 0, width: 50, height: 40 };
+    let currentPaths: AnyPath[] = [baseRect];
+    const initialPointerPos = { x: baseRect.x, y: baseRect.y + baseRect.height / 2 };
+    const dragState: DragState = {
+      type: 'resize',
+      pathId: baseRect.id,
+      handle: 'left',
+      originalPath: baseRect,
+      initialPointerPos,
+    };
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    handlePointerMoveLogic({
+      e: { shiftKey: false } as ReactPointerEvent<SVGSVGElement>,
+      movePoint: { ...initialPointerPos },
+      dragState,
+      setDragState: noop,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingFn,
+      setCurrentCropRect: noop,
+    });
+
+    const resizedRect = currentPaths[0] as RectangleData;
+    expect(resizedRect.x).toBe(baseRect.x);
+    expect(resizedRect.width).toBe(baseRect.width);
+  });
+
+  it('snaps moved selections once the pointer actually shifts position', () => {
+    const baseRect = { ...createRectangle(), x: 3, y: 6, width: 50, height: 40 };
+    let currentPaths: AnyPath[] = [baseRect];
+    let dragState: DragState = {
+      type: 'move',
+      pathIds: ['rect-1'],
+      originalPaths: [baseRect],
+      initialPointerPos: { x: 13, y: 26 },
+      initialSelectionBbox: { x: baseRect.x, y: baseRect.y, width: baseRect.width, height: baseRect.height },
+      axisLock: null,
+    };
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    const setDragState: Dispatch<SetStateAction<DragState>> = updater => {
+      dragState = typeof updater === 'function'
+        ? (updater as (prev: DragState) => DragState)(dragState)
+        : updater;
+    };
+
+    const movePathSpy = vi.spyOn(DrawingLib, 'movePath');
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      callback(0);
+      return 1;
+    });
+
+    handlePointerMoveLogic({
+      e: { shiftKey: false } as ReactPointerEvent<SVGSVGElement>,
+      movePoint: { x: 12, y: 26 },
+      dragState,
+      setDragState,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingFn,
+      setCurrentCropRect: noop,
+    });
+
+    expect(movePathSpy).toHaveBeenCalled();
+    const lastCall = movePathSpy.mock.calls.at(-1);
+    expect(lastCall?.[1]).toBe(-3);
+    expect(lastCall?.[2]).toBe(0);
+
+    rafSpy.mockRestore();
+    movePathSpy.mockRestore();
+
+  });
+
+  it('aligns scaled group bounds to the grid when snapping engages', () => {
+    const rectA: RectangleData = { ...createRectangle(), id: 'rect-a', x: 10.3, y: 6.2, width: 80.45, height: 42.35 };
+    const rectB: RectangleData = { ...createRectangle(), id: 'rect-b', x: 125.6, y: 12.8, width: 60.15, height: 38.49 };
+    let currentPaths: AnyPath[] = [rectA, rectB];
+
+    const initialBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    const initialPointerPos = {
+      x: initialBbox.x + initialBbox.width,
+      y: initialBbox.y + initialBbox.height / 2,
+    };
+
+    const dragState: DragState = {
+      type: 'scale',
+      pathIds: ['rect-a', 'rect-b'],
+      handle: 'right',
+      originalPaths: currentPaths,
+      initialPointerPos,
+      initialSelectionBbox: initialBbox,
+    };
+
+    const snappingToUnit = (point: { x: number; y: number }) => ({
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+    });
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    const movePoint = { x: initialPointerPos.x + 4.6, y: initialPointerPos.y };
+
+    handlePointerMoveLogic({
+      e: { shiftKey: false } as ReactPointerEvent<SVGSVGElement>,
+      movePoint,
+      dragState,
+      setDragState: noop,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths, dragState.pathIds),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingToUnit,
+      setCurrentCropRect: noop,
+    });
+
+    const updatedBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    expect(updatedBbox.x % 1).toBe(0);
+    expect((updatedBbox.x + updatedBbox.width) % 1).toBe(0);
+  });
+
+  it('realigns perpendicular edges when aspect-ratio scaling changes both axes', () => {
+    const rectA: RectangleData = { ...createRectangle(), id: 'rect-a', x: 9.4, y: 8.7, width: 86.8, height: 52.4 };
+    const rectB: RectangleData = { ...createRectangle(), id: 'rect-b', x: 124.9, y: 14.6, width: 63.2, height: 44.2 };
+    let currentPaths: AnyPath[] = [rectA, rectB];
+
+    const initialBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    const initialPointerPos = {
+      x: initialBbox.x + initialBbox.width / 2,
+      y: initialBbox.y,
+    };
+
+    const dragState: DragState = {
+      type: 'scale',
+      pathIds: ['rect-a', 'rect-b'],
+      handle: 'top',
+      originalPaths: currentPaths,
+      initialPointerPos,
+      initialSelectionBbox: initialBbox,
+    };
+
+    const snappingToUnit = (point: { x: number; y: number }) => ({
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+    });
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    const movePoint = { x: initialPointerPos.x, y: initialPointerPos.y - 17.35 };
+
+    handlePointerMoveLogic({
+      e: { shiftKey: true } as ReactPointerEvent<SVGSVGElement>,
+      movePoint,
+      dragState,
+      setDragState: noop,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths, dragState.pathIds),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingToUnit,
+      setCurrentCropRect: noop,
+    });
+
+    const updatedBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    expect(updatedBbox.x).toBeCloseTo(Math.round(updatedBbox.x));
+    expect(updatedBbox.x + updatedBbox.width).toBeCloseTo(Math.round(updatedBbox.x + updatedBbox.width));
+    expect(updatedBbox.y).toBeCloseTo(Math.round(updatedBbox.y));
+    expect(updatedBbox.y + updatedBbox.height).toBeCloseTo(Math.round(updatedBbox.y + updatedBbox.height));
   });
 });

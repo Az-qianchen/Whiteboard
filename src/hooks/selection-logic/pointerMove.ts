@@ -20,6 +20,33 @@ import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10;
 const AXIS_LOCK_SWITCH_THRESHOLD = 4;
+const SNAP_EPSILON = 1e-6;
+
+const computeSnapContext = (
+  initial: Point,
+  current: Point,
+  snapFn: (point: Point) => Point,
+) => {
+  const snapped = snapFn(current);
+
+  const deltaX = current.x - initial.x;
+  const deltaY = current.y - initial.y;
+  const movedX = Math.abs(deltaX) > SNAP_EPSILON;
+  const movedY = Math.abs(deltaY) > SNAP_EPSILON;
+
+  const snapX = movedX && Math.abs(snapped.x - current.x) > SNAP_EPSILON;
+  const snapY = movedY && Math.abs(snapped.y - current.y) > SNAP_EPSILON;
+
+  return {
+    snapped,
+    snapX,
+    snapY,
+    effective: {
+      x: snapX ? snapped.x : current.x,
+      y: snapY ? snapped.y : current.y,
+    },
+  };
+};
 
 // Coalesce frequent move-updates into a single render per frame to improve
 // responsiveness when dragging, especially for large groups or rough shapes.
@@ -70,6 +97,7 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
             case 'move': {
                 const { originalPaths, initialPointerPos, initialSelectionBbox, axisLock: currentAxisLock } = dragState;
                 const raw_dx = movePoint.x - initialPointerPos.x; const raw_dy = movePoint.y - initialPointerPos.y;
+                const pointerSnap = computeSnapContext(initialPointerPos, movePoint, snapToGrid);
                 const absDx = Math.abs(raw_dx); const absDy = Math.abs(raw_dy);
 
                 let nextAxisLock = currentAxisLock;
@@ -93,8 +121,11 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                     setDragState(prev => (prev && prev.type === 'move' ? { ...prev, axisLock: nextAxisLock } : prev));
                 }
 
-                const snappedBboxTopLeft = snapToGrid({ x: initialSelectionBbox.x + raw_dx, y: initialSelectionBbox.y + raw_dy });
-                let final_dx = snappedBboxTopLeft.x - initialSelectionBbox.x; let final_dy = snappedBboxTopLeft.y - initialSelectionBbox.y;
+                const rawTarget = { x: initialSelectionBbox.x + raw_dx, y: initialSelectionBbox.y + raw_dy };
+                const snappedTarget = snapToGrid(rawTarget);
+                const targetX = pointerSnap.snapX ? snappedTarget.x : rawTarget.x;
+                const targetY = pointerSnap.snapY ? snappedTarget.y : rawTarget.y;
+                let final_dx = targetX - initialSelectionBbox.x; let final_dy = targetY - initialSelectionBbox.y;
                 if (nextAxisLock === 'x') {
                     final_dy = 0;
                 } else if (nextAxisLock === 'y') {
@@ -119,14 +150,14 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 return; // Early return: we'll update via rAF
             }
             case 'anchor': case 'handleIn': case 'handleOut': {
-                const snappedMovePoint = snapToGrid(movePoint);
-                let finalMovePoint = snappedMovePoint;
+                const snapContext = computeSnapContext(dragState.initialPoint, movePoint, snapToGrid);
+                let finalMovePoint = snapContext.effective;
                 if (dragState.type === 'anchor') {
                     isClosingPath.current = null;
                     const path = paths.find((p: AnyPath) => p.id === dragState.pathId);
                     if (path && 'anchors' in path && path.tool !== 'line' && !path.isClosed && path.anchors.length > 2 && (dragState.anchorIndex === 0 || dragState.anchorIndex === path.anchors.length - 1)) {
                         const otherEndpoint = path.anchors[dragState.anchorIndex === 0 ? path.anchors.length - 1 : 0];
-                        if (dist(snappedMovePoint, otherEndpoint.point) < HIT_RADIUS / vt.scale) {
+                        if (dist(finalMovePoint, otherEndpoint.point) < HIT_RADIUS / vt.scale) {
                             finalMovePoint = otherEndpoint.point;
                             isClosingPath.current = { pathId: path.id, anchorIndex: dragState.anchorIndex };
                         }
@@ -136,10 +167,11 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
             }
             case 'arc': {
                 const { pathId, pointIndex } = dragState;
-                const snappedMovePoint = snapToGrid(movePoint);
+                const snapContext = computeSnapContext(dragState.initialPoint, movePoint, snapToGrid);
+                const effectiveMovePoint = snapContext.effective;
                 setPaths(recursivelyUpdatePaths(paths, (p: AnyPath) => {
                     if (p.id === pathId && p.tool === 'arc') {
-                        const newPoints = [...(p as any).points]; newPoints[pointIndex] = snappedMovePoint;
+                        const newPoints = [...(p as any).points]; newPoints[pointIndex] = effectiveMovePoint;
                         return { ...p, points: newPoints as [Point, Point, Point] };
                     } return null;
                 })); return;
@@ -161,19 +193,20 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
             }
             case 'scale': {
                 const { originalPaths, initialSelectionBbox, handle, initialPointerPos } = dragState;
-                const snappedMovePoint = snapToGrid(movePoint);
+                const snapContext = computeSnapContext(initialPointerPos, movePoint, snapToGrid);
+                const effectivePoint = snapContext.effective;
 
-                const dx = snappedMovePoint.x - initialPointerPos.x;
-                const dy = snappedMovePoint.y - initialPointerPos.y;
+                const dx = effectivePoint.x - initialPointerPos.x;
+                const dy = effectivePoint.y - initialPointerPos.y;
 
-                let newWidth = initialSelectionBbox.width;
-                let newHeight = initialSelectionBbox.height;
+                let proposedWidth = initialSelectionBbox.width;
+                let proposedHeight = initialSelectionBbox.height;
 
                 // Adjust dimensions based on which handle is being dragged
-                if (handle.includes('right')) newWidth += dx;
-                if (handle.includes('left')) newWidth -= dx;
-                if (handle.includes('bottom')) newHeight += dy;
-                if (handle.includes('top')) newHeight -= dy;
+                if (handle.includes('right')) proposedWidth += dx;
+                if (handle.includes('left')) proposedWidth -= dx;
+                if (handle.includes('bottom')) proposedHeight += dy;
+                if (handle.includes('top')) proposedHeight -= dy;
 
                 // Enforce aspect ratio if shift is held
                 if (e.shiftKey && initialSelectionBbox.width !== 0 && initialSelectionBbox.height !== 0) {
@@ -182,36 +215,119 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
 
                     if (!isCorner) {
                         if (handle.includes('left') || handle.includes('right')) {
-                            newHeight = newWidth / originalAspectRatio;
+                            proposedHeight = proposedWidth / originalAspectRatio;
                         } else { // top or bottom
-                            newWidth = newHeight * originalAspectRatio;
+                            proposedWidth = proposedHeight * originalAspectRatio;
                         }
                     } else {
                         // For corner handles, maintain aspect ratio based on the dominant mouse movement axis
                         if (Math.abs(dx) * originalAspectRatio > Math.abs(dy)) {
-                            newHeight = newWidth / originalAspectRatio;
+                            proposedHeight = proposedWidth / originalAspectRatio;
                         } else {
-                            newWidth = newHeight * originalAspectRatio;
+                            proposedWidth = proposedHeight * originalAspectRatio;
                         }
                     }
                 }
 
+                const initialMinX = initialSelectionBbox.x;
+                const initialMaxX = initialSelectionBbox.x + initialSelectionBbox.width;
+                const initialMinY = initialSelectionBbox.y;
+                const initialMaxY = initialSelectionBbox.y + initialSelectionBbox.height;
+
+                let targetMinX: number;
+                let targetMaxX: number;
+                if (handle.includes('left')) {
+                    targetMaxX = initialMaxX;
+                    targetMinX = targetMaxX - proposedWidth;
+                } else if (handle.includes('right')) {
+                    targetMinX = initialMinX;
+                    targetMaxX = targetMinX + proposedWidth;
+                } else {
+                    targetMinX = initialMinX + (initialSelectionBbox.width - proposedWidth) / 2;
+                    targetMaxX = targetMinX + proposedWidth;
+                }
+
+                let targetMinY: number;
+                let targetMaxY: number;
+                if (handle.includes('top')) {
+                    targetMaxY = initialMaxY;
+                    targetMinY = targetMaxY - proposedHeight;
+                } else if (handle.includes('bottom')) {
+                    targetMinY = initialMinY;
+                    targetMaxY = targetMinY + proposedHeight;
+                } else {
+                    targetMinY = initialMinY + (initialSelectionBbox.height - proposedHeight) / 2;
+                    targetMaxY = targetMinY + proposedHeight;
+                }
+
+                const snappedMin = snapToGrid({ x: targetMinX, y: targetMinY });
+                const snappedMax = snapToGrid({ x: targetMaxX, y: targetMaxY });
+
+                const horizontalChanged =
+                    Math.abs(targetMinX - initialMinX) > SNAP_EPSILON ||
+                    Math.abs(targetMaxX - initialMaxX) > SNAP_EPSILON;
+                const verticalChanged =
+                    Math.abs(targetMinY - initialMinY) > SNAP_EPSILON ||
+                    Math.abs(targetMaxY - initialMaxY) > SNAP_EPSILON;
+
+                const shouldSnapX = snapContext.snapX || horizontalChanged;
+                const shouldSnapY = snapContext.snapY || verticalChanged;
+
+                const desiredMinX = shouldSnapX ? snappedMin.x : targetMinX;
+                const desiredMaxX = shouldSnapX ? snappedMax.x : targetMaxX;
+                const desiredMinY = shouldSnapY ? snappedMin.y : targetMinY;
+                const desiredMaxY = shouldSnapY ? snappedMax.y : targetMaxY;
+
+                const finalWidth = desiredMaxX - desiredMinX;
+                const finalHeight = desiredMaxY - desiredMinY;
+
                 // Calculate scale factors, which can now be negative, allowing for flips
-                const scaleX = initialSelectionBbox.width === 0 ? 1 : newWidth / initialSelectionBbox.width;
-                const scaleY = initialSelectionBbox.height === 0 ? 1 : newHeight / initialSelectionBbox.height;
-                
+                const scaleX = initialSelectionBbox.width === 0 ? 1 : finalWidth / initialSelectionBbox.width;
+                const scaleY = initialSelectionBbox.height === 0 ? 1 : finalHeight / initialSelectionBbox.height;
+
                 // Determine the pivot point for scaling (the side/corner opposite to the handle)
                 const pivot = {
-                    x: handle.includes('right') ? initialSelectionBbox.x : (handle.includes('left') ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x + initialSelectionBbox.width / 2),
-                    y: handle.includes('bottom') ? initialSelectionBbox.y : (handle.includes('top') ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y + initialSelectionBbox.height / 2)
+                    x: handle.includes('right')
+                        ? initialMinX
+                        : (handle.includes('left')
+                            ? initialMaxX
+                            : initialMinX + initialSelectionBbox.width / 2),
+                    y: handle.includes('bottom')
+                        ? initialMinY
+                        : (handle.includes('top')
+                            ? initialMaxY
+                            : initialMinY + initialSelectionBbox.height / 2)
                 };
-                
-                transformedShapes = originalPaths.map((p: AnyPath) => scalePath(p, pivot, scaleX, scaleY));
+
+                const targetPivot = {
+                    x: handle.includes('right')
+                        ? desiredMinX
+                        : (handle.includes('left')
+                            ? desiredMaxX
+                            : (desiredMinX + desiredMaxX) / 2),
+                    y: handle.includes('bottom')
+                        ? desiredMinY
+                        : (handle.includes('top')
+                            ? desiredMaxY
+                            : (desiredMinY + desiredMaxY) / 2)
+                };
+
+                const translateX = targetPivot.x - pivot.x;
+                const translateY = targetPivot.y - pivot.y;
+
+                transformedShapes = originalPaths.map((p: AnyPath) => {
+                    const scaled = scalePath(p, pivot, scaleX, scaleY);
+                    if (Math.abs(translateX) > SNAP_EPSILON || Math.abs(translateY) > SNAP_EPSILON) {
+                        return movePath(scaled, translateX, translateY);
+                    }
+                    return scaled;
+                });
                 break;
             }
             case 'resize': {
                 const { originalPath, handle, initialPointerPos } = dragState;
-                const snappedMovePoint = snapToGrid(movePoint);
+                const snapContext = computeSnapContext(initialPointerPos, movePoint, snapToGrid);
+                const effectiveMovePoint = snapContext.effective;
                 let keepAspectRatio: boolean;
                 if (originalPath.tool === 'image') {
                     // For images, lock aspect ratio by default. Unlock with Shift.
@@ -220,13 +336,14 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                     // For other shapes, free resize by default. Lock with Shift.
                     keepAspectRatio = e.shiftKey;
                 }
-                transformedShapes = [resizePath(originalPath, handle, snappedMovePoint, initialPointerPos, keepAspectRatio)];
+                transformedShapes = [resizePath(originalPath, handle, effectiveMovePoint, initialPointerPos, keepAspectRatio)];
                 break;
             }
             case 'skew': {
                 const { originalPath, handle } = dragState;
-                const snappedMovePoint = snapToGrid(movePoint);
-                transformedShapes = [skewPath(originalPath, handle, snappedMovePoint)];
+                const snapContext = computeSnapContext(dragState.initialPointerPos, movePoint, snapToGrid);
+                const effectiveMovePoint = snapContext.effective;
+                transformedShapes = [skewPath(originalPath, handle, effectiveMovePoint)];
                 break;
             }
             case 'gradient': {
