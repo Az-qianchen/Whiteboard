@@ -59,6 +59,7 @@ export const MainLayout: React.FC = () => {
         cropTool,
         cropSelectionContours,
         cropManualDraft,
+        isTextEditing,
         // Drop handler props
         getPointerPosition,
         handleApplyMaterial,
@@ -143,10 +144,12 @@ export const MainLayout: React.FC = () => {
                 if (selectionMode === 'move') return selectionInteraction.isHoveringMovable ? 'grab' : 'default';
                 if (selectionMode === 'edit') return selectionInteraction.isHoveringEditable ? 'pointer' : 'default';
                 return 'default';
+            case 'text':
+                return 'text';
             case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
             default: return 'default';
         }
-    }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, cropTool]);
+    }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, cropTool, isTextEditing]);
 
     /**
      * 处理画布上的拖放事件，用于素材和文件导入。

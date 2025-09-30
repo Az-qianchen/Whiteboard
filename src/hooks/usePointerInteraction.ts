@@ -34,6 +34,7 @@ interface PointerInteractionProps {
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  isTextEditing: boolean;
 }
 
 /**
@@ -50,12 +51,16 @@ export const usePointerInteraction = ({
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  isTextEditing,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
 
   // 处理指针按下
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchStart(e);
       if (viewTransform.isPinching) return;
@@ -133,6 +138,9 @@ export const usePointerInteraction = ({
 
   // 处理指针移动
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchMove(e);
       if (viewTransform.isPinching) return;
@@ -151,6 +159,9 @@ export const usePointerInteraction = ({
 
   // 处理指针抬起
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchEnd(e);
       if (viewTransform.isPinching) return;
@@ -172,6 +183,9 @@ export const usePointerInteraction = ({
   
   // 处理指针离开画布
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchEnd(e);
       if (viewTransform.isPinching) return;

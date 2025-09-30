@@ -17,6 +17,8 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  startTextEditing: (point: Point) => void;
+  isTextEditing: boolean;
 }
 
 /**
@@ -31,6 +33,8 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  startTextEditing,
+  isTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -94,7 +98,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    if (isTextEditing) {
+      return;
+    }
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
     const id = Date.now().toString();
@@ -107,6 +113,13 @@ export const useDrawing = ({
         curveTightness, curveStepCount, preserveVertices,
         disableMultiStroke, disableMultiStrokeFill,
     };
+
+    if (tool === 'text') {
+      startTextEditing(snappedPoint);
+      return;
+    }
+
+    e.currentTarget.setPointerCapture(e.pointerId);
 
     switch (tool) {
       case 'brush': {
@@ -242,6 +255,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     const point = getPointerPosition(e, e.currentTarget);
     const snappedPoint = snapToGrid(point);
 
@@ -352,6 +368,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -380,6 +399,9 @@ export const useDrawing = ({
    * @param e - React 指针事件。
    */
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (isTextEditing) {
+      return;
+    }
     // If the mouse leaves while drawing, we treat it like a pointer up to finalize the shape.
     if (currentBrushPath || (isDrawingShape && drawingShape.tool !== 'arc')) {
       onPointerUp(e);

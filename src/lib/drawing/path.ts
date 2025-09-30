@@ -4,7 +4,7 @@
  * 并提供了路径采样、更新和操作的实用工具。
  */
 
-import type { Point, Anchor, DragState, AnyPath, BrushPathData, VectorPathData, RectangleData, PolygonData, EllipseData, ArcData, FrameData } from '@/types';
+import type { Point, Anchor, DragState, AnyPath, BrushPathData, VectorPathData, RectangleData, PolygonData, EllipseData, ArcData, FrameData, TextData } from '@/types';
 import { lerpPoint, dist } from './geom';
 import { getPolygonPathD } from './polygon';
 import { calculateArcPathD } from './arc';
@@ -300,6 +300,11 @@ export function getPathD(data: AnyPath): string {
             const cx = x + rx;
             const cy = y + ry;
             d = `M${cx - rx},${cy} A${rx},${ry} 0 1 0 ${cx + rx},${cy} A${rx},${ry} 0 1 0 ${cx - rx},${cy}Z`;
+            break;
+        }
+        case 'text': {
+            const { x, y, width, height } = data as TextData;
+            d = getRoundedRectPathD(x, y, width, height, 0);
             break;
         }
         case 'arc': {
