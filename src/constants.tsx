@@ -26,6 +26,7 @@ import {
   SquareDashed,
   RotateCcw,
   Crop,
+  Type,
 } from 'lucide-react';
 
 
@@ -144,6 +145,7 @@ export const ICONS = {
   LINE: <Slash className="h-5 w-5" />,
   ARC: <Spline className="h-5 w-5" />,
   FRAME: <SquareDashed className="h-5 w-5" />,
+  TEXT: <Type className="h-5 w-5" />,
   LASSO: <Lasso className="h-5 w-5" />,
   PROPERTIES: <SlidersHorizontal className="h-5 w-5" />,
   GRID: <Grid3X3 className="h-5 w-5" />,

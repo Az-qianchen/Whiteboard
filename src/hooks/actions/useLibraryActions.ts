@@ -4,10 +4,11 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fileOpen, fileSave } from 'browser-fs-access';
-import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, Point, GroupData, ArcData } from '@/types';
+import type { AnyPath, StyleClipboardData, MaterialData, LibraryData, RectangleData, ImageData, PolygonData, Point, GroupData, ArcData, TextData } from '@/types';
 import { getPathsBoundingBox, movePath } from '@/lib/drawing';
 import { useToolbarStore } from '@/context/toolbarStore';
 import type { AppActionsProps } from './useAppActions';
+import { measureTextDimensions, DEFAULT_TEXT_LINE_HEIGHT } from '@/lib/text';
 
 /**
  * 封装样式库和素材库相关操作的 Hook。
@@ -19,6 +20,76 @@ export const useLibraryActions = ({
   showConfirmation, pathState, toolbarState, getPointerPosition,
 }: AppActionsProps) => {
   const { t } = useTranslation();
+
+  const applyStyleToPath = (path: AnyPath, style: StyleClipboardData): AnyPath => {
+    const styleProps: StyleClipboardData = { ...style };
+    const stripTextProps = <T extends Record<string, unknown>>(props: T) => {
+      delete (props as Partial<TextData>).fontFamily;
+      delete (props as Partial<TextData>).fontSize;
+      delete (props as Partial<TextData>).textAlign;
+      delete (props as Partial<TextData>).lineHeight;
+      return props;
+    };
+
+    switch (path.tool) {
+      case 'group': {
+        const updatedChildren = path.children.map(child => applyStyleToPath(child, style));
+        const groupStyle = stripTextProps({ ...styleProps });
+        return { ...path, ...groupStyle, tool: 'group', children: updatedChildren };
+      }
+      case 'rectangle': {
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: 'rectangle' };
+      }
+      case 'polygon':
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: 'polygon' };
+      case 'image':
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: 'image' };
+      case 'frame':
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: 'frame' };
+      case 'text': {
+        const textPath = path as TextData;
+        const fontFamily = style.fontFamily ?? textPath.fontFamily;
+        const fontSize = style.fontSize ?? textPath.fontSize;
+        const lineHeight = style.lineHeight ?? textPath.lineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+        const textAlign = style.textAlign ?? textPath.textAlign;
+        const { width, height } = measureTextDimensions(textPath.text, fontFamily, fontSize, lineHeight);
+        const nextWidth = Math.max(width, fontSize * 2);
+        const nextHeight = Math.max(height, fontSize * lineHeight);
+        return {
+          ...textPath,
+          ...styleProps,
+          fontFamily,
+          fontSize,
+          textAlign,
+          lineHeight,
+          width: nextWidth,
+          height: nextHeight,
+        };
+      }
+      case 'pen':
+      case 'line':
+        delete (styleProps as Partial<RectangleData>).borderRadius;
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: path.tool };
+      case 'brush':
+        delete (styleProps as Partial<RectangleData>).borderRadius;
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: 'brush' };
+      case 'ellipse':
+        delete (styleProps as Partial<RectangleData>).borderRadius;
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), tool: 'ellipse' };
+      case 'arc':
+        delete (styleProps as Partial<RectangleData>).borderRadius;
+        delete (styleProps as Partial<PolygonData>).sides;
+        return { ...path, ...stripTextProps({ ...styleProps }), points: path.points, tool: 'arc' };
+      default:
+        return path;
+    }
+  };
 
   /**
    * 从选中的单个图形复制样式。
@@ -55,6 +126,14 @@ export const useLibraryActions = ({
         sides: path.tool === 'polygon' ? (path as PolygonData).sides : undefined,
     };
 
+    if (path.tool === 'text') {
+        const textPath = path as TextData;
+        copiedStyle.fontFamily = textPath.fontFamily;
+        copiedStyle.fontSize = textPath.fontSize;
+        copiedStyle.textAlign = textPath.textAlign;
+        copiedStyle.lineHeight = textPath.lineHeight;
+    }
+
     setStyleClipboard(copiedStyle);
     const toolbarStore = useToolbarStore.getState() as Record<string, unknown>;
     Object.entries(copiedStyle).forEach(([key, value]) => {
@@ -73,42 +152,7 @@ export const useLibraryActions = ({
   const handlePasteStyle = useCallback(() => {
     if (!styleClipboard || selectedPathIds.length === 0) return;
     
-    const applyStyleRecursively = (path: AnyPath, style: StyleClipboardData): AnyPath => {
-        const styleProps = { ...style };
-        switch (path.tool) {
-            case 'group': {
-                const updatedChildren = path.children.map(child => applyStyleRecursively(child, style));
-                return { ...path, ...styleProps, tool: 'group', children: updatedChildren };
-            }
-            case 'rectangle':
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, tool: 'rectangle' };
-            case 'polygon':
-                return { ...path, ...styleProps, tool: 'polygon' };
-            case 'image':
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, tool: 'image' };
-            case 'pen':
-            case 'line':
-                delete (styleProps as Partial<RectangleData>).borderRadius;
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, tool: path.tool };
-            case 'brush':
-                delete (styleProps as Partial<RectangleData>).borderRadius;
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, tool: 'brush' };
-            case 'ellipse':
-                delete (styleProps as Partial<RectangleData>).borderRadius;
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, tool: 'ellipse' };
-            case 'arc':
-                delete (styleProps as Partial<RectangleData>).borderRadius;
-                delete (styleProps as Partial<PolygonData>).sides;
-                return { ...path, ...styleProps, points: path.points, tool: 'arc' };
-        }
-    };
-    
-    pathState.setPaths(prev => prev.map(p => selectedPathIds.includes(p.id) ? applyStyleRecursively(p, styleClipboard) : p));
+    pathState.setPaths(prev => prev.map(p => selectedPathIds.includes(p.id) ? applyStyleToPath(p, styleClipboard) : p));
   }, [styleClipboard, selectedPathIds, pathState]);
 
   /**
@@ -118,7 +162,7 @@ export const useLibraryActions = ({
       if (selectedPathIds.length !== 1) return;
       const path = paths.find(p => p.id === selectedPathIds[0]);
       if (!path) return;
-      
+
       const newStyle: StyleClipboardData = {
           color: path.color,
           fill: path.fill,
@@ -126,6 +170,13 @@ export const useLibraryActions = ({
           fillStyle: path.fillStyle,
           strokeWidth: path.strokeWidth,
       };
+      if (path.tool === 'text') {
+          const textPath = path as TextData;
+          newStyle.fontFamily = textPath.fontFamily;
+          newStyle.fontSize = textPath.fontSize;
+          newStyle.textAlign = textPath.textAlign;
+          newStyle.lineHeight = textPath.lineHeight;
+      }
       setStyleLibrary(prev => [...prev, newStyle]);
   }, [paths, selectedPathIds, setStyleLibrary]);
   
@@ -135,14 +186,7 @@ export const useLibraryActions = ({
    */
   const handleApplyStyle = useCallback((style: StyleClipboardData) => {
       if (selectedPathIds.length > 0) {
-          const applyStyleRecursively = (path: AnyPath, style: StyleClipboardData): AnyPath => {
-              let updatedPath: AnyPath = { ...path, ...style };
-              if (updatedPath.tool === 'group') {
-                  updatedPath.children = (updatedPath as GroupData).children.map(child => applyStyleRecursively(child, style));
-              }
-              return updatedPath;
-          };
-          pathState.setPaths(prev => prev.map(p => selectedPathIds.includes(p.id) ? applyStyleRecursively(p, style) : p));
+          pathState.setPaths(prev => prev.map(p => selectedPathIds.includes(p.id) ? applyStyleToPath(p, style) : p));
       } else {
           Object.entries(style).forEach(([key, value]) => {
               if (value !== undefined) {

@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react';
-import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
+import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill, TextData } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 import { updateGradientStopColor } from '@/lib/gradient';
+import { measureTextDimensions, DEFAULT_TEXT_LINE_HEIGHT } from '@/lib/text';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -58,6 +59,10 @@ export const useToolbarState = (
   const { drawingShadowOffsetY, setDrawingShadowOffsetY } = P.useDrawingShadowOffsetY();
   const { drawingShadowBlur, setDrawingShadowBlur } = P.useDrawingShadowBlur();
   const { drawingShadowColor, setDrawingShadowColor } = P.useDrawingShadowColor();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
+  const { drawingTextLineHeight, setDrawingTextLineHeight } = P.useDrawingTextLineHeight();
 
   const pathActions = usePathActions({ paths, selectedPathIds, setPaths, beginCoalescing, endCoalescing });
 
@@ -184,6 +189,60 @@ export const useToolbarState = (
   const setShadowOffsetY = simpleSetter('shadowOffsetY', setDrawingShadowOffsetY);
   const setShadowBlur = simpleSetter('shadowBlur', setDrawingShadowBlur);
   const setShadowColor = simpleSetter('shadowColor', setDrawingShadowColor);
+  const computeTextSizing = (textPath: TextData, overrides: Partial<TextData>) => {
+    const nextFontFamily = overrides.fontFamily ?? textPath.fontFamily;
+    const nextFontSize = overrides.fontSize ?? textPath.fontSize;
+    const nextLineHeight = overrides.lineHeight ?? textPath.lineHeight ?? drawingTextLineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+    const { width, height } = measureTextDimensions(textPath.text, nextFontFamily, nextFontSize, nextLineHeight);
+    return {
+      fontFamily: nextFontFamily,
+      fontSize: nextFontSize,
+      lineHeight: nextLineHeight,
+      width: Math.max(width, nextFontSize * 2),
+      height: Math.max(height, nextFontSize * nextLineHeight),
+    } as Partial<TextData>;
+  };
+
+  const setFontFamily = (newFamily: string) => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(path => {
+        const textPath = path as TextData;
+        return computeTextSizing(textPath, { fontFamily: newFamily });
+      });
+    } else {
+      setDrawingFontFamily(newFamily);
+    }
+  };
+
+  const setFontSize = (newSize: number) => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(path => {
+        const textPath = path as TextData;
+        return computeTextSizing(textPath, { fontSize: newSize });
+      });
+    } else {
+      setDrawingFontSize(newSize);
+    }
+  };
+
+  const setTextAlign = (newAlign: TextData['textAlign']) => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(() => ({ textAlign: newAlign } as Partial<TextData>));
+    } else {
+      setDrawingTextAlign(newAlign);
+    }
+  };
+
+  const setTextLineHeight = (newLineHeight: number) => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(path => {
+        const textPath = path as TextData;
+        return computeTextSizing(textPath, { lineHeight: newLineHeight });
+      });
+    } else {
+      setDrawingTextLineHeight(newLineHeight);
+    }
+  };
 
   const setSides = (newSides: number) => {
     if (firstSelectedPath && firstSelectedPath.tool === 'polygon') {
@@ -240,6 +299,10 @@ export const useToolbarState = (
   const shadowOffsetY = displayValue('shadowOffsetY', drawingShadowOffsetY);
   const shadowBlur = displayValue('shadowBlur', drawingShadowBlur);
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
+  const fontFamily = displayValue('fontFamily', drawingFontFamily);
+  const fontSizeValue = displayValue('fontSize', drawingFontSize);
+  const textAlignValue = displayValue('textAlign', drawingTextAlign);
+  const textLineHeightValue = displayValue('lineHeight', drawingTextLineHeight);
   
   const firstSelectedRectImageOrPolygon = useMemo(() => {
     if (selectedPathIds.length !== 1) return null;
@@ -286,6 +349,10 @@ export const useToolbarState = (
     setDrawingShadowOffsetY(2);
     setDrawingShadowBlur(4);
     setDrawingShadowColor('rgba(0,0,0,0.5)');
+    setDrawingFontFamily('Excalifont, system-ui, sans-serif');
+    setDrawingFontSize(32);
+    setDrawingTextAlign('left');
+    setDrawingTextLineHeight(1.25);
     setTool('brush');
   }, [
     setDrawingColor, setDrawingFill, setDrawingFillGradient, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
@@ -294,7 +361,9 @@ export const useToolbarState = (
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
     setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
     setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
-    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
+    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor,
+    setDrawingFontFamily, setDrawingFontSize, setDrawingTextAlign, setDrawingTextLineHeight,
+    setTool
   ]);
 
   return {
@@ -331,6 +400,10 @@ export const useToolbarState = (
     shadowOffsetY, setShadowOffsetY,
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
+    fontFamily, setFontFamily,
+    fontSize: fontSizeValue, setFontSize,
+    textAlign: textAlignValue, setTextAlign,
+    textLineHeight: textLineHeightValue, setTextLineHeight,
     ...pathActions,
     firstSelectedPath,
     resetState,

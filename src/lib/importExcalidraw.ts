@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -13,6 +13,7 @@ import {
   DEFAULT_CURVE_STEP_COUNT,
 } from '@/constants';
 import { useFilesStore } from '@/context/filesStore';
+import { measureTextDimensions, DEFAULT_TEXT_LINE_HEIGHT } from '@/lib/text';
 
 interface ExcalidrawElement {
   type: string;
@@ -58,6 +59,12 @@ const sharedProps = (el: ExcalidrawElement) => ({
   opacity: el.opacity ?? 1,
   rotation: el.angle ?? 0,
 });
+
+const EXCALIDRAW_FONT_MAP: Record<string | number, string> = {
+  1: 'Virgil, system-ui, sans-serif',
+  2: 'Helvetica, Arial, sans-serif',
+  3: 'Cascadia Code, system-ui, monospace',
+};
 
 export async function importExcalidraw(json: string): Promise<AnyPath[]> {
   let data: any;
@@ -122,6 +129,32 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text' && typeof el.text === 'string') {
+      const fontSize = el.fontSize ?? 32;
+      const fontFamily = typeof el.fontFamily === 'string'
+        ? el.fontFamily
+        : EXCALIDRAW_FONT_MAP[el.fontFamily ?? ''] ?? 'Excalifont, system-ui, sans-serif';
+      const lineHeight = DEFAULT_TEXT_LINE_HEIGHT;
+      const textAlign = el.textAlign ?? 'left';
+      const { width, height } = measureTextDimensions(el.text, fontFamily, fontSize, lineHeight);
+      const textWidth = Math.max(width, fontSize * 2);
+      const textHeight = Math.max(height, fontSize * lineHeight);
+      const textPath: TextData = {
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: textWidth,
+        height: textHeight,
+        text: el.text,
+        fontSize,
+        fontFamily,
+        textAlign,
+        lineHeight,
+      };
+      textPath.fill = 'transparent';
+      textPath.strokeWidth = 0;
+      paths.push(textPath);
     }
   }
 

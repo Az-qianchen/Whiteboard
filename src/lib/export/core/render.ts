@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -11,6 +11,7 @@ import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
+import { DEFAULT_TEXT_LINE_HEIGHT } from '@/lib/text';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -101,7 +102,7 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     const capNodes: SVGElement[] = [];
 
         const isRough = data.isRough ?? true;
-        if (!isRough && data.tool !== 'image') {
+        if (!isRough && data.tool !== 'image' && data.tool !== 'text') {
             return createSmoothPathNode(data);
         }
 
@@ -215,6 +216,37 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 }
             } else if (data.tool === 'ellipse' || data.tool === 'rectangle' || data.tool === 'polygon' || data.tool === 'frame') {
                 node = renderRoughShape(rc, data as RectangleData | EllipseData | PolygonData | FrameData, options);
+            } else if (data.tool === 'text') {
+                const textData = data as TextData;
+                const textElement = document.createElementNS(SVG_NS, 'text');
+                const fontSize = textData.fontSize ?? 32;
+                const lineHeight = textData.lineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+                const textAlign = textData.textAlign ?? 'left';
+                let anchorX = textData.x;
+                if (textAlign === 'center') {
+                    anchorX += textData.width / 2;
+                } else if (textAlign === 'right') {
+                    anchorX += textData.width;
+                }
+                textElement.setAttribute('x', anchorX.toString());
+                textElement.setAttribute('y', textData.y.toString());
+                textElement.setAttribute('fill', textData.color ?? '#000');
+                textElement.setAttribute('font-size', fontSize.toString());
+                if (textData.fontFamily) {
+                    textElement.setAttribute('font-family', textData.fontFamily);
+                }
+                textElement.setAttribute('text-anchor', textAlign === 'center' ? 'middle' : textAlign === 'right' ? 'end' : 'start');
+                textElement.setAttribute('dominant-baseline', 'hanging');
+                textElement.setAttribute('xml:space', 'preserve');
+                const lines = textData.text.replace(/\r\n/g, '\n').split('\n');
+                lines.forEach((line, index) => {
+                    const tspan = document.createElementNS(SVG_NS, 'tspan');
+                    tspan.setAttribute('x', anchorX.toString());
+                    tspan.setAttribute('dy', index === 0 ? '0' : String(fontSize * lineHeight));
+                    tspan.textContent = line || ' ';
+                    textElement.appendChild(tspan);
+                });
+                node = textElement;
             }
         }
     
@@ -266,8 +298,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame' || data.tool === 'text')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }

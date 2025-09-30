@@ -2,7 +2,7 @@
  * 本文件定义了画布的覆盖层组件。
  * 它包含了所有绝对定位在画布上方的UI元素，如工具栏、菜单和对话框。
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
@@ -15,9 +15,10 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
-import type { AnyPath, MaterialData } from '@/types';
+import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { DEFAULT_TEXT_LINE_HEIGHT, measureTextDimensions } from '@/lib/text';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -39,6 +40,7 @@ export const CanvasOverlays: React.FC = () => {
         gridOpacity,
         setGridOpacity,
         paths,
+        activePaths,
         groupIsolationPath,
         handleJumpToGroup,
         selectedPathIds,
@@ -111,7 +113,69 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        viewTransform: viewState,
+        textEditor,
+        commitTextEditing,
+        cancelTextEditing,
     } = store;
+
+    const [editingTextValue, setEditingTextValue] = useState('');
+
+    const editingPath = useMemo(() => {
+        if (!textEditor) return null;
+        const path = activePaths.find((p: AnyPath) => p.id === textEditor.pathId);
+        if (!path || path.tool !== 'text') return null;
+        return path as TextData;
+    }, [textEditor, activePaths]);
+
+    useEffect(() => {
+        if (editingPath) {
+            setEditingTextValue(editingPath.text);
+        } else {
+            setEditingTextValue('');
+        }
+    }, [editingPath]);
+
+    const editingOverlay = useMemo(() => {
+        if (!editingPath) return null;
+        const { scale, translateX, translateY } = viewState.viewTransform;
+        const baseFontSize = editingPath.fontSize ?? 32;
+        const baseLineHeight = editingPath.lineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+        const { width: measuredWidth, height: measuredHeight } = measureTextDimensions(
+            editingTextValue,
+            editingPath.fontFamily,
+            baseFontSize,
+            baseLineHeight,
+        );
+        const logicalWidth = Math.max(baseFontSize * 2, measuredWidth);
+        const logicalHeight = Math.max(baseFontSize * baseLineHeight, measuredHeight);
+        return {
+            left: translateX + editingPath.x * scale,
+            top: translateY + editingPath.y * scale,
+            width: logicalWidth * scale,
+            height: logicalHeight * scale,
+            fontSize: baseFontSize * scale,
+            lineHeight: baseFontSize * baseLineHeight * scale,
+            textAlign: editingPath.textAlign ?? 'left',
+            scale,
+            fontFamily: editingPath.fontFamily,
+        };
+    }, [editingPath, viewState.viewTransform, editingTextValue]);
+
+    const handleTextCommit = useCallback(() => {
+        if (!editingPath) return;
+        commitTextEditing(editingTextValue);
+    }, [editingPath, commitTextEditing, editingTextValue]);
+
+    const handleTextKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+            event.preventDefault();
+            handleTextCommit();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelTextEditing();
+        }
+    }, [handleTextCommit, cancelTextEditing]);
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);
@@ -173,6 +237,48 @@ export const CanvasOverlays: React.FC = () => {
                 <Toolbar tool={tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} gridSubdivisions={gridSubdivisions} setGridSubdivisions={setGridSubdivisions} gridOpacity={gridOpacity} setGridOpacity={setGridOpacity} />
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}
             </div>
+
+            {editingOverlay && editingPath && (
+                <div className="absolute inset-0 z-40 pointer-events-none">
+                    <div
+                        className="absolute pointer-events-auto"
+                        style={{ left: editingOverlay.left, top: editingOverlay.top, width: editingOverlay.width }}
+                    >
+                        <textarea
+                            value={editingTextValue}
+                            onChange={(event) => setEditingTextValue(event.target.value)}
+                            onKeyDown={handleTextKeyDown}
+                            autoFocus
+                            spellCheck={false}
+                            className="w-full min-h-0 resize-none rounded-md border border-[var(--accent-primary)] bg-[var(--ui-panel-bg)]/95 text-[var(--text-primary)] shadow-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                            style={{
+                                minHeight: editingOverlay.height,
+                                fontSize: `${editingOverlay.fontSize}px`,
+                                lineHeight: `${editingOverlay.lineHeight}px`,
+                                fontFamily: editingOverlay.fontFamily,
+                                textAlign: editingOverlay.textAlign,
+                                padding: `${8 * editingOverlay.scale}px`,
+                            }}
+                        />
+                        <div className="mt-2 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={cancelTextEditing}
+                                className="rounded-md bg-[var(--ui-element-bg)] px-3 py-1 text-sm text-[var(--text-secondary)] shadow focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                            >
+                                {t('cancel')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleTextCommit}
+                                className="rounded-md bg-[var(--accent-primary)] px-3 py-1 text-sm text-white shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-primary)] focus:ring-offset-[var(--ui-panel-bg)]"
+                            >
+                                {t('confirm')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {tool === 'selection' && !croppingState && (
                 <div
