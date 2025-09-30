@@ -27,10 +27,15 @@ const computeSnapContext = (
   current: Point,
   snapFn: (point: Point) => Point,
 ) => {
-  const initialSnapped = snapFn(initial);
   const snapped = snapFn(current);
-  const snapX = Math.abs(snapped.x - initialSnapped.x) > SNAP_EPSILON;
-  const snapY = Math.abs(snapped.y - initialSnapped.y) > SNAP_EPSILON;
+
+  const deltaX = current.x - initial.x;
+  const deltaY = current.y - initial.y;
+  const movedX = Math.abs(deltaX) > SNAP_EPSILON;
+  const movedY = Math.abs(deltaY) > SNAP_EPSILON;
+
+  const snapX = movedX && Math.abs(snapped.x - current.x) > SNAP_EPSILON;
+  const snapY = movedY && Math.abs(snapped.y - current.y) > SNAP_EPSILON;
 
   return {
     snapped,

@@ -234,4 +234,63 @@ describe('handlePointerMoveLogic grid snapping tolerance', () => {
     expect(resizedRect.x).toBe(baseRect.x);
     expect(resizedRect.width).toBe(baseRect.width);
   });
+
+  it('snaps moved selections once the pointer actually shifts position', () => {
+    const baseRect = { ...createRectangle(), x: 3, y: 6, width: 50, height: 40 };
+    let currentPaths: AnyPath[] = [baseRect];
+    let dragState: DragState = {
+      type: 'move',
+      pathIds: ['rect-1'],
+      originalPaths: [baseRect],
+      initialPointerPos: { x: 13, y: 26 },
+      initialSelectionBbox: { x: baseRect.x, y: baseRect.y, width: baseRect.width, height: baseRect.height },
+      axisLock: null,
+    };
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    const setDragState: Dispatch<SetStateAction<DragState>> = updater => {
+      dragState = typeof updater === 'function'
+        ? (updater as (prev: DragState) => DragState)(dragState)
+        : updater;
+    };
+
+    const movePathSpy = vi.spyOn(DrawingLib, 'movePath');
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      callback(0);
+      return 1;
+    });
+
+    handlePointerMoveLogic({
+      e: { shiftKey: false } as ReactPointerEvent<SVGSVGElement>,
+      movePoint: { x: 12, y: 26 },
+      dragState,
+      setDragState,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingFn,
+      setCurrentCropRect: noop,
+    });
+
+    expect(movePathSpy).toHaveBeenCalled();
+    const lastCall = movePathSpy.mock.calls.at(-1);
+    expect(lastCall?.[1]).toBe(-3);
+    expect(lastCall?.[2]).toBe(0);
+
+    rafSpy.mockRestore();
+    movePathSpy.mockRestore();
+
+  });
 });
