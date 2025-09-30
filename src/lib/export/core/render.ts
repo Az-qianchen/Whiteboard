@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -100,6 +100,45 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     let node: SVGElement | null = null;
     const capNodes: SVGElement[] = [];
 
+    if (data.tool === 'text') {
+        const textData = data as TextData;
+        const textElement = document.createElementNS(SVG_NS, 'text');
+        const anchor = textData.textAlign ?? 'left';
+        const anchorAttr = anchor === 'center' ? 'middle' : anchor === 'right' ? 'end' : 'start';
+        let anchorX = textData.x;
+        if (anchor === 'center') {
+            anchorX += textData.width / 2;
+        } else if (anchor === 'right') {
+            anchorX += textData.width;
+        }
+        textElement.setAttribute('x', anchorX.toString());
+        textElement.setAttribute('y', textData.y.toString());
+        textElement.setAttribute('fill', textData.color || '#000');
+        textElement.setAttribute('font-size', textData.fontSize.toString());
+        textElement.setAttribute('font-family', textData.fontFamily);
+        textElement.setAttribute('text-anchor', anchorAttr);
+        textElement.setAttribute('dominant-baseline', 'text-before-edge');
+        textElement.setAttribute('xml:space', 'preserve');
+
+        const lines = textData.text.split(/\r?\n/);
+        lines.forEach((line, index) => {
+            const tspan = document.createElementNS(SVG_NS, 'tspan');
+            tspan.setAttribute('x', anchorX.toString());
+            if (index === 0) {
+                tspan.setAttribute('dy', '0');
+            } else {
+                tspan.setAttribute('dy', (textData.lineHeight || textData.fontSize).toString());
+            }
+            tspan.textContent = line || ' ';
+            textElement.appendChild(tspan);
+        });
+
+        if (textData.opacity !== undefined && textData.opacity < 1) {
+            textElement.setAttribute('opacity', String(textData.opacity));
+        }
+
+        node = textElement;
+    } else {
         const isRough = data.isRough ?? true;
         if (!isRough && data.tool !== 'image') {
             return createSmoothPathNode(data);
@@ -217,7 +256,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 node = renderRoughShape(rc, data as RectangleData | EllipseData | PolygonData | FrameData, options);
             }
         }
-    
+    }
+
     if (!node) return null;
 
     const pathIsVector = data.tool === 'pen' || data.tool === 'line';
@@ -266,8 +306,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame' || data.tool === 'text')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }
