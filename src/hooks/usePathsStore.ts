@@ -17,6 +17,7 @@ type PathsState = ReturnType<typeof usePathsStoreBase.getState>;
 const selector = (state: PathsState) => ({
   frames: state.frames,
   currentFrameIndex: state.currentFrameIndex,
+  revision: state.revision,
   setCurrentFrameIndex: state.setCurrentFrameIndex,
   setPaths: state.setPaths,
   handleLoadFile: state.handleLoadFile,
@@ -43,6 +44,7 @@ export const usePathsStore = () => {
   const {
     frames,
     currentFrameIndex,
+    revision,
     setCurrentFrameIndex,
     setPaths: setPathsFromStore,
     handleLoadFile,
@@ -175,6 +177,7 @@ export const usePathsStore = () => {
     () => ({
       frames,
       currentFrameIndex,
+      revision,
       setCurrentFrameIndex,
       paths,
       setPaths,

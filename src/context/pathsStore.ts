@@ -11,6 +11,7 @@ import {
 import { useFilesStore } from './filesStore';
 
 type FrameState = { frames: Frame[]; currentFrameIndex: number };
+type RevisionedFrameState = FrameState & { revision: number };
 
 const createFrameId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -103,13 +104,14 @@ const migratePathImages = async (frames: FrameInput[]): Promise<FrameInput[]> =>
 };
 
 interface PathsStore extends FrameState {
+  revision: number;
   // History
-  past: FrameState[];
-  future: FrameState[];
+  past: RevisionedFrameState[];
+  future: RevisionedFrameState[];
   coalescing: boolean;
 
   // Core setters
-  setFramesState: (updater: FrameState | ((prev: FrameState) => FrameState)) => void;
+  setFramesState: (updater: FrameState | ((prev: RevisionedFrameState) => FrameState)) => void;
   setCurrentFrameIndex: (updater: number | ((prev: number) => number)) => void;
   setPaths: (updater: React.SetStateAction<AnyPath[]>) => void;
 
@@ -142,23 +144,44 @@ export const usePathsStore = create<PathsStore>()(
       past: [],
       future: [],
       coalescing: false,
+      revision: 0,
 
       setFramesState: (updater) => {
         let didChange = false;
         set((state) => {
-          const current: FrameState = { frames: state.frames, currentFrameIndex: state.currentFrameIndex };
-          const next = typeof updater === 'function' ? (updater as (prev: FrameState) => FrameState)(current) : updater;
-          if (next.frames === state.frames && next.currentFrameIndex === state.currentFrameIndex) return {};
+          const current: RevisionedFrameState = {
+            frames: state.frames,
+            currentFrameIndex: state.currentFrameIndex,
+            revision: state.revision,
+          };
+          const nextBase =
+            typeof updater === 'function'
+              ? (updater as (prev: RevisionedFrameState) => FrameState)(current)
+              : updater;
+          const framesChanged = nextBase.frames !== state.frames;
+          const indexChanged = nextBase.currentFrameIndex !== state.currentFrameIndex;
+          if (!framesChanged && !indexChanged) return {};
+          const nextRevision = framesChanged ? state.revision + 1 : state.revision;
+          const next: RevisionedFrameState = {
+            frames: nextBase.frames,
+            currentFrameIndex: nextBase.currentFrameIndex,
+            revision: nextRevision,
+          };
           if (state.coalescing) {
-            didChange = true;
-            return { frames: next.frames, currentFrameIndex: next.currentFrameIndex };
+            didChange = framesChanged;
+            return {
+              frames: next.frames,
+              currentFrameIndex: next.currentFrameIndex,
+              revision: next.revision,
+            };
           }
-          didChange = true;
+          didChange = framesChanged;
           return {
             past: [...state.past, current],
             frames: next.frames,
             currentFrameIndex: next.currentFrameIndex,
             future: [],
+            revision: next.revision,
           };
         });
         if (didChange) {
@@ -287,13 +310,18 @@ export const usePathsStore = create<PathsStore>()(
           if (state.past.length === 0) return {};
           const previous = state.past[state.past.length - 1];
           const newPast = state.past.slice(0, -1);
-          const present: FrameState = { frames: state.frames, currentFrameIndex: state.currentFrameIndex };
+          const present: RevisionedFrameState = {
+            frames: state.frames,
+            currentFrameIndex: state.currentFrameIndex,
+            revision: state.revision,
+          };
           changed = true;
           return {
             past: newPast,
             frames: previous.frames,
             currentFrameIndex: previous.currentFrameIndex,
             future: [present, ...state.future],
+            revision: previous.revision,
           };
         });
         if (changed) {
@@ -307,13 +335,18 @@ export const usePathsStore = create<PathsStore>()(
           if (state.future.length === 0) return {};
           const next = state.future[0];
           const newFuture = state.future.slice(1);
-          const present: FrameState = { frames: state.frames, currentFrameIndex: state.currentFrameIndex };
+          const present: RevisionedFrameState = {
+            frames: state.frames,
+            currentFrameIndex: state.currentFrameIndex,
+            revision: state.revision,
+          };
           changed = true;
           return {
             past: [...state.past, present],
             frames: next.frames,
             currentFrameIndex: next.currentFrameIndex,
             future: newFuture,
+            revision: next.revision,
           };
         });
         if (changed) {
@@ -352,8 +385,12 @@ export const useCanUndo = () => usePathsStore((s) => s.past.length > 0);
 export const useCanRedo = () => usePathsStore((s) => s.future.length > 0);
 export const useBeginCoalescing = () => usePathsStore((state) => () => {
   if (!state.coalescing) {
-    const { frames, currentFrameIndex, past } = state;
-    usePathsStore.setState({ past: [...past, { frames, currentFrameIndex }], future: [], coalescing: true });
+    const { frames, currentFrameIndex, past, revision } = state;
+    usePathsStore.setState({
+      past: [...past, { frames, currentFrameIndex, revision }],
+      future: [],
+      coalescing: true,
+    });
   }
 });
 export const useEndCoalescing = () => usePathsStore(() => () => usePathsStore.setState({ coalescing: false }));
