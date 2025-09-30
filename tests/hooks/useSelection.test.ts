@@ -160,6 +160,7 @@ describe('useSelection', () => {
       expect.objectContaining({
         e: event,
         point: { x: 16, y: 27 },
+        snapToGrid: expect.any(Function),
         pathState: expect.objectContaining({ paths: currentPaths }),
       })
     );

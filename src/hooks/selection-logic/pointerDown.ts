@@ -160,6 +160,7 @@ const handlePointerDownForLasso = (
 interface HandlePointerDownProps {
   e: React.PointerEvent<SVGSVGElement>;
   point: Point;
+  snapToGrid: (point: Point) => Point;
   setDragState: Dispatch<SetStateAction<DragState>>;
   setMarquee: Dispatch<SetStateAction<{ start: Point; end: Point } | null>>;
   setLassoPath: Dispatch<SetStateAction<Point[] | null>>;
@@ -179,11 +180,13 @@ interface HandlePointerDownProps {
  * @param props - 包含事件对象、状态和设置器的对象。
  */
 export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
-    const { e, point, setDragState, pathState, toolbarState, viewTransform, onDoubleClick, lastClickRef, croppingState, currentCropRect, cropTool, onMagicWandSample } = props;
+    const { e, point, snapToGrid, setDragState, pathState, toolbarState, viewTransform, onDoubleClick, lastClickRef, croppingState, currentCropRect, cropTool, onMagicWandSample } = props;
     const { paths, setPaths, selectedPathIds, beginCoalescing, endCoalescing, setSelectedPathIds } = pathState;
     const { selectionMode } = toolbarState;
     const { viewTransform: vt } = viewTransform;
     const target = e.target as SVGElement;
+
+    const snappedPoint = snapToGrid(point);
 
     const handle = target.dataset.handle as ResizeHandlePosition | 'rotate' | 'border-radius' | 'arc' | undefined;
     const type = target.dataset.type as 'anchor' | 'handleIn' | 'handleOut' | undefined;
@@ -205,7 +208,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                 handle: handle as ResizeHandlePosition,
                 initialCropRect: currentCropRect,
                 originalImage: croppingState.originalPath,
-                initialPointerPos: point,
+                initialPointerPos: snappedPoint,
             });
         }
         // Any other click (on another shape, empty space, etc.) does nothing.
@@ -247,13 +250,13 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
 
                 if (isSimpleShape) {
                     if (e.ctrlKey || e.metaKey) {
-                        setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
+                        setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path as any, initialPointerPos: snappedPoint });
                     } else {
-                        setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
+                        setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as any, initialPointerPos: snappedPoint });
                     }
                 } else {
                     if (!bbox) { endCoalescing(); return; }
-                    setDragState({ type: 'scale', pathIds: selectedPathIds, handle, originalPaths: selected, initialPointerPos: point, initialSelectionBbox: bbox });
+                    setDragState({ type: 'scale', pathIds: selectedPathIds, handle, originalPaths: selected, initialPointerPos: snappedPoint, initialSelectionBbox: bbox });
                 }
             }
         } else if (selectionMode === 'edit') {
