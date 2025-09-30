@@ -8,3 +8,4 @@ export * from './DashControl';
 export * from './shared';
 export * from './StyleLibraryPopover';
 export * from './EffectsPopover';
+export * from './TextControls';

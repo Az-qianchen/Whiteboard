@@ -11,7 +11,7 @@ import type { HsvAdjustment } from '@/lib/image';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 
-import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, EffectsPopover, GradientFillPopover } from './side-toolbar';
+import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, EffectsPopover, GradientFillPopover, TextControls } from './side-toolbar';
 import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
 
 interface SideToolbarProps {
@@ -24,6 +24,12 @@ interface SideToolbarProps {
   setFillGradient: (gradient: GradientFill | null) => void;
   fillStyle: string;
   setFillStyle: (style: string) => void;
+  fontFamily: string;
+  setFontFamily: (family: string) => void;
+  fontSize: number;
+  setFontSize: (size: number) => void;
+  textAlign: 'left' | 'center' | 'right';
+  setTextAlign: (align: 'left' | 'center' | 'right') => void;
   strokeWidth: number;
   setStrokeWidth: (width: number) => void;
   strokeLineDash: [number, number] | undefined;
@@ -101,6 +107,9 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     fill, setFill,
     fillGradient, setFillGradient,
     fillStyle, setFillStyle,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
     firstSelectedPath,
     beginCoalescing, endCoalescing,
     onToggleStyleLibrary,
@@ -140,6 +149,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
   const isGradientActive = !!fillGradient;
+  const showTextControls = !isFrameSelected && (firstSelectedPath?.tool === 'text' || tool === 'text');
 
   return (
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-1.5 flex flex-col items-center gap-1.5 text-[var(--text-primary)]">
@@ -201,6 +211,19 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
       {!isFrameSelected && (
         <>
+          {showTextControls && (
+            <TextControls
+              fontFamily={fontFamily}
+              setFontFamily={setFontFamily}
+              fontSize={fontSize}
+              setFontSize={setFontSize}
+              textAlign={textAlign}
+              setTextAlign={setTextAlign}
+              beginCoalescing={beginCoalescing}
+              endCoalescing={endCoalescing}
+            />
+          )}
+
           <ColorControl
               label={strokeColorLabel}
             color={color}

@@ -29,6 +29,24 @@ export const useDrawingFillStyle = () => {
   return { drawingFillStyle, setDrawingFillStyle };
 };
 
+export const useDrawingFontFamily = () => {
+  const drawingFontFamily = useToolbarStore(s => s.drawingFontFamily);
+  const setDrawingFontFamily = useToolbarStore(s => s.setDrawingFontFamily);
+  return { drawingFontFamily, setDrawingFontFamily };
+};
+
+export const useDrawingFontSize = () => {
+  const drawingFontSize = useToolbarStore(s => s.drawingFontSize);
+  const setDrawingFontSize = useToolbarStore(s => s.setDrawingFontSize);
+  return { drawingFontSize, setDrawingFontSize };
+};
+
+export const useDrawingTextAlign = () => {
+  const drawingTextAlign = useToolbarStore(s => s.drawingTextAlign);
+  const setDrawingTextAlign = useToolbarStore(s => s.setDrawingTextAlign);
+  return { drawingTextAlign, setDrawingTextAlign };
+};
+
 export const useDrawingStrokeWidth = () => {
   const drawingStrokeWidth = useToolbarStore(s => s.drawingStrokeWidth);
   const setDrawingStrokeWidth = useToolbarStore(s => s.setDrawingStrokeWidth);

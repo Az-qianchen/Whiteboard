@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '@/constants';
 import type { EndpointStyle, GradientFill } from '@/types';
+import { DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_ALIGN } from '@/lib/text';
 
 export interface ToolbarState {
   drawingColor: string;
@@ -15,6 +16,15 @@ export interface ToolbarState {
 
   drawingFillStyle: string;
   setDrawingFillStyle: (v: string) => void;
+
+  drawingFontFamily: string;
+  setDrawingFontFamily: (v: string) => void;
+
+  drawingFontSize: number;
+  setDrawingFontSize: (v: number) => void;
+
+  drawingTextAlign: 'left' | 'center' | 'right';
+  setDrawingTextAlign: (v: 'left' | 'center' | 'right') => void;
 
   drawingStrokeWidth: number;
   setDrawingStrokeWidth: (v: number) => void;
@@ -109,6 +119,15 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingFillStyle: 'hachure',
       setDrawingFillStyle: (v) => set({ drawingFillStyle: v }),
+
+      drawingFontFamily: DEFAULT_TEXT_FONT_FAMILY,
+      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
+
+      drawingFontSize: DEFAULT_TEXT_FONT_SIZE,
+      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
+
+      drawingTextAlign: DEFAULT_TEXT_ALIGN,
+      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
 
       drawingStrokeWidth: 8,
       setDrawingStrokeWidth: (v) => set({ drawingStrokeWidth: v }),

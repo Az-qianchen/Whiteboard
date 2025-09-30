@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react';
-import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
+import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill, TextData } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
 import * as P from './toolbar-state/property-hooks';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '../constants';
 import { updateGradientStopColor } from '@/lib/gradient';
+import { applyTextMetrics, getTextAnchor, DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_ALIGN } from '@/lib/text';
 
 /**
  * 自定义钩子，用于管理所有与工具栏相关的状态。
@@ -32,6 +33,9 @@ export const useToolbarState = (
   const { drawingFill, setDrawingFill } = P.useDrawingFill();
   const { drawingFillGradient, setDrawingFillGradient } = P.useDrawingFillGradient();
   const { drawingFillStyle, setDrawingFillStyle } = P.useDrawingFillStyle();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
   const { drawingStrokeWidth, setDrawingStrokeWidth } = P.useDrawingStrokeWidth();
   const { drawingOpacity, setDrawingOpacity } = P.useDrawingOpacity();
   const { drawingSides, setDrawingSides } = P.useDrawingSides();
@@ -70,7 +74,7 @@ export const useToolbarState = (
 
   const updateSelectedPaths = (updater: (path: AnyPath) => Partial<AnyPath>) => {
     if (selectedPathIds.length === 0) return;
-    
+
     const applyRecursiveUpdate = (path: AnyPath, propsToUpdate: Partial<AnyPath>): AnyPath => {
       let finalProps = { ...propsToUpdate };
       // Prevent applying non-applicable props to certain shapes
@@ -96,6 +100,18 @@ export const useToolbarState = (
           return applyRecursiveUpdate(p, updatedProps);
         }
         return p;
+      })
+    );
+  };
+
+  const updateSelectedTextPaths = (updater: (path: TextData) => TextData) => {
+    if (selectedPathIds.length === 0) return;
+    setPaths(prevPaths =>
+      prevPaths.map(p => {
+        if (!selectedPathIds.includes(p.id) || p.tool !== 'text') {
+          return p;
+        }
+        return updater(p as TextData);
       })
     );
   };
@@ -141,6 +157,28 @@ export const useToolbarState = (
         setDrawingFillGradient(updateGradientStopColor(drawingFillGradient, 0, newValue));
       }
     }
+  };
+
+  const setFontFamily = (newFamily: string) => {
+    if (selectedPaths.some(path => path.tool === 'text')) {
+      updateSelectedTextPaths(path => applyTextMetrics(path, { fontFamily: newFamily, anchor: getTextAnchor(path) }));
+    }
+    setDrawingFontFamily(newFamily);
+  };
+
+  const setFontSize = (newSize: number) => {
+    const safeSize = Number.isFinite(newSize) ? Math.max(1, newSize) : 1;
+    if (selectedPaths.some(path => path.tool === 'text')) {
+      updateSelectedTextPaths(path => applyTextMetrics(path, { fontSize: safeSize, anchor: getTextAnchor(path) }));
+    }
+    setDrawingFontSize(safeSize);
+  };
+
+  const setTextAlign = (align: 'left' | 'center' | 'right') => {
+    if (selectedPaths.some(path => path.tool === 'text')) {
+      updateSelectedTextPaths(path => applyTextMetrics(path, { textAlign: align, anchor: getTextAnchor(path) }));
+    }
+    setDrawingTextAlign(align);
   };
 
   const setFillGradient = (gradient: GradientFill | null) => {
@@ -215,6 +253,15 @@ export const useToolbarState = (
   const fill = displayValue('fill', drawingFill);
   const fillStyle = displayValue('fillStyle', drawingFillStyle);
   const fillGradient = displayValue('fillGradient', drawingFillGradient);
+  const fontFamily = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).fontFamily
+    : drawingFontFamily;
+  const fontSize = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).fontSize
+    : drawingFontSize;
+  const textAlign = firstSelectedPath?.tool === 'text'
+    ? (firstSelectedPath as TextData).textAlign
+    : drawingTextAlign;
   const strokeWidth = displayValue('strokeWidth', drawingStrokeWidth);
   const strokeLineDash = displayValue('strokeLineDash', drawingStrokeLineDash);
   const strokeLineCapStart = displayValue('strokeLineCapStart', drawingStrokeLineCapStart);
@@ -260,6 +307,9 @@ export const useToolbarState = (
     setDrawingFill('transparent');
     setDrawingFillGradient(null);
     setDrawingFillStyle('hachure');
+    setDrawingFontFamily(DEFAULT_TEXT_FONT_FAMILY);
+    setDrawingFontSize(DEFAULT_TEXT_FONT_SIZE);
+    setDrawingTextAlign(DEFAULT_TEXT_ALIGN);
     setDrawingStrokeWidth(8);
     setDrawingOpacity(1);
     setDrawingSides(6);
@@ -304,6 +354,9 @@ export const useToolbarState = (
     fill, setFill,
     fillGradient, setFillGradient,
     fillStyle, setFillStyle,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign,
     strokeWidth, setStrokeWidth,
     strokeLineDash, setStrokeLineDash,
     strokeLineCapStart, setStrokeLineCapStart,
