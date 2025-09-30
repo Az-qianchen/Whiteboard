@@ -11,6 +11,7 @@ import { useAppContext } from '@/context/AppContext';
 import { LayerItem } from './LayerItem';
 import PanelButton from '@/components/PanelButton';
 import { withLayerIconSize } from './constants';
+import { findPathById } from '@/lib/pathTree';
 
 export const LayersPanel: React.FC = () => {
   const { paths, selectedPathIds, reorderPaths, handleDeletePaths, setPaths, setSelectedPathIds } = useLayers();
@@ -98,17 +99,6 @@ export const LayersPanel: React.FC = () => {
     setDraggedId(id);
   };
 
-  const findPath = (paths: AnyPath[], id: string): AnyPath | null => {
-    for (const p of paths) {
-        if (p.id === id) return p;
-        if (p.tool === 'group') {
-            const found = findPath((p as GroupData).children, id);
-            if (found) return found;
-        }
-    }
-    return null;
-  }
-
   const handleItemDragOver = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -117,7 +107,7 @@ export const LayersPanel: React.FC = () => {
     const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
-    const targetPath = findPath(paths, targetId);
+    const targetPath = findPathById(paths, targetId);
     
     let position: 'above' | 'below' | 'inside';
     const threshold = height * 0.4;

@@ -7,6 +7,7 @@ import { useAppContext } from '@/context/AppContext';
 import { MainMenu } from '../MainMenu';
 import type { AnyPath } from '@/types';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { collectPathsByIds } from '@/lib/pathTree';
 
 export const MainMenuPanel: React.FC = () => {
     const {
@@ -74,7 +75,7 @@ export const MainMenuPanel: React.FC = () => {
                 }
             }
         } else if (selectedPathIds.length > 1) {
-            const selectedPaths = paths.filter((p: AnyPath) => selectedPathIds.includes(p.id));
+            const selectedPaths = collectPathsByIds(paths, selectedPathIds);
             const bbox = getPathsBoundingBox(selectedPaths, false);
             if (bbox) {
                 return {

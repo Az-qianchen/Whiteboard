@@ -9,6 +9,7 @@ import rough from 'roughjs/bin/rough';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { AnyPath, VectorPathData, LivePath, Point, DrawingShape, Tool, DragState, SelectionMode, ImageData, BBox } from '@/types';
 import { getPointerPosition } from '@/lib/utils';
+import { collectPathsByIds } from '@/lib/pathTree';
 import { useViewTransformStore } from '@/context/viewTransformStore';
 
 // Import new sub-components
@@ -150,9 +151,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   };
 
   // 记忆化计算选中的路径，以避免不必要的重渲染
-  const selectedPaths = useMemo(() => {
-    return paths.filter(p => selectedPathIds.includes(p.id));
-  }, [paths, selectedPathIds]);
+  const selectedPaths = useMemo(
+    () => collectPathsByIds(paths, selectedPathIds),
+    [paths, selectedPathIds],
+  );
   
   // 记忆化计算可见的路径，仅排除显式隐藏的路径
   const visiblePaths = useMemo(() => paths.filter(p => p.isVisible !== false), [paths]);
