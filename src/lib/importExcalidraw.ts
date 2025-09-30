@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -13,6 +13,7 @@ import {
   DEFAULT_CURVE_STEP_COUNT,
 } from '@/constants';
 import { useFilesStore } from '@/context/filesStore';
+import { measureTextBounds, DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT } from '@/lib/text';
 
 interface ExcalidrawElement {
   type: string;
@@ -122,6 +123,46 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text' && typeof el.text === 'string') {
+      const fontSize = el.fontSize ?? DEFAULT_TEXT_FONT_SIZE;
+      const fontFamily = typeof el.fontFamily === 'string' ? String(el.fontFamily) : DEFAULT_TEXT_FONT_FAMILY;
+      const lineHeight = DEFAULT_TEXT_LINE_HEIGHT;
+      const bounds = measureTextBounds(el.text, fontSize, fontFamily, lineHeight);
+      paths.push({
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: el.width ?? bounds.width,
+        height: el.height ?? bounds.height,
+        text: el.text,
+        fontSize,
+        fontFamily,
+        textAlign: el.textAlign ?? 'left',
+        lineHeight,
+        color: el.strokeColor ?? '#000000',
+        opacity: el.opacity ?? 1,
+        fill: 'transparent',
+        fillGradient: null,
+        fillStyle: 'solid',
+        strokeWidth: 0,
+        isRough: false,
+        roughness: 0,
+        bowing: 0,
+        fillWeight: 0,
+        hachureAngle: 0,
+        hachureGap: 0,
+        curveTightness: 0,
+        curveStepCount: 0,
+        disableMultiStroke: true,
+        disableMultiStrokeFill: true,
+        blur: 0,
+        shadowEnabled: false,
+        shadowOffsetX: 0,
+        shadowOffsetY: 0,
+        shadowBlur: 0,
+        shadowColor: 'rgba(0,0,0,0)',
+      } as TextData);
     }
   }
 
