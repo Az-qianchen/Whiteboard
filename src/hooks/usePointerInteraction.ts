@@ -29,6 +29,7 @@ interface PointerInteractionProps {
   };
   drawingInteraction: InteractionHandlers;
   selectionInteraction: InteractionHandlers;
+  textInteraction?: InteractionHandlers;
   paths: AnyPath[];
   setStrokeColor: (color: string) => void;
   setFillColor: (color: string) => void;
@@ -45,6 +46,7 @@ export const usePointerInteraction = ({
   viewTransform,
   drawingInteraction,
   selectionInteraction,
+  textInteraction,
   paths,
   setStrokeColor,
   setFillColor,
@@ -53,6 +55,13 @@ export const usePointerInteraction = ({
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
+  const noopHandlers: InteractionHandlers = {
+    onPointerDown: () => {},
+    onPointerMove: () => {},
+    onPointerUp: () => {},
+    onPointerLeave: () => {},
+  };
+  const textHandlers = textInteraction ?? noopHandlers;
 
   // 处理指针按下
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -126,6 +135,8 @@ export const usePointerInteraction = ({
 
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
+    } else if (tool === 'text') {
+      textHandlers.onPointerDown(e);
     } else {
       drawingInteraction.onPointerDown(e);
     }
@@ -144,6 +155,8 @@ export const usePointerInteraction = ({
 
     if (tool === 'selection') {
       selectionInteraction.onPointerMove(e);
+    } else if (tool === 'text') {
+      textHandlers.onPointerMove(e);
     } else {
       drawingInteraction.onPointerMove(e);
     }
@@ -165,11 +178,13 @@ export const usePointerInteraction = ({
 
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
+    } else if (tool === 'text') {
+      textHandlers.onPointerUp(e);
     } else {
       drawingInteraction.onPointerUp(e);
     }
   };
-  
+
   // 处理指针离开画布
   const onPointerLeave = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.pointerType === 'touch') {
@@ -183,9 +198,11 @@ export const usePointerInteraction = ({
       setIsPanning(false);
       return;
     }
-    
+
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
+    } else if (tool === 'text') {
+      textHandlers.onPointerLeave(e);
     } else {
       drawingInteraction.onPointerLeave(e);
     }

@@ -18,9 +18,10 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
 import { normalizeFrames, createFrame, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
+import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT, measureTextBlock, normalizeFontFamily, getTextAnchorPoint } from '@/lib/text';
 
 import {
   removeBackground,
@@ -45,6 +46,20 @@ type ConfirmationDialogState = {
   onConfirm: () => void | Promise<void>;
   confirmButtonText?: string;
 } | null;
+
+type TextEditorState = {
+  id: string | null;
+  mode: 'create' | 'edit';
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  textAlign: 'left' | 'center' | 'right';
+  lineHeight: number;
+  anchor: Point;
+  color: string;
+  opacity: number;
+  baseStyle: Partial<TextData>;
+};
 
 const mapWorldPointToImagePixel = (
   point: Point,
@@ -337,6 +352,15 @@ export const useAppStore = () => {
   const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
   const cropManualDraftRef = useRef<CropManualDraft | null>(null);
+  const [textEditor, setTextEditorRaw] = useState<TextEditorState | null>(null);
+  const textEditorRef = useRef<TextEditorState | null>(null);
+  const setTextEditorState = useCallback((value: TextEditorState | null | ((prev: TextEditorState | null) => TextEditorState | null)) => {
+    setTextEditorRaw(prev => {
+      const next = typeof value === 'function' ? (value as (prev: TextEditorState | null) => TextEditorState | null)(prev) : value;
+      textEditorRef.current = next;
+      return next;
+    });
+  }, []);
 
   const pathState = usePathsStoreHook();
   const {
@@ -1085,6 +1109,209 @@ export const useAppStore = () => {
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, selectedPathIds, activePathState.setPaths, setSelectedPathIds, beginCoalescing, endCoalescing);
 
+  const createTextId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID();
+    }
+    return `text_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }, []);
+
+  const updateTextEditorText = useCallback((value: string) => {
+    setTextEditorState(prev => (prev ? { ...prev, text: value } : prev));
+  }, [setTextEditorState]);
+
+  const startTextEditingAt = useCallback((anchor: Point) => {
+    const fontFamily = normalizeFontFamily((toolbarState as any).fontFamily ?? DEFAULT_FONT_FAMILY);
+    const fontSize = Math.max(1, (toolbarState as any).fontSize ?? DEFAULT_FONT_SIZE);
+    const textAlign = (toolbarState as any).textAlign ?? 'left';
+    const opacity = (toolbarState as any).opacity ?? 1;
+    const baseStyle: Partial<TextData> = {
+      blur: (toolbarState as any).blur,
+      shadowEnabled: (toolbarState as any).shadowEnabled,
+      shadowOffsetX: (toolbarState as any).shadowOffsetX,
+      shadowOffsetY: (toolbarState as any).shadowOffsetY,
+      shadowBlur: (toolbarState as any).shadowBlur,
+      shadowColor: (toolbarState as any).shadowColor,
+    };
+    setTextEditorState({
+      id: null,
+      mode: 'create',
+      text: '',
+      fontFamily,
+      fontSize,
+      textAlign,
+      lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+      anchor,
+      color: (toolbarState as any).color ?? '#ffffff',
+      opacity,
+      baseStyle,
+    });
+    setSelectedPathIds([]);
+  }, [setTextEditorState, toolbarState, setSelectedPathIds]);
+
+  const beginEditingTextPath = useCallback((path: TextData) => {
+    const {
+      text: existingText,
+      fontFamily: existingFontFamily,
+      fontSize: existingFontSize,
+      textAlign: existingTextAlign,
+      lineHeight: existingLineHeight = DEFAULT_TEXT_LINE_HEIGHT,
+      color: existingColor,
+      opacity: existingOpacity = 1,
+      x: _x,
+      y: _y,
+      width: _width,
+      height: _height,
+      ...rest
+    } = path;
+    const anchor = getTextAnchorPoint(path);
+    setTextEditorState({
+      id: path.id,
+      mode: 'edit',
+      text: existingText,
+      fontFamily: normalizeFontFamily(existingFontFamily ?? DEFAULT_FONT_FAMILY),
+      fontSize: existingFontSize ?? DEFAULT_FONT_SIZE,
+      textAlign: existingTextAlign ?? 'left',
+      lineHeight: existingLineHeight ?? DEFAULT_TEXT_LINE_HEIGHT,
+      anchor,
+      color: existingColor,
+      opacity: existingOpacity,
+      baseStyle: rest,
+    });
+    setSelectedPathIds([path.id]);
+  }, [setTextEditorState, setSelectedPathIds]);
+
+  const commitTextEditor = useCallback((options?: { cancel?: boolean; preserveTool?: boolean }) => {
+    const editor = textEditorRef.current;
+    if (!editor) {
+      return;
+    }
+    if (options?.cancel) {
+      setTextEditorState(null);
+      return;
+    }
+
+    const normalizedText = editor.text.replace(/\r\n/g, '\n');
+    const trimmed = normalizedText.trim();
+    const isEmpty = trimmed.length === 0;
+
+    if (isEmpty) {
+      setTextEditorState(null);
+      if (editor.mode === 'edit' && editor.id) {
+        beginCoalescing();
+        activePathState.setPaths(prev => prev.filter(p => p.id !== editor.id));
+        endCoalescing();
+        setSelectedPathIds([]);
+      }
+      return;
+    }
+
+    const fontFamily = editor.fontFamily;
+    const fontSize = Math.max(1, editor.fontSize);
+    const lineHeight = editor.lineHeight || DEFAULT_TEXT_LINE_HEIGHT;
+    const metrics = measureTextBlock(normalizedText, fontFamily, fontSize, lineHeight);
+    const width = Math.max(metrics.width, fontSize * 0.6);
+    const height = Math.max(metrics.height, fontSize * lineHeight);
+    const anchor = editor.anchor;
+    const alignOffset = editor.textAlign === 'center'
+      ? width / 2
+      : editor.textAlign === 'right'
+        ? width
+        : 0;
+    const x = anchor.x - alignOffset;
+    const y = anchor.y;
+    const id = editor.id ?? createTextId();
+    const baseStyle = editor.baseStyle ?? {};
+
+    const newPath: TextData = {
+      id,
+      tool: 'text',
+      text: normalizedText,
+      fontFamily,
+      fontSize,
+      textAlign: editor.textAlign,
+      lineHeight,
+      x,
+      y,
+      width,
+      height,
+      color: editor.color,
+      fill: 'transparent',
+      fillGradient: null,
+      fillStyle: 'solid',
+      strokeWidth: 0,
+      strokeLineDash: undefined,
+      strokeLineCapStart: 'round',
+      strokeLineCapEnd: 'round',
+      strokeLineJoin: 'round',
+      endpointSize: 1,
+      endpointFill: 'solid',
+      isRough: false,
+      opacity: editor.opacity,
+      roughness: 0,
+      bowing: 0,
+      fillWeight: 0,
+      hachureAngle: 0,
+      hachureGap: 0,
+      curveTightness: 0,
+      curveStepCount: 1,
+      preserveVertices: false,
+      disableMultiStroke: true,
+      disableMultiStrokeFill: true,
+      blur: 0,
+      shadowEnabled: false,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
+      shadowBlur: 0,
+      shadowColor: 'rgba(0,0,0,0.5)',
+      ...baseStyle,
+    };
+
+    beginCoalescing();
+    if (editor.mode === 'edit' && editor.id) {
+      activePathState.setPaths(prev => prev.map(p => (p.id === editor.id ? { ...p, ...newPath } as AnyPath : p)));
+    } else {
+      activePathState.setPaths(prev => [...prev, newPath]);
+    }
+    endCoalescing();
+    setSelectedPathIds([id]);
+    setTextEditorState(null);
+    if (editor.mode === 'create' && !options?.preserveTool) {
+      toolbarState.setTool('selection');
+    }
+  }, [
+    activePathState,
+    beginCoalescing,
+    createTextId,
+    endCoalescing,
+    setSelectedPathIds,
+    setTextEditorState,
+    toolbarState,
+  ]);
+
+  const cancelTextEditor = useCallback((options?: { preserveTool?: boolean }) => {
+    const editor = textEditorRef.current;
+    setTextEditorState(null);
+    if (editor?.mode === 'create' && !options?.preserveTool) {
+      toolbarState.setTool('selection');
+    }
+  }, [setTextEditorState, toolbarState]);
+
+  const textInteraction = useMemo(() => ({
+    onPointerDown: (e: React.PointerEvent<SVGSVGElement>) => {
+      if (e.button !== 0) return;
+      const svg = e.currentTarget;
+      const point = viewTransform.getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      if (textEditorRef.current) {
+        commitTextEditor({ preserveTool: true });
+      }
+      startTextEditingAt(point);
+    },
+    onPointerMove: () => {},
+    onPointerUp: () => {},
+    onPointerLeave: () => {},
+  }), [commitTextEditor, startTextEditingAt, viewTransform]);
+
   const handleCropManualPointerDown = useCallback((point: Point, event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
     if (appState.cropSelectionMode === 'magic-wand') return;
@@ -1402,6 +1629,8 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           setSelectedPathIds([path.id]);
+      } else if (path.tool === 'text') {
+          beginEditingTextPath(path as TextData);
       }
   }, [
     toolbarState.selectionMode,
@@ -1413,6 +1642,7 @@ export const useAppStore = () => {
     setCropTool,
     setCropEditedSrc,
     setSelectedPathIds,
+    beginEditingTextPath,
   ]);
 
   const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
@@ -1481,6 +1711,7 @@ export const useAppStore = () => {
     viewTransform,
     drawingInteraction,
     selectionInteraction,
+    textInteraction,
     paths: activePaths,
     setStrokeColor: toolbarState.setColor,
     setFillColor: toolbarState.setFill,
@@ -1495,6 +1726,9 @@ export const useAppStore = () => {
     if (currentPenPath) handleCancelPenPath();
     if (currentLinePath) handleCancelLinePath();
     if (currentBrushPath) setCurrentBrushPath(null);
+    if (textEditorRef.current) {
+      commitTextEditor({ preserveTool: true });
+    }
     toolbarState.setTool(newTool);
   }, [
     toolbarState,
@@ -1507,6 +1741,7 @@ export const useAppStore = () => {
     handleCancelLinePath,
     currentBrushPath,
     setCurrentBrushPath,
+    commitTextEditor,
   ]);
 
   const handleToggleStyleLibrary = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1659,6 +1894,11 @@ export const useAppStore = () => {
       drawingInteraction,
       selectionInteraction,
       pointerInteraction,
+      textEditor,
+      updateTextEditorText,
+      commitTextEditor,
+      cancelTextEditor,
+      beginEditingTextPath,
       setIsGridVisible,
       setGridSize,
       setGridSubdivisions,
@@ -1759,6 +1999,11 @@ export const useAppStore = () => {
       drawingInteraction,
       selectionInteraction,
       pointerInteraction,
+      textEditor,
+      updateTextEditorText,
+      commitTextEditor,
+      cancelTextEditor,
+      beginEditingTextPath,
       setIsGridVisible,
       setGridSize,
       setGridSubdivisions,
