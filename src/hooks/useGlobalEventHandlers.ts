@@ -44,6 +44,8 @@ const useGlobalEventHandlers = () => {
     groupIsolationPath, handleExitGroup, activePathState,
     croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
+    textEditor,
+    cancelTextEditor,
   } = useAppContext();
 
   const { setPaths: setActivePaths, paths: activePaths } = activePathState;
@@ -321,6 +323,13 @@ const useGlobalEventHandlers = () => {
     // --- Group 1: Shortcuts that should respect the default input filter ---
     // These will NOT fire when an INPUT, SELECT, or TEXTAREA is focused.
     hotkeys('v,m,b,p,r,o,l,a,escape,enter,backspace,delete,t,f', (event, handler) => {
+      if (textEditor) {
+        if (handler.key === 'escape') {
+          event.preventDefault();
+          cancelTextEditor();
+        }
+        return;
+      }
       event.preventDefault();
       if (keyboardScaleRef.current) {
         if (handler.key === 'escape') {
@@ -337,6 +346,7 @@ const useGlobalEventHandlers = () => {
         case 'o': setTool('ellipse'); break;
         case 'l': setTool('line'); break;
         case 'a': setTool('arc'); break;
+        case 't': setTool('text'); break;
         case 'f': setTool('frame'); break;
         case 'escape':
           if (croppingState) {
@@ -365,6 +375,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('g', (event) => {
+      if (textEditor) {
+        return;
+      }
       event.preventDefault();
       if (keyboardScaleRef.current) {
         return;
@@ -374,6 +387,9 @@ const useGlobalEventHandlers = () => {
 
     hotkeys('s', (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      if (textEditor) {
         return;
       }
       event.preventDefault();
@@ -397,6 +413,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('command+g, ctrl+g', (event) => {
+      if (textEditor) {
+        return;
+      }
       event.preventDefault();
       if (keyboardScaleRef.current) {
         return;
@@ -405,6 +424,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('command+shift+g, ctrl+shift+g', (event) => {
+      if (textEditor) {
+        return;
+      }
       event.preventDefault();
       if (keyboardScaleRef.current) {
         return;
@@ -413,6 +435,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('command+a, ctrl+a', (event) => {
+      if (textEditor) {
+        return;
+      }
       const activeElement = document.activeElement as HTMLElement | null;
       const isInput =
         activeElement?.tagName === 'INPUT' ||
@@ -448,23 +473,32 @@ const useGlobalEventHandlers = () => {
     hotkeys.filter = () => true;
 
     hotkeys('command+z, ctrl+z', (event) => {
-        event.preventDefault();
-        if (keyboardScaleRef.current) {
-          finishKeyboardScale(false);
-          return;
-        }
-        handleUndo();
+      if (textEditor) {
+        return;
+      }
+      event.preventDefault();
+      if (keyboardScaleRef.current) {
+        finishKeyboardScale(false);
+        return;
+      }
+      handleUndo();
     });
 
     hotkeys('command+shift+z, ctrl+shift+z', (event) => {
-        event.preventDefault();
-        if (keyboardScaleRef.current) {
-          return;
-        }
-        handleRedo();
+      if (textEditor) {
+        return;
+      }
+      event.preventDefault();
+      if (keyboardScaleRef.current) {
+        return;
+      }
+      handleRedo();
     });
 
     hotkeys('command+i, ctrl+i', (event) => {
+      if (textEditor) {
+        return;
+      }
       event.preventDefault();
       if (keyboardScaleRef.current) {
         return;
@@ -473,6 +507,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('command+s, ctrl+s', (event) => {
+      if (textEditor) {
+        return;
+      }
       event.preventDefault();
       if (keyboardScaleRef.current) {
         return;
@@ -483,6 +520,9 @@ const useGlobalEventHandlers = () => {
     // --- Group 3: Shortcuts with their own internal input-checking logic ---
     // These can be bound while the filter is off, as they handle it themselves.
     hotkeys('command+x, ctrl+x', (event) => {
+      if (textEditor) {
+        return;
+      }
       const activeElement = document.activeElement;
       const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
       if (!isInput) {
@@ -495,6 +535,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('command+c, ctrl+c', (event) => {
+      if (textEditor) {
+        return;
+      }
       const activeElement = document.activeElement;
       const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
       if (!isInput) {
@@ -507,6 +550,9 @@ const useGlobalEventHandlers = () => {
     });
 
     hotkeys('command+shift+c, ctrl+shift+c', (event) => {
+      if (textEditor) {
+        return;
+      }
       const activeElement = document.activeElement;
       const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || (activeElement as HTMLElement)?.isContentEditable;
       if (!isInput) {
@@ -575,6 +621,8 @@ const useGlobalEventHandlers = () => {
     croppingState,
     cancelCrop,
     activePaths,
+    textEditor,
+    cancelTextEditor,
   ]);
 
   useEffect(() => {

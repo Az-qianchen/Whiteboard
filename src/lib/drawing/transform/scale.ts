@@ -1,4 +1,4 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
 
 /**
  * 缩放图形。
@@ -47,6 +47,30 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         height: Math.abs(scaledHeight),
         scaleX: newScaleX,
         scaleY: newScaleY,
+      };
+    }
+    case 'text': {
+      const textPath = path as TextData;
+      const scaledX = pivot.x + (textPath.x - pivot.x) * scaleX;
+      const scaledY = pivot.y + (textPath.y - pivot.y) * scaleY;
+      const scaledWidth = textPath.width * scaleX;
+      const scaledHeight = textPath.height * scaleY;
+      const newX = scaledWidth < 0 ? scaledX + scaledWidth : scaledX;
+      const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
+      const newScaleX = (textPath.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
+      const newScaleY = (textPath.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
+      return {
+        ...textPath,
+        x: newX,
+        y: newY,
+        width: Math.abs(scaledWidth),
+        height: Math.abs(scaledHeight),
+        scaleX: newScaleX,
+        scaleY: newScaleY,
+        fontSize: textPath.fontSize * Math.abs(scaleY),
+        lineHeight: textPath.lineHeight * Math.abs(scaleY),
+        paddingX: textPath.paddingX * Math.abs(scaleX),
+        paddingY: textPath.paddingY * Math.abs(scaleY),
       };
     }
     case 'group':

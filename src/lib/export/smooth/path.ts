@@ -2,7 +2,7 @@
  * 本文件定义了用于创建平滑（非手绘风格）SVG 路径节点的函数。
  * 主要用于导出 SVG，以确保输出的 SVG 代码简洁且符合标准。
  */
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, EndpointStyle, BrushPathData, PolygonData, ArcData, FrameData, GradientFill, TextData } from '@/types';
 import { anchorsToPathD, pointsToPathD } from '@/lib/path-fitting';
 import { createSvgMarker } from '../markers/svg';
 import { getPolygonPathD, calculateArcPathD } from '@/lib/drawing';
@@ -64,6 +64,91 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
                 d = calculatedD;
             }
             break;
+        }
+        case 'text': {
+            const textData = data as TextData;
+            const textEl = document.createElementNS(svgNS, 'text');
+            const lineHeightPx = textData.fontSize * textData.lineHeight;
+            const baseX = textData.textAlign === 'center'
+                ? textData.x + textData.width / 2
+                : textData.textAlign === 'right'
+                  ? textData.x + textData.width - textData.paddingX
+                  : textData.x + textData.paddingX;
+            const baseY = textData.y + textData.paddingY;
+
+            textEl.setAttribute('x', baseX.toString());
+            textEl.setAttribute('y', baseY.toString());
+            textEl.setAttribute('fill', textData.color);
+            textEl.setAttribute('stroke', 'none');
+            textEl.setAttribute('font-size', `${textData.fontSize}`);
+            textEl.setAttribute('font-family', textData.fontFamily);
+            textEl.setAttribute('text-anchor', textData.textAlign === 'center' ? 'middle' : textData.textAlign === 'right' ? 'end' : 'start');
+            textEl.setAttribute('dominant-baseline', 'hanging');
+            textEl.setAttribute('xml:space', 'preserve');
+
+            const lines = textData.text.split(/\r?\n/);
+            lines.forEach((line, index) => {
+                const tspan = document.createElementNS(svgNS, 'tspan');
+                if (index > 0) {
+                    tspan.setAttribute('x', baseX.toString());
+                    tspan.setAttribute('dy', lineHeightPx.toString());
+                }
+                tspan.textContent = line.length > 0 ? line : '\u200B';
+                textEl.appendChild(tspan);
+            });
+
+            if (data.opacity !== undefined && data.opacity < 1) {
+                textEl.setAttribute('opacity', String(data.opacity));
+            }
+
+            if (data.fillGradient && data.fillGradient.stops && data.fillGradient.stops.length > 0) {
+                const gradient = data.fillGradient as GradientFill;
+                const defs = document.createElementNS(svgNS, 'defs');
+                const gradientId = `gradient-${data.id}`;
+                const gradientElement = gradient.type === 'linear'
+                    ? document.createElementNS(svgNS, 'linearGradient')
+                    : document.createElementNS(svgNS, 'radialGradient');
+                gradientElement.setAttribute('id', gradientId);
+
+                if (gradient.type === 'linear') {
+                    const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient);
+                    gradientElement.setAttribute('x1', x1.toString());
+                    gradientElement.setAttribute('y1', y1.toString());
+                    gradientElement.setAttribute('x2', x2.toString());
+                    gradientElement.setAttribute('y2', y2.toString());
+                } else {
+                    const { cx, cy, fx, fy, r } = getRadialGradientAttributes(gradient);
+                    gradientElement.setAttribute('cx', cx.toString());
+                    gradientElement.setAttribute('cy', cy.toString());
+                    gradientElement.setAttribute('fx', fx.toString());
+                    gradientElement.setAttribute('fy', fy.toString());
+                    gradientElement.setAttribute('r', r.toString());
+                }
+
+                gradient.stops.forEach((stop, index) => {
+                    const stopEl = document.createElementNS(svgNS, 'stop');
+                    const offset = clamp(stop.offset ?? 0, 0, 1);
+                    stopEl.setAttribute('offset', `${Math.round(offset * 100)}%`);
+                    const parsed = parseColor(gradientStopColor(gradient, index));
+                    const baseColor = hslaToHslaString({ ...parsed, a: 1 });
+                    stopEl.setAttribute('stop-color', baseColor);
+                    const alpha = clamp(stop.opacity ?? parsed.a, 0, 1);
+                    if (alpha < 1) {
+                        stopEl.setAttribute('stop-opacity', alpha.toString());
+                    }
+                    gradientElement.appendChild(stopEl);
+                });
+
+                defs.appendChild(gradientElement);
+                const container = document.createElementNS(svgNS, 'g');
+                container.appendChild(defs);
+                textEl.setAttribute('fill', `url(#${gradientId})`);
+                container.appendChild(textEl);
+                return container;
+            }
+
+            textEl.setAttribute('fill', textData.color);
+            return textEl;
         }
     }
 
