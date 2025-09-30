@@ -98,7 +98,7 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcBy
         return (
             <g>
                 {(data as GroupData).children.map(child => (
-                    <PathComponent key={child.id} rc={rc} data={child} />
+                    <PathComponent key={child.id} rc={rc} data={child} previewSrcById={previewSrcById} />
                 ))}
             </g>
         );
