@@ -20,7 +20,7 @@ import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Frame, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
-import { DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT, DEFAULT_TEXT_PADDING_X, DEFAULT_TEXT_PADDING_Y } from '@/constants';
+import { DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_LINE_HEIGHT, DEFAULT_TEXT_PADDING_X, DEFAULT_TEXT_PADDING_Y, MIN_TEXT_BOX_WIDTH } from '@/constants';
 import { measureTextDimensions } from '@/lib/text';
 
 import {
@@ -219,6 +219,7 @@ interface TextEditorState {
   pathId?: string;
   x: number;
   y: number;
+  width: number;
   text: string;
   fontSize: number;
   fontFamily: string;
@@ -1128,6 +1129,19 @@ export const useAppStore = () => {
     });
   }, [setTextEditorState]);
 
+  const setTextEditorWidth = useCallback((width: number) => {
+    const clampedWidth = Math.max(Number.isFinite(width) ? width : MIN_TEXT_BOX_WIDTH, MIN_TEXT_BOX_WIDTH);
+    setTextEditorState(prev => {
+      if (!prev) {
+        return prev;
+      }
+      if (Math.abs(prev.width - clampedWidth) < 0.5) {
+        return prev;
+      }
+      return { ...prev, width: clampedWidth };
+    });
+  }, [setTextEditorState]);
+
   const cancelTextEditor = useCallback(() => {
     if (!textEditorRef.current) {
       return;
@@ -1161,6 +1175,7 @@ export const useAppStore = () => {
       lineHeight: editor.lineHeight,
       paddingX: editor.paddingX,
       paddingY: editor.paddingY,
+      minWidth: Math.max(editor.width, MIN_TEXT_BOX_WIDTH),
     });
 
     const existing = editor.mode === 'edit'
@@ -1272,6 +1287,7 @@ export const useAppStore = () => {
       pathId: path.id,
       x: path.x,
       y: path.y,
+      width: path.width,
       text: path.text,
       fontSize: path.fontSize,
       fontFamily: path.fontFamily,
@@ -1302,6 +1318,7 @@ export const useAppStore = () => {
       mode: 'create',
       x: point.x,
       y: point.y,
+      width: MIN_TEXT_BOX_WIDTH,
       text: '',
       fontSize: DEFAULT_TEXT_FONT_SIZE,
       fontFamily: DEFAULT_TEXT_FONT_FAMILY,
@@ -1923,6 +1940,7 @@ export const useAppStore = () => {
       selectionInteraction,
       pointerInteraction,
       updateTextEditor,
+      setTextEditorWidth,
       commitTextEditor,
       cancelTextEditor,
       setIsGridVisible,
@@ -2026,6 +2044,7 @@ export const useAppStore = () => {
       selectionInteraction,
       pointerInteraction,
       updateTextEditor,
+      setTextEditorWidth,
       commitTextEditor,
       cancelTextEditor,
       setIsGridVisible,
