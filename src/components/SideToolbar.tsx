@@ -227,6 +227,9 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
             disabled={isGradientActive}
           />
 
+          <EffectsPopover {...props} />
+          <StylePropertiesPopover {...props} />
+
           {isDashControlVisible && (
             <DashControl {...props} />
           )}
@@ -244,9 +247,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
               endCoalescing={endCoalescing}
             />
           )}
-
-          <EffectsPopover {...props} />
-          <StylePropertiesPopover {...props} />
         </>
       )}
 
