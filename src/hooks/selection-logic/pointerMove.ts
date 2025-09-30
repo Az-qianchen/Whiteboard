@@ -199,14 +199,14 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 const dx = effectivePoint.x - initialPointerPos.x;
                 const dy = effectivePoint.y - initialPointerPos.y;
 
-                let newWidth = initialSelectionBbox.width;
-                let newHeight = initialSelectionBbox.height;
+                let proposedWidth = initialSelectionBbox.width;
+                let proposedHeight = initialSelectionBbox.height;
 
                 // Adjust dimensions based on which handle is being dragged
-                if (handle.includes('right')) newWidth += dx;
-                if (handle.includes('left')) newWidth -= dx;
-                if (handle.includes('bottom')) newHeight += dy;
-                if (handle.includes('top')) newHeight -= dy;
+                if (handle.includes('right')) proposedWidth += dx;
+                if (handle.includes('left')) proposedWidth -= dx;
+                if (handle.includes('bottom')) proposedHeight += dy;
+                if (handle.includes('top')) proposedHeight -= dy;
 
                 // Enforce aspect ratio if shift is held
                 if (e.shiftKey && initialSelectionBbox.width !== 0 && initialSelectionBbox.height !== 0) {
@@ -215,31 +215,103 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
 
                     if (!isCorner) {
                         if (handle.includes('left') || handle.includes('right')) {
-                            newHeight = newWidth / originalAspectRatio;
+                            proposedHeight = proposedWidth / originalAspectRatio;
                         } else { // top or bottom
-                            newWidth = newHeight * originalAspectRatio;
+                            proposedWidth = proposedHeight * originalAspectRatio;
                         }
                     } else {
                         // For corner handles, maintain aspect ratio based on the dominant mouse movement axis
                         if (Math.abs(dx) * originalAspectRatio > Math.abs(dy)) {
-                            newHeight = newWidth / originalAspectRatio;
+                            proposedHeight = proposedWidth / originalAspectRatio;
                         } else {
-                            newWidth = newHeight * originalAspectRatio;
+                            proposedWidth = proposedHeight * originalAspectRatio;
                         }
                     }
                 }
 
+                const initialMinX = initialSelectionBbox.x;
+                const initialMaxX = initialSelectionBbox.x + initialSelectionBbox.width;
+                const initialMinY = initialSelectionBbox.y;
+                const initialMaxY = initialSelectionBbox.y + initialSelectionBbox.height;
+
+                let targetMinX: number;
+                let targetMaxX: number;
+                if (handle.includes('left')) {
+                    targetMaxX = initialMaxX;
+                    targetMinX = targetMaxX - proposedWidth;
+                } else if (handle.includes('right')) {
+                    targetMinX = initialMinX;
+                    targetMaxX = targetMinX + proposedWidth;
+                } else {
+                    targetMinX = initialMinX + (initialSelectionBbox.width - proposedWidth) / 2;
+                    targetMaxX = targetMinX + proposedWidth;
+                }
+
+                let targetMinY: number;
+                let targetMaxY: number;
+                if (handle.includes('top')) {
+                    targetMaxY = initialMaxY;
+                    targetMinY = targetMaxY - proposedHeight;
+                } else if (handle.includes('bottom')) {
+                    targetMinY = initialMinY;
+                    targetMaxY = targetMinY + proposedHeight;
+                } else {
+                    targetMinY = initialMinY + (initialSelectionBbox.height - proposedHeight) / 2;
+                    targetMaxY = targetMinY + proposedHeight;
+                }
+
+                const snappedMin = snapToGrid({ x: targetMinX, y: targetMinY });
+                const snappedMax = snapToGrid({ x: targetMaxX, y: targetMaxY });
+
+                const desiredMinX = snapContext.snapX ? snappedMin.x : targetMinX;
+                const desiredMaxX = snapContext.snapX ? snappedMax.x : targetMaxX;
+                const desiredMinY = snapContext.snapY ? snappedMin.y : targetMinY;
+                const desiredMaxY = snapContext.snapY ? snappedMax.y : targetMaxY;
+
+                const finalWidth = desiredMaxX - desiredMinX;
+                const finalHeight = desiredMaxY - desiredMinY;
+
                 // Calculate scale factors, which can now be negative, allowing for flips
-                const scaleX = initialSelectionBbox.width === 0 ? 1 : newWidth / initialSelectionBbox.width;
-                const scaleY = initialSelectionBbox.height === 0 ? 1 : newHeight / initialSelectionBbox.height;
-                
+                const scaleX = initialSelectionBbox.width === 0 ? 1 : finalWidth / initialSelectionBbox.width;
+                const scaleY = initialSelectionBbox.height === 0 ? 1 : finalHeight / initialSelectionBbox.height;
+
                 // Determine the pivot point for scaling (the side/corner opposite to the handle)
                 const pivot = {
-                    x: handle.includes('right') ? initialSelectionBbox.x : (handle.includes('left') ? initialSelectionBbox.x + initialSelectionBbox.width : initialSelectionBbox.x + initialSelectionBbox.width / 2),
-                    y: handle.includes('bottom') ? initialSelectionBbox.y : (handle.includes('top') ? initialSelectionBbox.y + initialSelectionBbox.height : initialSelectionBbox.y + initialSelectionBbox.height / 2)
+                    x: handle.includes('right')
+                        ? initialMinX
+                        : (handle.includes('left')
+                            ? initialMaxX
+                            : initialMinX + initialSelectionBbox.width / 2),
+                    y: handle.includes('bottom')
+                        ? initialMinY
+                        : (handle.includes('top')
+                            ? initialMaxY
+                            : initialMinY + initialSelectionBbox.height / 2)
                 };
-                
-                transformedShapes = originalPaths.map((p: AnyPath) => scalePath(p, pivot, scaleX, scaleY));
+
+                const targetPivot = {
+                    x: handle.includes('right')
+                        ? desiredMinX
+                        : (handle.includes('left')
+                            ? desiredMaxX
+                            : (desiredMinX + desiredMaxX) / 2),
+                    y: handle.includes('bottom')
+                        ? desiredMinY
+                        : (handle.includes('top')
+                            ? desiredMaxY
+                            : (desiredMinY + desiredMaxY) / 2)
+                };
+
+                const translateX = targetPivot.x - pivot.x;
+                const translateY = targetPivot.y - pivot.y;
+
+                transformedShapes = originalPaths.map((p: AnyPath) => {
+                    const scaled = scalePath(p, pivot, scaleX, scaleY);
+                    if (Math.abs(translateX) > SNAP_EPSILON || Math.abs(translateY) > SNAP_EPSILON) {
+                        return movePath(scaled, translateX, translateY);
+                    }
+                    return scaled;
+                });
                 break;
             }
             case 'resize': {

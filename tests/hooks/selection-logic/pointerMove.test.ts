@@ -35,11 +35,12 @@ const createRectangle = (): RectangleData => ({
 
 const createPathState = (
   paths: AnyPath[],
-  setPaths: Dispatch<SetStateAction<AnyPath[]>>
+  setPaths: Dispatch<SetStateAction<AnyPath[]>>,
+  selectedPathIds: string[] = ['rect-1']
 ): SelectionPathState => ({
   paths,
   setPaths,
-  selectedPathIds: ['rect-1'],
+  selectedPathIds,
   setSelectedPathIds: vi.fn(),
   beginCoalescing: vi.fn(),
   endCoalescing: vi.fn(),
@@ -292,5 +293,62 @@ describe('handlePointerMoveLogic grid snapping tolerance', () => {
     rafSpy.mockRestore();
     movePathSpy.mockRestore();
 
+  });
+
+  it('aligns scaled group bounds to the grid when snapping engages', () => {
+    const rectA: RectangleData = { ...createRectangle(), id: 'rect-a', x: 10.3, y: 6.2, width: 80.45, height: 42.35 };
+    const rectB: RectangleData = { ...createRectangle(), id: 'rect-b', x: 125.6, y: 12.8, width: 60.15, height: 38.49 };
+    let currentPaths: AnyPath[] = [rectA, rectB];
+
+    const initialBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    const initialPointerPos = {
+      x: initialBbox.x + initialBbox.width,
+      y: initialBbox.y + initialBbox.height / 2,
+    };
+
+    const dragState: DragState = {
+      type: 'scale',
+      pathIds: ['rect-a', 'rect-b'],
+      handle: 'right',
+      originalPaths: currentPaths,
+      initialPointerPos,
+      initialSelectionBbox: initialBbox,
+    };
+
+    const snappingToUnit = (point: { x: number; y: number }) => ({
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+    });
+
+    const setPaths: Dispatch<SetStateAction<AnyPath[]>> = updater => {
+      currentPaths = typeof updater === 'function'
+        ? (updater as (prev: AnyPath[]) => AnyPath[])(currentPaths)
+        : updater;
+    };
+
+    const movePoint = { x: initialPointerPos.x + 4.6, y: initialPointerPos.y };
+
+    handlePointerMoveLogic({
+      e: { shiftKey: false } as ReactPointerEvent<SVGSVGElement>,
+      movePoint,
+      dragState,
+      setDragState: noop,
+      marquee: null,
+      setMarquee: noop,
+      lassoPath: null,
+      setLassoPath: noop,
+      pathState: createPathState(currentPaths, setPaths, dragState.pathIds),
+      toolbarState,
+      viewTransform,
+      setIsHoveringMovable: noop,
+      setIsHoveringEditable: noop,
+      isClosingPath,
+      snapToGrid: snappingToUnit,
+      setCurrentCropRect: noop,
+    });
+
+    const updatedBbox = DrawingLib.getPathsBoundingBox(currentPaths, false)!;
+    expect(updatedBbox.x % 1).toBe(0);
+    expect((updatedBbox.x + updatedBbox.width) % 1).toBe(0);
   });
 });
