@@ -1,4 +1,4 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
 
 /**
  * 缩放图形。
@@ -30,7 +30,8 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
     case 'rectangle':
     case 'ellipse':
     case 'image':
-    case 'polygon': {
+    case 'polygon':
+    case 'text': {
       const scaledX = pivot.x + (path.x - pivot.x) * scaleX;
       const scaledY = pivot.y + (path.y - pivot.y) * scaleY;
       const scaledWidth = path.width * scaleX;
@@ -39,7 +40,7 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
       const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
       const newScaleX = (path.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
       const newScaleY = (path.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
-      return {
+      const baseShape = {
         ...path,
         x: newX,
         y: newY,
@@ -47,7 +48,21 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         height: Math.abs(scaledHeight),
         scaleX: newScaleX,
         scaleY: newScaleY,
-      };
+      } as AnyPath;
+
+      if (path.tool === 'text') {
+        const textPath = path as TextData;
+        const magnitude = (Math.abs(scaleX) + Math.abs(scaleY)) / 2;
+        const nextFontSize = Math.max(1, textPath.fontSize * magnitude);
+        const existingLineHeight = textPath.lineHeight ?? textPath.fontSize * 1.25;
+        return {
+          ...(baseShape as TextData),
+          fontSize: nextFontSize,
+          lineHeight: existingLineHeight * magnitude,
+        } as T;
+      }
+
+      return baseShape as T;
     }
     case 'group':
       return {

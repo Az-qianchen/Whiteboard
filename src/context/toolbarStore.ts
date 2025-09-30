@@ -43,6 +43,15 @@ export interface ToolbarState {
   drawingEndpointFill: 'solid' | 'hollow';
   setDrawingEndpointFill: (v: 'solid' | 'hollow') => void;
 
+  drawingFontFamily: string;
+  setDrawingFontFamily: (v: string) => void;
+
+  drawingFontSize: number;
+  setDrawingFontSize: (v: number) => void;
+
+  drawingTextAlign: 'left' | 'center' | 'right';
+  setDrawingTextAlign: (v: 'left' | 'center' | 'right') => void;
+
   drawingIsRough: boolean;
   setDrawingIsRough: (v: boolean) => void;
 
@@ -136,6 +145,15 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingEndpointFill: 'hollow',
       setDrawingEndpointFill: (v) => set({ drawingEndpointFill: v }),
+
+      drawingFontFamily: 'Excalifont, "Virgil", "Segoe UI", sans-serif',
+      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
+
+      drawingFontSize: 32,
+      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
+
+      drawingTextAlign: 'left',
+      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
 
       drawingIsRough: true,
       setDrawingIsRough: (v) => set({ drawingIsRough: v }),

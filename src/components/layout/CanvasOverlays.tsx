@@ -18,6 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { TextEditorOverlay } from '../TextEditorOverlay';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -111,10 +112,25 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        activeTextEditor,
+        commitTextEditing,
+        cancelTextEditing,
+        viewTransform,
+        color,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);
+    const activeTextColor = useMemo(() => {
+        if (!activeTextEditor) return color;
+        if (activeTextEditor.pathId) {
+            const path = paths.find((p: AnyPath) => p.id === activeTextEditor.pathId && p.tool === 'text');
+            if (path && path.tool === 'text') {
+                return path.color;
+            }
+        }
+        return color;
+    }, [activeTextEditor, paths, color]);
     const canConvertToPath = useMemo(() => 
         selectedPathIds.length > 0 && paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && ['rectangle', 'ellipse', 'polygon', 'line', 'brush', 'arc'].includes(p.tool)),
         [paths, selectedPathIds]
@@ -224,6 +240,16 @@ export const CanvasOverlays: React.FC = () => {
                 onSaveLibrary={handleSaveLibrary} onLoadLibrary={handleLoadLibrary} onClearLibrary={handleClearLibrary}
                 onAddMaterial={handleAddMaterial} onApplyMaterial={handleApplyMaterial}
             />
+
+            {activeTextEditor && (
+                <TextEditorOverlay
+                    editor={activeTextEditor}
+                    color={activeTextColor}
+                    viewTransform={viewTransform}
+                    onSubmit={commitTextEditing}
+                    onCancel={cancelTextEditing}
+                />
+            )}
 
             {contextMenu?.isOpen && (<ContextMenu isOpen={contextMenu.isOpen} position={{ x: contextMenu.x, y: contextMenu.y }} actions={contextMenuActions} onClose={() => setContextMenu(null)} />)}
 

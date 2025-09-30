@@ -34,6 +34,8 @@ interface PointerInteractionProps {
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  onBeginTextEditing: (point: Point, options?: { pathId?: string }) => void;
+  isTextEditing: boolean;
 }
 
 /**
@@ -50,6 +52,8 @@ export const usePointerInteraction = ({
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  onBeginTextEditing,
+  isTextEditing,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -124,6 +128,22 @@ export const usePointerInteraction = ({
     }
     if (e.button !== 0) return;
 
+    if (tool === 'text') {
+      if (isTextEditing) {
+        return;
+      }
+      const svg = e.currentTarget;
+      const point = viewTransform.getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      const scale = viewTransform.viewTransform.scale || 1;
+      const hitPath = findDeepestHitPath(point, paths, scale);
+      if (hitPath?.tool === 'text') {
+        onBeginTextEditing(point, { pathId: hitPath.id });
+      } else {
+        onBeginTextEditing(point);
+      }
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
     } else {
@@ -139,6 +159,10 @@ export const usePointerInteraction = ({
     }
     if (isPanning) {
       viewTransform.handlePanMove(e);
+      return;
+    }
+
+    if (tool === 'text') {
       return;
     }
 
@@ -163,6 +187,10 @@ export const usePointerInteraction = ({
       return;
     }
 
+    if (tool === 'text') {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerUp(e);
     } else {
@@ -183,7 +211,11 @@ export const usePointerInteraction = ({
       setIsPanning(false);
       return;
     }
-    
+
+    if (tool === 'text') {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
     } else {

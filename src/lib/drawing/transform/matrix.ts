@@ -5,6 +5,7 @@ import type {
   ImageData,
   PolygonData,
   FrameData,
+  TextData,
 } from '@/types';
 
 export interface TransformMatrix {
@@ -87,7 +88,8 @@ type TransformableShape =
   | EllipseData
   | ImageData
   | PolygonData
-  | FrameData;
+  | FrameData
+  | TextData;
 
 export const getShapeTransformMatrix = (shape: TransformableShape): TransformMatrix => {
   const cx = shape.x + shape.width / 2;
