@@ -19,13 +19,6 @@ import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 import { layoutText } from '@/lib/text';
-import {
-    createScaleMatrix,
-    createTranslationMatrix,
-    getShapeTransformMatrix,
-    multiplyMatrices,
-    type TransformMatrix,
-} from '@/lib/drawing/transform/matrix';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -120,7 +113,6 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
-        viewTransform: viewTransformState,
         textEditing,
         updateTextEditing,
         commitTextEditing,
@@ -148,18 +140,17 @@ export const CanvasOverlays: React.FC = () => {
     const textEditorOverlay = useMemo(() => {
         if (!textEditing || !activeTextPath) return null;
         return (
-            <TextEditorOverlay
+            <TextEditingModal
                 key={textEditing.pathId}
                 path={activeTextPath}
                 draft={textEditing.draft}
                 isNew={textEditing.isNew ?? false}
-                view={viewTransformState.viewTransform}
                 onChange={updateTextEditing}
                 onCommit={commitTextEditing}
                 onCancel={cancelTextEditing}
             />
         );
-    }, [textEditing, activeTextPath, viewTransformState.viewTransform, updateTextEditing, commitTextEditing, cancelTextEditing]);
+    }, [textEditing, activeTextPath, updateTextEditing, commitTextEditing, cancelTextEditing]);
 
     /**
      * 构建上下文菜单的操作列表。
@@ -211,7 +202,7 @@ export const CanvasOverlays: React.FC = () => {
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}
             </div>
 
-            {tool === 'selection' && !croppingState && (
+            {tool === 'selection' && !croppingState && !textEditing && (
                 <div
                     className="absolute left-1/2 -translate-x-1/2 z-30"
                     style={{ bottom: timelineBottomOffset }}
@@ -318,13 +309,12 @@ interface TextEditorOverlayProps {
     path: TextData;
     draft: string;
     isNew: boolean;
-    view: { scale: number; translateX: number; translateY: number };
     onChange: (value: string) => void;
     onCommit: () => void;
     onCancel: () => void;
 }
 
-const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, isNew, view, onChange, onCommit, onCancel }) => {
+const TextEditingModal: React.FC<TextEditorOverlayProps> = ({ path, draft, isNew, onChange, onCommit, onCancel }) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
@@ -339,9 +329,31 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, isNe
         return () => cancelAnimationFrame(rafId);
     }, [path.id]);
 
-    const scale = Number.isFinite(view?.scale) ? view.scale : 1;
-    const translateX = Number.isFinite(view?.translateX) ? view.translateX : 0;
-    const translateY = Number.isFinite(view?.translateY) ? view.translateY : 0;
+    useEffect(() => {
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCancel();
+                return;
+            }
+
+            const isCommitKey = (event.key === 'Enter' || event.key === 's') && (event.metaKey || event.ctrlKey);
+            if (!isCommitKey) {
+                return;
+            }
+
+            const target = event.target as HTMLElement | null;
+            if (target && target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            event.preventDefault();
+            onCommit();
+        };
+
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [onCancel, onCommit]);
 
     const normalizedDraft = draft.replace(/\r/g, '');
     const baseLineHeight = path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
@@ -358,74 +370,107 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, isNe
         [normalizedDraft, path.fontSize, path.fontFamily, baseLineHeight, path.fontWeight, widthConstraint],
     );
 
-    const combinedMatrix = useMemo<TransformMatrix>(() => {
-        const viewScaleMatrix = createScaleMatrix(scale, scale);
-        const viewTranslateMatrix = createTranslationMatrix(translateX, translateY);
-        const viewMatrix = multiplyMatrices(viewTranslateMatrix, viewScaleMatrix);
-
-        const shapeMatrix = getShapeTransformMatrix(path);
-        const baseTranslation = createTranslationMatrix(path.x, path.y);
-        const worldMatrix = multiplyMatrices(shapeMatrix, baseTranslation);
-
-        return multiplyMatrices(viewMatrix, worldMatrix);
-    }, [scale, translateX, translateY, path]);
-
-    const cssMatrix = useMemo(() => {
-        const { a, b, c, d, e, f } = combinedMatrix;
-        return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
-    }, [combinedMatrix]);
-
-    const style: React.CSSProperties = {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        width: layout.width,
-        height: layout.height,
-        fontSize: `${path.fontSize}px`,
-        lineHeight: `${layout.lineHeight}px`,
-        fontFamily: path.fontFamily,
-        fontWeight: path.fontWeight ?? 400,
-        color: path.color,
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 0,
-        padding: 0,
-        margin: 0,
-        resize: 'none',
-        outline: 'none',
-        whiteSpace: 'pre-wrap',
-        overflow: 'hidden',
-        textAlign: path.textAlign,
-        colorScheme: 'light',
-        caretColor: path.color,
-        transformOrigin: '0 0',
-        transform: cssMatrix,
-    };
-
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         onChange(event.target.value);
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if ((event.key === 'Enter' && (event.metaKey || event.ctrlKey)) || event.key === 's' && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
             onCommit();
-        } else if (event.key === 'Escape') {
+            return;
+        }
+        if (event.key === 'Escape') {
             event.preventDefault();
             onCancel();
         }
     };
 
     return (
-        <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={handleChange}
-            onBlur={onCommit}
-            onKeyDown={handleKeyDown}
-            spellCheck={false}
-            style={style}
-            className="z-30 bg-transparent"
-        />
+        <div
+            className="absolute inset-0 z-40 flex items-center justify-center px-4 py-8 bg-black/50 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`text-editor-${path.id}`}
+        >
+            <div className="w-full max-w-5xl rounded-2xl border border-[var(--ui-panel-border)] bg-[var(--ui-panel-bg)]/95 backdrop-blur-xl p-6 shadow-2xl text-[var(--text-primary)] flex flex-col gap-6">
+                <div className="flex flex-col gap-1">
+                    <h2 id={`text-editor-${path.id}`} className="text-lg font-semibold tracking-wide">
+                        编辑文本
+                    </h2>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                        在左侧编辑内容，右侧实时预览最终效果。
+                    </p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                    <label className="flex flex-col gap-2">
+                        <span className="text-sm font-medium text-[var(--text-secondary)]">
+                            文本内容
+                        </span>
+                        <textarea
+                            ref={textareaRef}
+                            value={draft}
+                            onChange={handleChange}
+                            onKeyDown={handleKeyDown}
+                            spellCheck={false}
+                            className="min-h-[220px] w-full resize-none rounded-xl border border-[var(--ui-panel-border)] bg-black/20 px-4 py-3 text-base leading-relaxed text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
+                            style={{
+                                fontSize: `${path.fontSize}px`,
+                                lineHeight: `${layout.lineHeight}px`,
+                                fontFamily: path.fontFamily,
+                                fontWeight: path.fontWeight ?? 400,
+                                textAlign: path.textAlign,
+                                caretColor: path.color,
+                            }}
+                        />
+                    </label>
+                    <div className="flex flex-col gap-2">
+                        <span className="text-sm font-medium text-[var(--text-secondary)]">预览</span>
+                        <div
+                            className="min-h-[220px] w-full rounded-xl border border-[var(--ui-panel-border)] bg-black/10 p-4 shadow-inner"
+                            style={{
+                                fontSize: `${path.fontSize}px`,
+                                lineHeight: `${layout.lineHeight}px`,
+                                fontFamily: path.fontFamily,
+                                fontWeight: path.fontWeight ?? 400,
+                                color: path.color,
+                                textAlign: path.textAlign as React.CSSProperties['textAlign'],
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                overflowY: 'auto',
+                            }}
+                        >
+                            {layout.lines.map((line, index) => (
+                                <React.Fragment key={`${path.id}-preview-${index}`}>
+                                    {line}
+                                    {index < layout.lines.length - 1 && <br />}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <p className="text-xs text-[var(--text-secondary)]">
+                        Esc 取消 · Ctrl+Enter 保存
+                    </p>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="rounded-lg border border-[var(--ui-panel-border)] bg-black/20 px-5 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
+                        >
+                            取消
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onCommit}
+                            className="rounded-lg bg-[var(--accent-primary)] px-5 py-2 text-sm font-semibold text-[var(--text-on-accent-solid,#fff)] transition-colors hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
+                        >
+                            保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
