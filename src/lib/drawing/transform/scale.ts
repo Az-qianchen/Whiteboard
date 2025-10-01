@@ -1,4 +1,17 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type {
+  AnyPath,
+  Point,
+  ArcData,
+  BrushPathData,
+  VectorPathData,
+  GroupData,
+  RectangleData,
+  EllipseData,
+  ImageData,
+  PolygonData,
+  FrameData,
+  TextData,
+} from '@/types';
 
 /**
  * 缩放图形。
@@ -30,24 +43,26 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
     case 'rectangle':
     case 'ellipse':
     case 'image':
-    case 'polygon': {
-      const scaledX = pivot.x + (path.x - pivot.x) * scaleX;
-      const scaledY = pivot.y + (path.y - pivot.y) * scaleY;
-      const scaledWidth = path.width * scaleX;
-      const scaledHeight = path.height * scaleY;
+    case 'polygon':
+    case 'text': {
+      const shape = path as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData;
+      const scaledX = pivot.x + (shape.x - pivot.x) * scaleX;
+      const scaledY = pivot.y + (shape.y - pivot.y) * scaleY;
+      const scaledWidth = shape.width * scaleX;
+      const scaledHeight = shape.height * scaleY;
       const newX = scaledWidth < 0 ? scaledX + scaledWidth : scaledX;
       const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
-      const newScaleX = (path.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
-      const newScaleY = (path.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
+      const newScaleX = (shape.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
+      const newScaleY = (shape.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
       return {
-        ...path,
+        ...(shape as AnyPath),
         x: newX,
         y: newY,
         width: Math.abs(scaledWidth),
         height: Math.abs(scaledHeight),
         scaleX: newScaleX,
         scaleY: newScaleY,
-      };
+      } as T;
     }
     case 'group':
       return {

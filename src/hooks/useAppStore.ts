@@ -18,9 +18,10 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
 import { normalizeFrames, createFrame, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
+import { measureTextDimensions, DEFAULT_TEXT_LINE_HEIGHT } from '@/lib/text';
 
 import {
   removeBackground,
@@ -328,6 +329,7 @@ export const useAppStore = () => {
   const [cropHistory, setCropHistory] = useState<{ past: BBox[]; future: BBox[] }>({ past: [], future: [] });
   const [cropSelectionHistory, setCropSelectionHistory] = useState<{ past: (MagicWandMask | null)[]; future: (MagicWandMask | null)[] }>({ past: [], future: [] });
   const [cropEditedSrc, setCropEditedSrc] = useState<string | null>(null);
+  const [textEditor, setTextEditor] = useState<{ pathId: string; isNew: boolean; initialText: string } | null>(null);
   const cropImageCacheRef = useRef<{
     naturalWidth: number;
     naturalHeight: number;
@@ -1085,6 +1087,112 @@ export const useAppStore = () => {
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, selectedPathIds, activePathState.setPaths, setSelectedPathIds, beginCoalescing, endCoalescing);
 
+  const beginTextEditing = useCallback((pathId: string, options: { isNew?: boolean } = {}) => {
+    if (textEditor && textEditor.pathId === pathId) {
+      return;
+    }
+    const path = activePaths.find(p => p.id === pathId);
+    if (!path || path.tool !== 'text') {
+      return;
+    }
+    const textPath = path as TextData;
+    setSelectedPathIds(prev => (prev.includes(pathId) ? prev : [pathId]));
+    toolbarState.setTool('selection');
+    toolbarState.setFontFamily(textPath.fontFamily ?? toolbarState.fontFamily);
+    toolbarState.setFontSize(textPath.fontSize ?? toolbarState.fontSize);
+    toolbarState.setTextAlign(textPath.textAlign ?? toolbarState.textAlign ?? 'left');
+    toolbarState.setTextLineHeight(textPath.lineHeight ?? toolbarState.textLineHeight ?? DEFAULT_TEXT_LINE_HEIGHT);
+    setTextEditor({ pathId, isNew: Boolean(options.isNew), initialText: textPath.text });
+    beginCoalescing();
+  }, [
+    activePaths,
+    toolbarState,
+    setSelectedPathIds,
+    textEditor,
+    beginCoalescing,
+  ]);
+
+  const commitTextEditing = useCallback((value: string) => {
+    if (!textEditor) {
+      return;
+    }
+    const path = activePaths.find(p => p.id === textEditor.pathId);
+    if (!path || path.tool !== 'text') {
+      setTextEditor(null);
+      endCoalescing();
+      return;
+    }
+    const normalized = value.replace(/\r\n/g, '\n');
+    if (!normalized.trim()) {
+      activePathState.setPaths(prev => prev.filter(p => p.id !== textEditor.pathId));
+      setSelectedPathIds(prev => prev.filter(id => id !== textEditor.pathId));
+      setTextEditor(null);
+      endCoalescing();
+      return;
+    }
+    const currentText = path as TextData;
+    const fontFamily = currentText.fontFamily ?? toolbarState.fontFamily;
+    const fontSize = currentText.fontSize ?? toolbarState.fontSize;
+    const lineHeight = currentText.lineHeight ?? toolbarState.textLineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+    const { width, height } = measureTextDimensions(normalized, fontFamily, fontSize, lineHeight);
+
+    activePathState.setPaths(prev => prev.map(p => {
+      if (p.id !== textEditor.pathId) {
+        return p;
+      }
+      const existing = p as TextData;
+      return {
+        ...existing,
+        text: normalized,
+        width: Math.max(width, fontSize * 2),
+        height: Math.max(height, fontSize * lineHeight),
+        lineHeight,
+      };
+    }));
+
+    setTextEditor(null);
+    endCoalescing();
+  }, [
+    textEditor,
+    activePaths,
+    activePathState,
+    toolbarState,
+    setSelectedPathIds,
+    endCoalescing,
+  ]);
+
+  const cancelTextEditing = useCallback(() => {
+    if (!textEditor) {
+      return;
+    }
+    const path = activePaths.find(p => p.id === textEditor.pathId);
+    if (textEditor.isNew || !path) {
+      activePathState.setPaths(prev => prev.filter(p => p.id !== textEditor.pathId));
+      setSelectedPathIds(prev => prev.filter(id => id !== textEditor.pathId));
+    } else if (path.tool === 'text') {
+      activePathState.setPaths(prev => prev.map(p => (p.id === textEditor.pathId ? { ...(p as TextData), text: textEditor.initialText } : p)));
+    }
+    setTextEditor(null);
+    endCoalescing();
+  }, [
+    textEditor,
+    activePaths,
+    activePathState,
+    setSelectedPathIds,
+    endCoalescing,
+  ]);
+
+  useEffect(() => {
+    if (!textEditor) {
+      return;
+    }
+    const exists = activePaths.some(p => p.id === textEditor.pathId);
+    if (!exists) {
+      setTextEditor(null);
+      endCoalescing();
+    }
+  }, [activePaths, textEditor, endCoalescing]);
+
   const handleCropManualPointerDown = useCallback((point: Point, event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
     if (appState.cropSelectionMode === 'magic-wand') return;
@@ -1402,6 +1510,8 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           setSelectedPathIds([path.id]);
+      } else if (path.tool === 'text') {
+          beginTextEditing(path.id);
       }
   }, [
     toolbarState.selectionMode,
@@ -1413,9 +1523,10 @@ export const useAppStore = () => {
     setCropTool,
     setCropEditedSrc,
     setSelectedPathIds,
+    beginTextEditing,
   ]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState, onBeginTextEditing: beginTextEditing });
   const selectionInteraction = useSelection({
     pathState: activePathState,
     toolbarState,
@@ -1812,6 +1923,10 @@ export const useAppStore = () => {
       handleRedo,
       canUndo,
       canRedo,
+      textEditor,
+      beginTextEditing,
+      commitTextEditing,
+      cancelTextEditing,
     ]
   );
 

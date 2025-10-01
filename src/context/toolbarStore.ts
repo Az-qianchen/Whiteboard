@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { COLORS, DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_CURVE_TIGHTNESS, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_STEP_COUNT, DEFAULT_PRESERVE_VERTICES, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL } from '@/constants';
-import type { EndpointStyle, GradientFill } from '@/types';
+import type { EndpointStyle, GradientFill, TextData } from '@/types';
 
 export interface ToolbarState {
   drawingColor: string;
@@ -93,6 +93,18 @@ export interface ToolbarState {
 
   drawingShadowColor: string;
   setDrawingShadowColor: (v: string) => void;
+
+  drawingFontFamily: string;
+  setDrawingFontFamily: (v: string) => void;
+
+  drawingFontSize: number;
+  setDrawingFontSize: (v: number) => void;
+
+  drawingTextAlign: TextData['textAlign'];
+  setDrawingTextAlign: (v: TextData['textAlign']) => void;
+
+  drawingTextLineHeight: number;
+  setDrawingTextLineHeight: (v: number) => void;
 }
 
 export const useToolbarStore = create<ToolbarState>()(
@@ -187,6 +199,18 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingShadowColor: 'rgba(0,0,0,0.5)',
       setDrawingShadowColor: (v) => set({ drawingShadowColor: v }),
+
+      drawingFontFamily: 'Excalifont, system-ui, sans-serif',
+      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
+
+      drawingFontSize: 32,
+      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
+
+      drawingTextAlign: 'left',
+      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
+
+      drawingTextLineHeight: 1.25,
+      setDrawingTextLineHeight: (v) => set({ drawingTextLineHeight: v }),
     }),
     {
       name: 'whiteboard_toolbar_state',

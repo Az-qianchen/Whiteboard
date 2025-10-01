@@ -7,6 +7,7 @@ import type {
   ImageData,
   PolygonData,
   FrameData,
+  TextData,
 } from '@/types';
 import { getPathBoundingBox } from '@/lib/drawing/bbox';
 import {
@@ -17,14 +18,15 @@ import {
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
-type TransformableShape = RectangleData | EllipseData | ImageData | PolygonData | FrameData;
+type TransformableShape = RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData;
 
 const isTransformableShape = (path: AnyPath): path is TransformableShape =>
   path.tool === 'rectangle' ||
   path.tool === 'ellipse' ||
   path.tool === 'image' ||
   path.tool === 'polygon' ||
-  path.tool === 'frame';
+  path.tool === 'frame' ||
+  path.tool === 'text';
 
 export interface GradientHandleSpace {
   toCanvas: (handle: GradientHandle) => Point | null;

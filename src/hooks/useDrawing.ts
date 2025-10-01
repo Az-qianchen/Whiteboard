@@ -4,10 +4,22 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData } from '../types';
+import type {
+  Point,
+  LivePath,
+  DrawingShape,
+  VectorPathData,
+  Anchor,
+  AnyPath,
+  DrawingArcData,
+  ArcData,
+  FrameData,
+  TextData,
+} from '../types';
 import { snapAngle, dist } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
+import { DEFAULT_TEXT_LINE_HEIGHT, measureTextDimensions } from '../lib/text';
 
 // Props definition
 interface DrawingInteractionProps {
@@ -17,6 +29,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  onBeginTextEditing: (pathId: string, options?: { isNew?: boolean }) => void;
 }
 
 /**
@@ -31,6 +44,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  onBeginTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -43,6 +57,7 @@ export const useDrawing = ({
     setCurrentPenPath, currentPenPath,
     setCurrentLinePath, currentLinePath,
     setPaths,
+    setSelectedPathIds,
   } = pathState;
 
   const { getPointerPosition } = viewTransform;
@@ -54,6 +69,10 @@ export const useDrawing = ({
     isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
     curveTightness, curveStepCount, preserveVertices,
     disableMultiStroke, disableMultiStrokeFill,
+    fontFamily,
+    fontSize,
+    textAlign,
+    textLineHeight,
   } = toolbarState;
 
   // Effect to clear the preview line when the pen/line path is finalized or cancelled.
@@ -117,6 +136,61 @@ export const useDrawing = ({
           ...sharedProps,
         };
         setCurrentBrushPath(newPath);
+        break;
+      }
+      case 'text': {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        const resolvedFontSize = Math.max(1, fontSize ?? 32);
+        const resolvedFontFamily = fontFamily ?? 'Excalifont, sans-serif';
+        const resolvedAlign: TextData['textAlign'] = textAlign ?? 'left';
+        const resolvedLineHeight = textLineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+        const { width: measuredWidth, height: measuredHeight } = measureTextDimensions(
+          '',
+          resolvedFontFamily,
+          resolvedFontSize,
+          resolvedLineHeight,
+        );
+        const newTextPath: TextData = {
+          id,
+          tool: 'text',
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          width: Math.max(resolvedFontSize * 2, measuredWidth || resolvedFontSize),
+          height: Math.max(resolvedFontSize * resolvedLineHeight, measuredHeight),
+          text: '',
+          fontSize: resolvedFontSize,
+          fontFamily: resolvedFontFamily,
+          textAlign: resolvedAlign,
+          lineHeight: resolvedLineHeight,
+          color,
+          fill: 'transparent',
+          fillGradient: null,
+          fillStyle: 'solid',
+          strokeWidth: 0,
+          opacity,
+          strokeLineDash,
+          strokeLineCapStart,
+          strokeLineCapEnd,
+          strokeLineJoin,
+          endpointSize,
+          endpointFill,
+          isRough: false,
+          roughness,
+          bowing,
+          fillWeight,
+          hachureAngle,
+          hachureGap,
+          curveTightness,
+          curveStepCount,
+          preserveVertices,
+          disableMultiStroke,
+          disableMultiStrokeFill,
+        };
+        setPaths((prev: AnyPath[]) => [...prev, newTextPath]);
+        setSelectedPathIds([id]);
+        onBeginTextEditing(id, { isNew: true });
         break;
       }
       case 'frame': {

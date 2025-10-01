@@ -4,7 +4,7 @@
  * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
 import { gradientHasVisibleColor } from './gradient';
@@ -122,8 +122,9 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         }
         case 'image':
         case 'frame':
-        case 'rectangle': {
-            const { x, y, width, height, rotation } = path as RectangleData | ImageData;
+        case 'rectangle':
+        case 'text': {
+            const { x, y, width, height, rotation } = path as RectangleData | ImageData | TextData;
             let testPoint = point;
 
             if (rotation) {

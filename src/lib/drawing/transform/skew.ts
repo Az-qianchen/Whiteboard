@@ -6,6 +6,7 @@ import type {
   PolygonData,
   FrameData,
   ResizeHandlePosition,
+  TextData,
 } from '@/types';
 
 const clampShear = (value: number): number => {
@@ -17,7 +18,7 @@ const clampShear = (value: number): number => {
 };
 
 const getHandleOffset = (
-  path: RectangleData | EllipseData | ImageData | PolygonData | FrameData,
+  path: RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData,
   handle: ResizeHandlePosition,
 ): Point => {
   const halfWidth = path.width / 2;
@@ -45,10 +46,10 @@ const getHandleOffset = (
 };
 
 export function skewPath(
-  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData,
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData,
   handle: ResizeHandlePosition,
   pointer: Point,
-): RectangleData | EllipseData | ImageData | PolygonData | FrameData {
+): RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData {
   const { x, y, width, height } = originalPath;
   const center = { x: x + width / 2, y: y + height / 2 };
   const rotation = originalPath.rotation ?? 0;
