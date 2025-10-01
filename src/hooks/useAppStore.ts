@@ -1212,7 +1212,11 @@ export const useAppStore = () => {
     const metrics = measureTextBlock(normalizedText, fontFamily, fontSize, lineHeight);
     const width = Math.max(metrics.width, fontSize * 0.6);
     const height = Math.max(metrics.height, fontSize * lineHeight);
-    const anchor = editor.anchor;
+    const anchor = editor.anchor as Point | undefined;
+    if (!anchor) {
+      setTextEditorState(null);
+      return;
+    }
     const alignOffset = editor.textAlign === 'center'
       ? width / 2
       : editor.textAlign === 'right'

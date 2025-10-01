@@ -42,6 +42,9 @@ export function TextEditorOverlay({
   }, [editor.fontFamily, editor.fontSize, editor.lineHeight, editor.text]);
 
   const scale = viewTransform.scale || 1;
+  const anchor = editor.anchor as Point | undefined;
+  const safeAnchorX = anchor?.x ?? 0;
+  const safeAnchorY = anchor?.y ?? 0;
   const width = useMemo(() => {
     const minWidth = editor.fontSize * MIN_TEXT_WIDTH_FACTOR;
     return Math.max(metrics.width, minWidth);
@@ -53,8 +56,8 @@ export function TextEditorOverlay({
 
   const widthPx = width * scale;
   const heightPx = height * scale;
-  const anchorX = editor.anchor.x * scale + viewTransform.translateX;
-  const anchorY = editor.anchor.y * scale + viewTransform.translateY;
+  const anchorX = safeAnchorX * scale + viewTransform.translateX;
+  const anchorY = safeAnchorY * scale + viewTransform.translateY;
   const alignOffsetPx = editor.textAlign === 'center'
     ? widthPx / 2
     : editor.textAlign === 'right'
