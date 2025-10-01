@@ -210,32 +210,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               <span>{t('cropMagicWandPolygon')}</span>
             </PanelButton>
           </div>
-
-          {cropSelectionMode === 'brush' && (
-            <div className="flex items-center gap-2">
-              <label
-                className="text-sm text-[var(--text-secondary)]"
-                htmlFor="magic-wand-brush-size"
-              >
-                {t('cropMagicWandBrushSize')}
-              </label>
-              <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
-                <input
-                  id="magic-wand-brush-size"
-                  type="number"
-                  min={brushSizeMin}
-                  max={brushSizeMax}
-                  value={cropBrushSize}
-                  onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
-                  inputMode="numeric"
-                  aria-label={t('cropMagicWandBrushSize')}
-                  className={`${PANEL_CLASSES.input} hide-spinners`}
-                />
-                <span className={PANEL_CLASSES.inputSuffix}>px</span>
-              </div>
-            </div>
-          )}
-
           <div className={PANEL_CLASSES.segmentGroup}>
             <PanelButton
               type="button"
@@ -283,6 +257,31 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               <span>{t('cropSelectionSubtract')}</span>
             </PanelButton>
           </div>
+
+          {cropSelectionMode === 'brush' && (
+            <div className="flex items-center gap-2">
+              <label
+                className="text-sm text-[var(--text-secondary)]"
+                htmlFor="magic-wand-brush-size"
+              >
+                {t('cropMagicWandBrushSize')}
+              </label>
+              <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
+                <input
+                  id="magic-wand-brush-size"
+                  type="number"
+                  min={brushSizeMin}
+                  max={brushSizeMax}
+                  value={cropBrushSize}
+                  onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
+                  inputMode="numeric"
+                  aria-label={t('cropMagicWandBrushSize')}
+                  className={`${PANEL_CLASSES.input} hide-spinners`}
+                />
+                <span className={PANEL_CLASSES.inputSuffix}>px</span>
+              </div>
+            </div>
+          )}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
