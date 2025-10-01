@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, FrameData, BBox } from '@/types';
-import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
+import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle, getWarpedCorners } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearHandles } from '@/lib/gradient';
 import { getGradientHandleSpace } from '@/lib/gradientHandles';
@@ -81,6 +81,25 @@ const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragSt
 const PathHighlight: React.FC<{ path: AnyPath; scale: number; isMultiSelect?: boolean }> = React.memo(({ path, scale, isMultiSelect = false }) => {
     if (path.tool === 'group') {
         return <g>{(path as GroupData).children.map(child => <PathHighlight key={child.id} path={child} scale={scale} isMultiSelect={isMultiSelect} />)}</g>;
+    }
+
+    if ((path.tool === 'rectangle' || path.tool === 'image') && path.warp) {
+        const corners = getWarpedCorners(path as RectangleData | ImageData);
+        const accent = 'var(--accent-primary)';
+        const scaledStroke = (width: number) => Math.max(0.5, width / scale);
+        const d = `M ${corners.topLeft.x} ${corners.topLeft.y} L ${corners.topRight.x} ${corners.topRight.y} L ${corners.bottomRight.x} ${corners.bottomRight.y} L ${corners.bottomLeft.x} ${corners.bottomLeft.y} Z`;
+
+        return (
+            <path
+                d={d}
+                fill="none"
+                stroke={accent}
+                strokeOpacity={isMultiSelect ? '0.9' : '1'}
+                strokeWidth={scaledStroke(1)}
+                strokeDasharray={isMultiSelect ? `${3 / scale} ${3 / scale}` : `${4 / scale} ${4 / scale}`}
+                className="pointer-events-none"
+            />
+        );
     }
 
     const d = getPathD(path);
@@ -177,7 +196,7 @@ const ShapeControls: React.FC<{
         }
 
         const handleKeyChange = (event: KeyboardEvent) => {
-            const next = event.ctrlKey || event.metaKey;
+            const next = (event.ctrlKey || event.metaKey) && event.shiftKey;
             setIsSkewModifierActive(prev => (prev === next ? prev : next));
         };
 
@@ -199,31 +218,69 @@ const ShapeControls: React.FC<{
     const transformMatrix = getShapeTransformMatrix(path);
     const transformPoint = (point: Point) => applyMatrixToPoint(transformMatrix, point);
 
-    const unrotatedHandles: { pos: Point; name: ResizeHandlePosition }[] = [
-        { pos: { x, y }, name: 'top-left' },
-        { pos: { x: x + width, y }, name: 'top-right' },
-        { pos: { x, y: y + height }, name: 'bottom-left' },
-        { pos: { x: x + width, y: y + height }, name: 'bottom-right' },
-        { pos: { x: x + width / 2, y }, name: 'top' },
-        { pos: { x: x + width, y: y + height / 2 }, name: 'right' },
-        { pos: { x: x + width / 2, y: y + height }, name: 'bottom' },
-        { pos: { x, y: y + height / 2 }, name: 'left' },
-    ];
+    const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+    let handlePositions: { pos: Point; name: ResizeHandlePosition }[];
+    let topCenter: Point;
+    let rotationHandlePos: Point;
+
+    const rotationHandleOffset = 20 / scale;
+
+    if (path.tool === 'rectangle' || path.tool === 'image') {
+        const warpedCorners = getWarpedCorners(path);
+        handlePositions = [
+            { pos: warpedCorners.topLeft, name: 'top-left' },
+            { pos: warpedCorners.topRight, name: 'top-right' },
+            { pos: warpedCorners.bottomLeft, name: 'bottom-left' },
+            { pos: warpedCorners.bottomRight, name: 'bottom-right' },
+            { pos: midpoint(warpedCorners.topLeft, warpedCorners.topRight), name: 'top' },
+            { pos: midpoint(warpedCorners.topRight, warpedCorners.bottomRight), name: 'right' },
+            { pos: midpoint(warpedCorners.bottomLeft, warpedCorners.bottomRight), name: 'bottom' },
+            { pos: midpoint(warpedCorners.topLeft, warpedCorners.bottomLeft), name: 'left' },
+        ];
+
+        const topEdgeDirection = {
+            x: warpedCorners.topRight.x - warpedCorners.topLeft.x,
+            y: warpedCorners.topRight.y - warpedCorners.topLeft.y,
+        };
+        const topEdgeLength = Math.hypot(topEdgeDirection.x, topEdgeDirection.y);
+        const topEdgeNormal = topEdgeLength > 1e-6
+            ? { x: topEdgeDirection.y / topEdgeLength, y: -topEdgeDirection.x / topEdgeLength }
+            : { x: 0, y: -1 };
+        topCenter = midpoint(warpedCorners.topLeft, warpedCorners.topRight);
+        rotationHandlePos = {
+            x: topCenter.x + topEdgeNormal.x * rotationHandleOffset,
+            y: topCenter.y + topEdgeNormal.y * rotationHandleOffset,
+        };
+    } else {
+        const unrotatedHandles: { pos: Point; name: ResizeHandlePosition }[] = [
+            { pos: { x, y }, name: 'top-left' },
+            { pos: { x: x + width, y }, name: 'top-right' },
+            { pos: { x, y: y + height }, name: 'bottom-left' },
+            { pos: { x: x + width, y: y + height }, name: 'bottom-right' },
+            { pos: { x: x + width / 2, y }, name: 'top' },
+            { pos: { x: x + width, y: y + height / 2 }, name: 'right' },
+            { pos: { x: x + width / 2, y: y + height }, name: 'bottom' },
+            { pos: { x, y: y + height / 2 }, name: 'left' },
+        ];
+        handlePositions = unrotatedHandles.map(handle => ({
+            ...handle,
+            pos: transformPoint(handle.pos),
+        }));
+
+        const topCenterUnrotated = { x: x + width / 2, y };
+        const rotationHandlePosUnrotated = { x: topCenterUnrotated.x, y: topCenterUnrotated.y - rotationHandleOffset };
+        topCenter = transformPoint(topCenterUnrotated);
+        rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
+    }
 
     const isSkewDragActive = allowSkew && dragState?.type === 'skew' && dragState.pathId === path.id;
     const useSkewCursor = allowSkew && (isSkewDragActive || isSkewModifierActive);
 
-    const handles = unrotatedHandles.map(handle => ({
+    const handles = handlePositions.map(handle => ({
         ...handle,
-        pos: transformPoint(handle.pos),
         cursor: getHandleCursor(handle.name, useSkewCursor),
     }));
-
-    const rotationHandleOffset = 20 / scale;
-    const topCenterUnrotated = { x: x + width / 2, y };
-    const rotationHandlePosUnrotated = { x: topCenterUnrotated.x, y: topCenterUnrotated.y - rotationHandleOffset };
-    const topCenter = transformPoint(topCenterUnrotated);
-    const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
 
     const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
     const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
@@ -286,7 +343,7 @@ const ShapeControls: React.FC<{
 
                 {rotationHandleLabel}
 
-                {isSelectedAlone && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') && (() => {
+                {isSelectedAlone && !path.warp && (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') && (() => {
                     const cornerPos = { x, y };
                     // Using a fixed screen-space offset makes it consistent regardless of zoom.
                     const handleOffset = 20 / scale;

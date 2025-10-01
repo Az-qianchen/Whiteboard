@@ -267,9 +267,19 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     }
     
     if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
-        if (!isIdentityMatrix(matrix)) {
-            finalElement.setAttribute('transform', matrixToString(matrix));
+        const supportsWarp = data.tool === 'rectangle' || data.tool === 'image';
+        const warpActive = supportsWarp && 'warp' in data && data.warp && (
+            Math.abs(data.warp.topLeft.x) > 1e-6 || Math.abs(data.warp.topLeft.y) > 1e-6 ||
+            Math.abs(data.warp.topRight.x) > 1e-6 || Math.abs(data.warp.topRight.y) > 1e-6 ||
+            Math.abs(data.warp.bottomRight.x) > 1e-6 || Math.abs(data.warp.bottomRight.y) > 1e-6 ||
+            Math.abs(data.warp.bottomLeft.x) > 1e-6 || Math.abs(data.warp.bottomLeft.y) > 1e-6
+        );
+
+        if (!warpActive) {
+            const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+            if (!isIdentityMatrix(matrix)) {
+                finalElement.setAttribute('transform', matrixToString(matrix));
+            }
         }
     }
 

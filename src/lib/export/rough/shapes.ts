@@ -1,12 +1,55 @@
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { RectangleData, EllipseData, ImageData, PolygonData, FrameData } from '@/types';
-import { getPolygonPathD, getRoundedRectPathD } from '@/lib/drawing';
+import {
+  getPolygonPathD,
+  getRoundedRectPathD,
+  getWarpedCorners,
+  getQuadProjectiveMatrix,
+  projectiveMatrixToCss,
+} from '@/lib/drawing';
 
 export function renderImage(data: ImageData): SVGElement {
     const imgData = data as ImageData;
     if (!imgData.src) {
         console.warn('renderImage called without data URL. Ensure image sources are hydrated before rendering.');
         return document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    }
+
+    const warpOffsets = imgData.warp;
+    const hasWarp = !!warpOffsets && (
+        Math.abs(warpOffsets.topLeft.x) > 1e-6 || Math.abs(warpOffsets.topLeft.y) > 1e-6 ||
+        Math.abs(warpOffsets.topRight.x) > 1e-6 || Math.abs(warpOffsets.topRight.y) > 1e-6 ||
+        Math.abs(warpOffsets.bottomRight.x) > 1e-6 || Math.abs(warpOffsets.bottomRight.y) > 1e-6 ||
+        Math.abs(warpOffsets.bottomLeft.x) > 1e-6 || Math.abs(warpOffsets.bottomLeft.y) > 1e-6
+    );
+
+    if (hasWarp) {
+        const corners = getWarpedCorners(imgData);
+        const matrix = getQuadProjectiveMatrix(imgData.width, imgData.height, corners);
+
+        if (matrix) {
+            const SVG_NS = 'http://www.w3.org/2000/svg';
+            const group = document.createElementNS(SVG_NS, 'g');
+            const image = document.createElementNS(SVG_NS, 'image');
+            image.setAttribute('href', imgData.src!);
+            image.setAttribute('width', String(imgData.width));
+            image.setAttribute('height', String(imgData.height));
+            image.setAttribute('x', '0');
+            image.setAttribute('y', '0');
+            image.setAttribute('preserveAspectRatio', 'none');
+            image.style.transformOrigin = '0 0';
+            image.style.setProperty('transform-box', 'fill-box');
+            image.style.transform = projectiveMatrixToCss(matrix);
+            group.appendChild(image);
+
+            if (imgData.opacity !== undefined && imgData.opacity < 1) {
+                group.setAttribute('opacity', String(imgData.opacity));
+            }
+
+            return group;
+        }
+
+        console.warn('Failed to compute quad warp for image.', data.id);
     }
 
     if (imgData.borderRadius && imgData.borderRadius > 0) {
@@ -57,9 +100,13 @@ export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData
         const cy = y + height / 2;
         return rc.ellipse(cx, cy, width, height, options);
     } else if (data.tool === 'rectangle') {
-        const { x, y, width, height, borderRadius } = data as RectangleData;
-        // Always use rc.path for rectangles to ensure a single path is generated,
-        // allowing stroke-linejoin to correctly round the corners.
+        const rectangle = data as RectangleData;
+        if (rectangle.warp) {
+            const corners = getWarpedCorners(rectangle);
+            const d = `M ${corners.topLeft.x} ${corners.topLeft.y} L ${corners.topRight.x} ${corners.topRight.y} L ${corners.bottomRight.x} ${corners.bottomRight.y} L ${corners.bottomLeft.x} ${corners.bottomLeft.y} Z`;
+            return rc.path(d, options);
+        }
+        const { x, y, width, height, borderRadius } = rectangle;
         const d = getRoundedRectPathD(x, y, width, height, borderRadius ?? 0);
         return rc.path(d, options);
     } else if (data.tool === 'frame') {

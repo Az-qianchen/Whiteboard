@@ -12,7 +12,7 @@ import type {
   SelectionToolbarState,
   SelectionViewTransform,
 } from '@/types';
-import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist, skewPath } from '@/lib/drawing';
+import { updatePathAnchors, movePath, rotatePath, getPathsBoundingBox, resizePath, scalePath, transformCropRect, dist, skewPath, warpHandle } from '@/lib/drawing';
 import { getLinearHandles, updateLinearGradientHandles, updateRadialGradientHandles } from '@/lib/gradient';
 import { getGradientHandleSpace } from '@/lib/gradientHandles';
 import { isPointHittingPath } from '@/lib/hit-testing';
@@ -344,6 +344,19 @@ export const handlePointerMoveLogic = (props: HandlePointerMoveProps) => {
                 const snapContext = computeSnapContext(dragState.initialPointerPos, movePoint, snapToGrid);
                 const effectiveMovePoint = snapContext.effective;
                 transformedShapes = [skewPath(originalPath, handle, effectiveMovePoint)];
+                break;
+            }
+            case 'warp': {
+                const { originalPath, handle, initialPointerPos, baseCorners, warpedCorners, initialHandlePoint } = dragState;
+                const snapContext = computeSnapContext(initialPointerPos, movePoint, snapToGrid);
+                const effectiveMovePoint = snapContext.effective;
+                transformedShapes = [
+                    warpHandle(originalPath, handle, effectiveMovePoint, {
+                        baseCorners,
+                        warpedCorners,
+                        initialHandlePoint,
+                    }),
+                ];
                 break;
             }
             case 'gradient': {

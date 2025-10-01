@@ -5,3 +5,4 @@ export * from './move';
 export * from './flip';
 export * from './scale';
 export * from './skew';
+export * from './warp';

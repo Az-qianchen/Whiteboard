@@ -136,6 +136,10 @@ export function resizePath(
     result = movePath(result, translation.x, translation.y);
   }
 
+  if (result.tool === 'rectangle' || result.tool === 'image') {
+    result = { ...result, warp: undefined } as typeof result;
+  }
+
   return result;
 }
 

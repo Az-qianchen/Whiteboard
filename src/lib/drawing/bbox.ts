@@ -18,6 +18,7 @@ import { getPolygonVertices } from './polygon';
 import { sampleArc } from './arc';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '@/constants';
 import { applyMatrixToPoint, getShapeTransformMatrix } from './transform/matrix';
+import { getWarpedCorners } from './transform/warp';
 import { parseColor } from '../color';
 import { gradientHasVisibleColor } from '../gradient';
 
@@ -114,11 +115,24 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const bbox = getPathsBoundingBox(groupPath.children, includeStroke);
       return bbox || { x: 0, y: 0, width: 0, height: 0 };
     }
-    case 'frame':
     case 'rectangle':
     case 'image': {
+      const corners = getWarpedCorners(path as RectangleData | ImageData);
+      const minX = Math.min(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
+      const minY = Math.min(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
+      const maxX = Math.max(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
+      const maxY = Math.max(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
+
+      return {
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
+      };
+    }
+    case 'frame': {
       const { x, y, width, height } = path;
-      const matrix = getShapeTransformMatrix(path as RectangleData | ImageData | FrameData);
+      const matrix = getShapeTransformMatrix(path as FrameData);
       const corners = [
         { x, y },
         { x: x + width, y },
