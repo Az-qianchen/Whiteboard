@@ -7,7 +7,7 @@ import { anchorsToPathD, pointsToPathD } from '@/lib/path-fitting';
 import { createSvgMarker } from '../markers/svg';
 import { getPolygonPathD, calculateArcPathD } from '@/lib/drawing';
 import { createEffectsFilter } from '../core/effects';
-import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
+import { getLinearGradientCoordinates, getRadialGradientAttributes, getGradientTransform, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -94,6 +94,11 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
           ? document.createElementNS(svgNS, 'linearGradient')
           : document.createElementNS(svgNS, 'radialGradient');
         gradientElement.setAttribute('id', gradientId);
+
+        const gradientTransform = getGradientTransform(data);
+        if (gradientTransform) {
+          gradientElement.setAttribute('gradientTransform', gradientTransform);
+        }
 
         if (gradient.type === 'linear') {
           const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient);

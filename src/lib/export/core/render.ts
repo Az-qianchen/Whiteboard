@@ -9,7 +9,7 @@ import { renderImage, renderRoughShape } from '../rough/shapes';
 import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
-import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
+import { getLinearGradientCoordinates, getRadialGradientAttributes, getGradientTransform, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -24,7 +24,7 @@ const ensureDefs = (element: SVGElement): SVGDefsElement => {
     return defs;
 };
 
-const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, gradient: GradientFill, shapeId: string): SVGElement => {
+const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, gradient: GradientFill, shape: AnyPath): SVGElement => {
     let container = finalElement;
     if (container.tagName !== 'g') {
         const wrapper = document.createElementNS(SVG_NS, 'g');
@@ -33,7 +33,7 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
     }
 
     const defs = ensureDefs(container);
-    const gradientId = `gradient-${shapeId}`;
+    const gradientId = `gradient-${shape.id}`;
     const existingGradient = defs.querySelector(`#${gradientId}`);
     if (existingGradient) defs.removeChild(existingGradient);
 
@@ -42,6 +42,11 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
       : document.createElementNS(SVG_NS, 'radialGradient');
 
     gradientElement.setAttribute('id', gradientId);
+
+    const gradientTransform = getGradientTransform(shape);
+    if (gradientTransform) {
+      gradientElement.setAttribute('gradientTransform', gradientTransform);
+    }
 
     if (gradient.type === 'linear') {
       const { x1, y1, x2, y2 } = getLinearGradientCoordinates(gradient);
@@ -259,7 +264,7 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     }
 
     if (data.fillGradient && data.fillGradient.stops && data.fillGradient.stops.length > 0) {
-        finalElement = applyGradientFill(finalElement, node, data.fillGradient, data.id);
+        finalElement = applyGradientFill(finalElement, node, data.fillGradient, data);
     }
 
     if (data.opacity !== undefined && data.opacity < 1) {

@@ -1,9 +1,15 @@
 import type {
+  AnyPath,
   GradientFill,
   GradientHandle,
   GradientStop,
   LinearGradientFill,
   RadialGradientFill,
+  RectangleData,
+  EllipseData,
+  PolygonData,
+  FrameData,
+  ImageData,
 } from '@/types';
 import { parseColor, hslaToHslaString } from './color';
 
@@ -56,6 +62,55 @@ export const normalizeStops = (stops: GradientStop[]): GradientStop[] =>
   stops
     .map(stop => ({ ...stop, offset: clamp01(stop.offset) }))
     .sort((a, b) => a.offset - b.offset);
+
+type GradientTransformableShape = RectangleData | EllipseData | PolygonData | FrameData | ImageData;
+
+const isGradientTransformableShape = (shape: AnyPath): shape is GradientTransformableShape =>
+  shape.tool === 'rectangle'
+  || shape.tool === 'ellipse'
+  || shape.tool === 'polygon'
+  || shape.tool === 'frame'
+  || shape.tool === 'image';
+
+const toDegrees = (radians: number): number => radians * (180 / Math.PI);
+
+const isApproximately = (value: number, target: number = 0, epsilon: number = 1e-6): boolean =>
+  Math.abs(value - target) < epsilon;
+
+export function getGradientTransform(shape: AnyPath): string | null {
+  if (!isGradientTransformableShape(shape)) {
+    return null;
+  }
+
+  const transforms: string[] = [];
+
+  const rotation = shape.rotation ?? 0;
+  if (!isApproximately(rotation)) {
+    transforms.push(`rotate(${toDegrees(rotation)})`);
+  }
+
+  const skewX = shape.skewX ?? 0;
+  if (!isApproximately(skewX)) {
+    transforms.push(`skewX(${toDegrees(Math.atan(skewX))})`);
+  }
+
+  const skewY = shape.skewY ?? 0;
+  if (!isApproximately(skewY)) {
+    transforms.push(`skewY(${toDegrees(Math.atan(skewY))})`);
+  }
+
+  const scaleX = shape.scaleX ?? 1;
+  const scaleY = shape.scaleY ?? 1;
+  if (!isApproximately(scaleX, 1) || !isApproximately(scaleY, 1)) {
+    transforms.push(`scale(${scaleX} ${scaleY})`);
+  }
+
+  if (transforms.length === 0) {
+    return null;
+  }
+
+  return `translate(0.5 0.5) ${transforms.join(' ')} translate(-0.5 -0.5)`;
+}
 
 export function gradientToCss(gradient: GradientFill): string {
   const stops = normalizeStops(gradient.stops)
