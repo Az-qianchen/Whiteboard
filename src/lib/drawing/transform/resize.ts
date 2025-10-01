@@ -21,6 +21,7 @@ export function resizePath(
   keepAspectRatio: boolean,
   rotationCenter?: Point,
 ): RectangleData | EllipseData | ImageData | PolygonData | FrameData {
+  const ZERO_EPSILON = 1e-6;
   const { rotation } = originalPath;
 
   const defaultCenter = {
@@ -71,6 +72,24 @@ export function resizePath(
 
   const affectsX = handle.includes('left') || handle.includes('right');
   const affectsY = handle.includes('top') || handle.includes('bottom');
+
+  const isDegenerateWidth = affectsX && Math.abs(oldWidth) < ZERO_EPSILON;
+  const isDegenerateHeight = affectsY && Math.abs(oldHeight) < ZERO_EPSILON;
+
+  if (isDegenerateWidth || isDegenerateHeight) {
+    const nextLeft = isDegenerateWidth ? Math.min(localCurrentPos.x, anchor.x) : oldX;
+    const nextRight = isDegenerateWidth ? Math.max(localCurrentPos.x, anchor.x) : oldX + oldWidth;
+    const nextTop = isDegenerateHeight ? Math.min(localCurrentPos.y, anchor.y) : oldY;
+    const nextBottom = isDegenerateHeight ? Math.max(localCurrentPos.y, anchor.y) : oldY + oldHeight;
+
+    return {
+      ...originalPath,
+      x: isDegenerateWidth ? nextLeft : oldX,
+      width: isDegenerateWidth ? Math.max(nextRight - nextLeft, 0) : oldWidth,
+      y: isDegenerateHeight ? nextTop : oldY,
+      height: isDegenerateHeight ? Math.max(nextBottom - nextTop, 0) : oldHeight,
+    };
+  }
 
   const baseWidth = handle.includes('left') ? -oldWidth : oldWidth;
   const baseHeight = handle.includes('top') ? -oldHeight : oldHeight;
