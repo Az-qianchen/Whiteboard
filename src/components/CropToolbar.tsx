@@ -550,10 +550,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
       {isAdjustTool && (
         <div className="w-full rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] p-3 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-            {ICONS.HSV}
-            <span>{hsvTitle}</span>
-          </div>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <label className="w-20 text-xs font-medium text-[var(--text-secondary)]">{hueLabel}</label>
