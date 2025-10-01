@@ -1,4 +1,4 @@
-import type { Point, RectangleData, EllipseData, ImageData, PolygonData, FrameData, ResizeHandlePosition } from '@/types';
+import type { Point, RectangleData, EllipseData, ImageData, PolygonData, FrameData, TextData, ResizeHandlePosition } from '@/types';
 import { rotatePoint } from '../geom';
 import { scalePath } from './scale';
 import { movePath } from './move';
@@ -14,13 +14,13 @@ import { movePath } from './move';
  * @returns 返回一个调整大小后的新图形对象。
  */
 export function resizePath(
-  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData,
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData,
   handle: ResizeHandlePosition,
   currentPos: Point,
   initialPos: Point,
   keepAspectRatio: boolean,
   rotationCenter?: Point,
-): RectangleData | EllipseData | ImageData | PolygonData | FrameData {
+): RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData {
   const { rotation } = originalPath;
 
   const defaultCenter = {
@@ -105,6 +105,19 @@ export function resizePath(
   const scaleY = appliesToY ? rawScaleY : 1;
 
   let result = scalePath(originalPath, anchor, scaleX, scaleY);
+
+  if (originalPath.tool === 'text') {
+    const originalText = originalPath as TextData;
+    const resizedText = result as TextData;
+    const baseHeight = originalText.height || 1;
+    const scaledHeight = resizedText.height || baseHeight;
+    const scaleFactor = scaledHeight / baseHeight;
+    const safeScale = Number.isFinite(scaleFactor) && scaleFactor > 0
+      ? scaleFactor
+      : Math.max(Math.abs(scaleX), Math.abs(scaleY), 1);
+    resizedText.fontSize = Math.max(1, originalText.fontSize * safeScale);
+    resizedText.lineHeight = Math.max(1, originalText.lineHeight * safeScale);
+  }
 
   if (rotation) {
     const newCenter = { x: result.x + result.width / 2, y: result.y + result.height / 2 };
