@@ -42,7 +42,7 @@ export const COLORS = [
 export const CONTROL_BUTTON_CLASS =
   'flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
 
-export const DEFAULT_MAIN_MENU_WIDTH = 300;
+export const DEFAULT_MAIN_MENU_WIDTH = 225;
 
 export const TIMELINE_PANEL_HEIGHT_VAR = 'var(--timeline-panel-height, 0px)';
 export const TIMELINE_PANEL_COLLAPSED_OFFSET = '1rem';
