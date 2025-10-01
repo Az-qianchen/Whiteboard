@@ -12,8 +12,8 @@ import type { HsvAdjustment } from '@/lib/image';
 
 interface CropToolbarProps {
   isTimelineCollapsed: boolean;
-  cropTool: 'crop' | 'magic-wand';
-  setCropTool: (tool: 'crop' | 'magic-wand') => void;
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
+  setCropTool: (tool: 'crop' | 'magic-wand' | 'adjust') => void;
   cropMagicWandOptions: { threshold: number; contiguous: boolean; featherRadius: number };
   setCropMagicWandOptions: (opts: Partial<{ threshold: number; contiguous: boolean; featherRadius: number }>) => void;
   cropSelectionMode: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
@@ -58,6 +58,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { beginPreview, updatePreview, commitPreview, cancelPreview } = imageHsvPreview;
+  const isAdjustTool = cropTool === 'adjust';
   const [h, setH] = useState(0);
   const [s, setS] = useState(0);
   const [v, setV] = useState(0);
@@ -176,6 +177,15 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
     cancelCrop();
   }, [cancelPreview, cancelCrop, resetAdjustments]);
 
+  useEffect(() => {
+    if (!isAdjustTool) {
+      resetAdjustments();
+      void cancelPreview().catch(error => {
+        console.error('Failed to cancel HSV preview', error);
+      });
+    }
+  }, [isAdjustTool, cancelPreview, resetAdjustments]);
+
   useEffect(() => () => {
     previewReadyRef.current = null;
     void cancelPreview();
@@ -283,6 +293,21 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           >
             {ICONS.TRACE_IMAGE}
             <span>{t('cropCutout')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            variant="unstyled"
+            className={`${segmentedButtonBase} ${
+              cropTool === 'adjust'
+                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+            }`}
+            onClick={() => setCropTool('adjust')}
+            aria-pressed={cropTool === 'adjust'}
+            title={hsvTitle}
+          >
+            {ICONS.HSV}
+            <span>{hsvTitle}</span>
           </PanelButton>
         </div>
       </div>
@@ -523,67 +548,69 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
     </div>
   )}
 
-      <div className="w-full rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] p-3 space-y-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-          {ICONS.HSV}
-          <span>{hsvTitle}</span>
-        </div>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">{hueLabel}</label>
-            <div
-              className="relative h-4 cursor-pointer"
-              onPointerDown={createSliderHandler((fraction, current) => ({
-                h: Math.round(fraction * 360) - 180,
-                s: current.s,
-                v: current.v,
-              }))}
-            >
-              <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: hueBg }} />
-              <div
-                className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white shadow-md ring-1 ring-white/20"
-                style={{ left: `${hPos}%` }}
-              />
-            </div>
+      {isAdjustTool && (
+        <div className="w-full rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] p-3 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+            {ICONS.HSV}
+            <span>{hsvTitle}</span>
           </div>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--text-secondary)]">{hueLabel}</label>
+              <div
+                className="relative h-4 cursor-pointer"
+                onPointerDown={createSliderHandler((fraction, current) => ({
+                  h: Math.round(fraction * 360) - 180,
+                  s: current.s,
+                  v: current.v,
+                }))}
+              >
+                <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: hueBg }} />
+                <div
+                  className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white shadow-md ring-1 ring-white/20"
+                  style={{ left: `${hPos}%` }}
+                />
+              </div>
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">{saturationLabel}</label>
-            <div
-              className="relative h-4 cursor-pointer"
-              onPointerDown={createSliderHandler((fraction, current) => ({
-                h: current.h,
-                s: Math.round(fraction * 200) - 100,
-                v: current.v,
-              }))}
-            >
-              <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: satBg }} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--text-secondary)]">{saturationLabel}</label>
               <div
-                className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md ring-1 ring-white/20"
-                style={{ left: `${sPos}%`, backgroundColor: `hsl(${baseHue}, ${sPos}%, ${baseV}%)` }}
-              />
+                className="relative h-4 cursor-pointer"
+                onPointerDown={createSliderHandler((fraction, current) => ({
+                  h: current.h,
+                  s: Math.round(fraction * 200) - 100,
+                  v: current.v,
+                }))}
+              >
+                <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: satBg }} />
+                <div
+                  className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md ring-1 ring-white/20"
+                  style={{ left: `${sPos}%`, backgroundColor: `hsl(${baseHue}, ${sPos}%, ${baseV}%)` }}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">{valueLabel}</label>
-            <div
-              className="relative h-4 cursor-pointer"
-              onPointerDown={createSliderHandler((fraction, current) => ({
-                h: current.h,
-                s: current.s,
-                v: Math.round(fraction * 200) - 100,
-              }))}
-            >
-              <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: valBg }} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--text-secondary)]">{valueLabel}</label>
               <div
-                className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md ring-1 ring-white/20"
-                style={{ left: `${vPos}%`, backgroundColor: `hsl(${baseHue}, ${baseS}%, ${vPos}%)` }}
-              />
+                className="relative h-4 cursor-pointer"
+                onPointerDown={createSliderHandler((fraction, current) => ({
+                  h: current.h,
+                  s: current.s,
+                  v: Math.round(fraction * 200) - 100,
+                }))}
+              >
+                <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: valBg }} />
+                <div
+                  className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md ring-1 ring-white/20"
+                  style={{ left: `${vPos}%`, backgroundColor: `hsl(${baseHue}, ${baseS}%, ${vPos}%)` }}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         {cropTool === 'crop' && (

@@ -224,7 +224,7 @@ interface AppState {
   confirmationDialog: ConfirmationDialogState | null;
   croppingState: { pathId: string; originalPath: PathImageData } | null;
   currentCropRect: BBox | null;
-  cropTool: 'crop' | 'magic-wand';
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
   cropMagicWandOptions: { threshold: number; contiguous: boolean; featherRadius: number };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
