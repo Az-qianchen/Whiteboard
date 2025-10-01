@@ -144,6 +144,8 @@ export const MainLayout: React.FC = () => {
                 if (selectionMode === 'move') return selectionInteraction.isHoveringMovable ? 'grab' : 'default';
                 if (selectionMode === 'edit') return selectionInteraction.isHoveringEditable ? 'pointer' : 'default';
                 return 'default';
+            case 'text':
+                return 'text';
             case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
             default: return 'default';
         }

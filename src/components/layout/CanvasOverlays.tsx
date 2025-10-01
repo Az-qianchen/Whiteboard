@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { TextEditorOverlay } from '../whiteboard/TextEditorOverlay';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -43,6 +44,7 @@ export const CanvasOverlays: React.FC = () => {
         handleJumpToGroup,
         selectedPathIds,
         tool,
+        viewTransform,
         selectionMode,
         handleSetTool,
         isStyleLibraryOpen,
@@ -105,6 +107,10 @@ export const CanvasOverlays: React.FC = () => {
         confirmCrop,
         trimTransparentEdges,
         cancelCrop,
+        textEditor,
+        updateTextEditorText,
+        commitTextEditor,
+        cancelTextEditor,
         undo: handleUndo,
         canUndo,
         redo: handleRedo,
@@ -224,6 +230,16 @@ export const CanvasOverlays: React.FC = () => {
                 onSaveLibrary={handleSaveLibrary} onLoadLibrary={handleLoadLibrary} onClearLibrary={handleClearLibrary}
                 onAddMaterial={handleAddMaterial} onApplyMaterial={handleApplyMaterial}
             />
+
+            {textEditor && (
+                <TextEditorOverlay
+                    editor={textEditor}
+                    viewTransform={viewTransform}
+                    onChange={updateTextEditorText}
+                    onCommit={commitTextEditor}
+                    onCancel={cancelTextEditor}
+                />
+            )}
 
             {contextMenu?.isOpen && (<ContextMenu isOpen={contextMenu.isOpen} position={{ x: contextMenu.x, y: contextMenu.y }} actions={contextMenuActions} onClose={() => setContextMenu(null)} />)}
 
