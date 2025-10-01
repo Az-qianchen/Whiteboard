@@ -16,10 +16,10 @@ import { usePointerInteraction } from './usePointerInteraction';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
-import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
+import { DEFAULT_MAIN_MENU_WIDTH, DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
 import { normalizeFrames, createFrame, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
 
@@ -38,6 +38,7 @@ import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
 import { createDocumentSignature } from '@/lib/document';
+import { measureTextMetrics } from '@/lib/text';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -235,6 +236,7 @@ interface AppState {
   cropManualDraft: CropManualDraft | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
+  textEditing: { pathId: string; draft: string; isNew: boolean } | null;
 }
 
 // --- Initial State Loaders ---
@@ -289,6 +291,7 @@ const getInitialAppState = (): AppState => ({
   cropManualDraft: null,
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
+  textEditing: null,
 });
 
 
@@ -1403,6 +1406,9 @@ export const useAppStore = () => {
           setCurrentCropRect({ x: path.x, y: path.y, width: path.width, height: path.height });
           setCropHistory({ past: [], future: [] });
           setSelectedPathIds([path.id]);
+      } else if (path.tool === 'text') {
+          setSelectedPathIds([path.id]);
+          beginTextEditing(path.id);
       }
   }, [
     toolbarState.selectionMode,
@@ -1414,9 +1420,18 @@ export const useAppStore = () => {
     setCropTool,
     setCropEditedSrc,
     setSelectedPathIds,
+    beginTextEditing,
   ]);
 
-  const drawingInteraction = useDrawing({ pathState: activePathState, toolbarState, viewTransform, ...uiState });
+  const drawingInteraction = useDrawing({
+    pathState: activePathState,
+    toolbarState,
+    viewTransform,
+    isGridVisible: uiState.isGridVisible,
+    gridSize: uiState.gridSize,
+    gridSubdivisions: uiState.gridSubdivisions,
+    beginTextEditing,
+  });
   const selectionInteraction = useSelection({
     pathState: activePathState,
     toolbarState,
@@ -1488,6 +1503,88 @@ export const useAppStore = () => {
     backgroundColor: uiState.backgroundColor,
     sampleImageColorAtPoint,
   });
+
+  const textEditing = appState.textEditing;
+
+  const beginTextEditing = useCallback((pathId: string, options?: { isNew?: boolean }) => {
+    const path = paths.find((p): p is TextData => p.id === pathId && p.tool === 'text');
+    const draft = path?.text ?? '';
+    setAppState(prev => ({
+      ...prev,
+      textEditing: { pathId, draft, isNew: options?.isNew ?? false },
+    }));
+  }, [paths, setAppState]);
+
+  const updateTextEditing = useCallback((draft: string) => {
+    setAppState(prev => {
+      if (!prev.textEditing || prev.textEditing.draft === draft) {
+        return prev;
+      }
+      return { ...prev, textEditing: { ...prev.textEditing, draft } };
+    });
+  }, [setAppState]);
+
+  const commitTextEditing = useCallback(() => {
+    if (!textEditing) {
+      return;
+    }
+
+    const { pathId, draft } = textEditing;
+    const normalized = draft.replace(/\r/g, '');
+    let removed = false;
+
+    setPaths(currentPaths => {
+      const index = currentPaths.findIndex(path => path.id === pathId);
+      if (index === -1) {
+        return currentPaths;
+      }
+
+      const target = currentPaths[index];
+      if (target.tool !== 'text') {
+        return currentPaths;
+      }
+
+      const textPath = target as TextData;
+      if (normalized.trim().length === 0) {
+        removed = true;
+        return currentPaths.filter(path => path.id !== pathId);
+      }
+
+      const baseLineHeight = textPath.lineHeight || textPath.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+      const factor = textPath.fontSize > 0 ? baseLineHeight / textPath.fontSize : DEFAULT_TEXT_LINE_HEIGHT;
+      const metrics = measureTextMetrics(normalized, textPath.fontSize, textPath.fontFamily, factor, textPath.fontWeight);
+      const updated: TextData = {
+        ...textPath,
+        text: normalized,
+        width: metrics.width,
+        height: metrics.height,
+        lineHeight: metrics.lineHeight,
+      };
+
+      const next = [...currentPaths];
+      next[index] = updated;
+      return next;
+    });
+
+    if (removed) {
+      setSelectedPathIds(ids => ids.filter(id => id !== pathId));
+    }
+
+    setAppState(prev => ({ ...prev, textEditing: null }));
+  }, [textEditing, setPaths, setSelectedPathIds, setAppState]);
+
+  const cancelTextEditing = useCallback(() => {
+    if (!textEditing) {
+      return;
+    }
+
+    if (textEditing.isNew) {
+      setPaths(currentPaths => currentPaths.filter(path => path.id !== textEditing.pathId));
+      setSelectedPathIds(ids => ids.filter(id => id !== textEditing.pathId));
+    }
+
+    setAppState(prev => ({ ...prev, textEditing: null }));
+  }, [textEditing, setPaths, setSelectedPathIds, setAppState]);
   
   const handleSetTool = useCallback((newTool: Tool) => {
     if (newTool === toolbarState.tool) return;
@@ -1662,6 +1759,10 @@ export const useAppStore = () => {
       drawingInteraction,
       selectionInteraction,
       pointerInteraction,
+      beginTextEditing,
+      updateTextEditing,
+      commitTextEditing,
+      cancelTextEditing,
       setIsGridVisible,
       setGridSize,
       setGridSubdivisions,
@@ -1815,6 +1916,10 @@ export const useAppStore = () => {
       handleRedo,
       canUndo,
       canRedo,
+      beginTextEditing,
+      updateTextEditing,
+      commitTextEditing,
+      cancelTextEditing,
     ]
   );
 

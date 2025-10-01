@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -89,6 +89,65 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
     return container;
 };
 
+const createSmoothTextNode = (data: TextData): SVGElement => {
+    const group = document.createElementNS(SVG_NS, 'g');
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    group.appendChild(defs);
+
+    const textElement = document.createElementNS(SVG_NS, 'text');
+    const align = data.textAlign ?? 'left';
+    const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
+    const xBase = align === 'center' ? data.x + data.width / 2 : align === 'right' ? data.x + data.width : data.x;
+
+    textElement.setAttribute('x', xBase.toString());
+    textElement.setAttribute('y', data.y.toString());
+    textElement.setAttribute('text-anchor', anchor);
+    textElement.setAttribute('dominant-baseline', 'hanging');
+    textElement.setAttribute('xml:space', 'preserve');
+    textElement.setAttribute('font-family', data.fontFamily);
+    textElement.setAttribute('font-size', data.fontSize.toString());
+    if (data.fontWeight) {
+        textElement.setAttribute('font-weight', data.fontWeight.toString());
+    }
+    textElement.setAttribute('fill', data.color ?? '#000');
+
+    const lines = data.text.replace(/\r/g, '').split('\n');
+    lines.forEach((line, index) => {
+        const tspan = document.createElementNS(SVG_NS, 'tspan');
+        if (index > 0) {
+            tspan.setAttribute('x', xBase.toString());
+            tspan.setAttribute('dy', data.lineHeight.toString());
+        }
+        tspan.textContent = line.length > 0 ? line : '​';
+        textElement.appendChild(tspan);
+    });
+
+    group.appendChild(textElement);
+
+    if ((data.blur ?? 0) > 0 || data.shadowEnabled === true) {
+        const filter = createEffectsFilter(data);
+        if (filter) {
+            defs.appendChild(filter);
+            textElement.setAttribute('filter', `url(#${filter.id})`);
+        }
+    }
+
+    if (data.opacity !== undefined && data.opacity < 1) {
+        group.setAttribute('opacity', String(data.opacity));
+    }
+
+    const matrix = getShapeTransformMatrix(data);
+    if (!isIdentityMatrix(matrix)) {
+        group.setAttribute('transform', matrixToString(matrix));
+    }
+
+    if (!defs.hasChildNodes()) {
+        group.removeChild(defs);
+    }
+
+    return group;
+};
+
 /**
  * 使用给定的 RoughJS 实例将 AnyPath 对象渲染为 SVGElement。
  * 这是主画板和导出函数共享的实用工具。
@@ -97,6 +156,9 @@ const applyGradientFill = (finalElement: SVGElement, shapeNode: SVGElement, grad
  * @returns 表示已渲染路径的 SVGElement（例如 <path>、<g>），或为 null。
  */
 export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
+    if (data.tool === 'text') {
+        return createSmoothTextNode(data as TextData);
+    }
     let node: SVGElement | null = null;
     const capNodes: SVGElement[] = [];
 

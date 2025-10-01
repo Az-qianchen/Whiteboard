@@ -2,11 +2,11 @@
  * 本文件定义了画布的覆盖层组件。
  * 它包含了所有绝对定位在画布上方的UI元素，如工具栏、菜单和对话框。
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
-import { CONTROL_BUTTON_CLASS, getTimelinePanelBottomOffset } from '@/constants';
+import { CONTROL_BUTTON_CLASS, DEFAULT_TEXT_LINE_HEIGHT, getTimelinePanelBottomOffset } from '@/constants';
 import { Toolbar } from '../Toolbar';
 import { SelectionToolbar } from '../SelectionToolbar';
 import { ContextMenu } from '../ContextMenu';
@@ -15,7 +15,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
-import type { AnyPath, MaterialData } from '@/types';
+import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 
@@ -112,11 +112,16 @@ export const CanvasOverlays: React.FC = () => {
         canRedo,
         isTimelineCollapsed,
         setIsTimelineCollapsed,
+        viewTransform: viewTransformState,
+        textEditing,
+        updateTextEditing,
+        commitTextEditing,
+        cancelTextEditing,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
     const canUngroup = useMemo(() => paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && p.tool === 'group'), [paths, selectedPathIds]);
-    const canConvertToPath = useMemo(() => 
+    const canConvertToPath = useMemo(() =>
         selectedPathIds.length > 0 && paths.some((p: AnyPath) => selectedPathIds.includes(p.id) && ['rectangle', 'ellipse', 'polygon', 'line', 'brush', 'arc'].includes(p.tool)),
         [paths, selectedPathIds]
     );
@@ -125,6 +130,27 @@ export const CanvasOverlays: React.FC = () => {
         const path = paths.find((p: AnyPath) => p.id === selectedPathIds[0]);
         return path?.tool === 'image';
     }, [paths, selectedPathIds]);
+
+    const activeTextPath = useMemo(() => {
+        if (!textEditing) return null;
+        const target = paths.find((p: AnyPath) => p.id === textEditing.pathId);
+        return target && target.tool === 'text' ? target as TextData : null;
+    }, [textEditing, paths]);
+
+    const textEditorOverlay = useMemo(() => {
+        if (!textEditing || !activeTextPath) return null;
+        return (
+            <TextEditorOverlay
+                key={textEditing.pathId}
+                path={activeTextPath}
+                draft={textEditing.draft}
+                view={viewTransformState.viewTransform}
+                onChange={updateTextEditing}
+                onCommit={commitTextEditing}
+                onCancel={cancelTextEditing}
+            />
+        );
+    }, [textEditing, activeTextPath, viewTransformState.viewTransform, updateTextEditing, commitTextEditing, cancelTextEditing]);
 
     /**
      * 构建上下文菜单的操作列表。
@@ -170,6 +196,7 @@ export const CanvasOverlays: React.FC = () => {
 
     return (
         <>
+            {textEditorOverlay}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                 <Toolbar tool={tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} gridSubdivisions={gridSubdivisions} setGridSubdivisions={setGridSubdivisions} gridOpacity={gridOpacity} setGridOpacity={setGridOpacity} />
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}
@@ -275,5 +302,91 @@ export const CanvasOverlays: React.FC = () => {
                 cancelButtonText={confirmationDialog?.cancelButtonText || t('cancel')}
             />
         </>
+    );
+};
+
+interface TextEditorOverlayProps {
+    path: TextData;
+    draft: string;
+    view: { scale: number; translateX: number; translateY: number };
+    onChange: (value: string) => void;
+    onCommit: () => void;
+    onCancel: () => void;
+}
+
+const MIN_TEXT_EDITOR_WIDTH = 160;
+
+const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view, onChange, onCommit, onCancel }) => {
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+    useEffect(() => {
+        const element = textareaRef.current;
+        if (element) {
+            element.focus();
+            element.select();
+        }
+    }, [path.id]);
+
+    const scale = Number.isFinite(view?.scale) ? view.scale : 1;
+    const translateX = Number.isFinite(view?.translateX) ? view.translateX : 0;
+    const translateY = Number.isFinite(view?.translateY) ? view.translateY : 0;
+
+    const normalizedDraft = draft.replace(/\r/g, '');
+    const lineCount = Math.max(normalizedDraft.split('\n').length, 1);
+    const baseLineHeight = path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+
+    const widthPx = Math.max(path.width * scale, path.fontSize * 6 * scale, MIN_TEXT_EDITOR_WIDTH);
+    const heightPx = Math.max(baseLineHeight * lineCount * scale, baseLineHeight * scale);
+    const padding = Math.max(4, 8 * scale);
+
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        left: translateX + path.x * scale,
+        top: translateY + path.y * scale,
+        width: widthPx,
+        height: heightPx,
+        fontSize: `${path.fontSize * scale}px`,
+        lineHeight: `${baseLineHeight * scale}px`,
+        fontFamily: path.fontFamily,
+        fontWeight: path.fontWeight ?? 400,
+        color: path.color,
+        background: 'var(--ui-panel-bg)',
+        border: `1px solid var(--accent-primary)`,
+        borderRadius: '0.75rem',
+        padding: `${padding}px`,
+        resize: 'none',
+        outline: 'none',
+        whiteSpace: 'pre-wrap',
+        boxShadow: '0 12px 24px rgba(0,0,0,0.35)',
+        overflow: 'hidden',
+        textAlign: path.textAlign,
+        colorScheme: 'light',
+    };
+
+    const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onChange(event.target.value);
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            onCommit();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            onCancel();
+        }
+    };
+
+    return (
+        <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={handleChange}
+            onBlur={onCommit}
+            onKeyDown={handleKeyDown}
+            spellCheck={false}
+            style={style}
+            className="z-30 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
+        />
     );
 };
