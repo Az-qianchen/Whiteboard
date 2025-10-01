@@ -11,6 +11,7 @@ import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
+import { layoutText } from '@/lib/text';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -111,12 +112,20 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
     }
     textElement.setAttribute('fill', data.color ?? '#000');
 
-    const lines = data.text.replace(/\r/g, '').split('\n');
+    const layout = layoutText(
+      data.text,
+      data.fontSize,
+      data.fontFamily,
+      data.lineHeight,
+      data.fontWeight,
+      data.width,
+    );
+    const lines = layout.lines.length > 0 ? layout.lines : [''];
     lines.forEach((line, index) => {
         const tspan = document.createElementNS(SVG_NS, 'tspan');
         if (index > 0) {
             tspan.setAttribute('x', xBase.toString());
-            tspan.setAttribute('dy', data.lineHeight.toString());
+            tspan.setAttribute('dy', layout.lineHeight.toString());
         }
         tspan.textContent = line.length > 0 ? line : '​';
         textElement.appendChild(tspan);

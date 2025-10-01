@@ -362,7 +362,8 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view
         outline: 'none',
         whiteSpace: 'pre-wrap',
         boxShadow: '0 12px 24px rgba(0,0,0,0.35)',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
         textAlign: path.textAlign,
         colorScheme: 'light',
     };

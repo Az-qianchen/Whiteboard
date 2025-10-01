@@ -6,6 +6,10 @@ export interface TextMetricsResult {
   lineHeight: number;
 }
 
+export interface TextLayoutResult extends TextMetricsResult {
+  lines: string[];
+}
+
 const MIN_WIDTH_FACTOR = 0.6;
 const MIN_HEIGHT_FACTOR = 1;
 
@@ -29,9 +33,131 @@ const ensureContext = (): CanvasRenderingContext2D | null => {
   return context ?? null;
 };
 
+const measureLineWidth = (
+  context: CanvasRenderingContext2D | null,
+  value: string,
+  fontSize: number,
+): number => {
+  if (context) {
+    const content = value.length > 0 ? value : ' ';
+    return context.measureText(content).width;
+  }
+  return getFallbackWidth(value, fontSize);
+};
+
+const trimLineEnd = (value: string): string => {
+  if (value.length === 0) {
+    return '';
+  }
+  const trimmed = value.replace(/\s+$/u, '');
+  return trimmed.length > 0 ? trimmed : value;
+};
+
+const isWhitespace = (value: string): boolean => /\s/u.test(value);
+
 export const buildFontString = (fontSize: number, fontFamily: string, fontWeight?: number): string => {
   const weight = fontWeight ?? 400;
   return `${weight} ${fontSize}px ${fontFamily}`;
+};
+
+export const layoutText = (
+  text: string,
+  fontSize: number,
+  fontFamily: string,
+  lineHeight: number = DEFAULT_TEXT_LINE_HEIGHT,
+  fontWeight?: number,
+  maxWidth?: number,
+): TextLayoutResult => {
+  const context = ensureContext();
+  if (context) {
+    context.font = buildFontString(fontSize, fontFamily, fontWeight);
+  }
+
+  const safeLineHeight = Number.isFinite(lineHeight) && lineHeight > 0
+    ? lineHeight
+    : fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+  const widthLimit = typeof maxWidth === 'number' && maxWidth > 0 ? maxWidth : undefined;
+
+  const paragraphs = text.replace(/\r/g, '').split('\n');
+  const safeParagraphs = paragraphs.length > 0 ? paragraphs : [''];
+
+  const lines: string[] = [];
+  let maxLineWidth = 0;
+
+  const pushLine = (value: string) => {
+    const normalized = value;
+    const measuredWidth = measureLineWidth(context, normalized, fontSize);
+    maxLineWidth = Math.max(maxLineWidth, measuredWidth);
+    lines.push(normalized);
+  };
+
+  for (const paragraph of safeParagraphs) {
+    if (!widthLimit) {
+      pushLine(paragraph);
+      continue;
+    }
+
+    if (paragraph.length === 0) {
+      pushLine('');
+      continue;
+    }
+
+    let currentLine = '';
+    for (const grapheme of Array.from(paragraph)) {
+      const nextLine = currentLine + grapheme;
+      const nextWidth = measureLineWidth(context, nextLine, fontSize);
+
+      if (nextWidth > widthLimit && currentLine !== '') {
+        const finalized = trimLineEnd(currentLine);
+        pushLine(finalized);
+        currentLine = isWhitespace(grapheme) ? '' : grapheme;
+
+        if (currentLine) {
+          const singleWidth = measureLineWidth(context, currentLine, fontSize);
+          if (singleWidth > widthLimit) {
+            pushLine(currentLine);
+            currentLine = '';
+          }
+        }
+        continue;
+      }
+
+      if (nextWidth > widthLimit) {
+        pushLine(grapheme);
+        currentLine = '';
+        continue;
+      }
+
+      currentLine = nextLine;
+    }
+
+    if (currentLine.length > 0) {
+      const finalized = trimLineEnd(currentLine);
+      pushLine(finalized);
+    }
+  }
+
+  if (lines.length === 0) {
+    pushLine('');
+  }
+
+  const effectiveWidth = Math.max(
+    widthLimit ?? maxLineWidth,
+    fontSize * MIN_WIDTH_FACTOR,
+  );
+
+  const effectiveLineCount = lines.length > 0 ? lines.length : 1;
+  const effectiveHeight = Math.max(
+    safeLineHeight * effectiveLineCount,
+    fontSize * MIN_HEIGHT_FACTOR,
+  );
+
+  return {
+    lines,
+    width: effectiveWidth,
+    height: effectiveHeight,
+    lineHeight: safeLineHeight,
+  };
 };
 
 export const measureTextMetrics = (
@@ -41,28 +167,10 @@ export const measureTextMetrics = (
   lineHeight: number = DEFAULT_TEXT_LINE_HEIGHT,
   fontWeight?: number,
 ): TextMetricsResult => {
-  const context = ensureContext();
-  const normalizedLineHeight = Number.isFinite(lineHeight) && lineHeight > 0 ? lineHeight : DEFAULT_TEXT_LINE_HEIGHT;
-  const effectiveLineHeight = fontSize * normalizedLineHeight;
-  const lines = text.replace(/\r/g, '').split('\n');
-  const safeLines = lines.length > 0 ? lines : [''];
-
-  let maxWidth = 0;
-
-  if (context) {
-    context.font = buildFontString(fontSize, fontFamily, fontWeight);
-    for (const line of safeLines) {
-      const measured = context.measureText(line || ' ');
-      maxWidth = Math.max(maxWidth, measured.width);
-    }
-  } else {
-    for (const line of safeLines) {
-      maxWidth = Math.max(maxWidth, getFallbackWidth(line, fontSize));
-    }
-  }
-
-  const width = Math.max(maxWidth, fontSize * MIN_WIDTH_FACTOR);
-  const height = Math.max(effectiveLineHeight * safeLines.length, fontSize * MIN_HEIGHT_FACTOR);
-
-  return { width, height, lineHeight: effectiveLineHeight };
+  const layout = layoutText(text, fontSize, fontFamily, lineHeight, fontWeight);
+  return {
+    width: layout.width,
+    height: layout.height,
+    lineHeight: layout.lineHeight,
+  };
 };

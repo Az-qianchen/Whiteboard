@@ -38,7 +38,7 @@ import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
 import { createDocumentSignature } from '@/lib/document';
-import { measureTextMetrics } from '@/lib/text';
+import { layoutText } from '@/lib/text';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -1529,7 +1529,7 @@ export const useAppStore = () => {
       return;
     }
 
-    const { pathId, draft } = textEditing;
+    const { pathId, draft, isNew } = textEditing;
     const normalized = draft.replace(/\r/g, '');
     let removed = false;
 
@@ -1551,14 +1551,21 @@ export const useAppStore = () => {
       }
 
       const baseLineHeight = textPath.lineHeight || textPath.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
-      const factor = textPath.fontSize > 0 ? baseLineHeight / textPath.fontSize : DEFAULT_TEXT_LINE_HEIGHT;
-      const metrics = measureTextMetrics(normalized, textPath.fontSize, textPath.fontFamily, factor, textPath.fontWeight);
+      const widthConstraint = isNew ? undefined : Math.max(textPath.width, 0);
+      const layout = layoutText(
+        normalized,
+        textPath.fontSize,
+        textPath.fontFamily,
+        baseLineHeight,
+        textPath.fontWeight,
+        widthConstraint,
+      );
       const updated: TextData = {
         ...textPath,
         text: normalized,
-        width: metrics.width,
-        height: metrics.height,
-        lineHeight: metrics.lineHeight,
+        width: layout.width,
+        height: layout.height,
+        lineHeight: layout.lineHeight,
       };
 
       const next = [...currentPaths];
