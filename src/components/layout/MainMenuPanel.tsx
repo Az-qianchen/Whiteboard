@@ -8,6 +8,7 @@ import { MainMenu } from '../MainMenu';
 import type { AnyPath } from '@/types';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 import { collectPathsByIds } from '@/lib/pathTree';
+import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
 
 export const MainMenuPanel: React.FC = () => {
     const {
@@ -108,8 +109,8 @@ export const MainMenuPanel: React.FC = () => {
         target.setPointerCapture(e.pointerId);
 
         const startX = e.clientX;
-        const startWidth = mainMenuWidth;
-        const MIN_WIDTH = 200;
+        const startWidth = mainMenuWidth ?? DEFAULT_MAIN_MENU_WIDTH;
+        const MIN_WIDTH = DEFAULT_MAIN_MENU_WIDTH;
         const MAX_WIDTH = 500;
 
         const handlePointerMove = (moveEvent: PointerEvent) => {
@@ -130,17 +131,19 @@ export const MainMenuPanel: React.FC = () => {
         window.addEventListener('pointerup', handlePointerUp);
     };
 
+    const effectiveWidth = mainMenuWidth ?? DEFAULT_MAIN_MENU_WIDTH;
+
     return (
         <div
             className="relative flex-shrink-0 overflow-hidden"
             style={{
-                width: isMainMenuCollapsed ? '0px' : `${mainMenuWidth}px`,
+                width: isMainMenuCollapsed ? '0px' : `${effectiveWidth}px`,
                 transition: isResizing ? 'none' : 'width 300ms ease-in-out'
             }}
         >
             <div
                 className="h-full"
-                style={{ width: `${mainMenuWidth}px` }}
+                style={{ width: `${effectiveWidth}px` }}
             >
                 <MainMenu
                     onSave={handleSaveFile}

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getLocalStorageItem } from '@/lib/utils';
 import type { PngExportOptions } from '@/types';
+import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
 
 export interface UiState {
   isGridVisible: boolean;
@@ -37,7 +38,7 @@ const initialUiState = (): UiState => ({
   isStatusBarCollapsed: getLocalStorageItem('whiteboard_isStatusBarCollapsed', isMobile),
   isSideToolbarCollapsed: getLocalStorageItem('whiteboard_isSideToolbarCollapsed', isMobile),
   isMainMenuCollapsed: getLocalStorageItem('whiteboard_isMainMenuCollapsed', isMobile),
-  mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', 200),
+  mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', DEFAULT_MAIN_MENU_WIDTH),
   pngExportOptions: getLocalStorageItem('whiteboard_pngExportOptions', { scale: 1, highQuality: true, transparentBg: true }),
   isStyleLibraryOpen: false,
   styleLibraryPosition: { x: 0, y: 0 },

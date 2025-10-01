@@ -16,6 +16,7 @@ import { usePointerInteraction } from './usePointerInteraction';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
+import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData } from '../types';
@@ -253,7 +254,7 @@ const getInitialUiState = (): UiState => {
     isStatusBarCollapsed: getLocalStorageItem('whiteboard_isStatusBarCollapsed', isMobile),
     isSideToolbarCollapsed: getLocalStorageItem('whiteboard_isSideToolbarCollapsed', isMobile),
     isMainMenuCollapsed: getLocalStorageItem('whiteboard_isMainMenuCollapsed', isMobile),
-    mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', 200),
+    mainMenuWidth: getLocalStorageItem('whiteboard_mainMenuWidth', DEFAULT_MAIN_MENU_WIDTH),
     pngExportOptions: getLocalStorageItem('whiteboard_pngExportOptions', { scale: 1, highQuality: true, transparentBg: true }),
     isStyleLibraryOpen: false,
     styleLibraryPosition: { x: 0, y: 0 },
