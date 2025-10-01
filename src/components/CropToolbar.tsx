@@ -554,11 +554,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             {ICONS.HSV}
             <span>{hsvTitle}</span>
           </div>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[var(--text-secondary)]">{hueLabel}</label>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <label className="w-20 text-xs font-medium text-[var(--text-secondary)]">{hueLabel}</label>
               <div
-                className="relative h-4 cursor-pointer"
+                className="relative h-4 flex-1 cursor-pointer"
                 onPointerDown={createSliderHandler((fraction, current) => ({
                   h: Math.round(fraction * 360) - 180,
                   s: current.s,
@@ -573,10 +573,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[var(--text-secondary)]">{saturationLabel}</label>
+            <div className="flex items-center gap-3">
+              <label className="w-20 text-xs font-medium text-[var(--text-secondary)]">{saturationLabel}</label>
               <div
-                className="relative h-4 cursor-pointer"
+                className="relative h-4 flex-1 cursor-pointer"
                 onPointerDown={createSliderHandler((fraction, current) => ({
                   h: current.h,
                   s: Math.round(fraction * 200) - 100,
@@ -591,10 +591,10 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[var(--text-secondary)]">{valueLabel}</label>
+            <div className="flex items-center gap-3">
+              <label className="w-20 text-xs font-medium text-[var(--text-secondary)]">{valueLabel}</label>
               <div
-                className="relative h-4 cursor-pointer"
+                className="relative h-4 flex-1 cursor-pointer"
                 onPointerDown={createSliderHandler((fraction, current) => ({
                   h: current.h,
                   s: current.s,
