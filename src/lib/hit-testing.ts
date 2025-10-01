@@ -4,7 +4,7 @@
  * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
 import { gradientHasVisibleColor } from './gradient';
@@ -152,7 +152,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         case 'polygon': {
             const { x, y, width, height, sides, rotation } = path as PolygonData;
             let testPoint = point;
-            
+
             if (rotation) {
                 const center = { x: x + width / 2, y: y + height / 2 };
                 testPoint = rotatePoint(point, center, -rotation);
@@ -173,6 +173,17 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 }
             }
             return false;
+        }
+        case 'text': {
+            const { x, y, width, height, rotation } = path as TextData;
+            let testPoint = point;
+
+            if (rotation) {
+                const center = { x: x + width / 2, y: y + height / 2 };
+                testPoint = rotatePoint(point, center, -rotation);
+            }
+
+            return testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
         }
         case 'ellipse': {
             const { x, y, width, height, rotation } = path as EllipseData;

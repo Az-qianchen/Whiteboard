@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -101,7 +101,7 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
     const capNodes: SVGElement[] = [];
 
         const isRough = data.isRough ?? true;
-        if (!isRough && data.tool !== 'image') {
+        if (!isRough && data.tool !== 'image' && data.tool !== 'text') {
             return createSmoothPathNode(data);
         }
 
@@ -166,9 +166,45 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 });
             }
             node = group;
+        } else if (data.tool === 'text') {
+            const textData = data as TextData;
+            const anchorX = textData.textAlign === 'center'
+              ? textData.x + textData.width / 2
+              : textData.textAlign === 'right'
+                ? textData.x + textData.width
+                : textData.x;
+            const anchor = textData.textAlign === 'center' ? 'middle' : textData.textAlign === 'right' ? 'end' : 'start';
+            const textNode = document.createElementNS(SVG_NS, 'text');
+            textNode.setAttribute('x', anchorX.toString());
+            textNode.setAttribute('y', textData.y.toString());
+            textNode.setAttribute('fill', textData.color);
+            textNode.setAttribute('font-family', textData.fontFamily);
+            textNode.setAttribute('font-size', textData.fontSize.toString());
+            textNode.setAttribute('text-anchor', anchor);
+            textNode.setAttribute('dominant-baseline', 'hanging');
+            textNode.setAttribute('xml:space', 'preserve');
+
+            const lines = textData.text.split(/\r?\n/);
+            if (lines.length === 0) {
+                textNode.textContent = '';
+            } else {
+                lines.forEach((line, index) => {
+                    const tspan = document.createElementNS(SVG_NS, 'tspan');
+                    tspan.setAttribute('x', anchorX.toString());
+                    if (index === 0) {
+                        tspan.setAttribute('dy', '0');
+                    } else {
+                        tspan.setAttribute('dy', textData.lineHeight.toString());
+                    }
+                    tspan.textContent = line === '' ? '\u00A0' : line;
+                    textNode.appendChild(tspan);
+                });
+            }
+
+            node = textNode;
         } else {
             const seed = parseInt(data.id, 10);
-            
+
             const options: any = {
               stroke: data.color,
               strokeWidth: data.strokeWidth,
@@ -266,8 +302,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame' || data.tool === 'text')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }

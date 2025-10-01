@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextData } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -122,6 +122,35 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text' && typeof el.text === 'string') {
+      const lines = el.text.split(/\r?\n/);
+      const lineCount = lines.length || 1;
+      const derivedLineHeight = lineCount > 0 ? el.height / lineCount : el.fontSize ?? 16;
+      const textPath: TextData = {
+        ...sharedProps(el),
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        text: el.text,
+        fontFamily: typeof el.fontFamily === 'string' ? el.fontFamily : 'Virgil, Segoe UI, sans-serif',
+        fontSize: el.fontSize ?? 16,
+        textAlign: el.textAlign ?? 'left',
+        lineHeight: Number.isFinite(derivedLineHeight) ? derivedLineHeight : (el.fontSize ?? 16) * 1.35,
+        fill: 'transparent',
+        fillStyle: 'solid',
+        strokeWidth: 0,
+        isRough: false,
+        roughness: 0,
+        bowing: 0,
+        fillWeight: 0,
+        hachureAngle: 0,
+        hachureGap: 0,
+        curveTightness: 0,
+        curveStepCount: 0,
+      };
+      paths.push(textPath);
     }
   }
 

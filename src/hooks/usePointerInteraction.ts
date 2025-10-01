@@ -34,6 +34,10 @@ interface PointerInteractionProps {
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  textTool: {
+    isEditing: boolean;
+    begin: (point: Point) => void;
+  };
 }
 
 /**
@@ -50,6 +54,7 @@ export const usePointerInteraction = ({
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  textTool,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -124,6 +129,14 @@ export const usePointerInteraction = ({
     }
     if (e.button !== 0) return;
 
+    if (tool === 'text') {
+      if (textTool.isEditing) return;
+      const svg = e.currentTarget;
+      const point = viewTransform.getPointerPosition({ clientX: e.clientX, clientY: e.clientY }, svg);
+      textTool.begin(point);
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerDown(e);
     } else {
@@ -137,6 +150,10 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchMove(e);
       if (viewTransform.isPinching) return;
     }
+    if (tool === 'text' && !isPanning) {
+      return;
+    }
+
     if (isPanning) {
       viewTransform.handlePanMove(e);
       return;
@@ -155,6 +172,10 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchEnd(e);
       if (viewTransform.isPinching) return;
     }
+    if (tool === 'text' && !isPanning) {
+      return;
+    }
+
     if (isPanning) {
       if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -176,6 +197,10 @@ export const usePointerInteraction = ({
       viewTransform.handleTouchEnd(e);
       if (viewTransform.isPinching) return;
     }
+    if (tool === 'text' && !isPanning) {
+      return;
+    }
+
     if (isPanning) {
       if (e.currentTarget && e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);

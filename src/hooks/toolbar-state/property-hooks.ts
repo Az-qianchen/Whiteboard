@@ -41,6 +41,30 @@ export const useDrawingOpacity = () => {
   return { drawingOpacity, setDrawingOpacity };
 };
 
+export const useDrawingFontFamily = () => {
+  const drawingFontFamily = useToolbarStore(s => s.drawingFontFamily);
+  const setDrawingFontFamily = useToolbarStore(s => s.setDrawingFontFamily);
+  return { drawingFontFamily, setDrawingFontFamily };
+};
+
+export const useDrawingFontSize = () => {
+  const drawingFontSize = useToolbarStore(s => s.drawingFontSize);
+  const setDrawingFontSize = useToolbarStore(s => s.setDrawingFontSize);
+  return { drawingFontSize, setDrawingFontSize };
+};
+
+export const useDrawingTextAlign = () => {
+  const drawingTextAlign = useToolbarStore(s => s.drawingTextAlign);
+  const setDrawingTextAlign = useToolbarStore(s => s.setDrawingTextAlign);
+  return { drawingTextAlign, setDrawingTextAlign };
+};
+
+export const useDrawingLineHeight = () => {
+  const drawingLineHeight = useToolbarStore(s => s.drawingLineHeight);
+  const setDrawingLineHeight = useToolbarStore(s => s.setDrawingLineHeight);
+  return { drawingLineHeight, setDrawingLineHeight };
+};
+
 export const useDrawingSides = () => {
   const drawingSides = useToolbarStore(s => s.drawingSides);
   const setDrawingSides = useToolbarStore(s => s.setDrawingSides);
