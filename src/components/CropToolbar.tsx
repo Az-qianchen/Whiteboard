@@ -608,39 +608,41 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex w-full flex-col items-end gap-2">
         {cropTool === 'crop' && (
           <PanelButton
             type="button"
             title={t('trimTransparent')}
             onClick={trimTransparentEdges}
             variant="unstyled"
-            className={`${textButtonBase} text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]`}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
             {ICONS.CROP_TRIM}
             <span>{t('trimTransparent')}</span>
           </PanelButton>
         )}
-        <PanelButton
-          type="button"
-          title={t('cancel')}
-          onClick={handleCancel}
-          variant="unstyled"
-          className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
-        >
-          {ICONS.X}
-          <span>{t('cancel')}</span>
-        </PanelButton>
-        <PanelButton
-          type="button"
-          title={t('confirm')}
-          onClick={handleConfirm}
-          variant="unstyled"
-          className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-        >
-          {ICONS.CHECK}
-          <span>{t('confirm')}</span>
-        </PanelButton>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <PanelButton
+            type="button"
+            title={t('cancel')}
+            onClick={handleCancel}
+            variant="unstyled"
+            className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
+          >
+            {ICONS.X}
+            <span>{t('cancel')}</span>
+          </PanelButton>
+          <PanelButton
+            type="button"
+            title={t('confirm')}
+            onClick={handleConfirm}
+            variant="unstyled"
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+          >
+            {ICONS.CHECK}
+            <span>{t('confirm')}</span>
+          </PanelButton>
+        </div>
       </div>
     </div>
   );
