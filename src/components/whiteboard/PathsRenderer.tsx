@@ -31,10 +31,18 @@ const getAllFrames = (paths: AnyPath[], accumulator: AnyPath[] = []): AnyPath[] 
  * @description 对常规组进行递归渲染，以利用 React 的 diffing 算法，
  * 仅更新组内已更改的元素。遮罩组则被视为原子单元进行渲染。
  */
-const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcById?: Record<string, string>; }> = React.memo(({ rc, data, previewSrcById }) => {
+const PathComponent: React.FC<{
+    rc: RoughSVG | null;
+    data: AnyPath;
+    previewSrcById?: Record<string, string>;
+    previewRequestVersion?: number;
+}> = React.memo(({ rc, data, previewSrcById, previewRequestVersion }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const lastImageKeyRef = useRef<string | null>(null);
     const latestImageDataRef = useRef<ImageData | null>(null);
+    const previewVersionRef = useRef<number>(previewRequestVersion ?? 0);
+    const requestSequenceRef = useRef(0);
+    const lastResolvedSrcRef = useRef<string | null>(null);
 
     const previewSrc = data.tool === 'image' ? previewSrcById?.[data.id] ?? null : null;
     const baseImageKey = data.tool === 'image'
@@ -43,6 +51,7 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcBy
     const imageKey = previewSrc ?? baseImageKey;
 
     latestImageDataRef.current = data.tool === 'image' ? (data as ImageData) : null;
+    previewVersionRef.current = previewRequestVersion ?? 0;
 
     useEffect(() => {
         let cancelled = false;
@@ -77,28 +86,62 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcBy
             };
         }
 
-        setImageSrc(prev => (prev === null ? prev : null));
+        const requestId = ++requestSequenceRef.current;
+        const requestVersion = previewVersionRef.current;
 
         void getImageDataUrl(imageData)
             .then((src) => {
-                if (!cancelled) {
-                    setImageSrc(prev => (prev === src ? prev : src));
-                    lastImageKeyRef.current = imageKey;
+                if (cancelled) {
+                    return;
                 }
+                if (requestId !== requestSequenceRef.current) {
+                    return;
+                }
+                if (requestVersion !== previewVersionRef.current) {
+                    return;
+                }
+                setImageSrc(prev => (prev === src ? prev : src));
+                lastImageKeyRef.current = imageKey;
             })
             .catch((err) => console.error('Failed to resolve image for rendering', err));
 
         return () => {
             cancelled = true;
         };
-    }, [imageKey, previewSrc]);
+    }, [imageKey, previewSrc, previewRequestVersion]);
+
+    useEffect(() => {
+        const previous = lastResolvedSrcRef.current;
+        if (
+            previous &&
+            previous !== imageSrc &&
+            previous.startsWith('blob:') &&
+            typeof URL !== 'undefined'
+        ) {
+            URL.revokeObjectURL(previous);
+        }
+        lastResolvedSrcRef.current = imageSrc;
+    }, [imageSrc]);
+
+    useEffect(() => () => {
+        const previous = lastResolvedSrcRef.current;
+        if (previous && previous.startsWith('blob:') && typeof URL !== 'undefined') {
+            URL.revokeObjectURL(previous);
+        }
+    }, []);
 
     // 如果路径是常规（非遮罩）组，则递归渲染其子项以获得性能优势。
     if (data.tool === 'group' && !(data as GroupData).mask) {
         return (
             <g>
                 {(data as GroupData).children.map(child => (
-                    <PathComponent key={child.id} rc={rc} data={child} previewSrcById={previewSrcById} />
+                    <PathComponent
+                        key={child.id}
+                        rc={rc}
+                        data={child}
+                        previewSrcById={previewSrcById}
+                        previewRequestVersion={previewRequestVersion}
+                    />
                 ))}
             </g>
         );
@@ -131,6 +174,7 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = Reac
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const lastImageKeyRef = useRef<string | null>(null);
     const latestImageDataRef = useRef<ImageData | null>(null);
+    const lastResolvedSrcRef = useRef<string | null>(null);
 
     const imageKey = data.tool === 'image'
         ? (data.fileId ?? data.src ?? null)
@@ -179,6 +223,26 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = Reac
         };
     }, [imageKey]);
 
+    useEffect(() => {
+        const previous = lastResolvedSrcRef.current;
+        if (
+            previous &&
+            previous !== imageSrc &&
+            previous.startsWith('blob:') &&
+            typeof URL !== 'undefined'
+        ) {
+            URL.revokeObjectURL(previous);
+        }
+        lastResolvedSrcRef.current = imageSrc;
+    }, [imageSrc]);
+
+    useEffect(() => () => {
+        const previous = lastResolvedSrcRef.current;
+        if (previous && previous.startsWith('blob:') && typeof URL !== 'undefined') {
+            URL.revokeObjectURL(previous);
+        }
+    }, []);
+
     const nodeString = useMemo(() => {
         if (!rc || data.tool === 'group') return '';
         if (data.tool === 'image') {
@@ -201,6 +265,7 @@ interface PathsRendererProps {
   rc: RoughSVG | null;
   isBackground?: boolean;
   previewSrcById?: Record<string, string>;
+  previewRequestVersion?: number;
 }
 
 
@@ -209,13 +274,19 @@ interface PathsRendererProps {
  * @description 它遍历顶层路径，并为每个路径渲染一个 `PathComponent`。
  * 递归由 `PathComponent` 内部处理。
  */
-export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById }) => {
+export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById, previewRequestVersion }) => {
   // 预先计算画框列表，以便在其上方渲染编号。
   const frames = useMemo(() => getAllFrames(paths), [paths]);
   return (
     <g opacity={isBackground ? 0.3 : 1} style={{ pointerEvents: isBackground ? 'none' : 'auto' }}>
       {paths.map((path) => (
-        <PathComponent key={path.id} rc={rc} data={path} previewSrcById={previewSrcById} />
+        <PathComponent
+          key={path.id}
+          rc={rc}
+          data={path}
+          previewSrcById={previewSrcById}
+          previewRequestVersion={previewRequestVersion}
+        />
       ))}
       {/* 渲染所有路径后，在其上方渲染画框编号 */}
       {frames.map((frame, index) => {

@@ -9,11 +9,12 @@ interface ImageHsvPopoverProps {
   beginPreview: () => Promise<boolean>;
   updatePreview: (adj: HsvAdjustment) => Promise<void>;
   commitPreview: (adj: HsvAdjustment) => Promise<void>;
+  cancelPreview: () => Promise<void>;
   beginCoalescing: () => void;
   endCoalescing: () => void;
 }
 
-export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ beginPreview, updatePreview, commitPreview, beginCoalescing, endCoalescing }) => {
+export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ beginPreview, updatePreview, commitPreview, cancelPreview, beginCoalescing, endCoalescing }) => {
   const [h, setH] = useState(0);
   const [s, setS] = useState(0);
   const [v, setV] = useState(0);
@@ -74,6 +75,7 @@ export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ beginPreview, 
       document.removeEventListener('pointercancel', handleUp);
       const finalAdjustment = latestAdjustmentRef.current;
       void (async () => {
+        let shouldCancelPreview = true;
         try {
           const ready = await beginPromise;
           if (ready) {
@@ -82,10 +84,18 @@ export const ImageHsvPopover: React.FC<ImageHsvPopoverProps> = ({ beginPreview, 
               s: typeof finalAdjustment.s === 'number' ? finalAdjustment.s : s,
               v: typeof finalAdjustment.v === 'number' ? finalAdjustment.v : v,
             });
+            shouldCancelPreview = false;
           }
         } catch (error) {
           console.error('Failed to commit HSV preview', error);
         } finally {
+          if (shouldCancelPreview) {
+            try {
+              await cancelPreview();
+            } catch (cancelError) {
+              console.error('Failed to clear HSV preview state', cancelError);
+            }
+          }
           endCoalescing();
         }
       })();

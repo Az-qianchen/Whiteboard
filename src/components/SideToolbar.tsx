@@ -82,7 +82,7 @@ interface SideToolbarProps {
   setShadowBlur: (sb: number) => void;
   shadowColor: string;
   setShadowColor: (sc: string) => void;
-  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview'>;
+  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview' | 'cancelPreview'>;
 }
 
 /**
@@ -236,13 +236,14 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
           )}
 
           {firstSelectedPath?.tool === 'image' && (
-            <ImageHsvPopover
-              beginPreview={imageHsvPreview.beginPreview}
-              updatePreview={imageHsvPreview.updatePreview}
-              commitPreview={imageHsvPreview.commitPreview}
-              beginCoalescing={beginCoalescing}
-              endCoalescing={endCoalescing}
-            />
+          <ImageHsvPopover
+            beginPreview={imageHsvPreview.beginPreview}
+            updatePreview={imageHsvPreview.updatePreview}
+            commitPreview={imageHsvPreview.commitPreview}
+            cancelPreview={imageHsvPreview.cancelPreview}
+            beginCoalescing={beginCoalescing}
+            endCoalescing={endCoalescing}
+          />
           )}
 
           <EffectsPopover {...props} />
