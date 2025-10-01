@@ -146,7 +146,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       </div>
       
       {cropTool === 'magic-wand' && (
-        <div className="flex w-full flex-col gap-3">
+        <div className="flex min-w-[420px] flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className={PANEL_CLASSES.segmentGroup}>
               <PanelButton
@@ -345,44 +345,40 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               </>
             )}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={applyMagicWandSelection}
+              disabled={!hasSelection}
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            >
+              {ICONS.CHECK}
+              <span>{t('subtractSelection')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={cutMagicWandSelection}
+              disabled={!hasSelection}
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            >
+              {ICONS.CUT}
+              <span>{t('cutSelection')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={invertMagicWandSelection}
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+              title={t('cropSelectionInvert')}
+            >
+              <span className="font-semibold">⇆</span>
+              <span>{t('cropSelectionInvert')}</span>
+            </PanelButton>
+          </div>
         </div>
       )}
-
-      {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={applyMagicWandSelection}
-            disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-          >
-            {ICONS.CHECK}
-            <span>{t('subtractSelection')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={cutMagicWandSelection}
-            disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-          >
-            {ICONS.CUT}
-            <span>{t('cutSelection')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={invertMagicWandSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-            title={t('cropSelectionInvert')}
-          >
-            <span className="font-semibold">⇆</span>
-            <span>{t('cropSelectionInvert')}</span>
-          </PanelButton>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-end gap-2">
         {cropTool === 'crop' && (
           <PanelButton
