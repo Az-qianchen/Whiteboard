@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from '@/components/panelStyles';
 import { ICONS, getTimelinePanelBottomOffset } from '@/constants';
+import { ImageHsvAdjuster } from '@/components/ImageHsvAdjuster';
+import type { ImageHsvPreviewController } from '@/hooks/useImageHsvPreview';
 
 interface CropToolbarProps {
   isTimelineCollapsed: boolean;
@@ -27,6 +29,11 @@ interface CropToolbarProps {
   trimTransparentEdges: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
+  cropHsvAdjustment: { h: number; s: number; v: number };
+  setCropHsvAdjustment: (adj: { h: number; s: number; v: number }) => void;
+  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview'>;
+  beginCoalescing: () => void;
+  endCoalescing: () => void;
 }
 
 /**
@@ -51,6 +58,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   trimTransparentEdges,
   confirmCrop,
   cancelCrop,
+  cropHsvAdjustment,
+  setCropHsvAdjustment,
+  imageHsvPreview,
+  beginCoalescing,
+  endCoalescing,
 }) => {
   const { t } = useTranslation();
 
@@ -380,6 +392,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           </PanelButton>
         </div>
       )}
+
+      <div className="w-full max-w-xs mx-auto">
+        <ImageHsvAdjuster
+          adjustment={cropHsvAdjustment}
+          setAdjustment={setCropHsvAdjustment}
+          preview={imageHsvPreview}
+          beginCoalescing={beginCoalescing}
+          endCoalescing={endCoalescing}
+        />
+      </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         {cropTool === 'crop' && (

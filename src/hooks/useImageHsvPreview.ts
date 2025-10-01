@@ -36,6 +36,7 @@ export interface ImageHsvPreviewController {
   updatePreview: (adjustment: HsvAdjustment) => Promise<void>;
   commitPreview: (adjustment: HsvAdjustment) => Promise<void>;
   cancelPreview: () => Promise<void>;
+  getPreviewBlob: () => Promise<Blob | null>;
 }
 
 interface UseImageHsvPreviewOptions {
@@ -302,6 +303,38 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     }
   }, [applyCommittedFile, cancelPreview, updatePreview]);
 
+  const getPreviewBlob = useCallback(async (): Promise<Blob | null> => {
+    const active = activePreviewRef.current;
+    if (!active) {
+      return null;
+    }
+
+    try {
+      await active.ready;
+    } catch (error) {
+      console.error('HSV preview worker initialization failed', error);
+      return null;
+    }
+
+    const imageData = active.lastImageData;
+    if (!imageData) {
+      return null;
+    }
+
+    if (active.lastBlob) {
+      return active.lastBlob;
+    }
+
+    try {
+      const blob = await imageDataToBlob(imageData);
+      active.lastBlob = blob;
+      return blob;
+    } catch (error) {
+      console.error('Failed to materialize HSV preview blob', error);
+      return null;
+    }
+  }, []);
+
   useEffect(() => () => {
     void cancelPreview();
     workerRef.current?.terminate();
@@ -314,5 +347,6 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     updatePreview,
     commitPreview,
     cancelPreview,
-  }), [previewSrcById, beginPreview, updatePreview, commitPreview, cancelPreview]);
+    getPreviewBlob,
+  }), [previewSrcById, beginPreview, updatePreview, commitPreview, cancelPreview, getPreviewBlob]);
 };
