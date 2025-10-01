@@ -262,52 +262,88 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-wrap items-start gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)]"
       style={{ bottom: timelineBottomOffset }}
     >
-      <div className="flex flex-col gap-2">
-        <div className={PANEL_CLASSES.segmentGroup}>
+      <div className="flex w-full flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className={PANEL_CLASSES.segmentGroup}>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropTool === 'crop'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropTool('crop')}
+              aria-pressed={cropTool === 'crop'}
+              title={t('cropAdjust')}
+            >
+              {ICONS.FRAME}
+              <span>{t('cropAdjust')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropTool === 'magic-wand'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropTool('magic-wand')}
+              aria-pressed={cropTool === 'magic-wand'}
+              title={t('cropCutout')}
+            >
+              {ICONS.TRACE_IMAGE}
+              <span>{t('cropCutout')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              className={`${segmentedButtonBase} ${
+                cropTool === 'adjust'
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+              }`}
+              onClick={() => setCropTool('adjust')}
+              aria-pressed={cropTool === 'adjust'}
+              title={hsvTitle}
+            >
+              {ICONS.HSV}
+              <span>{hsvTitle}</span>
+            </PanelButton>
+          </div>
+          {cropTool === 'crop' && (
+            <PanelButton
+              type="button"
+              title={t('trimTransparent')}
+              onClick={trimTransparentEdges}
+              variant="unstyled"
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            >
+              {ICONS.CROP_TRIM}
+              <span>{t('trimTransparent')}</span>
+            </PanelButton>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <PanelButton
             type="button"
+            title={t('cancel')}
+            onClick={handleCancel}
             variant="unstyled"
-            className={`${segmentedButtonBase} ${
-              cropTool === 'crop'
-                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-            }`}
-            onClick={() => setCropTool('crop')}
-            aria-pressed={cropTool === 'crop'}
-            title={t('cropAdjust')}
+            className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
           >
-            {ICONS.FRAME}
-            <span>{t('cropAdjust')}</span>
+            {ICONS.X}
+            <span>{t('cancel')}</span>
           </PanelButton>
           <PanelButton
             type="button"
+            title={t('confirm')}
+            onClick={handleConfirm}
             variant="unstyled"
-            className={`${segmentedButtonBase} ${
-              cropTool === 'magic-wand'
-                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-            }`}
-            onClick={() => setCropTool('magic-wand')}
-            aria-pressed={cropTool === 'magic-wand'}
-            title={t('cropCutout')}
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
           >
-            {ICONS.TRACE_IMAGE}
-            <span>{t('cropCutout')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            className={`${segmentedButtonBase} ${
-              cropTool === 'adjust'
-                ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-            }`}
-            onClick={() => setCropTool('adjust')}
-            aria-pressed={cropTool === 'adjust'}
-            title={hsvTitle}
-          >
-            {ICONS.HSV}
-            <span>{hsvTitle}</span>
+            {ICONS.CHECK}
+            <span>{t('confirm')}</span>
           </PanelButton>
         </div>
       </div>
@@ -608,42 +644,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         </div>
       )}
 
-      <div className="flex w-full flex-col items-end gap-2">
-        {cropTool === 'crop' && (
-          <PanelButton
-            type="button"
-            title={t('trimTransparent')}
-            onClick={trimTransparentEdges}
-            variant="unstyled"
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-          >
-            {ICONS.CROP_TRIM}
-            <span>{t('trimTransparent')}</span>
-          </PanelButton>
-        )}
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <PanelButton
-            type="button"
-            title={t('cancel')}
-            onClick={handleCancel}
-            variant="unstyled"
-            className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
-          >
-            {ICONS.X}
-            <span>{t('cancel')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            title={t('confirm')}
-            onClick={handleConfirm}
-            variant="unstyled"
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-          >
-            {ICONS.CHECK}
-            <span>{t('confirm')}</span>
-          </PanelButton>
-        </div>
-      </div>
     </div>
   );
 };
