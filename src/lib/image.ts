@@ -405,11 +405,19 @@ export function applyMaskToImage(
   imageData: ImageData,
   mask: MagicWandMask | null,
   featherRadius = 0
-): { image: ImageData; contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }> } {
+): {
+  image: ImageData;
+  contours: Array<{ points: Array<{ x: number; y: number }>; inner: boolean }>;
+  featherData: Float32Array | null;
+} {
   const result = new Uint8ClampedArray(imageData.data);
 
   if (!mask) {
-    return { image: new ImageData(result, imageData.width, imageData.height), contours: [] };
+    return {
+      image: new ImageData(result, imageData.width, imageData.height),
+      contours: [],
+      featherData: null,
+    };
   }
 
   const effectiveRadius = Math.max(0, Math.floor(featherRadius));
@@ -433,7 +441,7 @@ export function applyMaskToImage(
     console.warn('Failed to trace magic wand contours', error);
   }
 
-  return { image: new ImageData(result, imageData.width, imageData.height), contours };
+  return { image: new ImageData(result, imageData.width, imageData.height), contours, featherData };
 }
 
 /**
