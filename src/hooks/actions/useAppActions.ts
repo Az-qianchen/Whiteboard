@@ -9,7 +9,7 @@ import { useExportActions } from './useExportActions';
 import { useFileActions } from './useFileActions';
 import { useLibraryActions } from './useLibraryActions';
 import { useObjectActions } from './useObjectActions';
-import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, FrameInput, AnimationExportOptions } from '@/types';
+import type { AnyPath, Point, Tool, WhiteboardData, StyleClipboardData, MaterialData, LibraryData, Alignment, DistributeMode, PngExportOptions, Frame, FrameInput, AnimationExportOptions, ImageData } from '@/types';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 
 // The props type is a combination of all props needed by the sub-hooks.
@@ -56,6 +56,8 @@ export interface AppActionsProps {
   pngExportOptions: PngExportOptions;
   showConfirmation: (title: string, message: string, onConfirm: () => void) => void;
   markDocumentSaved: (signature: string) => void;
+  croppingState: { pathId: string; originalPath: ImageData } | null;
+  setCroppingState: React.Dispatch<React.SetStateAction<{ pathId: string; originalPath: ImageData } | null>>;
 }
 
 /**

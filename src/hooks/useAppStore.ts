@@ -1547,6 +1547,8 @@ export const useAppStore = () => {
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
     frames, revision, fps: uiState.fps, setFps, requestFitToContent,
     markDocumentSaved,
+    croppingState: appState.croppingState,
+    setCroppingState,
   });
 
   useEffect(() => {

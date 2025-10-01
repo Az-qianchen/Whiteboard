@@ -85,6 +85,7 @@ export const CanvasOverlays: React.FC = () => {
         handleDistribute,
         handleBooleanOperation,
         handleTraceImage,
+        handleAdjustImageHsv,
         confirmationDialog,
         hideConfirmation,
         croppingState,
@@ -212,6 +213,7 @@ export const CanvasOverlays: React.FC = () => {
                     trimTransparentEdges={trimTransparentEdges}
                     confirmCrop={confirmCrop}
                     cancelCrop={cancelCrop}
+                    imageHsvPreview={handleAdjustImageHsv}
                 />
             )}
 

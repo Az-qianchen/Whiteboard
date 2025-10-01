@@ -2,11 +2,13 @@
  * 本文件定义了图片裁剪工具栏组件。
  * 当用户进入裁剪模式时，此工具栏会显示，提供裁剪/抠图模式切换与操作选项。
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from '@/components/panelStyles';
 import { ICONS, getTimelinePanelBottomOffset } from '@/constants';
+import type { ImageHsvPreviewController } from '@/hooks/useImageHsvPreview';
+import type { HsvAdjustment } from '@/lib/image';
 
 interface CropToolbarProps {
   isTimelineCollapsed: boolean;
@@ -27,6 +29,7 @@ interface CropToolbarProps {
   trimTransparentEdges: () => void;
   confirmCrop: () => void;
   cancelCrop: () => void;
+  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview' | 'cancelPreview'>;
 }
 
 /**
@@ -51,8 +54,147 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
   trimTransparentEdges,
   confirmCrop,
   cancelCrop,
+  imageHsvPreview,
 }) => {
   const { t } = useTranslation();
+  const { beginPreview, updatePreview, commitPreview, cancelPreview } = imageHsvPreview;
+  const [h, setH] = useState(0);
+  const [s, setS] = useState(0);
+  const [v, setV] = useState(0);
+  const latestAdjustmentRef = useRef<HsvAdjustment>({ h: 0, s: 0, v: 0 });
+  const previewReadyRef = useRef<Promise<boolean> | null>(null);
+
+  useEffect(() => {
+    latestAdjustmentRef.current = { h, s, v };
+  }, [h, s, v]);
+
+  const ensurePreview = useCallback(() => {
+    if (!previewReadyRef.current) {
+      previewReadyRef.current = beginPreview().catch(error => {
+        console.error('Failed to begin HSV preview', error);
+        previewReadyRef.current = null;
+        return false;
+      });
+    }
+    return previewReadyRef.current;
+  }, [beginPreview]);
+
+  const resetAdjustments = useCallback(() => {
+    previewReadyRef.current = null;
+    latestAdjustmentRef.current = { h: 0, s: 0, v: 0 };
+    setH(0);
+    setS(0);
+    setV(0);
+  }, []);
+
+  const createSliderHandler = useCallback(
+    (applyFraction: (fraction: number, current: { h: number; s: number; v: number }) => { h: number; s: number; v: number }) =>
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        if (e.button !== 0) return;
+        const slider = e.currentTarget;
+        slider.setPointerCapture(e.pointerId);
+        const rect = slider.getBoundingClientRect();
+        const beginPromise = ensurePreview();
+
+        const updateFromEvent = (clientX: number) => {
+          const clamped = Math.max(0, Math.min(clientX - rect.left, rect.width));
+          const fraction = rect.width === 0 ? 0 : clamped / rect.width;
+          const current = {
+            h: typeof latestAdjustmentRef.current.h === 'number' ? latestAdjustmentRef.current.h : h,
+            s: typeof latestAdjustmentRef.current.s === 'number' ? latestAdjustmentRef.current.s : s,
+            v: typeof latestAdjustmentRef.current.v === 'number' ? latestAdjustmentRef.current.v : v,
+          };
+          const next = applyFraction(fraction, current);
+          setH(next.h);
+          setS(next.s);
+          setV(next.v);
+          latestAdjustmentRef.current = next;
+
+          void (async () => {
+            const ready = await beginPromise;
+            if (!ready) {
+              if (previewReadyRef.current === beginPromise) {
+                previewReadyRef.current = null;
+              }
+              return;
+            }
+            try {
+              await updatePreview(next);
+            } catch (error) {
+              console.error('Failed to update HSV preview', error);
+            }
+          })();
+        };
+
+        updateFromEvent(e.nativeEvent.clientX);
+
+        const handleMove = (event: PointerEvent) => updateFromEvent(event.clientX);
+        const handleUp = () => {
+          if (slider.hasPointerCapture?.(e.pointerId)) {
+            slider.releasePointerCapture(e.pointerId);
+          }
+          document.removeEventListener('pointermove', handleMove);
+          document.removeEventListener('pointerup', handleUp);
+          document.removeEventListener('pointercancel', handleUp);
+        };
+
+        document.addEventListener('pointermove', handleMove);
+        document.addEventListener('pointerup', handleUp);
+        document.addEventListener('pointercancel', handleUp);
+      },
+    [ensurePreview, h, s, v, updatePreview],
+  );
+
+  const handleConfirm = useCallback(async () => {
+    const pending = previewReadyRef.current;
+    if (pending) {
+      try {
+        const ready = await pending;
+        if (ready) {
+          const finalAdjustment = latestAdjustmentRef.current;
+          await commitPreview({
+            h: typeof finalAdjustment.h === 'number' ? finalAdjustment.h : 0,
+            s: typeof finalAdjustment.s === 'number' ? finalAdjustment.s : 0,
+            v: typeof finalAdjustment.v === 'number' ? finalAdjustment.v : 0,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to commit HSV preview', error);
+      }
+    }
+    resetAdjustments();
+    confirmCrop();
+  }, [commitPreview, confirmCrop, resetAdjustments]);
+
+  const handleCancel = useCallback(async () => {
+    try {
+      await cancelPreview();
+    } catch (error) {
+      console.error('Failed to cancel HSV preview', error);
+    }
+    resetAdjustments();
+    cancelCrop();
+  }, [cancelPreview, cancelCrop, resetAdjustments]);
+
+  useEffect(() => () => {
+    previewReadyRef.current = null;
+    void cancelPreview();
+  }, [cancelPreview]);
+
+  const hsvTitle = t('sideToolbar.imageHsv.title');
+  const hueLabel = t('sideToolbar.imageHsv.hue');
+  const saturationLabel = t('sideToolbar.imageHsv.saturation');
+  const valueLabel = t('sideToolbar.imageHsv.value');
+
+  const hPos = ((h + 180) / 360) * 100;
+  const sPos = ((s + 100) / 200) * 100;
+  const vPos = ((v + 100) / 200) * 100;
+  const baseHue = (h + 360) % 360;
+  const baseS = Math.min(Math.max(0, 100 + s), 200) / 2;
+  const baseV = Math.min(Math.max(0, 100 + v), 200) / 2;
+  const hueBg = 'linear-gradient(to right, hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%))';
+  const satBg = `linear-gradient(to right, hsl(${baseHue},0%,${baseV}%), hsl(${baseHue},100%,${baseV}%))`;
+  const valBg = `linear-gradient(to right, hsl(${baseHue},${baseS}%,0%), hsl(${baseHue},${baseS}%,50%), hsl(${baseHue},${baseS}%,100%))`;
 
   const hasSelection = useMemo(
     () => (cropSelectionContours?.length ?? 0) > 0,
@@ -358,28 +500,90 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             {ICONS.CHECK}
             <span>{t('subtractSelection')}</span>
           </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={cutMagicWandSelection}
-            disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-          >
-            {ICONS.CUT}
-            <span>{t('cutSelection')}</span>
-          </PanelButton>
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={invertMagicWandSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-            title={t('cropSelectionInvert')}
-          >
-            <span className="font-semibold">⇆</span>
-            <span>{t('cropSelectionInvert')}</span>
-          </PanelButton>
+      <PanelButton
+        type="button"
+        variant="unstyled"
+        onClick={cutMagicWandSelection}
+        disabled={!hasSelection}
+        className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+      >
+        {ICONS.CUT}
+        <span>{t('cutSelection')}</span>
+      </PanelButton>
+      <PanelButton
+        type="button"
+        variant="unstyled"
+        onClick={invertMagicWandSelection}
+        className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+        title={t('cropSelectionInvert')}
+      >
+        <span className="font-semibold">⇆</span>
+        <span>{t('cropSelectionInvert')}</span>
+      </PanelButton>
+    </div>
+  )}
+
+      <div className="w-full rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] p-3 space-y-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+          {ICONS.HSV}
+          <span>{hsvTitle}</span>
         </div>
-      )}
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--text-secondary)]">{hueLabel}</label>
+            <div
+              className="relative h-4 cursor-pointer"
+              onPointerDown={createSliderHandler((fraction, current) => ({
+                h: Math.round(fraction * 360) - 180,
+                s: current.s,
+                v: current.v,
+              }))}
+            >
+              <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: hueBg }} />
+              <div
+                className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white shadow-md ring-1 ring-white/20"
+                style={{ left: `${hPos}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--text-secondary)]">{saturationLabel}</label>
+            <div
+              className="relative h-4 cursor-pointer"
+              onPointerDown={createSliderHandler((fraction, current) => ({
+                h: current.h,
+                s: Math.round(fraction * 200) - 100,
+                v: current.v,
+              }))}
+            >
+              <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: satBg }} />
+              <div
+                className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md ring-1 ring-white/20"
+                style={{ left: `${sPos}%`, backgroundColor: `hsl(${baseHue}, ${sPos}%, ${baseV}%)` }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--text-secondary)]">{valueLabel}</label>
+            <div
+              className="relative h-4 cursor-pointer"
+              onPointerDown={createSliderHandler((fraction, current) => ({
+                h: current.h,
+                s: current.s,
+                v: Math.round(fraction * 200) - 100,
+              }))}
+            >
+              <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-lg" style={{ background: valBg }} />
+              <div
+                className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md ring-1 ring-white/20"
+                style={{ left: `${vPos}%`, backgroundColor: `hsl(${baseHue}, ${baseS}%, ${vPos}%)` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         {cropTool === 'crop' && (
@@ -397,7 +601,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         <PanelButton
           type="button"
           title={t('cancel')}
-          onClick={cancelCrop}
+          onClick={handleCancel}
           variant="unstyled"
           className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
         >
@@ -407,7 +611,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
         <PanelButton
           type="button"
           title={t('confirm')}
-          onClick={confirmCrop}
+          onClick={handleConfirm}
           variant="unstyled"
           className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
         >
