@@ -4,11 +4,14 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, FrameData, BBox } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearHandles } from '@/lib/gradient';
 import { getGradientHandleSpace } from '@/lib/gradientHandles';
+import { usePathsStore } from '@/hooks/usePathsStore';
+import { recursivelyUpdatePaths } from '@/hooks/selection-logic/utils';
 
 
 const VectorPathControls: React.FC<{ data: VectorPathData; scale: number; dragState: DragState | null; hoveredPoint: Point | null; }> = React.memo(({ data, scale, dragState, hoveredPoint }) => {
@@ -142,7 +145,22 @@ const ShapeControls: React.FC<{
     dragState: DragState | null;
     allowSkew: boolean;
     showMeasurements?: boolean;
-}> = React.memo(({ path, scale, isSelectedAlone, dragState, allowSkew, showMeasurements = false }) => {
+    rotationLabel: string;
+    cornerRadiusLabel: string;
+    onRotationCommit?: (targets: AnyPath[], rotation: number) => void;
+    onCornerRadiusCommit?: (target: RectangleData | ImageData | PolygonData, radius: number) => void;
+}> = React.memo(({
+    path,
+    scale,
+    isSelectedAlone,
+    dragState,
+    allowSkew,
+    showMeasurements = false,
+    rotationLabel,
+    cornerRadiusLabel,
+    onRotationCommit,
+    onCornerRadiusCommit,
+}) => {
     const { x, y, width, height } = path;
 
     const scaledStroke = (width: number) => Math.max(0.5, width / scale);
@@ -221,12 +239,23 @@ const ShapeControls: React.FC<{
             y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
         };
 
+        const handleRotationSubmit = (newRotation: number) => {
+            if (onRotationCommit) {
+                onRotationCommit([path], normalizeRotationRadians(newRotation));
+            }
+        };
+
         rotationHandleLabel = (
-            <LabelPill
-                text={formatRotationValue(path.rotation ?? 0)}
+            <EditableMeasurementLabel
+                value={path.rotation ?? 0}
                 position={labelCenter}
                 rotation={0}
                 scale={scale}
+                formatDisplay={formatRotationValue}
+                getInputValue={formatRotationInputValue}
+                parseInput={parseRotationInput}
+                onSubmit={handleRotationSubmit}
+                ariaLabel={rotationLabel}
             />
         );
     }
@@ -303,11 +332,23 @@ const ShapeControls: React.FC<{
                                 className="pointer-events-all"
                             />
                             {showMeasurements && (
-                                <LabelPill
-                                    text={`R ${formatDimensionValue(cornerRadiusValue)}`}
+                                <EditableMeasurementLabel
+                                    value={cornerRadiusValue}
                                     position={cornerLabelCenter}
                                     rotation={0}
                                     scale={scale}
+                                    formatDisplay={value => `R ${formatDimensionValue(Math.max(0, value))}`}
+                                    getInputValue={value => formatDimensionValue(Math.max(0, value))}
+                                    parseInput={raw => {
+                                        const parsed = parseNumericInput(raw);
+                                        return parsed === null ? null : Math.max(0, parsed);
+                                    }}
+                                    onSubmit={newRadius => {
+                                        if (onCornerRadiusCommit) {
+                                            onCornerRadiusCommit(path as RectangleData | ImageData | PolygonData, newRadius);
+                                        }
+                                    }}
+                                    ariaLabel={cornerRadiusLabel}
                                 />
                             )}
                         </>
@@ -601,6 +642,42 @@ const formatRotationValue = (radians: number) => {
   return `${sign}${magnitude}°`;
 };
 
+const normalizeRotationRadians = (radians: number) => {
+  const twoPi = Math.PI * 2;
+  let normalized = ((radians + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+  if (Math.abs(normalized) < 0.000001) {
+    normalized = 0;
+  }
+  return normalized;
+};
+
+const formatRotationInputValue = (radians: number) => {
+  const normalizedDegrees = (normalizeRotationRadians(radians) * 180) / Math.PI;
+  if (Math.abs(normalizedDegrees) < 0.01) {
+    return '0';
+  }
+  const magnitude = formatDimensionValue(Math.abs(normalizedDegrees));
+  return normalizedDegrees < 0 ? `-${magnitude}` : magnitude;
+};
+
+const parseNumericInput = (raw: string): number | null => {
+  const normalized = raw.trim().replace(',', '.');
+  if (normalized === '') {
+    return 0;
+  }
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseRotationInput = (input: string): number | null => {
+  const parsed = parseNumericInput(input);
+  if (parsed === null) {
+    return null;
+  }
+  const wrappedDegrees = ((parsed + 180) % 360 + 360) % 360 - 180;
+  return (wrappedDegrees * Math.PI) / 180;
+};
+
 const buildDimensionLabelText = (guide: DimensionGuide) =>
   `${formatDimensionValue(Math.max(0, guide.width))} × ${formatDimensionValue(Math.max(0, guide.height))}`;
 
@@ -772,6 +849,162 @@ const LabelPill: React.FC<LabelPillProps> = React.memo(({ text, position, scale,
   );
 });
 
+type EditableMeasurementLabelProps = {
+  value: number;
+  position: Point;
+  scale: number;
+  rotation?: number;
+  formatDisplay: (value: number) => string;
+  getInputValue: (value: number) => string;
+  parseInput: (raw: string) => number | null;
+  onSubmit: (value: number) => void;
+  ariaLabel: string;
+};
+
+const EditableMeasurementLabel: React.FC<EditableMeasurementLabelProps> = React.memo(({
+  value,
+  position,
+  scale,
+  rotation = 0,
+  formatDisplay,
+  getInputValue,
+  parseInput,
+  onSubmit,
+  ariaLabel,
+}) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(() => getInputValue(value));
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const safeScale = Math.max(scale, 0.0001);
+  const rotationDeg = (rotation * 180) / Math.PI;
+  const displayText = formatDisplay(value);
+
+  const baseTextWidth = React.useMemo(() => measureTextWidth(displayText, LABEL_FONT), [displayText]);
+  const editingTextWidth = React.useMemo(() => measureTextWidth(draft || '0', LABEL_FONT), [draft]);
+  const textWidth = isEditing ? Math.max(baseTextWidth, editingTextWidth) : baseTextWidth;
+  const labelWidth = textWidth + LABEL_PADDING_X * 2;
+  const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
+
+  React.useEffect(() => {
+    if (!isEditing) {
+      setDraft(getInputValue(value));
+    }
+  }, [isEditing, value, getInputValue]);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const commit = React.useCallback(() => {
+    const parsed = parseInput(draft);
+    if (parsed !== null) {
+      onSubmit(parsed);
+    }
+    setIsEditing(false);
+  }, [draft, onSubmit, parseInput]);
+
+  const cancel = React.useCallback(() => {
+    setDraft(getInputValue(value));
+    setIsEditing(false);
+  }, [getInputValue, value]);
+
+  const handleActivate = (event: React.PointerEvent<SVGGElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setIsEditing(true);
+  };
+
+  const handleActivationKey = (event: React.KeyboardEvent<SVGGElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setIsEditing(true);
+    }
+  };
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      commit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancel();
+    }
+    event.stopPropagation();
+  };
+
+  const handleBlur = () => {
+    commit();
+  };
+
+  return (
+    <g
+      transform={`translate(${position.x} ${position.y}) rotate(${rotationDeg}) scale(${1 / safeScale})`}
+      className="select-none"
+      role="textbox"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      onPointerDown={isEditing ? undefined : handleActivate}
+      onKeyDown={isEditing ? undefined : handleActivationKey}
+    >
+      <rect
+        x={-labelWidth / 2}
+        y={-labelHeight / 2}
+        width={labelWidth}
+        height={labelHeight}
+        rx={labelHeight / 2}
+        ry={labelHeight / 2}
+        fill="var(--accent-primary)"
+        stroke="var(--text-primary)"
+        strokeOpacity={0.25}
+        className="pointer-events-auto"
+        style={{ cursor: 'text' }}
+      />
+      {isEditing ? (
+        <foreignObject
+          x={-labelWidth / 2}
+          y={-labelHeight / 2}
+          width={labelWidth}
+          height={labelHeight}
+          className="pointer-events-auto"
+        >
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={event => setDraft(event.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleInputKeyDown}
+            className="w-full h-full bg-transparent text-center text-[var(--text-on-accent-solid)] focus:outline-none"
+            style={{
+              fontFamily: LABEL_FONT_FAMILY,
+              fontWeight: LABEL_FONT_WEIGHT,
+              fontSize: LABEL_FONT_SIZE,
+            }}
+            inputMode="decimal"
+          />
+        </foreignObject>
+      ) : (
+        <text
+          x={0}
+          y={0}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={LABEL_FONT_SIZE}
+          fontFamily={LABEL_FONT_FAMILY}
+          fontWeight={LABEL_FONT_WEIGHT}
+          fill="var(--text-on-accent-solid)"
+          className="pointer-events-none"
+        >
+          {displayText}
+        </text>
+      )}
+    </g>
+  );
+});
+
 const DimensionLabel: React.FC<{ guide: DimensionGuide; scale: number }> = React.memo(({ guide, scale }) => {
   const labelText = React.useMemo(() => buildDimensionLabelText(guide), [guide.width, guide.height]);
   const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
@@ -806,7 +1039,9 @@ const MultiSelectionControls: React.FC<{
     scale: number;
     showMeasurements?: boolean;
     rotationValue?: number | null;
-}> = React.memo(({ paths, scale, showMeasurements = false, rotationValue }) => {
+    rotationLabel: string;
+    onRotationCommit?: (targets: AnyPath[], rotation: number) => void;
+}> = React.memo(({ paths, scale, showMeasurements = false, rotationValue, rotationLabel, onRotationCommit }) => {
     const bbox = getPathsBoundingBox(paths, false);
     if (!bbox) return null;
     const accent = 'var(--accent-primary)';
@@ -833,12 +1068,23 @@ const MultiSelectionControls: React.FC<{
             y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
         };
 
+        const handleRotationSubmit = (newRotation: number) => {
+            if (onRotationCommit) {
+                onRotationCommit(paths, normalizeRotationRadians(newRotation));
+            }
+        };
+
         rotationHandleLabel = (
-            <LabelPill
-                text={formatRotationValue(rotationValue)}
+            <EditableMeasurementLabel
+                value={rotationValue}
                 position={labelCenter}
                 rotation={0}
                 scale={scale}
+                formatDisplay={formatRotationValue}
+                getInputValue={formatRotationInputValue}
+                parseInput={parseRotationInput}
+                onSubmit={handleRotationSubmit}
+                ariaLabel={rotationLabel}
             />
         );
     }
@@ -897,6 +1143,76 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
   currentCropRect,
   cropTool,
 }) => {
+  const { t } = useTranslation();
+  const { setPaths, beginCoalescing, endCoalescing } = usePathsStore();
+
+  const rotationLabel = t('rotationMeasurementLabel');
+  const cornerRadiusLabel = t('cornerRadiusMeasurementLabel');
+
+  const handleRotationCommit = React.useCallback((targets: AnyPath[], newRotation: number) => {
+    if (targets.length === 0) {
+      return;
+    }
+    const editableTargets = targets.filter(target => !target.isLocked);
+    if (editableTargets.length === 0) {
+      return;
+    }
+    const normalized = normalizeRotationRadians(newRotation);
+    const epsilon = 0.0001;
+    const idSet = new Set(editableTargets.map(target => target.id));
+    const needsUpdate = editableTargets.some(target => Math.abs(normalizeRotationRadians(target.rotation ?? 0) - normalized) > epsilon);
+    if (!needsUpdate) {
+      return;
+    }
+
+    beginCoalescing();
+    setPaths(prev =>
+      recursivelyUpdatePaths(prev, path => {
+        if (!idSet.has(path.id) || path.isLocked) {
+          return null;
+        }
+        const currentRotation = normalizeRotationRadians(path.rotation ?? 0);
+        if (Math.abs(currentRotation - normalized) <= epsilon) {
+          return null;
+        }
+        return { ...path, rotation: normalized };
+      })
+    );
+    endCoalescing();
+  }, [beginCoalescing, endCoalescing, setPaths]);
+
+  const handleCornerRadiusCommit = React.useCallback((target: RectangleData | ImageData | PolygonData, radius: number) => {
+    if (target.isLocked) {
+      return;
+    }
+    const maxRadius = Math.min(target.width, target.height) / 2;
+    const clamped = Number.isFinite(maxRadius) ? Math.min(Math.max(radius, 0), Math.max(0, maxRadius)) : Math.max(radius, 0);
+    const current = Math.max(0, target.borderRadius ?? 0);
+    const epsilon = 0.0001;
+    if (Math.abs(current - clamped) <= epsilon) {
+      return;
+    }
+
+    beginCoalescing();
+    const targetId = target.id;
+    setPaths(prev =>
+      recursivelyUpdatePaths(prev, path => {
+        if (path.id !== targetId || path.isLocked) {
+          return null;
+        }
+        if (path.tool !== 'rectangle' && path.tool !== 'image' && path.tool !== 'polygon') {
+          return null;
+        }
+        const existing = Math.max(0, (path as RectangleData | ImageData | PolygonData).borderRadius ?? 0);
+        if (Math.abs(existing - clamped) <= epsilon) {
+          return null;
+        }
+        return { ...path, borderRadius: clamped };
+      })
+    );
+    endCoalescing();
+  }, [beginCoalescing, endCoalescing, setPaths]);
+
   // Render controls for a path that is currently being drawn (pen or line)
   if (currentPenPath) {
     return <VectorPathControls data={currentPenPath} scale={scale} dragState={dragState} hoveredPoint={hoveredPoint} />;
@@ -936,6 +1252,11 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
                 isSelectedAlone={selectedPaths.length === 1}
                 dragState={dragState}
                 allowSkew={false}
+                showMeasurements={false}
+                rotationLabel={rotationLabel}
+                cornerRadiusLabel={cornerRadiusLabel}
+                onRotationCommit={handleRotationCommit}
+                onCornerRadiusCommit={handleCornerRadiusCommit}
               />
             );
           }
@@ -972,6 +1293,10 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
                         dragState={dragState}
                         allowSkew={true}
                         showMeasurements={true}
+                        rotationLabel={rotationLabel}
+                        cornerRadiusLabel={cornerRadiusLabel}
+                        onRotationCommit={handleRotationCommit}
+                        onCornerRadiusCommit={handleCornerRadiusCommit}
                     />
                     {gradientHandles}
                     {dimensionLabel}
@@ -986,6 +1311,8 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
                     scale={scale}
                     showMeasurements={true}
                     rotationValue={dimensionGuide?.rotation ?? null}
+                    rotationLabel={rotationLabel}
+                    onRotationCommit={handleRotationCommit}
                 />
                 {gradientHandles}
                 {dimensionLabel}
@@ -999,6 +1326,8 @@ export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({
           scale={scale}
           showMeasurements={true}
           rotationValue={dimensionGuide?.rotation ?? null}
+          rotationLabel={rotationLabel}
+          onRotationCommit={handleRotationCommit}
         />
         {dimensionLabel}
       </>
