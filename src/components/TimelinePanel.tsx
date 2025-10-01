@@ -11,7 +11,7 @@ import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
-const timelineButtonBaseClasses = 'flex items-center justify-center h-8 w-8 rounded-md transition-colors';
+const timelineButtonBaseClasses = 'flex items-center justify-center h-[28px] w-[28px] rounded-md transition-colors';
 const timelineButtonInactiveClasses = 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
 const timelineButtonActiveClasses = 'bg-[var(--accent-bg)] text-[var(--accent-primary)]';
 
