@@ -65,6 +65,7 @@ export const NumericInput: React.FC<NumericInputProps> = React.memo(({
 
     const newValue = Math.max(displayMin, Math.min(displayMax, currentValue + (increment * step)));
     setValue(valueTransformer.fromDisplay(newValue));
+    setLocalValue(Math.round(newValue).toString());
   };
 
   const handleWheel = useWheelCoalescer(beginCoalescing, endCoalescing);
