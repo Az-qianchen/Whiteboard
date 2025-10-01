@@ -4,7 +4,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData } from '../types';
+import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData, TextData } from '../types';
+import { MIN_TEXT_WIDTH } from '@/lib/text';
 import { snapAngle, dist } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
@@ -17,6 +18,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  beginTextEditing: (path: TextData) => void;
 }
 
 /**
@@ -31,6 +33,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  beginTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -54,6 +57,8 @@ export const useDrawing = ({
     isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
     curveTightness, curveStepCount, preserveVertices,
     disableMultiStroke, disableMultiStrokeFill,
+    blur, shadowEnabled, shadowOffsetX, shadowOffsetY, shadowBlur, shadowColor,
+    fontFamily, fontSize, textAlign, lineHeight,
   } = toolbarState;
 
   // Effect to clear the preview line when the pen/line path is finalized or cancelled.
@@ -106,6 +111,7 @@ export const useDrawing = ({
         isRough, roughness, bowing, fillWeight, hachureAngle, hachureGap,
         curveTightness, curveStepCount, preserveVertices,
         disableMultiStroke, disableMultiStrokeFill,
+        blur, shadowEnabled, shadowOffsetX, shadowOffsetY, shadowBlur, shadowColor,
     };
 
     switch (tool) {
@@ -138,6 +144,56 @@ export const useDrawing = ({
           roughness: 0, bowing: 0, fillWeight: 0, hachureAngle: 0, hachureGap: 0, curveTightness: 0, curveStepCount: 9,
         };
         setDrawingShape(newShape);
+        break;
+      }
+      case 'text': {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        const newText: TextData = {
+          id,
+          tool: 'text',
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          width: Math.max(200, MIN_TEXT_WIDTH),
+          height: Math.max(fontSize * lineHeight, fontSize),
+          text: '',
+          color,
+          fill,
+          fillGradient: null,
+          fillStyle,
+          strokeWidth: 0,
+          strokeLineDash,
+          strokeLineCapStart,
+          strokeLineCapEnd,
+          strokeLineJoin,
+          endpointSize,
+          endpointFill,
+          isRough: false,
+          opacity,
+          roughness,
+          bowing,
+          fillWeight,
+          hachureAngle,
+          hachureGap,
+          curveTightness,
+          curveStepCount,
+          preserveVertices,
+          disableMultiStroke: true,
+          disableMultiStrokeFill: true,
+          blur,
+          shadowEnabled,
+          shadowOffsetX,
+          shadowOffsetY,
+          shadowBlur,
+          shadowColor,
+          fontFamily,
+          fontSize,
+          textAlign,
+          lineHeight,
+        };
+        setPaths((prev: AnyPath[]) => [...prev, newText]);
+        beginTextEditing(newText);
         break;
       }
       case 'rectangle':

@@ -36,6 +36,10 @@ const drawingShadowOffsetXSetter = vi.fn();
 const drawingShadowOffsetYSetter = vi.fn();
 const drawingShadowBlurSetter = vi.fn();
 const drawingShadowColorSetter = vi.fn();
+const drawingFontFamilySetter = vi.fn();
+const drawingFontSizeSetter = vi.fn();
+const drawingTextAlignSetter = vi.fn();
+const drawingLineHeightSetter = vi.fn();
 
 vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
   useDrawingColor: () => ({ drawingColor: '#222222', setDrawingColor: drawingColorSetter }),
@@ -68,6 +72,10 @@ vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
   useDrawingShadowOffsetY: () => ({ drawingShadowOffsetY: 2, setDrawingShadowOffsetY: drawingShadowOffsetYSetter }),
   useDrawingShadowBlur: () => ({ drawingShadowBlur: 4, setDrawingShadowBlur: drawingShadowBlurSetter }),
   useDrawingShadowColor: () => ({ drawingShadowColor: 'rgba(0,0,0,0.5)', setDrawingShadowColor: drawingShadowColorSetter }),
+  useDrawingFontFamily: () => ({ drawingFontFamily: 'Virgil', setDrawingFontFamily: drawingFontFamilySetter }),
+  useDrawingFontSize: () => ({ drawingFontSize: 16, setDrawingFontSize: drawingFontSizeSetter }),
+  useDrawingTextAlign: () => ({ drawingTextAlign: 'left', setDrawingTextAlign: drawingTextAlignSetter }),
+  useDrawingLineHeight: () => ({ drawingLineHeight: 1.4, setDrawingLineHeight: drawingLineHeightSetter }),
 }));
 
 const setToolMock = vi.fn();
@@ -169,6 +177,10 @@ describe('useToolbarState', () => {
     drawingShadowOffsetYSetter,
     drawingShadowBlurSetter,
     drawingShadowColorSetter,
+    drawingFontFamilySetter,
+    drawingFontSizeSetter,
+    drawingTextAlignSetter,
+    drawingLineHeightSetter,
   ];
 
   beforeEach(() => {

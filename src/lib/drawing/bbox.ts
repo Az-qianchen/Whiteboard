@@ -11,6 +11,7 @@ import type {
   PolygonData,
   EllipseData,
   FrameData,
+  TextData,
 } from '@/types';
 import { rotatePoint } from './geom';
 import { samplePath } from './path';
@@ -20,6 +21,7 @@ import { DEFAULT_ROUGHNESS, DEFAULT_BOWING } from '@/constants';
 import { applyMatrixToPoint, getShapeTransformMatrix } from './transform/matrix';
 import { parseColor } from '../color';
 import { gradientHasVisibleColor } from '../gradient';
+import { layoutText, MIN_TEXT_WIDTH } from '@/lib/text';
 
 const hasVisibleFill = (path: AnyPath): boolean => {
   if (path.fillGradient) {
@@ -147,6 +149,35 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
       const minY = Math.min(...vertices.map(p => p.y));
       const maxX = Math.max(...vertices.map(p => p.x));
       const maxY = Math.max(...vertices.map(p => p.y));
+
+      return {
+        x: minX - margin,
+        y: minY - margin,
+        width: (maxX - minX) + margin * 2,
+        height: (maxY - minY) + margin * 2,
+      };
+    }
+    case 'text': {
+      const textPath = path as TextData;
+      const layout = layoutText({
+        text: textPath.text,
+        width: Math.max(textPath.width, MIN_TEXT_WIDTH),
+        fontFamily: textPath.fontFamily,
+        fontSize: textPath.fontSize,
+        lineHeight: textPath.lineHeight,
+      });
+      const matrix = getShapeTransformMatrix(textPath);
+      const corners = [
+        { x: textPath.x, y: textPath.y },
+        { x: textPath.x + layout.width, y: textPath.y },
+        { x: textPath.x + layout.width, y: textPath.y + layout.height },
+        { x: textPath.x, y: textPath.y + layout.height },
+      ].map(point => applyMatrixToPoint(matrix, point));
+
+      const minX = Math.min(...corners.map(p => p.x));
+      const minY = Math.min(...corners.map(p => p.y));
+      const maxX = Math.max(...corners.map(p => p.x));
+      const maxY = Math.max(...corners.map(p => p.y));
 
       return {
         x: minX - margin,

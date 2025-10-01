@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -11,6 +11,7 @@ import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
+import { layoutText, MIN_TEXT_WIDTH } from '@/lib/text';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -107,6 +108,58 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
 
         if (data.tool === 'image') {
             node = renderImage(data as ImageData);
+        } else if (data.tool === 'text') {
+            const textData = data as TextData;
+            const layout = layoutText({
+                text: textData.text,
+                width: Math.max(textData.width, MIN_TEXT_WIDTH),
+                fontFamily: textData.fontFamily,
+                fontSize: textData.fontSize,
+                lineHeight: textData.lineHeight,
+            });
+            const group = document.createElementNS(SVG_NS, 'g');
+            const hasBackground = textData.fill && textData.fill !== 'transparent' && textData.fill.toLowerCase() !== 'none';
+            if (hasBackground) {
+                const rect = document.createElementNS(SVG_NS, 'rect');
+                rect.setAttribute('x', textData.x.toString());
+                rect.setAttribute('y', textData.y.toString());
+                rect.setAttribute('width', layout.width.toString());
+                rect.setAttribute('height', layout.height.toString());
+                rect.setAttribute('fill', textData.fill);
+                if (textData.opacity !== undefined && textData.opacity < 1) {
+                    rect.setAttribute('opacity', textData.opacity.toString());
+                }
+                group.appendChild(rect);
+            }
+
+            const textElement = document.createElementNS(SVG_NS, 'text');
+            textElement.setAttribute('x', textData.x.toString());
+            textElement.setAttribute('y', textData.y.toString());
+            textElement.setAttribute('fill', textData.color);
+            textElement.setAttribute('font-family', textData.fontFamily);
+            textElement.setAttribute('font-size', `${textData.fontSize}`);
+            textElement.setAttribute('dominant-baseline', 'hanging');
+            textElement.setAttribute('xml:space', 'preserve');
+            textElement.setAttribute('text-anchor', textData.textAlign === 'center' ? 'middle' : textData.textAlign === 'right' ? 'end' : 'start');
+
+            const lineHeightPx = textData.fontSize * textData.lineHeight;
+            layout.lines.forEach((line, index) => {
+                const tspan = document.createElementNS(SVG_NS, 'tspan');
+                let offsetX = 0;
+                if (textData.textAlign === 'center') offsetX = layout.width / 2;
+                else if (textData.textAlign === 'right') offsetX = layout.width;
+                tspan.setAttribute('x', (textData.x + offsetX).toString());
+                tspan.setAttribute('dy', index === 0 ? '0' : lineHeightPx.toString());
+                tspan.textContent = line === '' ? '\u200B' : line;
+                textElement.appendChild(tspan);
+            });
+
+            if (textData.opacity !== undefined && textData.opacity < 1) {
+                textElement.setAttribute('opacity', textData.opacity.toString());
+            }
+
+            group.appendChild(textElement);
+            node = group;
         } else if (data.tool === 'group') {
             const groupData = data as GroupData;
             const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -266,8 +319,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame' || data.tool === 'text')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }

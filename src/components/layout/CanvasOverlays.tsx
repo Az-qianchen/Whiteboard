@@ -2,7 +2,7 @@
  * 本文件定义了画布的覆盖层组件。
  * 它包含了所有绝对定位在画布上方的UI元素，如工具栏、菜单和对话框。
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
@@ -18,6 +18,175 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { MIN_TEXT_WIDTH, layoutText, sanitizeText } from '@/lib/text';
+
+type AppStore = ReturnType<typeof useAppContext>;
+type ActiveTextEditorState = NonNullable<AppStore['textEditor']>;
+
+const normalizeFillColor = (fill: string): string => {
+    const normalized = (fill ?? '').trim().toLowerCase();
+    if (!normalized || normalized === 'transparent' || normalized === 'none') {
+        return 'transparent';
+    }
+    return fill;
+};
+
+interface TextEditorOverlayProps {
+    editor: ActiveTextEditorState;
+    viewTransform: { scale: number; translateX: number; translateY: number };
+    updateTextEditor: (patch: Partial<ActiveTextEditorState>) => void;
+    commitTextEditing: () => void;
+    cancelTextEditing: () => void;
+}
+
+const TextEditorOverlay: React.FC<TextEditorOverlayProps> = React.memo(({ editor, viewTransform, updateTextEditor, commitTextEditing, cancelTextEditing }) => {
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const skipCommitRef = useRef(false);
+
+    useEffect(() => {
+        skipCommitRef.current = false;
+        const textarea = textareaRef.current;
+        if (!textarea) {
+            return;
+        }
+        textarea.focus({ preventScroll: true });
+        const length = textarea.value.length;
+        textarea.setSelectionRange(length, length);
+    }, [editor.pathId]);
+
+    const handleInput = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const rawValue = event.target.value;
+        const sanitized = sanitizeText(rawValue);
+        const layout = layoutText({
+            text: sanitized,
+            width: Math.max(editor.width, MIN_TEXT_WIDTH),
+            fontFamily: editor.fontFamily,
+            fontSize: editor.fontSize,
+            lineHeight: editor.lineHeight,
+        });
+        if (sanitized === editor.draft && Math.abs(layout.height - editor.height) < 0.5) {
+            return;
+        }
+        updateTextEditor({ draft: sanitized, height: layout.height });
+    }, [editor.draft, editor.width, editor.fontFamily, editor.fontSize, editor.lineHeight, editor.height, updateTextEditor]);
+
+    const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        event.stopPropagation();
+        if (event.key === 'Escape') {
+            skipCommitRef.current = true;
+            event.preventDefault();
+            cancelTextEditing();
+            return;
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+            skipCommitRef.current = true;
+            event.preventDefault();
+            commitTextEditing();
+        }
+    }, [cancelTextEditing, commitTextEditing]);
+
+    const handleBlur = useCallback(() => {
+        if (skipCommitRef.current) {
+            skipCommitRef.current = false;
+            return;
+        }
+        commitTextEditing();
+    }, [commitTextEditing]);
+
+    const safeFill = useMemo(() => normalizeFillColor(editor.fill), [editor.fill]);
+    const flipX = editor.scaleX < 0 ? -1 : 1;
+    const flipY = editor.scaleY < 0 ? -1 : 1;
+    const rotationDeg = (editor.rotation * 180) / Math.PI;
+    const transformParts: string[] = [];
+    if (Math.abs(rotationDeg) > 0.0001) {
+        transformParts.push(`rotate(${rotationDeg}deg)`);
+    }
+    if (flipX < 0 || flipY < 0) {
+        transformParts.push(`scale(${flipX}, ${flipY})`);
+    }
+    const transform = transformParts.join(' ');
+    const canResize = Math.abs(editor.rotation) < 0.0001 && flipX > 0 && flipY > 0;
+
+    useEffect(() => {
+        if (typeof ResizeObserver === 'undefined') {
+            return;
+        }
+        if (!canResize) {
+            return;
+        }
+        const textarea = textareaRef.current;
+        if (!textarea) {
+            return;
+        }
+        const observer = new ResizeObserver(entries => {
+            const entry = entries[0];
+            if (!entry) {
+                return;
+            }
+            const nextWidth = Math.max(entry.contentRect.width, MIN_TEXT_WIDTH);
+            if (Math.abs(nextWidth - editor.width) < 0.5) {
+                return;
+            }
+            const layout = layoutText({
+                text: editor.draft,
+                width: nextWidth,
+                fontFamily: editor.fontFamily,
+                fontSize: editor.fontSize,
+                lineHeight: editor.lineHeight,
+            });
+            updateTextEditor({ width: nextWidth, height: layout.height });
+        });
+        observer.observe(textarea);
+        return () => observer.disconnect();
+    }, [canResize, editor.width, editor.draft, editor.fontFamily, editor.fontSize, editor.lineHeight, updateTextEditor]);
+
+    return (
+        <div className="absolute inset-0 pointer-events-none z-40">
+            <div
+                className="pointer-events-none absolute left-0 top-0"
+                style={{
+                    transform: `translate(${viewTransform.translateX}px, ${viewTransform.translateY}px) scale(${viewTransform.scale})`,
+                    transformOrigin: '0 0',
+                }}
+            >
+                <textarea
+                    ref={textareaRef}
+                    value={editor.draft}
+                    onChange={handleInput}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    onPointerDown={event => event.stopPropagation()}
+                    onWheel={event => event.stopPropagation()}
+                    className="absolute pointer-events-auto rounded-md border border-[var(--accent-primary)] shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    style={{
+                        left: `${editor.x}px`,
+                        top: `${editor.y}px`,
+                        width: `${editor.width}px`,
+                        height: `${editor.height}px`,
+                        minWidth: `${MIN_TEXT_WIDTH}px`,
+                        transformOrigin: `${editor.width / 2}px ${editor.height / 2}px`,
+                        transform: transform || undefined,
+                        fontFamily: editor.fontFamily,
+                        fontSize: `${editor.fontSize}px`,
+                        lineHeight: editor.lineHeight,
+                        textAlign: editor.textAlign,
+                        color: editor.color,
+                        backgroundColor: safeFill,
+                        opacity: editor.opacity ?? 1,
+                        resize: canResize ? 'both' : 'none',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        overflow: 'hidden',
+                        padding: 0,
+                        boxSizing: 'border-box',
+                    }}
+                    spellCheck={false}
+                    data-testid="text-editor"
+                />
+            </div>
+        </div>
+    );
+});
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -85,6 +254,11 @@ export const CanvasOverlays: React.FC = () => {
         handleDistribute,
         handleBooleanOperation,
         handleTraceImage,
+        textEditor,
+        updateTextEditor,
+        commitTextEditing,
+        cancelTextEditing,
+        viewTransform,
         confirmationDialog,
         hideConfirmation,
         croppingState,
@@ -169,6 +343,17 @@ export const CanvasOverlays: React.FC = () => {
 
     return (
         <>
+            {textEditor && (
+                <TextEditorOverlay
+                    editor={textEditor}
+                    viewTransform={viewTransform.viewTransform}
+                    updateTextEditor={updateTextEditor}
+                    commitTextEditing={commitTextEditing}
+                    cancelTextEditing={cancelTextEditing}
+                />
+            )}
+
+
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                 <Toolbar tool={tool} setTool={handleSetTool} isGridVisible={isGridVisible} setIsGridVisible={setIsGridVisible} gridSize={gridSize} setGridSize={setGridSize} gridSubdivisions={gridSubdivisions} setGridSubdivisions={setGridSubdivisions} gridOpacity={gridOpacity} setGridOpacity={setGridOpacity} />
                 {groupIsolationPath.length > 0 && <Breadcrumbs path={groupIsolationPath} onJumpTo={handleJumpToGroup} />}

@@ -1,4 +1,4 @@
-import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, RectangleData, EllipseData, PolygonData, GroupData } from '@/types';
+import type { AnyPath, Point, BrushPathData, ArcData, VectorPathData, ImageData, RectangleData, EllipseData, PolygonData, GroupData, TextData } from '@/types';
 import { rectangleToVectorPath, ellipseToVectorPath, polygonToVectorPath } from '../convert';
 import { getCachedImage } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
@@ -107,6 +107,19 @@ export async function flipPath(path: AnyPath, center: Point, axis: 'horizontal' 
       const newChildrenPromises = groupPath.children.map(child => flipPath(child, center, axis));
       const newChildren = await Promise.all(newChildrenPromises);
       return { ...path, children: newChildren };
+    }
+    case 'text': {
+      const textPath = path as TextData;
+      let newX = textPath.x;
+      let newY = textPath.y;
+      let newAlign = textPath.textAlign;
+      if (axis === 'horizontal') {
+        newX = 2 * center.x - (textPath.x + textPath.width);
+        newAlign = textPath.textAlign === 'left' ? 'right' : textPath.textAlign === 'right' ? 'left' : textPath.textAlign;
+      } else {
+        newY = 2 * center.y - (textPath.y + textPath.height);
+      }
+      return { ...textPath, x: newX, y: newY, textAlign: newAlign };
     }
   }
 }

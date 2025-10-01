@@ -1,4 +1,5 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
+import { layoutText, MIN_TEXT_WIDTH } from '@/lib/text';
 
 /**
  * 缩放图形。
@@ -48,6 +49,30 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         scaleX: newScaleX,
         scaleY: newScaleY,
       };
+    }
+    case 'text': {
+      const text = path as TextData;
+      const scaledX = pivot.x + (text.x - pivot.x) * scaleX;
+      const scaledWidth = text.width * scaleX;
+      const newX = scaledWidth < 0 ? scaledX + scaledWidth : scaledX;
+      const width = Math.max(Math.abs(scaledWidth), MIN_TEXT_WIDTH);
+      const layout = layoutText({
+        text: text.text,
+        width,
+        fontFamily: text.fontFamily,
+        fontSize: text.fontSize,
+        lineHeight: text.lineHeight,
+      });
+      const newY = pivot.y + (text.y - pivot.y) * scaleY;
+      return {
+        ...text,
+        x: newX,
+        y: newY,
+        width,
+        height: layout.height,
+        scaleX: (text.scaleX ?? 1) * (scaleX < 0 ? -1 : 1),
+        scaleY: (text.scaleY ?? 1) * (scaleY < 0 ? -1 : 1),
+      } as unknown as T;
     }
     case 'group':
       return {

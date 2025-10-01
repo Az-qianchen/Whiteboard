@@ -1,4 +1,4 @@
-import type { AnyPath, Point, ResizeHandlePosition, RectangleData, EllipseData, ImageData, PolygonData, FrameData, GroupData, ArcData, BrushPathData, VectorPathData } from '@/types';
+import type { AnyPath, Point, ResizeHandlePosition, RectangleData, EllipseData, ImageData, PolygonData, FrameData, GroupData, ArcData, BrushPathData, VectorPathData, TextData } from '@/types';
 import { rotatePoint } from '../geom';
 
 /**
@@ -78,6 +78,15 @@ export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: num
       const newY = newShapeCenter.y - shape.height / 2;
       const newRotation = (shape.rotation ?? 0) + angle;
       return { ...path, x: newX, y: newY, rotation: newRotation };
+    }
+    case 'text': {
+      const textShape = path as TextData;
+      const originalCenter = { x: textShape.x + textShape.width / 2, y: textShape.y + textShape.height / 2 };
+      const newCenter = rotatePoint(originalCenter, center, angle);
+      const newX = newCenter.x - textShape.width / 2;
+      const newY = newCenter.y - textShape.height / 2;
+      const newRotation = (textShape.rotation ?? 0) + angle;
+      return { ...textShape, x: newX, y: newY, rotation: newRotation } as unknown as T;
     }
     case 'group': {
       const groupPath = path as GroupData;

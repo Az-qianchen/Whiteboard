@@ -1,4 +1,4 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
 
 /**
  * 移动图形。
@@ -35,6 +35,10 @@ export function movePath<T extends AnyPath>(path: T, dx: number, dy: number): T 
     case 'image':
     case 'polygon':
       return { ...path, x: path.x + dx, y: path.y + dy };
+    case 'text': {
+      const textPath = path as TextData;
+      return { ...textPath, x: textPath.x + dx, y: textPath.y + dy } as unknown as T;
+    }
     case 'group': {
       const groupPath = path as GroupData;
       const newChildren = groupPath.children.map(child => movePath(child, dx, dy));

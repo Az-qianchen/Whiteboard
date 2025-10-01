@@ -4,10 +4,11 @@
  * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
 import { gradientHasVisibleColor } from './gradient';
+import { layoutText, MIN_TEXT_WIDTH } from '@/lib/text';
 
 /**
  * Calculates the squared distance from a point to a line segment.
@@ -120,9 +121,9 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             const groupPath = path as GroupData;
             return groupPath.children.some(child => isPointHittingPath(point, child, scale));
         }
-        case 'image':
-        case 'frame':
-        case 'rectangle': {
+    case 'image':
+    case 'frame':
+    case 'rectangle': {
             const { x, y, width, height, rotation } = path as RectangleData | ImageData;
             let testPoint = point;
 
@@ -148,6 +149,32 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 distSqToSegment(testPoint, p3, p4) < thresholdSq ||
                 distSqToSegment(testPoint, p4, p1) < thresholdSq
             );
+        }
+        case 'text': {
+            const textPath = path as TextData;
+            const layout = layoutText({
+                text: textPath.text,
+                width: Math.max(textPath.width, MIN_TEXT_WIDTH),
+                fontFamily: textPath.fontFamily,
+                fontSize: textPath.fontSize,
+                lineHeight: textPath.lineHeight,
+            });
+            let testPoint = point;
+            const rotation = textPath.rotation ?? 0;
+            if (rotation) {
+                const center = { x: textPath.x + layout.width / 2, y: textPath.y + layout.height / 2 };
+                testPoint = rotatePoint(point, center, -rotation);
+            }
+            const isInside = testPoint.x >= textPath.x && testPoint.x <= textPath.x + layout.width && testPoint.y >= textPath.y && testPoint.y <= textPath.y + layout.height;
+            if (!isInside) return false;
+            if (textPath.fill && textPath.fill !== 'transparent' && textPath.fill.toLowerCase() !== 'none') {
+                return true;
+            }
+            const clampedPoint = {
+                x: Math.min(Math.max(testPoint.x, textPath.x), textPath.x + layout.width),
+                y: Math.min(Math.max(testPoint.y, textPath.y), textPath.y + layout.height),
+            };
+            return dist(testPoint, clampedPoint) < threshold;
         }
         case 'polygon': {
             const { x, y, width, height, sides, rotation } = path as PolygonData;
