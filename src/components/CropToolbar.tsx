@@ -262,8 +262,8 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
       className="absolute left-1/2 -translate-x-1/2 z-30 inline-flex max-w-[calc(100vw-2rem)] flex-col items-stretch gap-3 rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-panel-bg)] p-3 text-[var(--text-primary)] shadow-xl backdrop-blur-lg"
       style={{ bottom: timelineBottomOffset }}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap items-center gap-2 md:ml-4">
+      <div className="flex w-full flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className={PANEL_CLASSES.segmentGroup}>
             <PanelButton
               type="button"
@@ -318,7 +318,7 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
             title={t('cancel')}
             onClick={handleCancel}
             variant="unstyled"
-            className={`${textButtonBase} text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
+            className={`${textButtonBase} bg-[var(--ui-element-bg)] text-[var(--danger-text)] hover:bg-[var(--danger-bg)]`}
           >
             {ICONS.X}
             <span>{t('cancel')}</span>
