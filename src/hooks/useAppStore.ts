@@ -1394,6 +1394,15 @@ export const useAppStore = () => {
     pathCanRedo ||
     (appState.croppingState !== null && (cropHistory.future.length > 0 || cropSelectionHistory.future.length > 0));
 
+  const beginTextEditing = useCallback((pathId: string, options?: { isNew?: boolean }) => {
+    const path = paths.find((p): p is TextData => p.id === pathId && p.tool === 'text');
+    const draft = path?.text ?? '';
+    setAppState(prev => ({
+      ...prev,
+      textEditing: { pathId, draft, isNew: options?.isNew ?? false },
+    }));
+  }, [paths, setAppState]);
+
   const onDoubleClick = useCallback((path: AnyPath) => {
       if (toolbarState.selectionMode !== 'move') return;
       if (path.tool === 'group') { groupIsolation.handleGroupDoubleClick(path.id); }
@@ -1505,15 +1514,6 @@ export const useAppStore = () => {
   });
 
   const textEditing = appState.textEditing;
-
-  const beginTextEditing = useCallback((pathId: string, options?: { isNew?: boolean }) => {
-    const path = paths.find((p): p is TextData => p.id === pathId && p.tool === 'text');
-    const draft = path?.text ?? '';
-    setAppState(prev => ({
-      ...prev,
-      textEditing: { pathId, draft, isNew: options?.isNew ?? false },
-    }));
-  }, [paths, setAppState]);
 
   const updateTextEditing = useCallback((draft: string) => {
     setAppState(prev => {
