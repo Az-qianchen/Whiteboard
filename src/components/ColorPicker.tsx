@@ -229,7 +229,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, onInt
                 <PanelButton
                     variant="unstyled"
                     onClick={handleEyeDropper}
-                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors"
+                    className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-md text-[var(--text-secondary)] bg-white/10 hover:bg-white/20 transition-colors"
                     title="Pick color from screen"
                 >
                     {ICONS.EYEDROPPER}
