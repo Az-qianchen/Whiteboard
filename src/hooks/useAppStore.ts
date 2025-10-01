@@ -334,7 +334,11 @@ export const useAppStore = () => {
     naturalHeight: number;
     imageData: ImageData;
   } | null>(null);
-  const cropMagicWandResultRef = useRef<{ imageData: ImageData; newSrc: string } | null>(null);
+  const cropMagicWandResultRef = useRef<{
+    imageData: ImageData;
+    newSrc: string;
+    featherData: Float32Array | null;
+  } | null>(null);
   const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
   const cropManualDraftRef = useRef<CropManualDraft | null>(null);
@@ -529,7 +533,7 @@ export const useAppStore = () => {
         return;
       }
 
-      const { image, contours } = applyMaskToImage(
+      const { image, contours, featherData } = applyMaskToImage(
         cache.imageData,
         normalizedMask,
         appState.cropMagicWandOptions.featherRadius,
@@ -546,7 +550,7 @@ export const useAppStore = () => {
       previewCtx.putImageData(image, 0, 0);
       const newSrc = previewCanvas.toDataURL();
 
-      cropMagicWandResultRef.current = { imageData: image, newSrc };
+      cropMagicWandResultRef.current = { imageData: image, newSrc, featherData };
 
       const contourPaths = buildContourPaths(contours, cropping.originalPath, cache.naturalWidth, cache.naturalHeight);
       setAppState(s => ({
@@ -802,10 +806,15 @@ export const useAppStore = () => {
     const cache = cropImageCacheRef.current;
     if (!cropping || !mask || !result || !cache || !mask.bounds) return;
 
-    const { imageData, newSrc } = result;
+    const { imageData, newSrc, featherData } = result;
     const { minX, minY, maxX, maxY } = mask.bounds;
-    const pixelWidth = maxX - minX + 1;
-    const pixelHeight = maxY - minY + 1;
+    const effectiveRadius = Math.max(0, Math.floor(appState.cropMagicWandOptions.featherRadius));
+    const startX = Math.max(0, minX - effectiveRadius);
+    const startY = Math.max(0, minY - effectiveRadius);
+    const endX = Math.min(mask.width - 1, maxX + effectiveRadius);
+    const endY = Math.min(mask.height - 1, maxY + effectiveRadius);
+    const pixelWidth = endX - startX + 1;
+    const pixelHeight = endY - startY + 1;
     if (pixelWidth <= 0 || pixelHeight <= 0) {
       clearCropSelection();
       return;
@@ -828,18 +837,25 @@ export const useAppStore = () => {
       const maskWidth = mask.width;
       const sourceWidth = cache.naturalWidth;
 
-      for (let y = minY; y <= maxY; y++) {
+      for (let y = startY; y <= endY; y++) {
         const maskRowOffset = y * maskWidth;
         const sourceRowOffset = y * sourceWidth;
-        const destRowOffset = (y - minY) * pixelWidth;
-        for (let x = minX; x <= maxX; x++) {
-          if (!maskData[maskRowOffset + x]) continue;
+        const destRowOffset = (y - startY) * pixelWidth;
+        for (let x = startX; x <= endX; x++) {
+          const dataIndex = maskRowOffset + x;
+          const strength = featherData
+            ? featherData[dataIndex]
+            : maskData[dataIndex]
+              ? 1
+              : 0;
+          const normalized = Math.max(0, Math.min(1, strength));
+          if (normalized <= 0) continue;
           const sourceIndex = (sourceRowOffset + x) * 4;
-          const destIndex = (destRowOffset + (x - minX)) * 4;
+          const destIndex = (destRowOffset + (x - startX)) * 4;
           destData[destIndex] = sourceData[sourceIndex];
           destData[destIndex + 1] = sourceData[sourceIndex + 1];
           destData[destIndex + 2] = sourceData[sourceIndex + 2];
-          destData[destIndex + 3] = sourceData[sourceIndex + 3];
+          destData[destIndex + 3] = Math.round(sourceData[sourceIndex + 3] * normalized);
         }
       }
 
@@ -854,8 +870,8 @@ export const useAppStore = () => {
       const scaleX = cropping.originalPath.width / cache.naturalWidth;
       const scaleY = cropping.originalPath.height / cache.naturalHeight;
       const selectionRect = {
-        x: cropping.originalPath.x + minX * scaleX,
-        y: cropping.originalPath.y + minY * scaleY,
+        x: cropping.originalPath.x + startX * scaleX,
+        y: cropping.originalPath.y + startY * scaleY,
         width: pixelWidth * scaleX,
         height: pixelHeight * scaleY,
       };
@@ -940,7 +956,14 @@ export const useAppStore = () => {
       setCropEditedSrc(newSrc);
       clearCropSelection();
     })();
-  }, [appState.croppingState, clearCropSelection, setPaths, setCroppingState, setCropEditedSrc]);
+  }, [
+    appState.cropMagicWandOptions.featherRadius,
+    appState.croppingState,
+    clearCropSelection,
+    setPaths,
+    setCroppingState,
+    setCropEditedSrc,
+  ]);
 
   const markDocumentSaved = useCallback((signature: string) => {
     setAppState(prev => ({ ...prev, lastSavedDocumentSignature: signature, hasUnsavedChanges: false }));
