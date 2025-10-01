@@ -11,7 +11,7 @@ import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
 
-const timelineButtonBaseClasses = 'flex items-center justify-center h-[28px] w-[28px] rounded-md transition-colors';
+const timelineButtonBaseClasses = 'flex items-center justify-center h-8 w-8 rounded-md transition-colors';
 const timelineButtonInactiveClasses = 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
 const timelineButtonActiveClasses = 'bg-[var(--accent-bg)] text-[var(--accent-primary)]';
 
@@ -259,7 +259,7 @@ export const TimelinePanel: React.FC = () => {
                       </div>
                     <div className="flex items-center gap-1.5">
                          <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
-                         <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
+                         <div className="flex items-center bg-black/20 rounded-md h-8 px-1.5 w-14">
                            <input
                              id="fps-input" type="number" min="1" max="60" step="1"
                              value={fps} onChange={(e) => setFps(Math.max(1, parseInt(e.target.value) || 1))}
@@ -279,7 +279,7 @@ export const TimelinePanel: React.FC = () => {
                           <div className={`flex items-center gap-2 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                             <div className="flex items-center gap-1.5">
                                 <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-16">
+                                <div className="flex items-center bg-black/20 rounded-md h-8 px-1.5 w-16">
                                 <input
                                     id="onion-opacity-input" type="number" min="0" max="100" step="1"
                                     value={Math.round(onionSkinOpacity * 100)}
@@ -291,7 +291,7 @@ export const TimelinePanel: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
+                                <div className="flex items-center bg-black/20 rounded-md h-8 px-1.5 w-14">
                                 <input
                                     id="prev-frames-input" type="number" min="0" max="10" step="1"
                                     value={onionSkinPrevFrames} onChange={(e) => setOnionSkinPrevFrames(Math.max(0, parseInt(e.target.value) || 0))}
@@ -301,7 +301,7 @@ export const TimelinePanel: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
-                                <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
+                                <div className="flex items-center bg-black/20 rounded-md h-8 px-1.5 w-14">
                                 <input
                                     id="next-frames-input" type="number" min="0" max="10" step="1"
                                     value={onionSkinNextFrames} onChange={(e) => setOnionSkinNextFrames(Math.max(0, parseInt(e.target.value) || 0))}
