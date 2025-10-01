@@ -43,6 +43,23 @@ const resources = {
       cornerRadiusMeasurementLabel: 'Corner radius',
       confirm: 'Confirm',
       cancel: 'Cancel',
+      confirmations: {
+        clearCanvas: {
+          title: 'Clear canvas',
+          message: 'Are you sure you want to clear the entire canvas? This action cannot be undone.',
+          confirm: 'Clear',
+        },
+        clearData: {
+          title: 'Clear data',
+          message: 'Are you sure you want to clear the data in all animation frames? This action cannot be undone.',
+          confirm: 'Clear',
+        },
+        resetPreferences: {
+          title: 'Reset preferences',
+          message: 'Are you sure you want to reset all preferences? This will reset your tool and UI settings, but your drawing contents will be kept.',
+          confirm: 'Reset',
+        },
+      },
       traceImage: 'Vectorize image',
       colorsCount: 'Colors',
       lineThreshold: 'Line threshold',
@@ -369,6 +386,23 @@ const resources = {
       cornerRadiusMeasurementLabel: '圆角半径',
       confirm: '确认',
       cancel: '取消',
+      confirmations: {
+        clearCanvas: {
+          title: '清空画布',
+          message: '确定要清空整个画布吗？此操作无法撤销。',
+          confirm: '清空',
+        },
+        clearData: {
+          title: '清空数据',
+          message: '确定要清空所有动画帧中的数据吗？此操作无法撤销。',
+          confirm: '清空',
+        },
+        resetPreferences: {
+          title: '重置偏好设置',
+          message: '您确定要重置所有偏好设置吗？此操作将重置您的工具和 UI 设置，但您的绘图内容将保留。',
+          confirm: '重置',
+        },
+      },
       traceImage: '将图片转换为矢量图',
       colorsCount: '颜色数量',
       lineThreshold: '直线阈值',

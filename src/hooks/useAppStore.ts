@@ -4,6 +4,7 @@
  * 并为整个应用提供一个统一的状态和操作接口。
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { useUiStore } from '@/context/uiStore';
 import { usePathsStore as usePathsStoreHook } from './usePathsStore';
@@ -1057,6 +1058,8 @@ export const useAppStore = () => {
     setCurrentCropRect(newRect);
   }, [appState.croppingState, appState.currentCropRect, pushCropHistory, setCurrentCropRect]);
 
+  const { t } = useTranslation();
+
   const showConfirmation = useCallback((title: string, message: string, onConfirm: () => void | Promise<void>, confirmButtonText?: string) => {
     setConfirmationDialog({
       isOpen: true,
@@ -1076,31 +1079,31 @@ export const useAppStore = () => {
   const handleClear = useCallback(() => {
     if (canClear) {
       showConfirmation(
-        '清空画布',
-        '确定要清空整个画布吗？此操作无法撤销。',
+        t('confirmations.clearCanvas.title'),
+        t('confirmations.clearCanvas.message'),
         () => {
           setPaths([]);
           setSelectedPathIds([]);
         },
-        '清空'
+        t('confirmations.clearCanvas.confirm')
       );
     }
-  }, [canClear, setPaths, showConfirmation, setSelectedPathIds]);
+  }, [canClear, setPaths, showConfirmation, setSelectedPathIds, t]);
 
   const handleClearAllData = useCallback(() => {
     if (!canClearAllData) return;
     showConfirmation(
-      '清空数据',
-      '确定要清空所有动画帧中的数据吗？此操作无法撤销。',
+      t('confirmations.clearData.title'),
+      t('confirmations.clearData.message'),
       () => {
         const resetFrames = [createFrame()];
         // Reset the timeline to a single empty frame so no leftover thumbnails remain
         handleLoadFile(resetFrames, 0);
         setSelectedPathIds([]);
       },
-      '清空'
+      t('confirmations.clearData.confirm')
     );
-  }, [canClearAllData, handleLoadFile, showConfirmation, setSelectedPathIds]);
+  }, [canClearAllData, handleLoadFile, showConfirmation, setSelectedPathIds, t]);
 
   const groupIsolation = useGroupIsolation(pathState);
   const { activePaths, activePathState } = groupIsolation;
@@ -1238,8 +1241,8 @@ export const useAppStore = () => {
 
   const handleResetPreferences = useCallback(() => {
     showConfirmation(
-      '重置偏好设置',
-      '您确定要重置所有偏好设置吗？此操作将重置您的工具和UI设置，但您的绘图内容将保留。',
+      t('confirmations.resetPreferences.title'),
+      t('confirmations.resetPreferences.message'),
       async () => {
         const keysToPreserve = new Set([
           'whiteboard_frames',
@@ -1264,9 +1267,9 @@ export const useAppStore = () => {
         toolbarState.resetState();
         setActiveFileName(null);
       },
-      '重置'
+      t('confirmations.resetPreferences.confirm')
     );
-  }, [showConfirmation, setUiState, toolbarState, setActiveFileName]);
+  }, [showConfirmation, setUiState, toolbarState, setActiveFileName, t]);
 
   const confirmCrop = useCallback(() => {
     if (!appState.croppingState || !appState.currentCropRect) return;
