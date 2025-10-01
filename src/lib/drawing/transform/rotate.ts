@@ -1,5 +1,17 @@
-import type { AnyPath, Point, ResizeHandlePosition, RectangleData, EllipseData, ImageData, PolygonData, FrameData, GroupData, ArcData, BrushPathData, VectorPathData } from '@/types';
+import type { AnyPath, Point, ResizeHandlePosition, RectangleData, EllipseData, ImageData, PolygonData, FrameData, GroupData, ArcData, BrushPathData, VectorPathData, GradientFill } from '@/types';
 import { rotatePoint } from '../geom';
+import { updateGradientAngle } from '@/lib/gradient';
+
+const rotateFillGradient = (
+  gradient: GradientFill | null | undefined,
+  angle: number,
+): GradientFill | null | undefined => {
+  if (gradient === undefined || gradient === null) return gradient;
+  if (gradient.type !== 'linear') return gradient;
+
+  const nextAngle = gradient.angle + (angle * 180) / Math.PI;
+  return updateGradientAngle(gradient, nextAngle);
+};
 
 /**
  * 根据旋转角度转换尺寸调整手柄的位置。
@@ -49,12 +61,22 @@ export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: num
     case 'brush': {
       const brushPath = path as BrushPathData;
       const newPoints = brushPath.points.map(p => rotatePoint(p, center, angle));
-      return { ...path, points: newPoints };
+      const rotatedGradient = rotateFillGradient(brushPath.fillGradient, angle);
+      const nextBrush: BrushPathData = { ...brushPath, points: newPoints };
+      if (rotatedGradient !== undefined) {
+        nextBrush.fillGradient = rotatedGradient;
+      }
+      return nextBrush as T;
     }
     case 'arc': {
       const arcPath = path as ArcData;
       const newPoints = arcPath.points.map(p => rotatePoint(p, center, angle));
-      return { ...path, points: newPoints as [Point, Point, Point] };
+      const rotatedGradient = rotateFillGradient(arcPath.fillGradient, angle);
+      const nextArc: ArcData = { ...arcPath, points: newPoints as [Point, Point, Point] };
+      if (rotatedGradient !== undefined) {
+        nextArc.fillGradient = rotatedGradient;
+      }
+      return nextArc as T;
     }
     case 'pen':
     case 'line': {
@@ -64,7 +86,12 @@ export function rotatePath<T extends AnyPath>(path: T, center: Point, angle: num
         handleIn: rotatePoint(anchor.handleIn, center, angle),
         handleOut: rotatePoint(anchor.handleOut, center, angle),
       }));
-      return { ...path, anchors: newAnchors };
+      const rotatedGradient = rotateFillGradient(vectorPath.fillGradient, angle);
+      const nextVector: VectorPathData = { ...vectorPath, anchors: newAnchors };
+      if (rotatedGradient !== undefined) {
+        nextVector.fillGradient = rotatedGradient;
+      }
+      return nextVector as T;
     }
     case 'frame':
     case 'rectangle':
