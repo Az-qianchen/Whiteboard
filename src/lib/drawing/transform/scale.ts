@@ -39,7 +39,7 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
       const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
       const newScaleX = (path.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
       const newScaleY = (path.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
-      return {
+      const next = {
         ...path,
         x: newX,
         y: newY,
@@ -47,7 +47,13 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
         height: Math.abs(scaledHeight),
         scaleX: newScaleX,
         scaleY: newScaleY,
-      };
+      } as typeof path;
+
+      if (next.tool === 'rectangle' || next.tool === 'image') {
+        next.warp = undefined;
+      }
+
+      return next;
     }
     case 'group':
       return {

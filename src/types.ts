@@ -15,6 +15,15 @@ export interface Anchor {
   handleOut: Point;   // 控制离开此锚点的曲线的控制点
 }
 
+export interface QuadCorners {
+  topLeft: Point;
+  topRight: Point;
+  bottomRight: Point;
+  bottomLeft: Point;
+}
+
+export type QuadWarpOffsets = QuadCorners;
+
 // BBox moved here from geometry.ts to avoid circular dependencies
 export interface BBox {
   x: number;
@@ -192,6 +201,7 @@ export interface RectangleData extends ShapeBase {
   borderRadius?: number;
   skewX?: number;
   skewY?: number;
+  warp?: QuadWarpOffsets;
 }
 
 export interface FrameData extends ShapeBase {
@@ -251,6 +261,7 @@ export interface ImageData extends ShapeBase {
   borderRadius?: number;
   skewX?: number;
   skewY?: number;
+  warp?: QuadWarpOffsets;
 }
 
 export interface ArcData extends ShapeBase {
@@ -353,6 +364,14 @@ type SkewDragState = {
   initialPointerPos: Point;
 };
 
+type WarpDragState = {
+  type: 'warp';
+  pathId: string;
+  handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  originalPath: RectangleData | ImageData;
+  initialPointerPos: Point;
+};
+
 // A drag state for rotating multiple shapes
 type RotateDragState = {
     type: 'rotate';
@@ -394,7 +413,7 @@ type GradientDragState = {
 }
 
 // Union of all possible drag states
-export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | GradientDragState | null;
+export type DragState = VectorDragState | MoveDragState | ResizeDragState | ScaleDragState | SkewDragState | WarpDragState | RotateDragState | BorderRadiusDragState | ArcDragState | CropDragState | GradientDragState | null;
 
 export interface SelectionPathState {
   paths: AnyPath[];
