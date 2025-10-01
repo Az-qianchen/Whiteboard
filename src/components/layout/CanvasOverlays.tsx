@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '../ConfirmationDialog';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { AboutButton } from './AboutButton';
 import { CropToolbar } from '../CropToolbar';
+import { TextEditor } from '../whiteboard/TextEditor';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
@@ -90,6 +91,11 @@ export const CanvasOverlays: React.FC = () => {
         croppingState,
         cropTool,
         setCropTool,
+        textEditorState,
+        updateActiveText,
+        commitTextEditing,
+        cancelTextEditing,
+        viewTransform: canvasViewTransform,
         cropMagicWandOptions,
         setCropMagicWandOptions,
         cropSelectionMode,
@@ -260,6 +266,27 @@ export const CanvasOverlays: React.FC = () => {
                     {ICONS.REDO}
                 </PanelButton>
             </div>
+
+            {textEditorState && (
+                <TextEditor
+                    editor={{
+                        pathId: textEditorState.pathId,
+                        x: textEditorState.x,
+                        y: textEditorState.y,
+                        width: textEditorState.width,
+                        height: textEditorState.height,
+                        text: textEditorState.text,
+                        fontSize: textEditorState.fontSize,
+                        fontFamily: textEditorState.fontFamily,
+                        lineHeight: textEditorState.lineHeight,
+                        textAlign: textEditorState.textAlign,
+                    }}
+                    viewTransform={canvasViewTransform}
+                    onChange={updateActiveText}
+                    onCommit={commitTextEditing}
+                    onCancel={cancelTextEditing}
+                />
+            )}
 
             <AboutButton />
 

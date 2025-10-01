@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, TextData, GradientFill } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -107,6 +107,39 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
 
         if (data.tool === 'image') {
             node = renderImage(data as ImageData);
+        } else if (data.tool === 'text') {
+            const textData = data as TextData;
+            const textNode = document.createElementNS(SVG_NS, 'text');
+            const anchorX = textData.textAlign === 'center'
+                ? textData.x + textData.width / 2
+                : textData.textAlign === 'right'
+                    ? textData.x + textData.width
+                    : textData.x;
+            const textAnchor = textData.textAlign === 'center'
+                ? 'middle'
+                : textData.textAlign === 'right'
+                    ? 'end'
+                    : 'start';
+
+            textNode.setAttribute('x', anchorX.toString());
+            textNode.setAttribute('y', textData.y.toString());
+            textNode.setAttribute('fill', textData.color || '#000');
+            textNode.setAttribute('font-size', `${textData.fontSize}`);
+            textNode.setAttribute('font-family', textData.fontFamily);
+            textNode.setAttribute('text-anchor', textAnchor);
+            textNode.setAttribute('dominant-baseline', 'hanging');
+            textNode.setAttribute('xml:space', 'preserve');
+
+            const lines = textData.text.split(/\r?\n/);
+            lines.forEach((line, index) => {
+                const tspan = document.createElementNS(SVG_NS, 'tspan');
+                tspan.setAttribute('x', anchorX.toString());
+                tspan.setAttribute('dy', index === 0 ? '0' : `${textData.lineHeight}`);
+                tspan.textContent = line.length === 0 ? ' ' : line;
+                textNode.appendChild(tspan);
+            });
+
+            node = textNode;
         } else if (data.tool === 'group') {
             const groupData = data as GroupData;
             const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -266,8 +299,8 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
         finalElement.setAttribute('opacity', String(data.opacity));
     }
     
-    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame')) {
-        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData);
+    if ((data.tool === 'rectangle' || data.tool === 'ellipse' || data.tool === 'image' || data.tool === 'polygon' || data.tool === 'frame' || data.tool === 'text')) {
+        const matrix = getShapeTransformMatrix(data as RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData);
         if (!isIdentityMatrix(matrix)) {
             finalElement.setAttribute('transform', matrixToString(matrix));
         }
