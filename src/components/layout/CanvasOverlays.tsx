@@ -321,10 +321,14 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view
 
     useEffect(() => {
         const element = textareaRef.current;
-        if (element) {
+        if (!element) {
+            return;
+        }
+        const rafId = requestAnimationFrame(() => {
             element.focus();
             element.select();
-        }
+        });
+        return () => cancelAnimationFrame(rafId);
     }, [path.id]);
 
     const scale = Number.isFinite(view?.scale) ? view.scale : 1;
