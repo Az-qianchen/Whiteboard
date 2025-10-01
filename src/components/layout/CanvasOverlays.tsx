@@ -19,6 +19,13 @@ import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 import { layoutText } from '@/lib/text';
+import {
+    createScaleMatrix,
+    createTranslationMatrix,
+    getShapeTransformMatrix,
+    multiplyMatrices,
+    type TransformMatrix,
+} from '@/lib/drawing/transform/matrix';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -351,17 +358,31 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, isNe
         [normalizedDraft, path.fontSize, path.fontFamily, baseLineHeight, path.fontWeight, widthConstraint],
     );
 
-    const widthPx = layout.width * scale;
-    const heightPx = layout.height * scale;
+    const combinedMatrix = useMemo<TransformMatrix>(() => {
+        const viewScaleMatrix = createScaleMatrix(scale, scale);
+        const viewTranslateMatrix = createTranslationMatrix(translateX, translateY);
+        const viewMatrix = multiplyMatrices(viewTranslateMatrix, viewScaleMatrix);
+
+        const shapeMatrix = getShapeTransformMatrix(path);
+        const baseTranslation = createTranslationMatrix(path.x, path.y);
+        const worldMatrix = multiplyMatrices(shapeMatrix, baseTranslation);
+
+        return multiplyMatrices(viewMatrix, worldMatrix);
+    }, [scale, translateX, translateY, path]);
+
+    const cssMatrix = useMemo(() => {
+        const { a, b, c, d, e, f } = combinedMatrix;
+        return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
+    }, [combinedMatrix]);
 
     const style: React.CSSProperties = {
         position: 'absolute',
-        left: translateX + path.x * scale,
-        top: translateY + path.y * scale,
-        width: widthPx,
-        height: heightPx,
-        fontSize: `${path.fontSize * scale}px`,
-        lineHeight: `${layout.lineHeight * scale}px`,
+        left: 0,
+        top: 0,
+        width: layout.width,
+        height: layout.height,
+        fontSize: `${path.fontSize}px`,
+        lineHeight: `${layout.lineHeight}px`,
         fontFamily: path.fontFamily,
         fontWeight: path.fontWeight ?? 400,
         color: path.color,
@@ -377,6 +398,8 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, isNe
         textAlign: path.textAlign,
         colorScheme: 'light',
         caretColor: path.color,
+        transformOrigin: '0 0',
+        transform: cssMatrix,
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
