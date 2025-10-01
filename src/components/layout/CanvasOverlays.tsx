@@ -85,6 +85,7 @@ export const CanvasOverlays: React.FC = () => {
         handleDistribute,
         handleBooleanOperation,
         handleTraceImage,
+        handleAdjustImageHsv,
         confirmationDialog,
         hideConfirmation,
         croppingState,
@@ -124,6 +125,11 @@ export const CanvasOverlays: React.FC = () => {
         const path = paths.find((p: AnyPath) => p.id === selectedPathIds[0]);
         return path?.tool === 'image';
     }, [paths, selectedPathIds]);
+
+    const isImageEditable = useMemo(
+        () => selectedPathIds.length === 1 && paths.some((p: AnyPath) => p.id === selectedPathIds[0] && p.tool === 'image'),
+        [paths, selectedPathIds]
+    );
 
     /**
      * 构建上下文菜单的操作列表。
@@ -188,6 +194,8 @@ export const CanvasOverlays: React.FC = () => {
                         onMask={handleMask}
                         isTraceable={isTraceable}
                         onTraceImage={handleTraceImage}
+                        isImageEditable={isImageEditable}
+                        imageHsvPreview={handleAdjustImageHsv}
                     />
                 </div>
             )}
