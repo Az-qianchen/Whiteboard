@@ -110,8 +110,8 @@ export function renderImage(data: ImageData): SVGElement {
 
             const clipId1 = `warp-${data.id}-t1`;
             const clipId2 = `warp-${data.id}-t2`;
-            defs.appendChild(createClipPath(clipId1, dstTri1));
-            defs.appendChild(createClipPath(clipId2, dstTri2));
+            defs.appendChild(createClipPath(clipId1, srcTri1));
+            defs.appendChild(createClipPath(clipId2, srcTri2));
             group.appendChild(defs);
 
             const createWarpedImage = (clipId: string, transform: { a: number; b: number; c: number; d: number; e: number; f: number }) => {
