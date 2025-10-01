@@ -91,7 +91,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const {
     tool,
     sides, setSides,
-    borderRadius, setBorderRadius,
     opacity, setOpacity,
     strokeWidth, setStrokeWidth,
     color, setColor,
@@ -107,7 +106,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const { t } = useTranslation();
   const opacityLabel = t('opacity');
   const sidesLabel = t('sideToolbar.sides');
-  const borderRadiusLabel = t('sideToolbar.borderRadius');
   const strokeWidthLabel = t('sideToolbar.strokeWidth');
   const strokeColorLabel = t('sideToolbar.strokeColor');
   const fillColorLabel = t('sideToolbar.fillColor');
@@ -164,19 +162,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
               max={50}
               step={1}
               unit=""
-              beginCoalescing={beginCoalescing}
-              endCoalescing={endCoalescing}
-            />
-          )}
-          {borderRadius !== null && (
-            <NumericInput
-              label={borderRadiusLabel}
-              value={borderRadius}
-              setValue={setBorderRadius}
-              min={0}
-              max={500}
-              step={1}
-              unit="px"
               beginCoalescing={beginCoalescing}
               endCoalescing={endCoalescing}
             />
