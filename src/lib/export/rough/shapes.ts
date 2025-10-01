@@ -72,7 +72,21 @@ export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData
             bowing: 0
         };
         const d = getRoundedRectPathD(x, y, width, height, 0);
-        return rc.path(d, frameOptions);
+        const frameNode = rc.path(d, frameOptions);
+
+        const applyNonScalingStroke = (element: SVGElement) => {
+            if (element.tagName === 'path') {
+                element.setAttribute('vector-effect', 'non-scaling-stroke');
+            }
+            Array.from(element.children).forEach((child) => {
+                if (child instanceof SVGElement) {
+                    applyNonScalingStroke(child);
+                }
+            });
+        };
+
+        applyNonScalingStroke(frameNode);
+        return frameNode;
     } else if (data.tool === 'polygon') {
         const { x, y, width, height, sides, borderRadius } = data as PolygonData;
         const d = getPolygonPathD(x, y, width, height, sides, borderRadius);
