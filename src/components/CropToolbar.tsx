@@ -259,11 +259,11 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-wrap items-start gap-4 bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-3 text-[var(--text-primary)]"
+      className="absolute left-1/2 -translate-x-1/2 z-30 inline-flex max-w-[calc(100vw-2rem)] flex-col items-stretch gap-3 rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-panel-bg)] p-3 text-[var(--text-primary)] shadow-xl backdrop-blur-lg"
       style={{ bottom: timelineBottomOffset }}
     >
-      <div className="flex w-full flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:ml-4">
           <div className={PANEL_CLASSES.segmentGroup}>
             <PanelButton
               type="button"
@@ -311,20 +311,8 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
               <span>{hsvTitle}</span>
             </PanelButton>
           </div>
-          {cropTool === 'crop' && (
-            <PanelButton
-              type="button"
-              title={t('trimTransparent')}
-              onClick={trimTransparentEdges}
-              variant="unstyled"
-              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-            >
-              {ICONS.CROP_TRIM}
-              <span>{t('trimTransparent')}</span>
-            </PanelButton>
-          )}
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <PanelButton
             type="button"
             title={t('cancel')}
@@ -347,242 +335,257 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
           </PanelButton>
         </div>
       </div>
-      
+
+      {cropTool === 'crop' && (
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <PanelButton
+            type="button"
+            title={t('trimTransparent')}
+            onClick={trimTransparentEdges}
+            variant="unstyled"
+            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+          >
+            {ICONS.CROP_TRIM}
+            <span>{t('trimTransparent')}</span>
+          </PanelButton>
+        </div>
+      )}
+
       {cropTool === 'magic-wand' && (
-        <div className="flex w-full flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className={PANEL_CLASSES.segmentGroup}>
-              <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionMode === 'magic-wand'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionMode('magic-wand')}
-              aria-pressed={cropSelectionMode === 'magic-wand'}
-              title={t('cropMagicWand')}
-            >
-              {ICONS.TRACE_IMAGE}
-              <span>{t('cropMagicWand')}</span>
-            </PanelButton>
-            <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionMode === 'brush'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionMode('brush')}
-              aria-pressed={cropSelectionMode === 'brush'}
-              title={t('cropMagicWandBrush')}
-            >
-              {ICONS.BRUSH}
-              <span>{t('cropMagicWandBrush')}</span>
-            </PanelButton>
-            <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionMode === 'freehand'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionMode('freehand')}
-              aria-pressed={cropSelectionMode === 'freehand'}
-              title={t('cropMagicWandFreehand')}
-            >
-              {ICONS.LASSO}
-              <span>{t('cropMagicWandFreehand')}</span>
-            </PanelButton>
-            <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionMode === 'polygon'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionMode('polygon')}
-              aria-pressed={cropSelectionMode === 'polygon'}
-              title={t('cropMagicWandPolygon')}
-            >
-              {ICONS.POLYGON}
-              <span>{t('cropMagicWandPolygon')}</span>
-            </PanelButton>
-          </div>
-
-          <div className={PANEL_CLASSES.segmentGroup}>
-            <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionOperation === 'add'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionOperation('add')}
-              aria-pressed={cropSelectionOperation === 'add'}
-              title={t('cropSelectionAdd')}
-            >
-              <span className="font-semibold">＋</span>
-              <span>{t('cropSelectionAdd')}</span>
-            </PanelButton>
-            <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionOperation === 'replace'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionOperation('replace')}
-              aria-pressed={cropSelectionOperation === 'replace'}
-              title={t('cropSelectionReset')}
-            >
-              <span className="font-semibold">⟳</span>
-              <span>{t('cropSelectionReset')}</span>
-            </PanelButton>
-            <PanelButton
-              type="button"
-              variant="unstyled"
-              className={`${segmentedButtonBase} ${
-                cropSelectionOperation === 'subtract'
-                  ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-              }`}
-              onClick={() => setCropSelectionOperation('subtract')}
-              aria-pressed={cropSelectionOperation === 'subtract'}
-              title={t('cropSelectionSubtract')}
-            >
-              <span className="font-semibold">－</span>
-              <span>{t('cropSelectionSubtract')}</span>
-            </PanelButton>
-          </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {cropSelectionMode === 'brush' && (
-              <label
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
-                htmlFor="magic-wand-brush-size"
-              >
-                {t('cropMagicWandBrushSize')}
-                <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
-                  <input
-                    id="magic-wand-brush-size"
-                    type="number"
-                    min={brushSizeMin}
-                    max={brushSizeMax}
-                    value={cropBrushSize}
-                    onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
-                    inputMode="numeric"
-                    aria-label={t('cropMagicWandBrushSize')}
-                    className={`${PANEL_CLASSES.input} hide-spinners`}
-                  />
-                  <span className={PANEL_CLASSES.inputSuffix}>px</span>
-                </div>
-              </label>
-            )}
-
-            <label
-              className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
-              htmlFor="magic-wand-feather-radius"
-            >
-              {t('featherRadius')}
-              <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
-                <input
-                  id="magic-wand-feather-radius"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={cropMagicWandOptions.featherRadius}
-                  onChange={handleFeatherRadiusChange}
-                  inputMode="numeric"
-                  className={`${PANEL_CLASSES.input} hide-spinners text-right`}
-                />
+        <>
+          <div className="flex w-full flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className={PANEL_CLASSES.segmentGroup}>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionMode === 'magic-wand'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionMode('magic-wand')}
+                  aria-pressed={cropSelectionMode === 'magic-wand'}
+                  title={t('cropMagicWand')}
+                >
+                  {ICONS.TRACE_IMAGE}
+                  <span>{t('cropMagicWand')}</span>
+                </PanelButton>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionMode === 'brush'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionMode('brush')}
+                  aria-pressed={cropSelectionMode === 'brush'}
+                  title={t('cropMagicWandBrush')}
+                >
+                  {ICONS.BRUSH}
+                  <span>{t('cropMagicWandBrush')}</span>
+                </PanelButton>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionMode === 'freehand'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionMode('freehand')}
+                  aria-pressed={cropSelectionMode === 'freehand'}
+                  title={t('cropMagicWandFreehand')}
+                >
+                  {ICONS.LASSO}
+                  <span>{t('cropMagicWandFreehand')}</span>
+                </PanelButton>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionMode === 'polygon'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionMode('polygon')}
+                  aria-pressed={cropSelectionMode === 'polygon'}
+                  title={t('cropMagicWandPolygon')}
+                >
+                  {ICONS.POLYGON}
+                  <span>{t('cropMagicWandPolygon')}</span>
+                </PanelButton>
               </div>
-            </label>
 
-            {cropSelectionMode === 'magic-wand' && (
-              <>
+              <div className={PANEL_CLASSES.segmentGroup}>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionOperation === 'add'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionOperation('add')}
+                  aria-pressed={cropSelectionOperation === 'add'}
+                  title={t('cropSelectionAdd')}
+                >
+                  <span className="font-semibold">＋</span>
+                  <span>{t('cropSelectionAdd')}</span>
+                </PanelButton>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionOperation === 'replace'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionOperation('replace')}
+                  aria-pressed={cropSelectionOperation === 'replace'}
+                  title={t('cropSelectionReset')}
+                >
+                  <span className="font-semibold">⟳</span>
+                  <span>{t('cropSelectionReset')}</span>
+                </PanelButton>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionOperation === 'subtract'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionOperation('subtract')}
+                  aria-pressed={cropSelectionOperation === 'subtract'}
+                  title={t('cropSelectionSubtract')}
+                >
+                  <span className="font-semibold">－</span>
+                  <span>{t('cropSelectionSubtract')}</span>
+                </PanelButton>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
                 <label
                   className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
-                  htmlFor="magic-wand-threshold"
+                  htmlFor="magic-wand-feather-radius"
                 >
-                  {t('threshold')}
+                  {t('featherRadius')}
                   <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
                     <input
-                      id="magic-wand-threshold"
+                      id="magic-wand-feather-radius"
                       type="number"
-                      min={1}
-                      max={120}
+                      min={0}
+                      max={100}
                       step={1}
-                      value={cropMagicWandOptions.threshold}
-                      onChange={handleThresholdChange}
+                      value={cropMagicWandOptions.featherRadius}
+                      onChange={handleFeatherRadiusChange}
                       inputMode="numeric"
                       className={`${PANEL_CLASSES.input} hide-spinners text-right`}
                     />
                   </div>
                 </label>
 
-                <PanelButton
-                  type="button"
-                  variant="unstyled"
-                  onClick={handleContiguousToggle}
-                  className={`${segmentedButtonBase} ${
-                    cropMagicWandOptions.contiguous
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-                  }`}
-                  aria-pressed={cropMagicWandOptions.contiguous}
-                  title={t('contiguous')}
-                >
-                  <span>{t('contiguous')}</span>
-                </PanelButton>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+                {cropSelectionMode === 'brush' && (
+                  <label
+                    className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+                    htmlFor="magic-wand-brush-size"
+                  >
+                    {t('cropMagicWandBrushSize')}
+                    <div className={`${PANEL_CLASSES.inputWrapper} w-20`}>
+                      <input
+                        id="magic-wand-brush-size"
+                        type="number"
+                        min={brushSizeMin}
+                        max={brushSizeMax}
+                        value={cropBrushSize}
+                        onChange={(event) => handleBrushSizeChange(Number(event.target.value))}
+                        inputMode="numeric"
+                        aria-label={t('cropMagicWandBrushSize')}
+                        className={`${PANEL_CLASSES.input} hide-spinners`}
+                      />
+                      <span className={PANEL_CLASSES.inputSuffix}>px</span>
+                    </div>
+                  </label>
+                )}
 
-      {cropTool === 'magic-wand' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <PanelButton
-            type="button"
-            variant="unstyled"
-            onClick={applyMagicWandSelection}
-            disabled={!hasSelection}
-            className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-          >
-            {ICONS.CHECK}
-            <span>{t('subtractSelection')}</span>
-          </PanelButton>
-      <PanelButton
-        type="button"
-        variant="unstyled"
-        onClick={cutMagicWandSelection}
-        disabled={!hasSelection}
-        className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-      >
-        {ICONS.CUT}
-        <span>{t('cutSelection')}</span>
-      </PanelButton>
-      <PanelButton
-        type="button"
-        variant="unstyled"
-        onClick={invertMagicWandSelection}
-        className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
-        title={t('cropSelectionInvert')}
-      >
-        <span className="font-semibold">⇆</span>
-        <span>{t('cropSelectionInvert')}</span>
-      </PanelButton>
-    </div>
-  )}
+                {cropSelectionMode === 'magic-wand' && (
+                  <>
+                    <label
+                      className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+                      htmlFor="magic-wand-threshold"
+                    >
+                      {t('threshold')}
+                      <div className={`${PANEL_CLASSES.inputWrapper} w-16`}>
+                        <input
+                          id="magic-wand-threshold"
+                          type="number"
+                          min={1}
+                          max={120}
+                          step={1}
+                          value={cropMagicWandOptions.threshold}
+                          onChange={handleThresholdChange}
+                          inputMode="numeric"
+                          className={`${PANEL_CLASSES.input} hide-spinners text-right`}
+                        />
+                      </div>
+                    </label>
+
+                    <PanelButton
+                      type="button"
+                      variant="unstyled"
+                      onClick={handleContiguousToggle}
+                      className={`${segmentedButtonBase} ${
+                        cropMagicWandOptions.contiguous
+                          ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                      }`}
+                      aria-pressed={cropMagicWandOptions.contiguous}
+                      title={t('contiguous')}
+                    >
+                      <span>{t('contiguous')}</span>
+                    </PanelButton>
+                  </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={applyMagicWandSelection}
+              disabled={!hasSelection}
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            >
+              {ICONS.CHECK}
+              <span>{t('subtractSelection')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={cutMagicWandSelection}
+              disabled={!hasSelection}
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+            >
+              {ICONS.CUT}
+              <span>{t('cutSelection')}</span>
+            </PanelButton>
+            <PanelButton
+              type="button"
+              variant="unstyled"
+              onClick={invertMagicWandSelection}
+              className={`${textButtonBase} bg-[var(--accent-bg)] text-[var(--accent-primary)] hover:opacity-90`}
+              title={t('cropSelectionInvert')}
+            >
+              <span className="font-semibold">⇆</span>
+              <span>{t('cropSelectionInvert')}</span>
+            </PanelButton>
+          </div>
+        </>
+      )}
 
       {isAdjustTool && (
         <div className="w-full rounded-xl border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] p-3 space-y-3">
