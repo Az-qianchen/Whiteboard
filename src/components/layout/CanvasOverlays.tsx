@@ -131,36 +131,36 @@ export const CanvasOverlays: React.FC = () => {
      */
     const contextMenuActions = useMemo(() => {
         const actions = [
-            { label: '剪切', handler: handleCut, disabled: selectedPathIds.length === 0, shortcut: modKey('X') },
-            { label: '复制', handler: handleCopy, disabled: selectedPathIds.length === 0, shortcut: modKey('C') },
-            { label: '粘贴', handler: () => handlePaste({ pasteAt: { x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 } }), shortcut: modKey('V') },
+            { label: t('contextMenu.cut'), handler: handleCut, disabled: selectedPathIds.length === 0, shortcut: modKey('X') },
+            { label: t('contextMenu.copy'), handler: handleCopy, disabled: selectedPathIds.length === 0, shortcut: modKey('C') },
+            { label: t('contextMenu.paste'), handler: () => handlePaste({ pasteAt: { x: contextMenu?.worldX ?? 0, y: contextMenu?.worldY ?? 0 } }), shortcut: modKey('V') },
             { label: '---' },
-            { label: '复制样式', handler: handleCopyStyle, disabled: selectedPathIds.length !== 1 },
-            { label: '粘贴样式', handler: handlePasteStyle, disabled: !styleClipboard || selectedPathIds.length === 0 },
+            { label: t('contextMenu.copyStyle'), handler: handleCopyStyle, disabled: selectedPathIds.length !== 1 },
+            { label: t('contextMenu.pasteStyle'), handler: handlePasteStyle, disabled: !styleClipboard || selectedPathIds.length === 0 },
             { label: '---' },
-            { label: '水平翻转', handler: () => handleFlip('horizontal'), disabled: selectedPathIds.length === 0 },
-            { label: '垂直翻转', handler: () => handleFlip('vertical'), disabled: selectedPathIds.length === 0 },
+            { label: t('contextMenu.flipHorizontal'), handler: () => handleFlip('horizontal'), disabled: selectedPathIds.length === 0 },
+            { label: t('contextMenu.flipVertical'), handler: () => handleFlip('vertical'), disabled: selectedPathIds.length === 0 },
             { label: '---' },
-            { label: '编组', handler: handleGroup, disabled: !canGroup, shortcut: modKey('G') },
-            { label: '取消编组', handler: handleUngroup, disabled: !canUngroup, shortcut: modShiftKey('G') },
+            { label: t('contextMenu.group'), handler: handleGroup, disabled: !canGroup, shortcut: modKey('G') },
+            { label: t('contextMenu.ungroup'), handler: handleUngroup, disabled: !canUngroup, shortcut: modShiftKey('G') },
             { label: '---' },
-            { label: '上移一层', handler: handleBringForward, disabled: selectedPathIds.length === 0, shortcut: ']' },
-            { label: '下移一层', handler: handleSendBackward, disabled: selectedPathIds.length === 0, shortcut: '[' },
-            { label: '置于顶层', handler: handleBringToFront, disabled: selectedPathIds.length === 0, shortcut: '⇧]' },
-            { label: '置于底层', handler: handleSendToBack, disabled: selectedPathIds.length === 0, shortcut: '⇧[' },
+            { label: t('contextMenu.bringForward'), handler: handleBringForward, disabled: selectedPathIds.length === 0, shortcut: ']' },
+            { label: t('contextMenu.sendBackward'), handler: handleSendBackward, disabled: selectedPathIds.length === 0, shortcut: '[' },
+            { label: t('contextMenu.bringToFront'), handler: handleBringToFront, disabled: selectedPathIds.length === 0, shortcut: '⇧]' },
+            { label: t('contextMenu.sendToBack'), handler: handleSendToBack, disabled: selectedPathIds.length === 0, shortcut: '⇧[' },
         ];
         if (tool === 'selection' && selectionMode === 'move' && selectedPathIds.length > 0) {
             actions.splice(3, 0,
                 { label: '---' },
-                { label: '复制为 SVG', handler: handleCopyAsSvg, disabled: selectedPathIds.length === 0 },
-                { label: '复制为 PNG', handler: handleCopyAsPng, disabled: selectedPathIds.length === 0 },
+                { label: t('contextMenu.copyAsSvg'), handler: handleCopyAsSvg, disabled: selectedPathIds.length === 0 },
+                { label: t('contextMenu.copyAsPng'), handler: handleCopyAsPng, disabled: selectedPathIds.length === 0 },
             );
         }
         if (canConvertToPath) {
-            actions.splice(15, 0, { label: '转换为路径', handler: handleConvertToPath, disabled: !canConvertToPath });
+            actions.splice(15, 0, { label: t('contextMenu.convertToPath'), handler: handleConvertToPath, disabled: !canConvertToPath });
         }
         return actions;
-    }, [selectedPathIds.length, canGroup, canUngroup, canConvertToPath, styleClipboard, tool, selectionMode, contextMenu, handleCut, handleCopy, handlePaste, handleCopyStyle, handlePasteStyle, handleFlip, handleGroup, handleUngroup, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleCopyAsSvg, handleCopyAsPng, handleConvertToPath]);
+    }, [selectedPathIds.length, canGroup, canUngroup, canConvertToPath, styleClipboard, tool, selectionMode, contextMenu, handleCut, handleCopy, handlePaste, handleCopyStyle, handlePasteStyle, handleFlip, handleGroup, handleUngroup, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleCopyAsSvg, handleCopyAsPng, handleConvertToPath, t]);
     
 
     const timelineBottomOffset = useMemo(

@@ -10,6 +10,7 @@ import { pathsToSvgString } from '../lib/export';
 import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
 import type { Frame } from '../types';
+import { useTranslation } from 'react-i18next';
 
 const timelineButtonBaseClasses = 'flex items-center justify-center h-8 w-8 rounded-md transition-colors';
 const timelineButtonInactiveClasses = 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]';
@@ -80,6 +81,8 @@ export const TimelinePanel: React.FC = () => {
         onionSkinNextFrames, setOnionSkinNextFrames,
         onionSkinOpacity, setOnionSkinOpacity,
     } = useAppContext();
+
+    const { t } = useTranslation();
 
     const panelRef = useRef<HTMLDivElement | null>(null);
     const lastKnownHeightRef = useRef(0);
@@ -242,7 +245,7 @@ export const TimelinePanel: React.FC = () => {
                       <div className="flex items-center gap-1.5">
                           <PanelButton
                               onClick={handleRewind}
-                              title="回到开头"
+                              title={t('timeline.rewind')}
                               variant="unstyled"
                               className={getTimelineButtonClasses()}
                           >
@@ -250,7 +253,7 @@ export const TimelinePanel: React.FC = () => {
                           </PanelButton>
                           <PanelButton
                               onClick={handlePlayPause}
-                              title={isPlaying ? '暂停' : '播放'}
+                              title={isPlaying ? t('timeline.pause') : t('timeline.play')}
                               variant="unstyled"
                               className={getTimelineButtonClasses(isPlaying)}
                           >
@@ -258,7 +261,7 @@ export const TimelinePanel: React.FC = () => {
                           </PanelButton>
                       </div>
                     <div className="flex items-center gap-1.5">
-                         <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">FPS</label>
+                         <label htmlFor="fps-input" className="text-sm font-medium text-[var(--text-secondary)]">{t('timeline.fps')}</label>
                          <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
                            <input
                              id="fps-input" type="number" min="1" max="60" step="1"
@@ -270,7 +273,7 @@ export const TimelinePanel: React.FC = () => {
                       <div className="flex items-center gap-1.5">
                           <PanelButton
                               onClick={() => setIsOnionSkinEnabled(p => !p)}
-                              title="洋葱皮"
+                              title={t('timeline.onionSkin')}
                               variant="unstyled"
                               className={getTimelineButtonClasses(isOnionSkinEnabled)}
                           >
@@ -278,7 +281,7 @@ export const TimelinePanel: React.FC = () => {
                           </PanelButton>
                           <div className={`flex items-center gap-2 transition-opacity ${isOnionSkinEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                             <div className="flex items-center gap-1.5">
-                                <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">透明度</label>
+                                <label htmlFor="onion-opacity-input" className="text-sm font-medium text-[var(--text-secondary)]">{t('timeline.opacity')}</label>
                                 <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-16">
                                 <input
                                     id="onion-opacity-input" type="number" min="0" max="100" step="1"
@@ -290,7 +293,7 @@ export const TimelinePanel: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之前</label>
+                                <label htmlFor="prev-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">{t('timeline.before')}</label>
                                 <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
                                 <input
                                     id="prev-frames-input" type="number" min="0" max="10" step="1"
@@ -300,7 +303,7 @@ export const TimelinePanel: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">之后</label>
+                                <label htmlFor="next-frames-input" className="text-sm font-medium text-[var(--text-secondary)]">{t('timeline.after')}</label>
                                 <div className="flex items-center bg-black/20 rounded-md h-[28px] px-1.5 w-14">
                                 <input
                                     id="next-frames-input" type="number" min="0" max="10" step="1"
@@ -316,7 +319,7 @@ export const TimelinePanel: React.FC = () => {
                       <div className="flex h-full flex-col gap-1.5 py-1">
                           <PanelButton
                               onClick={addFrame}
-                              title="添加新帧"
+                              title={t('timeline.addFrame')}
                               variant="unstyled"
                               className={getTimelineButtonClasses()}
                           >
@@ -324,7 +327,7 @@ export const TimelinePanel: React.FC = () => {
                           </PanelButton>
                           <PanelButton
                               onClick={() => copyFrame(currentFrameIndex)}
-                              title="复制当前帧"
+                              title={t('timeline.duplicateFrame')}
                               variant="unstyled"
                               className={`${getTimelineButtonClasses()} mt-auto`}
                           >
@@ -358,7 +361,7 @@ export const TimelinePanel: React.FC = () => {
                                         variant="unstyled"
                                         onClick={() => deleteFrame(index)}
                                         className="absolute -top-1 -right-1 h-5 w-5 p-1 bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="删除帧"
+                                        title={t('timeline.deleteFrame')}
                                       >
                                           {ICONS.TRASH}
                                       </PanelButton>
