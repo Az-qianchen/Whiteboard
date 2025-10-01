@@ -11,6 +11,7 @@ import type {
   PolygonData,
   EllipseData,
   FrameData,
+  TextData,
 } from '@/types';
 import { rotatePoint } from './geom';
 import { samplePath } from './path';
@@ -116,9 +117,10 @@ export function getPathBoundingBox(path: AnyPath, includeStroke: boolean = true)
     }
     case 'frame':
     case 'rectangle':
-    case 'image': {
+    case 'image':
+    case 'text': {
       const { x, y, width, height } = path;
-      const matrix = getShapeTransformMatrix(path as RectangleData | ImageData | FrameData);
+      const matrix = getShapeTransformMatrix(path as RectangleData | ImageData | FrameData | TextData);
       const corners = [
         { x, y },
         { x: x + width, y },

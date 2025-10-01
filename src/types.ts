@@ -54,6 +54,7 @@ export interface StyleClipboardData {
   fontFamily?: string;
   fontSize?: number;
   textAlign?: 'left' | 'center' | 'right';
+  lineHeight?: number;
   blur?: number;
   shadowEnabled?: boolean;
   shadowOffsetX?: number;
@@ -226,6 +227,21 @@ export interface EllipseData extends ShapeBase {
   skewY?: number;
 }
 
+export interface TextData extends ShapeBase {
+  tool: 'text';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  textAlign: 'left' | 'center' | 'right';
+  lineHeight: number;
+  skewX?: number;
+  skewY?: number;
+}
+
 export interface BinaryFileMetadata {
   id: string;
   mimeType: string;
@@ -266,7 +282,7 @@ export interface GroupData extends ShapeBase {
 }
 
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData | TextData;
 
 export interface Frame {
   id: string;
@@ -302,7 +318,7 @@ export type DrawingShape = RectangleData | EllipseData | VectorPathData | Polygo
 // A brush path that is being drawn, represented by a series of points.
 export type BrushPathWithPoints = LivePath;
 
-export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'frame';
+export type Tool = 'pen' | 'brush' | 'selection' | 'rectangle' | 'polygon' | 'ellipse' | 'line' | 'arc' | 'frame' | 'text';
 
 export type SelectionMode = 'move' | 'edit' | 'lasso';
 

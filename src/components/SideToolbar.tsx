@@ -13,6 +13,7 @@ import PanelButton from '@/components/PanelButton';
 
 import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, EffectsPopover, GradientFillPopover } from './side-toolbar';
 import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
+import { PANEL_CLASSES } from './panelStyles';
 
 interface SideToolbarProps {
   tool: Tool;
@@ -83,6 +84,14 @@ interface SideToolbarProps {
   shadowColor: string;
   setShadowColor: (sc: string) => void;
   imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview'>;
+  fontFamily: string;
+  setFontFamily: (family: string) => void;
+  fontSize: number;
+  setFontSize: (size: number) => void;
+  textAlign: 'left' | 'center' | 'right';
+  setTextAlign: (align: 'left' | 'center' | 'right') => void;
+  textLineHeight: number;
+  setLineHeight: (value: number) => void;
 }
 
 /**
@@ -106,6 +115,14 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     onToggleStyleLibrary,
     isStyleLibraryOpen,
     imageHsvPreview,
+    fontFamily,
+    setFontFamily,
+    fontSize,
+    setFontSize,
+    textAlign,
+    setTextAlign,
+    textLineHeight,
+    setLineHeight,
   } = props;
 
   const { t } = useTranslation();
@@ -117,6 +134,15 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
   const fillColorLabel = t('sideToolbar.fillColor');
   const framePropertiesLabel = t('sideToolbar.frameProperties');
   const styleLibraryLabel = t('sideToolbar.styleLibrary');
+  const fontFamilyLabel = t('sideToolbar.fontFamily');
+  const fontSizeLabel = t('sideToolbar.fontSize');
+  const lineHeightLabel = t('sideToolbar.lineHeight');
+  const textAlignLabel = t('sideToolbar.textAlign');
+  const textAlignOptions = [
+    { value: 'left' as const, icon: ICONS.ALIGN_LEFT, label: t('alignLeft') },
+    { value: 'center' as const, icon: ICONS.ALIGN_HORIZONTAL_CENTER, label: t('alignHorizontalCenter') },
+    { value: 'right' as const, icon: ICONS.ALIGN_RIGHT, label: t('alignRight') },
+  ];
 
   const isEndpointControlVisible = useMemo(() => {
     if (firstSelectedPath) {
@@ -140,6 +166,7 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
   const isFrameSelected = firstSelectedPath?.tool === 'frame';
   const isGradientActive = !!fillGradient;
+  const isTextContext = firstSelectedPath?.tool === 'text' || (!firstSelectedPath && tool === 'text');
 
   return (
     <div className="sidebar-container bg-[var(--ui-panel-bg)] backdrop-blur-lg shadow-xl border border-[var(--ui-panel-border)] rounded-xl p-1.5 flex flex-col items-center gap-1.5 text-[var(--text-primary)]">
@@ -196,13 +223,75 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
             beginCoalescing={beginCoalescing}
             endCoalescing={endCoalescing}
           />
+          {isTextContext && (
+            <>
+              <div className="flex items-center gap-1">
+                <div className="flex flex-col items-center w-[3.75rem]" title={fontFamilyLabel}>
+                  <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
+                    <input
+                      type="text"
+                      value={fontFamily}
+                      onChange={(event) => setFontFamily(event.target.value)}
+                      className={PANEL_CLASSES.input}
+                      aria-label={fontFamilyLabel}
+                    />
+                  </div>
+                </div>
+                <NumericInput
+                  label={fontSizeLabel}
+                  value={fontSize}
+                  setValue={setFontSize}
+                  min={1}
+                  max={512}
+                  step={1}
+                  unit="px"
+                  beginCoalescing={beginCoalescing}
+                  endCoalescing={endCoalescing}
+                />
+                <NumericInput
+                  label={lineHeightLabel}
+                  value={textLineHeight}
+                  setValue={setLineHeight}
+                  min={0.5}
+                  max={3}
+                  step={0.05}
+                  unit="%"
+                  valueTransformer={{ toDisplay: (v) => v * 100, fromDisplay: (v) => v / 100 }}
+                  beginCoalescing={beginCoalescing}
+                  endCoalescing={endCoalescing}
+                />
+              </div>
+              <div className="flex flex-col items-center w-full" title={textAlignLabel}>
+                <div className="flex items-center gap-1">
+                  {textAlignOptions.map(option => (
+                    <PanelButton
+                      key={option.value}
+                      variant="unstyled"
+                      type="button"
+                      onClick={() => setTextAlign(option.value)}
+                      className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors ${
+                        textAlign === option.value
+                          ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                      }`}
+                      aria-label={option.label}
+                      title={option.label}
+                      aria-pressed={textAlign === option.value}
+                    >
+                      {option.icon}
+                    </PanelButton>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
 
       {!isFrameSelected && (
         <>
           <ColorControl
-              label={strokeColorLabel}
+            label={strokeColorLabel}
             color={color}
             setColor={setColor}
             beginCoalescing={beginCoalescing}

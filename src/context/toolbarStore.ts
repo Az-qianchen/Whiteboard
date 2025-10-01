@@ -93,6 +93,18 @@ export interface ToolbarState {
 
   drawingShadowColor: string;
   setDrawingShadowColor: (v: string) => void;
+
+  drawingFontFamily: string;
+  setDrawingFontFamily: (v: string) => void;
+
+  drawingFontSize: number;
+  setDrawingFontSize: (v: number) => void;
+
+  drawingTextAlign: 'left' | 'center' | 'right';
+  setDrawingTextAlign: (v: 'left' | 'center' | 'right') => void;
+
+  drawingLineHeight: number;
+  setDrawingLineHeight: (v: number) => void;
 }
 
 export const useToolbarStore = create<ToolbarState>()(
@@ -187,6 +199,18 @@ export const useToolbarStore = create<ToolbarState>()(
 
       drawingShadowColor: 'rgba(0,0,0,0.5)',
       setDrawingShadowColor: (v) => set({ drawingShadowColor: v }),
+
+      drawingFontFamily: 'Excalifont',
+      setDrawingFontFamily: (v) => set({ drawingFontFamily: v }),
+
+      drawingFontSize: 24,
+      setDrawingFontSize: (v) => set({ drawingFontSize: v }),
+
+      drawingTextAlign: 'left',
+      setDrawingTextAlign: (v) => set({ drawingTextAlign: v }),
+
+      drawingLineHeight: 1.35,
+      setDrawingLineHeight: (v) => set({ drawingLineHeight: v }),
     }),
     {
       name: 'whiteboard_toolbar_state',

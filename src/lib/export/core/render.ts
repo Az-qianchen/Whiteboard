@@ -2,7 +2,7 @@
  * 本文件提供用于为 SVG 元素创建效果滤镜的辅助函数。
  */
 import type { RoughSVG } from 'roughjs/bin/svg';
-import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
+import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill, TextData } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
 import { renderImage, renderRoughShape } from '../rough/shapes';
@@ -11,6 +11,7 @@ import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
+import { layoutText, TEXT_PADDING } from '@/lib/text';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -166,9 +167,74 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 });
             }
             node = group;
+        } else if (data.tool === 'text') {
+            const textData = data as TextData;
+            const baseGroup = document.createElementNS(SVG_NS, 'g');
+            const background = document.createElementNS(SVG_NS, 'rect');
+            background.setAttribute('x', textData.x.toString());
+            background.setAttribute('y', textData.y.toString());
+            background.setAttribute('width', textData.width.toString());
+            background.setAttribute('height', textData.height.toString());
+            background.setAttribute('rx', '0');
+            background.setAttribute('ry', '0');
+            background.setAttribute('stroke', 'none');
+
+            let container: SVGElement = baseGroup;
+            if (textData.fillGradient) {
+                container = applyGradientFill(baseGroup, background, textData.fillGradient, textData.id);
+            } else {
+                const fill = (textData.fill ?? '').trim();
+                const isTransparent = !fill || fill.toLowerCase() === 'transparent' || fill.toLowerCase() === 'none';
+                background.setAttribute('fill', isTransparent ? 'transparent' : fill);
+            }
+            container.appendChild(background);
+
+            const contentWidth = Math.max(0, textData.width - TEXT_PADDING * 2);
+            const lines = layoutText(textData.text, contentWidth, textData.fontSize, textData.fontFamily);
+            const textElement = document.createElementNS(SVG_NS, 'text');
+            const anchor = textData.textAlign === 'center' ? 'middle' : textData.textAlign === 'right' ? 'end' : 'start';
+            const anchorX = textData.textAlign === 'center'
+                ? textData.x + textData.width / 2
+                : textData.textAlign === 'right'
+                    ? textData.x + textData.width - TEXT_PADDING
+                    : textData.x + TEXT_PADDING;
+            const baselineStart = textData.y + TEXT_PADDING + textData.fontSize;
+            const lineHeightPx = textData.fontSize * textData.lineHeight;
+
+            textElement.setAttribute('x', anchorX.toString());
+            textElement.setAttribute('y', baselineStart.toString());
+            textElement.setAttribute('font-size', textData.fontSize.toString());
+            textElement.setAttribute('font-family', textData.fontFamily);
+            textElement.setAttribute('fill', textData.color || '#000');
+            textElement.setAttribute('text-anchor', anchor);
+            textElement.setAttribute('dominant-baseline', 'alphabetic');
+            textElement.setAttribute('xml:space', 'preserve');
+            textElement.setAttribute('stroke', 'none');
+
+            const renderedLines = lines.length > 0 ? lines : [''];
+            renderedLines.forEach((line, index) => {
+                const tspan = document.createElementNS(SVG_NS, 'tspan');
+                tspan.setAttribute('x', anchorX.toString());
+                if (index === 0) {
+                    tspan.setAttribute('y', baselineStart.toString());
+                } else {
+                    tspan.setAttribute('dy', lineHeightPx.toString());
+                }
+                tspan.textContent = line.length > 0 ? line : ' ';
+                textElement.appendChild(tspan);
+            });
+
+            container.appendChild(textElement);
+
+            const matrix = getShapeTransformMatrix(textData);
+            if (!isIdentityMatrix(matrix)) {
+                container.setAttribute('transform', matrixToString(matrix));
+            }
+
+            node = container;
         } else {
             const seed = parseInt(data.id, 10);
-            
+
             const options: any = {
               stroke: data.color,
               strokeWidth: data.strokeWidth,

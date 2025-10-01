@@ -58,6 +58,10 @@ export const useToolbarState = (
   const { drawingShadowOffsetY, setDrawingShadowOffsetY } = P.useDrawingShadowOffsetY();
   const { drawingShadowBlur, setDrawingShadowBlur } = P.useDrawingShadowBlur();
   const { drawingShadowColor, setDrawingShadowColor } = P.useDrawingShadowColor();
+  const { drawingFontFamily, setDrawingFontFamily } = P.useDrawingFontFamily();
+  const { drawingFontSize, setDrawingFontSize } = P.useDrawingFontSize();
+  const { drawingTextAlign, setDrawingTextAlign } = P.useDrawingTextAlign();
+  const { drawingLineHeight, setDrawingLineHeight } = P.useDrawingLineHeight();
 
   const pathActions = usePathActions({ paths, selectedPathIds, setPaths, beginCoalescing, endCoalescing });
 
@@ -79,6 +83,12 @@ export const useToolbarState = (
       }
       if (path.tool !== 'polygon') {
           delete (finalProps as any).sides;
+      }
+      if (path.tool !== 'text') {
+          delete (finalProps as any).fontFamily;
+          delete (finalProps as any).fontSize;
+          delete (finalProps as any).textAlign;
+          delete (finalProps as any).lineHeight;
       }
       if (path.tool === 'group') {
           const updatedChildren = path.children.map(child => applyRecursiveUpdate(child, propsToUpdate));
@@ -106,14 +116,14 @@ export const useToolbarState = (
     if (firstSelectedPath) {
         updateSelectedPaths(p => {
             const updates: Partial<AnyPath> = { color: newColor };
-            if (p.strokeWidth === 0) {
+            if (p.strokeWidth === 0 && p.tool !== 'text') {
                 updates.strokeWidth = 1;
             }
             return updates;
         });
     } else {
         setDrawingColor(newColor);
-        if (drawingStrokeWidth === 0) {
+        if (drawingStrokeWidth === 0 && tool !== 'text') {
             setDrawingStrokeWidth(1);
         }
     }
@@ -201,6 +211,40 @@ export const useToolbarState = (
     }
   };
 
+  const setFontFamily = (newFamily: string) => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(() => ({ fontFamily: newFamily }));
+    } else {
+      setDrawingFontFamily(newFamily);
+    }
+  };
+
+  const setFontSize = (newSize: number) => {
+    const clamped = Math.max(1, newSize);
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(() => ({ fontSize: clamped }));
+    } else {
+      setDrawingFontSize(clamped);
+    }
+  };
+
+  const setTextAlignValue = (align: 'left' | 'center' | 'right') => {
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(() => ({ textAlign: align }));
+    } else {
+      setDrawingTextAlign(align);
+    }
+  };
+
+  const setLineHeightValue = (value: number) => {
+    const clamped = Math.max(0.5, value);
+    if (firstSelectedPath && firstSelectedPath.tool === 'text') {
+      updateSelectedPaths(() => ({ lineHeight: clamped }));
+    } else {
+      setDrawingLineHeight(clamped);
+    }
+  };
+
   // --- Display Values ---
   const displayValue = <T,>(selectedProp: keyof AnyPath, drawingValue: T): T => {
     if (!firstSelectedPath) {
@@ -240,6 +284,10 @@ export const useToolbarState = (
   const shadowOffsetY = displayValue('shadowOffsetY', drawingShadowOffsetY);
   const shadowBlur = displayValue('shadowBlur', drawingShadowBlur);
   const shadowColor = displayValue('shadowColor', drawingShadowColor);
+  const fontFamily = displayValue('fontFamily', drawingFontFamily);
+  const fontSize = displayValue('fontSize', drawingFontSize);
+  const textAlign = displayValue('textAlign', drawingTextAlign);
+  const textLineHeight = displayValue('lineHeight', drawingLineHeight);
   
   const firstSelectedRectImageOrPolygon = useMemo(() => {
     if (selectedPathIds.length !== 1) return null;
@@ -286,6 +334,10 @@ export const useToolbarState = (
     setDrawingShadowOffsetY(2);
     setDrawingShadowBlur(4);
     setDrawingShadowColor('rgba(0,0,0,0.5)');
+    setDrawingFontFamily('Excalifont');
+    setDrawingFontSize(24);
+    setDrawingTextAlign('left');
+    setDrawingLineHeight(1.35);
     setTool('brush');
   }, [
     setDrawingColor, setDrawingFill, setDrawingFillGradient, setDrawingFillStyle, setDrawingStrokeWidth, setDrawingOpacity,
@@ -294,7 +346,8 @@ export const useToolbarState = (
     setDrawingRoughness, setDrawingBowing, setDrawingFillWeight, setDrawingHachureAngle,
     setDrawingHachureGap, setDrawingCurveTightness, setDrawingCurveStepCount, setDrawingPreserveVertices,
     setDrawingDisableMultiStroke, setDrawingDisableMultiStrokeFill, setDrawingBlur, setDrawingShadowEnabled, setDrawingShadowOffsetX,
-    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
+    setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setDrawingFontFamily, setDrawingFontSize,
+    setDrawingTextAlign, setDrawingLineHeight, setTool
   ]);
 
   return {
@@ -331,6 +384,10 @@ export const useToolbarState = (
     shadowOffsetY, setShadowOffsetY,
     shadowBlur, setShadowBlur,
     shadowColor, setShadowColor,
+    fontFamily, setFontFamily,
+    fontSize, setFontSize,
+    textAlign, setTextAlign: setTextAlignValue,
+    textLineHeight, setLineHeight: setLineHeightValue,
     ...pathActions,
     firstSelectedPath,
     resetState,

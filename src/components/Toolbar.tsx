@@ -51,6 +51,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { name: 'polygon', title: t('toolPolygon'), icon: ICONS.POLYGON },
     { name: 'rectangle', title: t('toolRectangle'), icon: ICONS.RECTANGLE },
     { name: 'ellipse', title: t('toolEllipse'), icon: ICONS.ELLIPSE },
+    { name: 'text', title: t('toolText'), icon: ICONS.TEXT },
     { name: 'line', title: t('toolLine'), icon: ICONS.LINE },
     { name: 'arc', title: t('toolArc'), icon: ICONS.ARC },
     { name: 'frame', title: t('toolFrame'), icon: ICONS.FRAME },
