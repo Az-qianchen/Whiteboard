@@ -10,6 +10,7 @@ import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
 import { DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_FONT_WEIGHT, DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
 import { measureTextMetrics } from '@/lib/text';
+import { findDeepestHitPath } from '@/lib/hit-testing';
 
 // Props definition
 interface DrawingInteractionProps {
@@ -47,6 +48,7 @@ export const useDrawing = ({
     setCurrentPenPath, currentPenPath,
     setCurrentLinePath, currentLinePath,
     setPaths,
+    paths,
     setSelectedPathIds,
   } = pathState;
 
@@ -240,6 +242,19 @@ export const useDrawing = ({
         break;
       }
       case 'text': {
+        const scale = Number.isFinite(viewTransform.viewTransform?.scale)
+          ? viewTransform.viewTransform.scale
+          : 1;
+        const hitPath = findDeepestHitPath(point, paths, scale);
+        if (hitPath && hitPath.tool === 'text' && !hitPath.isLocked) {
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          setSelectedPathIds([hitPath.id]);
+          beginTextEditing(hitPath.id);
+          return;
+        }
+
         const metrics = measureTextMetrics('', DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_LINE_HEIGHT, DEFAULT_TEXT_FONT_WEIGHT);
         const newText: TextData = {
           id,
