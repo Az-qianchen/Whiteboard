@@ -7,12 +7,10 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Tool, AnyPath, VectorPathData, GradientFill } from '../types';
-import type { ImageHsvPreviewController } from '@/hooks/useImageHsvPreview';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 
 import { NumericInput, ColorControl, FillStyleControl, EndpointPopover, DashControl, StylePropertiesPopover, EffectsPopover, GradientFillPopover } from './side-toolbar';
-import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
 
 interface SideToolbarProps {
   tool: Tool;
@@ -82,7 +80,6 @@ interface SideToolbarProps {
   setShadowBlur: (sb: number) => void;
   shadowColor: string;
   setShadowColor: (sc: string) => void;
-  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview'>;
 }
 
 /**
@@ -105,7 +102,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
     beginCoalescing, endCoalescing,
     onToggleStyleLibrary,
     isStyleLibraryOpen,
-    imageHsvPreview,
   } = props;
 
   const { t } = useTranslation();
@@ -233,16 +229,6 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
 
           {isEndpointControlVisible && (
             <EndpointPopover {...props} />
-          )}
-
-          {firstSelectedPath?.tool === 'image' && (
-            <ImageHsvPopover
-              beginPreview={imageHsvPreview.beginPreview}
-              updatePreview={imageHsvPreview.updatePreview}
-              commitPreview={imageHsvPreview.commitPreview}
-              beginCoalescing={beginCoalescing}
-              endCoalescing={endCoalescing}
-            />
           )}
 
           <EffectsPopover {...props} />

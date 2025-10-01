@@ -52,7 +52,7 @@ interface WhiteboardProps {
   dragState: DragState | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
-  cropTool: 'crop' | 'magic-wand';
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropManualDraft?: (
     | {
@@ -195,7 +195,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           />
           
           {croppingState && currentCropRect && <CropOverlay croppingState={croppingState} currentCropRect={currentCropRect} />}
-          {croppingState && ((cropSelectionContours && cropSelectionContours.length > 0) || (cropManualDraft && cropManualDraft.points.length > 0)) && (
+          {croppingState &&
+            cropTool === 'magic-wand' &&
+            ((cropSelectionContours && cropSelectionContours.length > 0) || (cropManualDraft && cropManualDraft.points.length > 0)) && (
             <MagicWandOverlay
               contours={cropSelectionContours ?? []}
               draft={cropManualDraft ?? null}

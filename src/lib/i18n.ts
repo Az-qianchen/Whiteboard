@@ -213,7 +213,7 @@ const resources = {
           shadowColor: 'Shadow color',
         },
         imageHsv: {
-          title: 'HSV adjustments',
+          title: 'Color adjustments',
           hue: 'Hue',
           saturation: 'Saturation',
           value: 'Value',
@@ -445,7 +445,7 @@ const resources = {
           shadowColor: '阴影颜色',
         },
         imageHsv: {
-          title: 'HSV 调整',
+          title: '色彩调节',
           hue: '色相',
           saturation: '饱和度',
           value: '明度',

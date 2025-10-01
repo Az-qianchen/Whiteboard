@@ -170,7 +170,7 @@ interface HandlePointerDownProps {
   lastClickRef: MutableRefObject<{ time: number; pathId: string | null }>;
   croppingState: { pathId: string; originalPath: ImageData } | null;
   currentCropRect: BBox | null;
-  cropTool: 'crop' | 'magic-wand';
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
   onMagicWandSample: (point: Point) => void;
 }
 
@@ -197,7 +197,15 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
             if (e.button === 0) {
                 onMagicWandSample(point);
             }
-        } else if (currentCropRect && pathId === croppingState.pathId && handle && handle !== 'rotate' && handle !== 'border-radius' && handle !== 'arc') {
+        } else if (
+            cropTool === 'crop' &&
+            currentCropRect &&
+            pathId === croppingState.pathId &&
+            handle &&
+            handle !== 'rotate' &&
+            handle !== 'border-radius' &&
+            handle !== 'arc'
+        ) {
             beginCoalescing();
             setDragState({
                 type: 'crop',

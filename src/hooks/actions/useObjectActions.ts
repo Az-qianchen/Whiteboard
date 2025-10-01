@@ -25,6 +25,7 @@ export const useObjectActions = ({
   pathState,
   toolbarState,
   getPointerPosition,
+  setCroppingState,
 }: AppActionsProps) => {
   const { t } = useTranslation();
 
@@ -382,7 +383,20 @@ export const useObjectActions = ({
       }
       return { ...p, fileId, src: undefined };
     }));
-  }, [pathState]);
+
+    setCroppingState(prev => {
+      if (!prev || prev.pathId !== pathId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        originalPath: {
+          ...prev.originalPath,
+          fileId,
+        },
+      };
+    });
+  }, [pathState, setCroppingState]);
 
   const imageHsvPreview = useImageHsvPreview({
     getActiveImagePath,

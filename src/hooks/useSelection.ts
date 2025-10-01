@@ -48,7 +48,7 @@ interface SelectionInteractionProps {
   currentCropRect: BBox | null;
   setCurrentCropRect: React.Dispatch<React.SetStateAction<BBox | null>>;
   pushCropHistory: (rect: BBox) => void;
-  cropTool: 'crop' | 'magic-wand';
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
   onMagicWandSample: (point: Point) => void;
   cropSelectionMode?: 'magic-wand' | 'freehand' | 'polygon' | 'brush';
   onCropManualPointerDown?: (point: Point, event: React.PointerEvent<SVGSVGElement>) => void;

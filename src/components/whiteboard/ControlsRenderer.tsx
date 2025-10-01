@@ -881,7 +881,7 @@ interface ControlsRendererProps {
   hoveredPoint: Point | null;
   croppingState: { pathId: string; originalPath: ImageData; } | null;
   currentCropRect: BBox | null;
-  cropTool: 'crop' | 'magic-wand';
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
 }
 
 export const ControlsRenderer: React.FC<ControlsRendererProps> = React.memo(({

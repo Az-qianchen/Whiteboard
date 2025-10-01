@@ -224,7 +224,7 @@ interface AppState {
   confirmationDialog: ConfirmationDialogState | null;
   croppingState: { pathId: string; originalPath: PathImageData } | null;
   currentCropRect: BBox | null;
-  cropTool: 'crop' | 'magic-wand';
+  cropTool: 'crop' | 'magic-wand' | 'adjust';
   cropMagicWandOptions: { threshold: number; contiguous: boolean; featherRadius: number };
   cropSelectionContours: Array<{ d: string; inner: boolean }> | null;
   cropPendingCutoutSrc: string | null;
@@ -1547,6 +1547,8 @@ export const useAppStore = () => {
     setMaterialLibrary, pngExportOptions: uiState.pngExportOptions, showConfirmation,
     frames, revision, fps: uiState.fps, setFps, requestFitToContent,
     markDocumentSaved,
+    croppingState: appState.croppingState,
+    setCroppingState,
   });
 
   useEffect(() => {
