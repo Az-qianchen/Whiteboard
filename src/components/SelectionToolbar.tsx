@@ -6,11 +6,13 @@
 import React, { Fragment, useState } from 'react';
 import { Popover, Transition, RadioGroup } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
+import type { ImageHsvPreviewController } from '@/hooks/useImageHsvPreview';
 import { PANEL_CLASSES } from './panelStyles';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider } from './side-toolbar';
 import { TraceImagePopover } from './TraceImagePopover';
+import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
 import type { TraceOptions } from '../types';
 import { useTranslation } from 'react-i18next';
 
@@ -30,6 +32,8 @@ interface SelectionToolbarProps {
   onMask: () => void;
   isTraceable: boolean;
   onTraceImage: (options: TraceOptions) => void;
+  isImageEditable: boolean;
+  imageHsvPreview: ImageHsvPreviewController;
 }
 
 
@@ -47,6 +51,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   onMask,
   isTraceable,
   onTraceImage,
+  isImageEditable,
+  imageHsvPreview,
 }) => {
   const { t } = useTranslation();
   const [simplifyValue, setSimplifyValue] = useState(0);
@@ -141,6 +147,15 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
+
+      {isImageEditable && (
+        <ImageHsvPopover
+          beginPreview={imageHsvPreview.beginPreview}
+          updatePreview={imageHsvPreview.updatePreview}
+          commitPreview={imageHsvPreview.commitPreview}
+          cancelPreview={imageHsvPreview.cancelPreview}
+        />
+      )}
 
       {canAlignOrDistribute && (
           <Popover className="relative">
