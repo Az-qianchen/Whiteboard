@@ -423,21 +423,6 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                   type="button"
                   variant="unstyled"
                   className={`${segmentedButtonBase} ${
-                    cropSelectionOperation === 'add'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
-                  }`}
-                  onClick={() => setCropSelectionOperation('add')}
-                  aria-pressed={cropSelectionOperation === 'add'}
-                  title={t('cropSelectionAdd')}
-                >
-                  <span className="font-semibold">＋</span>
-                  <span>{t('cropSelectionAdd')}</span>
-                </PanelButton>
-                <PanelButton
-                  type="button"
-                  variant="unstyled"
-                  className={`${segmentedButtonBase} ${
                     cropSelectionOperation === 'replace'
                       ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
@@ -448,6 +433,21 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                 >
                   <span className="font-semibold">⟳</span>
                   <span>{t('cropSelectionReset')}</span>
+                </PanelButton>
+                <PanelButton
+                  type="button"
+                  variant="unstyled"
+                  className={`${segmentedButtonBase} ${
+                    cropSelectionOperation === 'add'
+                      ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'
+                  }`}
+                  onClick={() => setCropSelectionOperation('add')}
+                  aria-pressed={cropSelectionOperation === 'add'}
+                  title={t('cropSelectionAdd')}
+                >
+                  <span className="font-semibold">＋</span>
+                  <span>{t('cropSelectionAdd')}</span>
                 </PanelButton>
                 <PanelButton
                   type="button"
