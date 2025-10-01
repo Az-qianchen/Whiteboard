@@ -18,6 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { layoutText } from '@/lib/text';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -144,6 +145,7 @@ export const CanvasOverlays: React.FC = () => {
                 key={textEditing.pathId}
                 path={activeTextPath}
                 draft={textEditing.draft}
+                isNew={textEditing.isNew ?? false}
                 view={viewTransformState.viewTransform}
                 onChange={updateTextEditing}
                 onCommit={commitTextEditing}
@@ -308,15 +310,14 @@ export const CanvasOverlays: React.FC = () => {
 interface TextEditorOverlayProps {
     path: TextData;
     draft: string;
+    isNew: boolean;
     view: { scale: number; translateX: number; translateY: number };
     onChange: (value: string) => void;
     onCommit: () => void;
     onCancel: () => void;
 }
 
-const MIN_TEXT_EDITOR_WIDTH = 160;
-
-const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view, onChange, onCommit, onCancel }) => {
+const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, isNew, view, onChange, onCommit, onCancel }) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
@@ -336,12 +337,22 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view
     const translateY = Number.isFinite(view?.translateY) ? view.translateY : 0;
 
     const normalizedDraft = draft.replace(/\r/g, '');
-    const lineCount = Math.max(normalizedDraft.split('\n').length, 1);
     const baseLineHeight = path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+    const widthConstraint = !isNew && path.width > 0 ? path.width : undefined;
+    const layout = useMemo(
+        () => layoutText(
+            normalizedDraft,
+            path.fontSize,
+            path.fontFamily,
+            baseLineHeight,
+            path.fontWeight,
+            widthConstraint,
+        ),
+        [normalizedDraft, path.fontSize, path.fontFamily, baseLineHeight, path.fontWeight, widthConstraint],
+    );
 
-    const widthPx = Math.max(path.width * scale, path.fontSize * 6 * scale, MIN_TEXT_EDITOR_WIDTH);
-    const heightPx = Math.max(baseLineHeight * lineCount * scale, baseLineHeight * scale);
-    const padding = Math.max(4, 8 * scale);
+    const widthPx = layout.width * scale;
+    const heightPx = layout.height * scale;
 
     const style: React.CSSProperties = {
         position: 'absolute',
@@ -350,22 +361,22 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view
         width: widthPx,
         height: heightPx,
         fontSize: `${path.fontSize * scale}px`,
-        lineHeight: `${baseLineHeight * scale}px`,
+        lineHeight: `${layout.lineHeight * scale}px`,
         fontFamily: path.fontFamily,
         fontWeight: path.fontWeight ?? 400,
         color: path.color,
-        background: 'var(--ui-panel-bg)',
-        border: `1px solid var(--accent-primary)`,
-        borderRadius: '0.75rem',
-        padding: `${padding}px`,
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 0,
+        padding: 0,
+        margin: 0,
         resize: 'none',
         outline: 'none',
         whiteSpace: 'pre-wrap',
-        boxShadow: '0 12px 24px rgba(0,0,0,0.35)',
-        overflowX: 'hidden',
-        overflowY: 'auto',
+        overflow: 'hidden',
         textAlign: path.textAlign,
         colorScheme: 'light',
+        caretColor: path.color,
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -391,7 +402,7 @@ const TextEditorOverlay: React.FC<TextEditorOverlayProps> = ({ path, draft, view
             onKeyDown={handleKeyDown}
             spellCheck={false}
             style={style}
-            className="z-30 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
+            className="z-30 bg-transparent"
         />
     );
 };
