@@ -45,21 +45,21 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
   };
 
   return (
-    <div className="grid grid-cols-[auto,1fr] items-center gap-x-4">
-      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap`} htmlFor={label}>{label}</label>
-      <div className="w-full">
+    <div className="grid grid-cols-[auto,1fr] items-center gap-x-4 min-h-[2rem]">
+      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap flex items-center leading-none`} htmlFor={label}>{label}</label>
+      <div className="w-full flex flex-col justify-center">
         <input
           type="range"
-          id={label} 
-          min={min} 
-          max={max} 
-          step={step} 
-          value={value} 
-          onChange={(e) => setValue(Number(e.target.value))} 
-          onPointerDown={handlePointerDown} 
-          className="w-full themed-slider" 
+          id={label}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => setValue(Number(e.target.value))}
+          onPointerDown={handlePointerDown}
+          className="w-full h-6 themed-slider"
         />
-        {displayValue && <span className="text-xs text-[var(--text-secondary)] block text-center -mt-2">{displayValue}</span>}
+        {displayValue && <span className="text-xs text-[var(--text-secondary)] block text-center mt-1 leading-none">{displayValue}</span>}
       </div>
     </div>
   );
