@@ -18,6 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
+import { blobToDataUrl } from '@/lib/fileConversion';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -56,6 +57,8 @@ export const CanvasOverlays: React.FC = () => {
         handleCut,
         handleCopy,
         handlePaste,
+        beginCoalescing,
+        endCoalescing,
         handleFlip,
         handleCopyAsSvg,
         handleCopyAsPng,
@@ -105,6 +108,10 @@ export const CanvasOverlays: React.FC = () => {
         confirmCrop,
         trimTransparentEdges,
         cancelCrop,
+        cropHsvAdjustment,
+        setCropHsvAdjustment,
+        handleAdjustImageHsv,
+        setCropEditedSrc,
         undo: handleUndo,
         canUndo,
         redo: handleRedo,
@@ -160,7 +167,43 @@ export const CanvasOverlays: React.FC = () => {
         }
         return actions;
     }, [selectedPathIds.length, canGroup, canUngroup, canConvertToPath, styleClipboard, tool, selectionMode, contextMenu, handleCut, handleCopy, handlePaste, handleCopyStyle, handlePasteStyle, handleFlip, handleGroup, handleUngroup, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, handleCopyAsSvg, handleCopyAsPng, handleConvertToPath]);
-    
+
+    const handleConfirmCropClick = useCallback(async () => {
+        const hasAdjustment = cropHsvAdjustment.h !== 0 || cropHsvAdjustment.s !== 0 || cropHsvAdjustment.v !== 0;
+        if (hasAdjustment && typeof handleAdjustImageHsv.getPreviewBlob === 'function') {
+            try {
+                const blob = await handleAdjustImageHsv.getPreviewBlob();
+                if (blob) {
+                    const dataUrl = await blobToDataUrl(blob);
+                    setCropEditedSrc(dataUrl);
+                }
+            } catch (error) {
+                console.error('Failed to capture HSV preview before confirming crop', error);
+            }
+        }
+
+        if (typeof handleAdjustImageHsv.cancelPreview === 'function') {
+            try {
+                await handleAdjustImageHsv.cancelPreview();
+            } catch (error) {
+                console.error('Failed to cancel HSV preview before confirming crop', error);
+            }
+        }
+
+        confirmCrop();
+    }, [cropHsvAdjustment, handleAdjustImageHsv, confirmCrop, setCropEditedSrc]);
+
+    const handleCancelCropClick = useCallback(async () => {
+        if (typeof handleAdjustImageHsv.cancelPreview === 'function') {
+            try {
+                await handleAdjustImageHsv.cancelPreview();
+            } catch (error) {
+                console.error('Failed to cancel HSV preview when cancelling crop', error);
+            }
+        }
+        setCropHsvAdjustment({ h: 0, s: 0, v: 0 });
+        cancelCrop();
+    }, [handleAdjustImageHsv, setCropHsvAdjustment, cancelCrop]);
 
     const timelineBottomOffset = useMemo(
         () => getTimelinePanelBottomOffset(),
@@ -210,8 +253,13 @@ export const CanvasOverlays: React.FC = () => {
                     applyMagicWandSelection={applyMagicWandSelection}
                     cutMagicWandSelection={cutMagicWandSelection}
                     trimTransparentEdges={trimTransparentEdges}
-                    confirmCrop={confirmCrop}
-                    cancelCrop={cancelCrop}
+                    confirmCrop={handleConfirmCropClick}
+                    cancelCrop={handleCancelCropClick}
+                    cropHsvAdjustment={cropHsvAdjustment}
+                    setCropHsvAdjustment={setCropHsvAdjustment}
+                    imageHsvPreview={handleAdjustImageHsv}
+                    beginCoalescing={beginCoalescing}
+                    endCoalescing={endCoalescing}
                 />
             )}
 

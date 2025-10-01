@@ -232,6 +232,7 @@ interface AppState {
   cropSelectionOperation: 'add' | 'subtract' | 'replace';
   cropBrushSize: number;
   cropManualDraft: CropManualDraft | null;
+  cropHsvAdjustment: { h: number; s: number; v: number };
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
 }
@@ -286,6 +287,7 @@ const getInitialAppState = (): AppState => ({
   cropSelectionOperation: 'replace',
   cropBrushSize: 40,
   cropManualDraft: null,
+  cropHsvAdjustment: { h: 0, s: 0, v: 0 },
   hasUnsavedChanges: true,
   lastSavedDocumentSignature: null,
 });
@@ -498,6 +500,18 @@ export const useAppStore = () => {
   }, []);
   const setCropSelectionOperation = useCallback((op: AppState['cropSelectionOperation']) => {
     setAppState(s => ({ ...s, cropSelectionOperation: op }));
+  }, []);
+  const setCropHsvAdjustment = useCallback((value: { h: number; s: number; v: number }) => {
+    setAppState(s => {
+      if (
+        s.cropHsvAdjustment.h === value.h &&
+        s.cropHsvAdjustment.s === value.s &&
+        s.cropHsvAdjustment.v === value.v
+      ) {
+        return s;
+      }
+      return { ...s, cropHsvAdjustment: value };
+    });
   }, []);
   const updateMagicWandSelection = useCallback(
     (mask: MagicWandMask | null, options: { saveToHistory?: boolean } = {}) => {
@@ -1549,6 +1563,15 @@ export const useAppStore = () => {
     markDocumentSaved,
   });
 
+  const imageHsvPreview = appActions.imageHsvPreview;
+
+  useEffect(() => {
+    setCropHsvAdjustment({ h: 0, s: 0, v: 0 });
+    if (imageHsvPreview && typeof imageHsvPreview.cancelPreview === 'function') {
+      void imageHsvPreview.cancelPreview();
+    }
+  }, [appState.croppingState?.pathId, setCropHsvAdjustment, imageHsvPreview]);
+
   useEffect(() => {
     setAppState(prev => {
       if (prev.lastSavedDocumentSignature === null) {
@@ -1691,6 +1714,7 @@ export const useAppStore = () => {
       setCropSelectionMode,
       setCropBrushSize,
       setCropSelectionOperation,
+      setCropHsvAdjustment,
       selectMagicWandAt,
       invertMagicWandSelection,
       applyMagicWandSelection,
@@ -1790,6 +1814,7 @@ export const useAppStore = () => {
       setCropMagicWandOptions,
       setCropSelectionMode,
       setCropSelectionOperation,
+      setCropHsvAdjustment,
       invertMagicWandSelection,
       selectMagicWandAt,
       applyMagicWandSelection,
