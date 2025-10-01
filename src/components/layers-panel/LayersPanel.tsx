@@ -12,10 +12,12 @@ import { LayerItem } from './LayerItem';
 import PanelButton from '@/components/PanelButton';
 import { withLayerIconSize } from './constants';
 import { findPathById } from '@/lib/pathTree';
+import { useTranslation } from 'react-i18next';
 
 export const LayersPanel: React.FC = () => {
   const { paths, selectedPathIds, reorderPaths, handleDeletePaths, setPaths, setSelectedPathIds } = useLayers();
   const { showConfirmation } = useAppContext();
+  const { t } = useTranslation();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'above' | 'below' | 'inside' } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -189,7 +191,7 @@ export const LayersPanel: React.FC = () => {
         onDrop={handleDrop}
       >
         {flattenedLayers.length === 0 ? (
-          <div className="text-center text-sm text-[var(--text-secondary)] py-8">画布为空</div>
+          <div className="text-center text-sm text-[var(--text-secondary)] py-8">{t('layersPanel.empty')}</div>
         ) : (
           flattenedLayers.map(({ path, level, groupColorIndex }) => (
             <LayerItem
@@ -220,16 +222,16 @@ export const LayersPanel: React.FC = () => {
               variant="unstyled"
               onClick={() =>
                 showConfirmation(
-                  '清空画布',
-                  '确定要清空当前画布吗？此操作无法撤销。',
+                  t('layersPanel.confirmClearTitle'),
+                  t('layersPanel.confirmClearMessage'),
                   () => { setPaths([]); setSelectedPathIds([]); },
-                  '清空'
+                  t('layersPanel.confirmClearAction')
                 )
               }
               className="flex-1 flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
             >
               <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{withLayerIconSize(ICONS.CLEAR)}</div>
-              清空画布
+              {t('layersPanel.clearCanvas')}
             </PanelButton>
           )}
           {selectedPathIds.length > 0 && (
@@ -239,7 +241,7 @@ export const LayersPanel: React.FC = () => {
               className="flex-1 flex items-center justify-center gap-2 p-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
             >
               <div className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]">{withLayerIconSize(ICONS.TRASH)}</div>
-              删除选中
+              {t('layersPanel.deleteSelection')}
             </PanelButton>
           )}
         </div>

@@ -7,6 +7,7 @@ import { useAppContext } from '@/context/AppContext';
 import { SideToolbar } from '../SideToolbar';
 import { ICONS, CONTROL_BUTTON_CLASS, TIMELINE_PANEL_HEIGHT_VAR } from '@/constants';
 import PanelButton from '@/components/PanelButton';
+import { useTranslation } from 'react-i18next';
 
 /**
  * 侧边工具栏面板组件
@@ -14,6 +15,7 @@ import PanelButton from '@/components/PanelButton';
 export const SideToolbarPanel: React.FC = () => {
     const store = useAppContext();
     const { isSideToolbarCollapsed, setIsSideToolbarCollapsed, handleToggleStyleLibrary } = store;
+    const { t } = useTranslation();
     
     return (
         <>
@@ -22,7 +24,7 @@ export const SideToolbarPanel: React.FC = () => {
                 onClick={() => setIsSideToolbarCollapsed(prev => !prev)}
                 variant="unstyled"
                 className={CONTROL_BUTTON_CLASS}
-                title={isSideToolbarCollapsed ? '展开工具栏' : '折叠工具栏'}
+                title={isSideToolbarCollapsed ? t('layout.expandToolbar') : t('layout.collapseToolbar')}
             >
                 <div className={`transition-transform duration-300 ${isSideToolbarCollapsed ? '' : 'rotate-180'}`}>{ICONS.CHEVRON_LEFT}</div>
             </PanelButton>

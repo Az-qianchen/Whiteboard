@@ -10,6 +10,7 @@ import { useAppContext } from '../context/AppContext';
 import { ICONS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
+import { useTranslation } from 'react-i18next';
 
 interface FloatingAnimationExporterProps {
     children: (props: { ref: React.RefObject<any>, onClick: () => void }) => React.ReactNode;
@@ -24,6 +25,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
     canExport,
     placement = 'right',
 }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const triggerRef = useRef<HTMLElement>(null);
@@ -95,24 +97,26 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
 
     const getFrameLabel = (frameId: string | 'full') => {
         if (frameId === 'full') {
-            return '完整画布';
+            return t('exporter.animation.clipOptions.fullCanvas');
         }
         const frameIndex = allFrameShapes.findIndex(f => f.id === frameId);
         if (frameIndex === -1) {
-            return '完整画布'; // Fallback
+            return t('exporter.animation.clipOptions.fullCanvas');
         }
         const frame = allFrameShapes[frameIndex];
-        return `画框 ${frameIndex + 1} ${frame.name ? `(${frame.name})` : ''}`;
-    }
+        return frame.name
+            ? t('exporter.animation.clipOptions.frameWithName', { index: frameIndex + 1, name: frame.name })
+            : t('exporter.animation.clipOptions.frame', { index: frameIndex + 1 });
+    };
 
     const exporterElement = (
         <Transition show={isOpen} as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
             <div ref={panelRef} className="fixed z-50 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4" style={{ left: position.x, top: position.y }}>
                 <div className={PANEL_CLASSES.section}>
-                    <h3 className={PANEL_CLASSES.sectionTitle}>导出动画</h3>
+                    <h3 className={PANEL_CLASSES.sectionTitle}>{t('exporter.animation.title')}</h3>
 
                     <div>
-                        <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>导出区域</label>
+                        <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{t('exporter.animation.clipRegion')}</label>
                         <Popover className="relative mt-1">
                             <Popover.Button
                                 as={PanelButton}
@@ -140,7 +144,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                                 onClick={() => { setClipToFrameId('full'); close(); }}
                                                 className={`w-full text-left p-2 rounded-md text-sm ${clipToFrameId === 'full' ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'}`}
                                             >
-                                                完整画布
+                                                {t('exporter.animation.clipOptions.fullCanvas')}
                                             </PanelButton>
                                             {allFrameShapes.map((frame, index) => (
                                                 <PanelButton
@@ -149,7 +153,10 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                                     onClick={() => { setClipToFrameId(frame.id); close(); }}
                                                     className={`w-full text-left p-2 rounded-md text-sm ${clipToFrameId === frame.id ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'hover:bg-[var(--ui-element-bg-hover)] text-[var(--text-primary)]'}`}
                                                 >
-                                                    <span className="truncate">画框 {index + 1} {frame.name ? `(${frame.name})` : ''}</span>
+                                                    <span className="truncate">{frame.name
+                                                        ? t('exporter.animation.clipOptions.frameWithName', { index: index + 1, name: frame.name })
+                                                        : t('exporter.animation.clipOptions.frame', { index: index + 1 })
+                                                    }</span>
                                                 </PanelButton>
                                             ))}
                                         </div>
@@ -160,7 +167,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                     </div>
 
                     <RadioGroup value={format} onChange={setFormat}>
-                        <RadioGroup.Label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>格式</RadioGroup.Label>
+                        <RadioGroup.Label className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{t('exporter.animation.format')}</RadioGroup.Label>
                         <div className={`${PANEL_CLASSES.controlsRow} mt-1`}>
                             <RadioGroup.Option value="sequence" as={Fragment}>
                                 {({ checked }) => (
@@ -168,7 +175,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                     variant="unstyled"
                                     className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
                                   >
-                                    PNG 序列
+                                    {t('exporter.animation.formats.sequence')}
                                   </PanelButton>
                                 )}
                             </RadioGroup.Option>
@@ -178,7 +185,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                                     variant="unstyled"
                                     className={`flex-1 text-center text-sm py-2 px-3 rounded-md cursor-pointer ${checked ? 'bg-[var(--accent-bg)] text-[var(--accent-primary)]' : 'bg-[var(--ui-element-bg)] text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]'}`}
                                   >
-                                    精灵图
+                                    {t('exporter.animation.formats.spritesheet')}
                                   </PanelButton>
                                 )}
                             </RadioGroup.Option>
@@ -186,7 +193,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                     </RadioGroup>
 
                     <div className={`grid grid-cols-2 items-center gap-3 transition-opacity ${format !== 'spritesheet' ? 'opacity-50 pointer-events-none' : ''}`}>
-                        <label htmlFor="spritesheet-cols" className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>列数</label>
+                        <label htmlFor="spritesheet-cols" className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{t('exporter.animation.columns')}</label>
                         <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
                             <input
                                 id="spritesheet-cols"
@@ -205,7 +212,7 @@ export const FloatingAnimationExporter: React.FC<FloatingAnimationExporterProps>
                       onClick={async () => { await onExportAnimation({ format, columns, clipToFrameId }); setIsOpen(false); }}
                       className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 transition-opacity"
                     >
-                      导出
+                      {t('exporter.animation.export')}
                     </PanelButton>
                 </div>
             </div>

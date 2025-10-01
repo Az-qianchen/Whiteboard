@@ -8,6 +8,7 @@ import { ICONS } from '@/constants';
 import { useLayers } from '@/lib/layers-context';
 import { getToolIcon, capitalize, withLayerIconSize } from './constants';
 import PanelButton from '@/components/PanelButton';
+import { useTranslation } from 'react-i18next';
 
 interface LayerItemProps {
   path: AnyPath;
@@ -42,6 +43,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
     toggleGroupCollapse,
     setPathName,
   } = useLayers();
+  const { t } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [nameInput, setNameInput] = useState(path.name ?? '');
@@ -102,7 +104,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
         draggable={!isLocked && !isEditing}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
-        title="单击以选择，拖动以重新排序"
+        title={t('layerItem.tooltipSelectDrag')}
       >
         <div
           className="flex items-center gap-2 flex-grow min-w-0"
@@ -113,7 +115,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                 variant="unstyled"
                 onClick={(e) => { e.stopPropagation(); toggleGroupCollapse(path.id); }}
                 className={`p-0.5 rounded-sm text-[var(--text-secondary)] hover:bg-white/10 ${isEditing ? 'invisible' : ''}`}
-                title={(path as GroupData).isCollapsed ? '展开' : '折叠'}
+                title={(path as GroupData).isCollapsed ? t('layerItem.expand') : t('layerItem.collapse')}
                 disabled={isEditing}
               >
                 <div className={`transition-transform duration-300 ease-in-out ${(path as GroupData).isCollapsed ? '-rotate-90' : ''}`}>
@@ -147,7 +149,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
             variant="unstyled"
             onClick={(e) => { e.stopPropagation(); togglePathsProperty([path.id], 'isLocked'); }}
             className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
-            title={isLocked ? '解锁' : '锁定'}
+            title={isLocked ? t('layerItem.unlock') : t('layerItem.lock')}
           >
             {isLocked ? withLayerIconSize(ICONS.LOCK_CLOSED) : withLayerIconSize(ICONS.LOCK_OPEN)}
           </PanelButton>
@@ -155,7 +157,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
             variant="unstyled"
             onClick={(e) => { e.stopPropagation(); togglePathsProperty([path.id], 'isVisible'); }}
             className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-white/10 transition-colors"
-            title={isVisible ? '隐藏' : '显示'}
+            title={isVisible ? t('layerItem.hide') : t('layerItem.show')}
           >
             {isVisible ? withLayerIconSize(ICONS.EYE_OPEN) : withLayerIconSize(ICONS.EYE_OFF)}
           </PanelButton>
@@ -163,7 +165,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
             variant="unstyled"
             onClick={(e) => { e.stopPropagation(); handleDeletePaths([path.id]); }}
             className="p-1 rounded-md text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
-            title="删除"
+            title={t('layerItem.delete')}
           >
             {withLayerIconSize(ICONS.TRASH)}
           </PanelButton>

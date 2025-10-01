@@ -11,6 +11,7 @@ import { LayersProvider, type LayersContextValue } from '../lib/layers-context';
 import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
 import type { MaterialData, AnyPath } from '../types';
+import { useTranslation } from 'react-i18next';
 
 // Import new layout components
 import { MainMenuPanel } from './layout/MainMenuPanel';
@@ -21,6 +22,7 @@ import { TimelinePanel } from './TimelinePanel';
 export const MainLayout: React.FC = () => {
     const store = useAppContext();
     useGlobalEventHandlers();
+    const { t } = useTranslation();
 
     // Destructure only the props needed for the core layout and whiteboard
     const {
@@ -175,7 +177,7 @@ export const MainLayout: React.FC = () => {
     if (isLoading) {
         return (
             <div className="h-full w-full flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-primary)]">
-                正在加载...
+                {t('layout.loading')}
             </div>
         );
     }
@@ -189,7 +191,7 @@ export const MainLayout: React.FC = () => {
                     <div className="absolute top-4 left-4 z-30">
                         <PanelButton
                             onClick={() => setIsMainMenuCollapsed(prev => !prev)}
-                            title={isMainMenuCollapsed ? '展开菜单' : '折叠菜单'}
+                            title={isMainMenuCollapsed ? t('layout.expandMenu') : t('layout.collapseMenu')}
                             variant="unstyled"
                             className={CONTROL_BUTTON_CLASS}
                         >

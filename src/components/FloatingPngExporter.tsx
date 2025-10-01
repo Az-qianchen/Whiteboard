@@ -8,6 +8,7 @@ import { Transition, Switch } from '@headlessui/react';
 import type { PngExportOptions } from '../types';
 import PanelButton from '@/components/PanelButton';
 import { PANEL_CLASSES } from './panelStyles';
+import { useTranslation } from 'react-i18next';
 
 interface FloatingPngExporterProps {
     children: (props: { ref: React.RefObject<any>, onClick: () => void }) => React.ReactNode;
@@ -18,11 +19,11 @@ interface FloatingPngExporterProps {
     placement?: 'left' | 'right';
 }
 
-const SwitchControl: React.FC<{ label: string; enabled: boolean; setEnabled: (enabled: boolean) => void; }> = ({ label, enabled, setEnabled }) => (
+const SwitchControl: React.FC<{ id: string; label: string; enabled: boolean; setEnabled: (enabled: boolean) => void; }> = ({ id, label, enabled, setEnabled }) => (
     <div className={`${PANEL_CLASSES.control} justify-between`}>
-        <label htmlFor={label} className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{label}</label>
+        <label htmlFor={id} className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{label}</label>
         <Switch
-            id={label}
+            id={id}
             checked={enabled}
             onChange={setEnabled}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)] border ${enabled ? 'bg-[var(--accent-bg)] border-[var(--accent-primary)]' : 'bg-black/30 border-transparent'}`}
@@ -40,6 +41,7 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
     canExport,
     placement = 'right',
 }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const triggerRef = useRef<HTMLElement>(null);
@@ -130,9 +132,9 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                 style={{ left: position.x, top: position.y }}
             >
                 <div className={PANEL_CLASSES.section}>
-                    <h3 className={PANEL_CLASSES.sectionTitle}>PNG 导出选项</h3>
+                    <h3 className={PANEL_CLASSES.sectionTitle}>{t('exporter.png.title')}</h3>
                     <div className="grid grid-cols-2 items-center gap-3">
-                        <label htmlFor="png-scale" className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>比例</label>
+                        <label htmlFor="png-scale" className={`${PANEL_CLASSES.label} text-[var(--text-primary)]`}>{t('exporter.png.scale')}</label>
                         <div className={`${PANEL_CLASSES.inputWrapper} w-full`}>
                             <input
                                 id="png-scale"
@@ -147,8 +149,18 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                             <span className={PANEL_CLASSES.inputSuffix}>x</span>
                         </div>
                     </div>
-                    <SwitchControl label="透明背景" enabled={pngExportOptions.transparentBg} setEnabled={val => setPngExportOptions(prev => ({ ...prev, transparentBg: val }))} />
-                    <SwitchControl label="高质量压缩" enabled={pngExportOptions.highQuality} setEnabled={val => setPngExportOptions(prev => ({ ...prev, highQuality: val }))} />
+                    <SwitchControl
+                        id="png-transparent-bg"
+                        label={t('exporter.png.transparentBg')}
+                        enabled={pngExportOptions.transparentBg}
+                        setEnabled={val => setPngExportOptions(prev => ({ ...prev, transparentBg: val }))}
+                    />
+                    <SwitchControl
+                        id="png-high-quality"
+                        label={t('exporter.png.highQuality')}
+                        enabled={pngExportOptions.highQuality}
+                        setEnabled={val => setPngExportOptions(prev => ({ ...prev, highQuality: val }))}
+                    />
                     <PanelButton
                         variant="unstyled"
                         onClick={async () => {
@@ -157,7 +169,7 @@ export const FloatingPngExporter: React.FC<FloatingPngExporterProps> = ({
                         }}
                         className="w-full flex items-center justify-center gap-2 p-2 rounded-md text-sm bg-[var(--accent-solid-bg)] text-[var(--text-on-accent-solid)] hover:opacity-90 transition-opacity"
                     >
-                        导出
+                        {t('exporter.png.export')}
                     </PanelButton>
                 </div>
             </div>

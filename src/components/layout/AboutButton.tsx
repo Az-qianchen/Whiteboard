@@ -6,16 +6,18 @@ import React, { Fragment } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import PanelButton from '@/components/PanelButton';
 import { CONTROL_BUTTON_CLASS, getTimelinePanelBottomOffset } from '@/constants';
+import { useTranslation } from 'react-i18next';
 
 const links = [
-  { name: 'vtracer - PNG转矢量工具', href: 'https://www.visioncortex.org/vtracer/' },
-  { name: '作者官网 - tuclink.com', href: 'https://tuclink.com/' },
+  { key: 'vtracer', href: 'https://www.visioncortex.org/vtracer/' },
+  { key: 'authorSite', href: 'https://tuclink.com/' },
 ];
 
 /**
  * 关于按钮组件
  */
 export const AboutButton: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div
       className="absolute right-4 z-30"
@@ -25,7 +27,7 @@ export const AboutButton: React.FC = () => {
           <Popover.Button
             as={PanelButton}
             variant="unstyled"
-            title="关于"
+            title={t('layout.about.title')}
             className={CONTROL_BUTTON_CLASS}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
@@ -43,13 +45,13 @@ export const AboutButton: React.FC = () => {
               <div className="flex flex-col gap-1">
                 {links.map((link) => (
                   <a
-                    key={link.name}
+                    key={link.key}
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block p-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--ui-hover-bg)]"
                   >
-                    {link.name}
+                    {t(`layout.about.links.${link.key}`)}
                   </a>
                 ))}
               </div>
