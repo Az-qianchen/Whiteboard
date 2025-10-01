@@ -16,7 +16,7 @@ import type {
   SelectionViewTransform,
   GradientControlHandle,
 } from '@/types';
-import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle, isWarpHandle } from '@/lib/drawing';
+import { updatePathAnchors, insertAnchorOnCurve, getSqDistToSegment, getPathsBoundingBox, dist, sampleCubicBezier, rotateResizeHandle, getBaseCorners, getWarpedCorners, isWarpControlHandle } from '@/lib/drawing';
 import { isPointHittingPath, findDeepestHitPath } from '@/lib/hit-testing';
 import { recursivelyUpdatePaths } from './utils';
 
@@ -256,9 +256,20 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
 
                 if (isSimpleShape) {
                     if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-                        if (isWarpHandle(handle) && (path.tool === 'rectangle' || path.tool === 'image')) {
+                        if (isWarpControlHandle(handle) && (path.tool === 'rectangle' || path.tool === 'image')) {
                             const warpable = path as RectangleData | ImageData;
-                            setDragState({ type: 'warp', pathId: path.id, handle, originalPath: warpable, initialPointerPos: point });
+                            const baseCorners = getBaseCorners(warpable);
+                            const warpedCorners = getWarpedCorners(warpable);
+                            setDragState({
+                                type: 'warp',
+                                pathId: path.id,
+                                handle,
+                                originalPath: warpable,
+                                initialPointerPos: point,
+                                baseCorners,
+                                warpedCorners,
+                                initialHandlePoint: point,
+                            });
                         } else {
                             setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
                         }

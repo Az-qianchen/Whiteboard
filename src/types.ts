@@ -367,9 +367,12 @@ type SkewDragState = {
 type WarpDragState = {
   type: 'warp';
   pathId: string;
-  handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  handle: ResizeHandlePosition;
   originalPath: RectangleData | ImageData;
   initialPointerPos: Point;
+  baseCorners: QuadCorners;
+  warpedCorners: QuadCorners;
+  initialHandlePoint: Point;
 };
 
 // A drag state for rotating multiple shapes

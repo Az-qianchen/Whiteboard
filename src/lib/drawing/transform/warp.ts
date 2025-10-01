@@ -26,6 +26,13 @@ const cornerHandleMap: Record<'top-left' | 'top-right' | 'bottom-left' | 'bottom
   'bottom-right': 'bottomRight',
 };
 
+const edgeHandleMap: Record<'top' | 'right' | 'bottom' | 'left', readonly [keyof QuadCorners, keyof QuadCorners]> = {
+  top: ['topLeft', 'topRight'],
+  right: ['topRight', 'bottomRight'],
+  bottom: ['bottomLeft', 'bottomRight'],
+  left: ['topLeft', 'bottomLeft'],
+};
+
 const clonePoint = (point: Point): Point => ({ x: point.x, y: point.y });
 
 const cloneOffsets = (offsets: QuadWarpOffsets): QuadWarpOffsets => ({
@@ -51,6 +58,10 @@ const subtractOffsets = (final: QuadCorners, base: QuadCorners): QuadWarpOffsets
   bottomRight: subtractPoints(final.bottomRight, base.bottomRight),
   bottomLeft: subtractPoints(final.bottomLeft, base.bottomLeft),
 });
+
+const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+const dot = (a: Point, b: Point): number => a.x * b.x + a.y * b.y;
 
 export const getZeroWarpOffsets = (): QuadWarpOffsets => cloneOffsets(ZERO_OFFSETS);
 
@@ -102,6 +113,88 @@ export const warpCornerHandle = (
 
 export const isWarpHandle = (handle: ResizeHandlePosition): handle is keyof typeof cornerHandleMap =>
   handle === 'top-left' || handle === 'top-right' || handle === 'bottom-left' || handle === 'bottom-right';
+
+export const isWarpEdgeHandle = (handle: ResizeHandlePosition): handle is keyof typeof edgeHandleMap =>
+  handle === 'top' || handle === 'right' || handle === 'bottom' || handle === 'left';
+
+export const isWarpControlHandle = (handle: ResizeHandlePosition): handle is keyof typeof cornerHandleMap | keyof typeof edgeHandleMap =>
+  isWarpHandle(handle) || isWarpEdgeHandle(handle);
+
+const normalize = (vector: Point): Point => {
+  const length = Math.hypot(vector.x, vector.y);
+  if (length < EPSILON) {
+    return { x: 0, y: 0 };
+  }
+  return { x: vector.x / length, y: vector.y / length };
+};
+
+const cloneCorners = (corners: QuadCorners): QuadCorners => ({
+  topLeft: clonePoint(corners.topLeft),
+  topRight: clonePoint(corners.topRight),
+  bottomRight: clonePoint(corners.bottomRight),
+  bottomLeft: clonePoint(corners.bottomLeft),
+});
+
+export interface WarpHandleContext {
+  baseCorners?: QuadCorners;
+  warpedCorners?: QuadCorners;
+  initialHandlePoint?: Point;
+}
+
+const warpEdgeHandle = (
+  originalPath: WarpableShape,
+  handle: keyof typeof edgeHandleMap,
+  pointer: Point,
+  context?: WarpHandleContext,
+): WarpableShape => {
+  const baseCorners = context?.baseCorners ?? getBaseCorners(originalPath);
+  const currentWarp = context?.warpedCorners ?? addOffsets(baseCorners, getWarpOffsets(originalPath));
+  const [startKey, endKey] = edgeHandleMap[handle];
+  const startPoint = currentWarp[startKey];
+  const endPoint = currentWarp[endKey];
+
+  const edgeVector = subtractPoints(endPoint, startPoint);
+  const direction = normalize(edgeVector);
+
+  if (direction.x === 0 && direction.y === 0) {
+    return originalPath;
+  }
+
+  const initialPoint = context?.initialHandlePoint ?? midpoint(startPoint, endPoint);
+  const pointerDelta = subtractPoints(pointer, initialPoint);
+  const parallelAmount = dot(pointerDelta, direction);
+
+  const newEdgeVector = addPoints(edgeVector, {
+    x: direction.x * parallelAmount,
+    y: direction.y * parallelAmount,
+  });
+
+  const halfVector = { x: newEdgeVector.x / 2, y: newEdgeVector.y / 2 };
+  const newStart = subtractPoints(pointer, halfVector);
+  const newEnd = addPoints(pointer, halfVector);
+
+  const nextCorners = cloneCorners(currentWarp);
+  nextCorners[startKey] = newStart;
+  nextCorners[endKey] = newEnd;
+
+  const nextOffsets = subtractOffsets(nextCorners, baseCorners);
+  return { ...originalPath, warp: nextOffsets };
+};
+
+export const warpHandle = (
+  originalPath: WarpableShape,
+  handle: ResizeHandlePosition,
+  pointer: Point,
+  context?: WarpHandleContext,
+): WarpableShape => {
+  if (isWarpHandle(handle)) {
+    return warpCornerHandle(originalPath, handle, pointer);
+  }
+  if (isWarpEdgeHandle(handle)) {
+    return warpEdgeHandle(originalPath, handle, pointer, context);
+  }
+  return originalPath;
+};
 
 export type ProjectiveMatrix3x3 = [
   number,
