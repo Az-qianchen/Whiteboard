@@ -159,7 +159,7 @@ const ShapeControls: React.FC<{
         }
 
         const handleKeyChange = (event: KeyboardEvent) => {
-            const next = event.ctrlKey || event.metaKey;
+            const next = (event.ctrlKey || event.metaKey) && event.shiftKey;
             setIsSkewModifierActive(prev => (prev === next ? prev : next));
         };
 
