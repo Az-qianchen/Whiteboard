@@ -7,6 +7,7 @@ import { anchorsToPathD, pointsToPathD } from '@/lib/path-fitting';
 import { createSvgMarker } from '../markers/svg';
 import { getPolygonPathD, calculateArcPathD } from '@/lib/drawing';
 import { createEffectsFilter } from '../core/effects';
+import { applyNonScalingStroke } from '@/lib/export/utils/svg';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
 import { parseColor, hslaToHslaString } from '@/lib/color';
 
@@ -81,6 +82,7 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
       pathEl.setAttribute('stroke-width', '2');
       pathEl.setAttribute('stroke-dasharray', '8 4');
       pathEl.setAttribute('fill', 'none');
+      applyNonScalingStroke(pathEl);
     } else {
       pathEl.setAttribute('stroke', data.color);
       pathEl.setAttribute('stroke-width', String(data.strokeWidth));
@@ -184,6 +186,9 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
         if (data.opacity !== undefined && data.opacity < 1) {
             pathEl.setAttribute('opacity', String(data.opacity));
         }
+        if (data.tool === 'frame') {
+            applyNonScalingStroke(pathEl);
+        }
         return pathEl;
     } else {
         if (hasRotation) {
@@ -198,6 +203,9 @@ export function createSmoothPathNode(data: AnyPath): SVGElement | null {
         }
         if (!defs.hasChildNodes()) {
             g.removeChild(defs);
+        }
+        if (data.tool === 'frame') {
+            applyNonScalingStroke(g);
         }
         return g;
     }
