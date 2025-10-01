@@ -173,7 +173,9 @@ export const useImageHsvPreview = ({ getActiveImagePath, applyCommittedFile }: U
     activePreviewRef.current = null;
     latestAdjustRequestRef.current = null;
 
-    scheduleObjectUrlRevoke(urlToRevoke);
+    if (!urlToRevoke?.startsWith('blob:')) {
+      scheduleObjectUrlRevoke(urlToRevoke ?? null);
+    }
 
     try {
       await callWorker({ type: 'reset' }).promise;

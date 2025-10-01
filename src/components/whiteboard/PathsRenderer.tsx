@@ -42,6 +42,7 @@ const PathComponent: React.FC<{
     const latestImageDataRef = useRef<ImageData | null>(null);
     const previewVersionRef = useRef<number>(previewRequestVersion ?? 0);
     const requestSequenceRef = useRef(0);
+    const lastResolvedSrcRef = useRef<string | null>(null);
 
     const previewSrc = data.tool === 'image' ? previewSrcById?.[data.id] ?? null : null;
     const baseImageKey = data.tool === 'image'
@@ -109,6 +110,26 @@ const PathComponent: React.FC<{
         };
     }, [imageKey, previewSrc, previewRequestVersion]);
 
+    useEffect(() => {
+        const previous = lastResolvedSrcRef.current;
+        if (
+            previous &&
+            previous !== imageSrc &&
+            previous.startsWith('blob:') &&
+            typeof URL !== 'undefined'
+        ) {
+            URL.revokeObjectURL(previous);
+        }
+        lastResolvedSrcRef.current = imageSrc;
+    }, [imageSrc]);
+
+    useEffect(() => () => {
+        const previous = lastResolvedSrcRef.current;
+        if (previous && previous.startsWith('blob:') && typeof URL !== 'undefined') {
+            URL.revokeObjectURL(previous);
+        }
+    }, []);
+
     // 如果路径是常规（非遮罩）组，则递归渲染其子项以获得性能优势。
     if (data.tool === 'group' && !(data as GroupData).mask) {
         return (
@@ -153,6 +174,7 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = Reac
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const lastImageKeyRef = useRef<string | null>(null);
     const latestImageDataRef = useRef<ImageData | null>(null);
+    const lastResolvedSrcRef = useRef<string | null>(null);
 
     const imageKey = data.tool === 'image'
         ? (data.fileId ?? data.src ?? null)
@@ -200,6 +222,26 @@ export const RoughPath: React.FC<{ rc: RoughSVG | null; data: AnyPath; }> = Reac
             cancelled = true;
         };
     }, [imageKey]);
+
+    useEffect(() => {
+        const previous = lastResolvedSrcRef.current;
+        if (
+            previous &&
+            previous !== imageSrc &&
+            previous.startsWith('blob:') &&
+            typeof URL !== 'undefined'
+        ) {
+            URL.revokeObjectURL(previous);
+        }
+        lastResolvedSrcRef.current = imageSrc;
+    }, [imageSrc]);
+
+    useEffect(() => () => {
+        const previous = lastResolvedSrcRef.current;
+        if (previous && previous.startsWith('blob:') && typeof URL !== 'undefined') {
+            URL.revokeObjectURL(previous);
+        }
+    }, []);
 
     const nodeString = useMemo(() => {
         if (!rc || data.tool === 'group') return '';
