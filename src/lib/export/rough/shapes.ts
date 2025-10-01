@@ -1,6 +1,7 @@
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { RectangleData, EllipseData, ImageData, PolygonData, FrameData } from '@/types';
 import { getPolygonPathD, getRoundedRectPathD } from '@/lib/drawing';
+import { applyNonScalingStroke } from '@/lib/export/utils/svg';
 
 export function renderImage(data: ImageData): SVGElement {
     const imgData = data as ImageData;
@@ -73,18 +74,6 @@ export function renderRoughShape(rc: RoughSVG, data: RectangleData | EllipseData
         };
         const d = getRoundedRectPathD(x, y, width, height, 0);
         const frameNode = rc.path(d, frameOptions);
-
-        const applyNonScalingStroke = (element: SVGElement) => {
-            if (element.tagName === 'path') {
-                element.setAttribute('vector-effect', 'non-scaling-stroke');
-            }
-            Array.from(element.children).forEach((child) => {
-                if (child instanceof SVGElement) {
-                    applyNonScalingStroke(child);
-                }
-            });
-        };
-
         applyNonScalingStroke(frameNode);
         return frameNode;
     } else if (data.tool === 'polygon') {
