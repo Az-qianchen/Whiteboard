@@ -1511,6 +1511,7 @@ export const useAppStore = () => {
     setFillColor: toolbarState.setFill,
     backgroundColor: uiState.backgroundColor,
     sampleImageColorAtPoint,
+    isTextEditing: appState.textEditing !== null,
   });
 
   const textEditing = appState.textEditing;

@@ -19,6 +19,12 @@ import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
 import { layoutText } from '@/lib/text';
+import {
+    createTranslationMatrix,
+    getShapeTransformMatrix,
+    matrixToString,
+    multiplyMatrices,
+} from '@/lib/drawing/transform/matrix';
 
 // Helper to define context menu actions
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -117,6 +123,7 @@ export const CanvasOverlays: React.FC = () => {
         updateTextEditing,
         commitTextEditing,
         cancelTextEditing,
+        viewTransform: camera,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
@@ -140,17 +147,18 @@ export const CanvasOverlays: React.FC = () => {
     const textEditorOverlay = useMemo(() => {
         if (!textEditing || !activeTextPath) return null;
         return (
-            <TextEditingModal
+            <TextEditingOverlay
                 key={textEditing.pathId}
                 path={activeTextPath}
                 draft={textEditing.draft}
                 isNew={textEditing.isNew ?? false}
+                viewTransform={camera}
                 onChange={updateTextEditing}
                 onCommit={commitTextEditing}
                 onCancel={cancelTextEditing}
             />
         );
-    }, [textEditing, activeTextPath, updateTextEditing, commitTextEditing, cancelTextEditing]);
+    }, [textEditing, activeTextPath, camera, updateTextEditing, commitTextEditing, cancelTextEditing]);
 
     /**
      * 构建上下文菜单的操作列表。
@@ -309,13 +317,42 @@ interface TextEditorOverlayProps {
     path: TextData;
     draft: string;
     isNew: boolean;
+    viewTransform: { scale: number; translateX: number; translateY: number };
     onChange: (value: string) => void;
     onCommit: () => void;
     onCancel: () => void;
 }
 
-const TextEditingModal: React.FC<TextEditorOverlayProps> = ({ path, draft, isNew, onChange, onCommit, onCancel }) => {
+const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
+    path,
+    draft,
+    isNew,
+    viewTransform,
+    onChange,
+    onCommit,
+    onCancel,
+}) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const normalizedDraft = draft.replace(/\r/g, '');
+    const baseLineHeight = useMemo(
+        () => path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT,
+        [path.lineHeight, path.fontSize],
+    );
+    const widthConstraint = useMemo(
+        () => (!isNew && path.width > 0 ? path.width : undefined),
+        [isNew, path.width],
+    );
+    const layout = useMemo(
+        () => layoutText(
+            normalizedDraft,
+            path.fontSize,
+            path.fontFamily,
+            baseLineHeight,
+            path.fontWeight,
+            widthConstraint,
+        ),
+        [normalizedDraft, path.fontSize, path.fontFamily, baseLineHeight, path.fontWeight, widthConstraint],
+    );
 
     useEffect(() => {
         const element = textareaRef.current;
@@ -355,27 +392,44 @@ const TextEditingModal: React.FC<TextEditorOverlayProps> = ({ path, draft, isNew
         return () => window.removeEventListener('keydown', handleKey);
     }, [onCancel, onCommit]);
 
-    const normalizedDraft = draft.replace(/\r/g, '');
-    const baseLineHeight = path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
-    const widthConstraint = !isNew && path.width > 0 ? path.width : undefined;
-    const layout = useMemo(
-        () => layoutText(
-            normalizedDraft,
-            path.fontSize,
-            path.fontFamily,
-            baseLineHeight,
-            path.fontWeight,
-            widthConstraint,
-        ),
-        [normalizedDraft, path.fontSize, path.fontFamily, baseLineHeight, path.fontWeight, widthConstraint],
-    );
+    const width = Math.max(layout.width, 1);
+    const height = Math.max(layout.height, 1);
+
+    const transform = useMemo(() => {
+        const viewMatrix = {
+            a: viewTransform.scale,
+            b: 0,
+            c: 0,
+            d: viewTransform.scale,
+            e: viewTransform.translateX,
+            f: viewTransform.translateY,
+        };
+        const translation = createTranslationMatrix(path.x, path.y);
+        const shapeMatrix = getShapeTransformMatrix(path);
+        const localMatrix = multiplyMatrices(shapeMatrix, translation);
+        const combined = multiplyMatrices(viewMatrix, localMatrix);
+        return matrixToString(combined);
+    }, [
+        viewTransform.scale,
+        viewTransform.translateX,
+        viewTransform.translateY,
+        path.x,
+        path.y,
+        path.width,
+        path.height,
+        path.rotation,
+        path.scaleX,
+        path.scaleY,
+        path.skewX,
+        path.skewY,
+    ]);
 
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         onChange(event.target.value);
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if ((event.key === 'Enter' && (event.metaKey || event.ctrlKey)) || event.key === 's' && (event.metaKey || event.ctrlKey)) {
+        if ((event.key === 'Enter' || event.key === 's') && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
             onCommit();
             return;
@@ -386,90 +440,49 @@ const TextEditingModal: React.FC<TextEditorOverlayProps> = ({ path, draft, isNew
         }
     };
 
+    const handlePointerDown = (event: React.PointerEvent<HTMLTextAreaElement>) => {
+        event.stopPropagation();
+    };
+
+    const handleWheel = (event: React.WheelEvent<HTMLTextAreaElement>) => {
+        event.stopPropagation();
+    };
+
     return (
-        <div
-            className="absolute inset-0 z-40 flex items-center justify-center px-4 py-8 bg-black/50 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`text-editor-${path.id}`}
-        >
-            <div className="w-full max-w-5xl rounded-2xl border border-[var(--ui-panel-border)] bg-[var(--ui-panel-bg)]/95 backdrop-blur-xl p-6 shadow-2xl text-[var(--text-primary)] flex flex-col gap-6">
-                <div className="flex flex-col gap-1">
-                    <h2 id={`text-editor-${path.id}`} className="text-lg font-semibold tracking-wide">
-                        编辑文本
-                    </h2>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                        在左侧编辑内容，右侧实时预览最终效果。
-                    </p>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
-                    <label className="flex flex-col gap-2">
-                        <span className="text-sm font-medium text-[var(--text-secondary)]">
-                            文本内容
-                        </span>
-                        <textarea
-                            ref={textareaRef}
-                            value={draft}
-                            onChange={handleChange}
-                            onKeyDown={handleKeyDown}
-                            spellCheck={false}
-                            className="min-h-[220px] w-full resize-none rounded-xl border border-[var(--ui-panel-border)] bg-black/20 px-4 py-3 text-base leading-relaxed text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
-                            style={{
-                                fontSize: `${path.fontSize}px`,
-                                lineHeight: `${layout.lineHeight}px`,
-                                fontFamily: path.fontFamily,
-                                fontWeight: path.fontWeight ?? 400,
-                                textAlign: path.textAlign,
-                                caretColor: path.color,
-                            }}
-                        />
-                    </label>
-                    <div className="flex flex-col gap-2">
-                        <span className="text-sm font-medium text-[var(--text-secondary)]">预览</span>
-                        <div
-                            className="min-h-[220px] w-full rounded-xl border border-[var(--ui-panel-border)] bg-black/10 p-4 shadow-inner"
-                            style={{
-                                fontSize: `${path.fontSize}px`,
-                                lineHeight: `${layout.lineHeight}px`,
-                                fontFamily: path.fontFamily,
-                                fontWeight: path.fontWeight ?? 400,
-                                color: path.color,
-                                textAlign: path.textAlign as React.CSSProperties['textAlign'],
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                overflowY: 'auto',
-                            }}
-                        >
-                            {layout.lines.map((line, index) => (
-                                <React.Fragment key={`${path.id}-preview-${index}`}>
-                                    {line}
-                                    {index < layout.lines.length - 1 && <br />}
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <p className="text-xs text-[var(--text-secondary)]">
-                        Esc 取消 · Ctrl+Enter 保存
-                    </p>
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="rounded-lg border border-[var(--ui-panel-border)] bg-black/20 px-5 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
-                        >
-                            取消
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onCommit}
-                            className="rounded-lg bg-[var(--accent-primary)] px-5 py-2 text-sm font-semibold text-[var(--text-on-accent-solid,#fff)] transition-colors hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ui-panel-bg)]"
-                        >
-                            保存
-                        </button>
-                    </div>
-                </div>
+        <div className="absolute inset-0 z-40 pointer-events-none">
+            <div
+                className="pointer-events-auto"
+                style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width,
+                    height,
+                    transformOrigin: '0 0',
+                    transform,
+                }}
+            >
+                <textarea
+                    ref={textareaRef}
+                    value={draft}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    onPointerDown={handlePointerDown}
+                    onWheel={handleWheel}
+                    spellCheck={false}
+                    className="h-full w-full resize-none overflow-auto border-none bg-transparent p-0 focus:outline-none"
+                    style={{
+                        color: path.color,
+                        fontSize: `${path.fontSize}px`,
+                        lineHeight: `${layout.lineHeight}px`,
+                        fontFamily: path.fontFamily,
+                        fontWeight: path.fontWeight ?? 400,
+                        textAlign: path.textAlign as React.CSSProperties['textAlign'],
+                        caretColor: path.color,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                    }}
+                />
             </div>
         </div>
     );

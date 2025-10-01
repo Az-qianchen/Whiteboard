@@ -34,6 +34,7 @@ interface PointerInteractionProps {
   setFillColor: (color: string) => void;
   backgroundColor: string;
   sampleImageColorAtPoint: (point: Point, path: AnyPath) => Promise<string | null>;
+  isTextEditing: boolean;
 }
 
 /**
@@ -50,6 +51,7 @@ export const usePointerInteraction = ({
   setFillColor,
   backgroundColor,
   sampleImageColorAtPoint,
+  isTextEditing,
 }: PointerInteractionProps) => {
 
   const { isPanning, setIsPanning } = viewTransform;
@@ -59,6 +61,13 @@ export const usePointerInteraction = ({
     if (e.pointerType === 'touch') {
       viewTransform.handleTouchStart(e);
       if (viewTransform.isPinching) return;
+    }
+    if (isTextEditing) {
+      if (e.button === 1) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setIsPanning(true);
+      }
+      return;
     }
     if (e.altKey) {
       const isShiftSampling = e.shiftKey;
@@ -142,6 +151,10 @@ export const usePointerInteraction = ({
       return;
     }
 
+    if (isTextEditing) {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerMove(e);
     } else {
@@ -160,6 +173,10 @@ export const usePointerInteraction = ({
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
       setIsPanning(false);
+      return;
+    }
+
+    if (isTextEditing) {
       return;
     }
 
@@ -183,7 +200,11 @@ export const usePointerInteraction = ({
       setIsPanning(false);
       return;
     }
-    
+
+    if (isTextEditing) {
+      return;
+    }
+
     if (tool === 'selection') {
       selectionInteraction.onPointerLeave(e);
     } else {
