@@ -85,6 +85,7 @@ export const CanvasOverlays: React.FC = () => {
         handleDistribute,
         handleBooleanOperation,
         handleTraceImage,
+        handleAdjustImageHsv,
         confirmationDialog,
         hideConfirmation,
         croppingState,
@@ -105,6 +106,8 @@ export const CanvasOverlays: React.FC = () => {
         confirmCrop,
         trimTransparentEdges,
         cancelCrop,
+        beginCoalescing,
+        endCoalescing,
         undo: handleUndo,
         canUndo,
         redo: handleRedo,
@@ -123,6 +126,15 @@ export const CanvasOverlays: React.FC = () => {
         if (selectedPathIds.length !== 1) return false;
         const path = paths.find((p: AnyPath) => p.id === selectedPathIds[0]);
         return path?.tool === 'image';
+    }, [paths, selectedPathIds]);
+
+    const canAdjustImage = useMemo(() => {
+        if (selectedPathIds.length !== 1) return false;
+        const path = paths.find((p: AnyPath) => p.id === selectedPathIds[0]);
+        if (!path || path.tool !== 'image') {
+            return false;
+        }
+        return !path.isLocked;
     }, [paths, selectedPathIds]);
 
     /**
@@ -188,6 +200,10 @@ export const CanvasOverlays: React.FC = () => {
                         onMask={handleMask}
                         isTraceable={isTraceable}
                         onTraceImage={handleTraceImage}
+                        canAdjustImage={canAdjustImage}
+                        imageHsvPreview={handleAdjustImageHsv}
+                        beginCoalescing={beginCoalescing}
+                        endCoalescing={endCoalescing}
                     />
                 </div>
             )}
