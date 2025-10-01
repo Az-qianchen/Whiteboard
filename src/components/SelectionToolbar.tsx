@@ -10,6 +10,8 @@ import { PANEL_CLASSES } from './panelStyles';
 import { ICONS } from '../constants';
 import type { SelectionMode, Alignment, DistributeMode } from '../types';
 import { Slider } from './side-toolbar';
+import { ImageHsvPopover } from './side-toolbar/ImageHsvPopover';
+import type { ImageHsvPreviewController } from '@/hooks/useImageHsvPreview';
 import { TraceImagePopover } from './TraceImagePopover';
 import type { TraceOptions } from '../types';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +32,10 @@ interface SelectionToolbarProps {
   onMask: () => void;
   isTraceable: boolean;
   onTraceImage: (options: TraceOptions) => void;
+  canAdjustImage: boolean;
+  imageHsvPreview: Pick<ImageHsvPreviewController, 'beginPreview' | 'updatePreview' | 'commitPreview' | 'cancelPreview'>;
+  beginCoalescing: () => void;
+  endCoalescing: () => void;
 }
 
 
@@ -47,6 +53,10 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   onMask,
   isTraceable,
   onTraceImage,
+  canAdjustImage,
+  imageHsvPreview,
+  beginCoalescing,
+  endCoalescing,
 }) => {
   const { t } = useTranslation();
   const [simplifyValue, setSimplifyValue] = useState(0);
@@ -141,6 +151,19 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {isTraceable && <TraceImagePopover onTrace={onTraceImage} />}
+
+      {canAdjustImage && (
+        <ImageHsvPopover
+          beginPreview={imageHsvPreview.beginPreview}
+          updatePreview={imageHsvPreview.updatePreview}
+          commitPreview={imageHsvPreview.commitPreview}
+          cancelPreview={imageHsvPreview.cancelPreview}
+          beginCoalescing={beginCoalescing}
+          endCoalescing={endCoalescing}
+          buttonClassName="flex items-center justify-center h-[34px] w-[34px] rounded-lg transition-colors text-[var(--text-secondary)] hover:bg-[var(--ui-element-bg-hover)]"
+          panelClassName="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] p-4"
+        />
+      )}
 
       {canAlignOrDistribute && (
           <Popover className="relative">
