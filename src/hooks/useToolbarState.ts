@@ -214,7 +214,9 @@ export const useToolbarState = (
   const color = displayValue('color', drawingColor);
   const fill = displayValue('fill', drawingFill);
   const fillStyle = displayValue('fillStyle', drawingFillStyle);
-  const fillGradient = displayValue('fillGradient', drawingFillGradient);
+  const fillGradient = firstSelectedPath
+    ? firstSelectedPath.fillGradient ?? null
+    : drawingFillGradient;
   const strokeWidth = displayValue('strokeWidth', drawingStrokeWidth);
   const strokeLineDash = displayValue('strokeLineDash', drawingStrokeLineDash);
   const strokeLineCapStart = displayValue('strokeLineCapStart', drawingStrokeLineCapStart);
