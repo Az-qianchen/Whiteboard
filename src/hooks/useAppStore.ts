@@ -16,7 +16,7 @@ import { usePointerInteraction } from './usePointerInteraction';
 import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
-import { DEFAULT_MAIN_MENU_WIDTH, DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
+import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData } from '../types';
@@ -38,7 +38,7 @@ import { getImageDataUrl, getImagePixelData } from '@/lib/imageCache';
 import { useFilesStore } from '@/context/filesStore';
 
 import { createDocumentSignature } from '@/lib/document';
-import { layoutText } from '@/lib/text';
+import { layoutText, resolveLineHeight } from '@/lib/text';
 
 type ConfirmationDialogState = {
   isOpen: boolean;
@@ -1416,7 +1416,7 @@ export const useAppStore = () => {
           text: path.text,
           width: path.width,
           height: path.height,
-          lineHeight: path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT,
+          lineHeight: resolveLineHeight(path.fontSize, path.lineHeight),
         }
       : null;
 
@@ -1565,7 +1565,7 @@ export const useAppStore = () => {
       }
 
       const textPath = target as TextData;
-      const baseLineHeight = textPath.lineHeight || textPath.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+      const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
       const widthConstraint = textEditing.isNew ? undefined : Math.max(textPath.width, 0);
       const layout = layoutText(
         normalized,
@@ -1627,7 +1627,7 @@ export const useAppStore = () => {
         return currentPaths.filter(path => path.id !== pathId);
       }
 
-      const baseLineHeight = textPath.lineHeight || textPath.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+      const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
       const widthConstraint = isNew ? undefined : Math.max(textPath.width, 0);
       const layout = layoutText(
         normalized,

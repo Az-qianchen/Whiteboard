@@ -6,7 +6,7 @@ import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import PanelButton from '@/components/PanelButton';
-import { CONTROL_BUTTON_CLASS, DEFAULT_TEXT_LINE_HEIGHT, getTimelinePanelBottomOffset } from '@/constants';
+import { CONTROL_BUTTON_CLASS, getTimelinePanelBottomOffset } from '@/constants';
 import { Toolbar } from '../Toolbar';
 import { SelectionToolbar } from '../SelectionToolbar';
 import { ContextMenu } from '../ContextMenu';
@@ -18,7 +18,7 @@ import { CropToolbar } from '../CropToolbar';
 import type { AnyPath, MaterialData, TextData } from '@/types';
 import { ICONS } from '@/constants';
 import { getPathsBoundingBox, getPathBoundingBox } from '@/lib/drawing';
-import { layoutText } from '@/lib/text';
+import { layoutText, resolveLineHeight } from '@/lib/text';
 import {
     createTranslationMatrix,
     getShapeTransformMatrix,
@@ -335,8 +335,8 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const normalizedDraft = draft.replace(/\r/g, '');
     const baseLineHeight = useMemo(
-        () => path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT,
-        [path.lineHeight, path.fontSize],
+        () => resolveLineHeight(path.fontSize, path.lineHeight),
+        [path.fontSize, path.lineHeight],
     );
     const widthConstraint = useMemo(
         () => (!isNew && path.width > 0 ? path.width : undefined),

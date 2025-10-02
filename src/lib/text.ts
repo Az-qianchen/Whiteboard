@@ -1,5 +1,17 @@
 import { DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
 
+export const resolveLineHeight = (fontSize: number, rawLineHeight?: number): number => {
+  if (!Number.isFinite(rawLineHeight) || rawLineHeight === undefined || rawLineHeight <= 0) {
+    return fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+  }
+
+  if (rawLineHeight > 0 && rawLineHeight <= 10) {
+    return fontSize * rawLineHeight;
+  }
+
+  return rawLineHeight;
+};
+
 export interface TextMetricsResult {
   width: number;
   height: number;
@@ -73,9 +85,7 @@ export const layoutText = (
     context.font = buildFontString(fontSize, fontFamily, fontWeight);
   }
 
-  const safeLineHeight = Number.isFinite(lineHeight) && lineHeight > 0
-    ? lineHeight
-    : fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+  const safeLineHeight = resolveLineHeight(fontSize, lineHeight);
   const widthLimit = typeof maxWidth === 'number' && maxWidth > 0 ? maxWidth : undefined;
 
   const paragraphs = text.replace(/\r/g, '').split('\n');

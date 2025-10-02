@@ -1,6 +1,5 @@
 import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
-import { DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
-import { layoutText } from '@/lib/text';
+import { layoutText, resolveLineHeight } from '@/lib/text';
 
 /**
  * 缩放图形。
@@ -45,7 +44,7 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
 
       if (path.tool === 'text') {
         const textPath = path as TextData;
-        const baseLineHeight = textPath.lineHeight || textPath.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+        const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
         const targetWidth = Math.abs(scaledWidth);
         const layout = layoutText(
           textPath.text,
