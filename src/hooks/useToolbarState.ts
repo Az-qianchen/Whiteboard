@@ -143,6 +143,13 @@ export const useToolbarState = (
     }
   };
 
+  const syncDrawingGradient = (gradient: GradientFill | null) => {
+    setDrawingFillGradient(gradient);
+    if (gradient && gradient.stops.length > 0) {
+      setDrawingFill(gradient.stops[0].color);
+    }
+  };
+
   const setFillGradient = (gradient: GradientFill | null) => {
     if (firstSelectedPath) {
       updateSelectedPaths(() => {
@@ -152,11 +159,9 @@ export const useToolbarState = (
         }
         return updates;
       });
+      syncDrawingGradient(gradient);
     } else {
-      setDrawingFillGradient(gradient);
-      if (gradient && gradient.stops.length > 0) {
-        setDrawingFill(gradient.stops[0].color);
-      }
+      syncDrawingGradient(gradient);
     }
   };
   const setFillStyle = simpleSetter('fillStyle', setDrawingFillStyle);
