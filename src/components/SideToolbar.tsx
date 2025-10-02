@@ -120,6 +120,9 @@ export const SideToolbar: React.FC<SideToolbarProps> = (props) => {
       if (firstSelectedPath.tool === 'brush') {
         return true;
       }
+      if (firstSelectedPath.tool === 'arc') {
+        return true;
+      }
       return false;
     }
     return ['pen', 'line', 'brush', 'arc'].includes(tool);
