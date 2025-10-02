@@ -5,8 +5,8 @@ import type { RoughSVG } from 'roughjs/bin/svg';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, ImageData, BrushPathData, PolygonData, ArcData, GroupData, FrameData, GradientFill } from '@/types';
 import { createSmoothPathNode } from '../smooth/path';
 import { renderRoughVectorPath } from '../rough/path';
+import { renderRoughArcPath } from '../rough/arc';
 import { renderImage, renderRoughShape } from '../rough/shapes';
-import { sampleArc } from '@/lib/drawing/arc';
 import { createEffectsFilter } from './effects';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
 import { getLinearGradientCoordinates, getRadialGradientAttributes, gradientStopColor } from '@/lib/gradient';
@@ -206,23 +206,19 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                     node = rc.curve(points, options);
                 }
             } else if (data.tool === 'arc') {
-                const arcData = data as ArcData;
-                const points = sampleArc(arcData.points[0], arcData.points[1], arcData.points[2], 50).map(p => [p.x, p.y] as [number, number]);
-                if (points.length > 0) {
-                    options.curveStepCount = 1; // Don't double-smooth
-                    options.curveTightness = 0;
-                    node = rc.curve(points, options);
-                }
+                const result = renderRoughArcPath(rc, data as ArcData, options);
+                node = result.node;
+                capNodes.push(...result.capNodes);
             } else if (data.tool === 'ellipse' || data.tool === 'rectangle' || data.tool === 'polygon' || data.tool === 'frame') {
                 node = renderRoughShape(rc, data as RectangleData | EllipseData | PolygonData | FrameData, options);
             }
         }
-    
+
     if (!node) return null;
 
-    const pathIsVector = data.tool === 'pen' || data.tool === 'line';
-    
-    if (!pathIsVector) {
+    const pathSupportsCustomCaps = data.tool === 'pen' || data.tool === 'line' || data.tool === 'arc';
+
+    if (!pathSupportsCustomCaps) {
         const applyStyles = (el: SVGElement) => {
             if (el.tagName === 'path') {
                 const joinStyle = data.strokeLineJoin ?? 'round';
