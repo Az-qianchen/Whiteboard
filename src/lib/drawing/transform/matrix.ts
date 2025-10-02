@@ -83,6 +83,9 @@ export const invertMatrix = (matrix: TransformMatrix): TransformMatrix => {
 export const matrixToString = (matrix: TransformMatrix): string =>
   `matrix(${matrix.a} ${matrix.b} ${matrix.c} ${matrix.d} ${matrix.e} ${matrix.f})`;
 
+export const matrixToCssString = (matrix: TransformMatrix): string =>
+  `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, ${matrix.e}, ${matrix.f})`;
+
 type TransformableShape =
   | RectangleData
   | EllipseData

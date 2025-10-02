@@ -22,7 +22,7 @@ import { layoutText } from '@/lib/text';
 import {
     createTranslationMatrix,
     getShapeTransformMatrix,
-    matrixToString,
+    matrixToCssString,
     multiplyMatrices,
 } from '@/lib/drawing/transform/matrix';
 
@@ -410,7 +410,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         const shapeMatrix = getShapeTransformMatrix(path);
         const localMatrix = multiplyMatrices(shapeMatrix, translation);
         const combined = multiplyMatrices(viewMatrix, localMatrix);
-        return matrixToString(combined);
+        return matrixToCssString(combined);
     }, [
         viewTransform.scale,
         viewTransform.translateX,
