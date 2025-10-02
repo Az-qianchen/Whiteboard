@@ -116,6 +116,9 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
                 const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
                 clipPath.setAttribute('id', clipId);
+                // 使用 userSpaceOnUse，确保剪裁路径不受被遮罩内容的包围盒影响，
+                // 以便在应用旋转或缩放时依然与遮罩图形对齐。
+                clipPath.setAttribute('clipPathUnits', 'userSpaceOnUse');
 
                 const maskShape = groupData.children[groupData.children.length - 1];
                 
