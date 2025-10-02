@@ -392,8 +392,10 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         return () => window.removeEventListener('keydown', handleKey);
     }, [onCancel, onCommit]);
 
-    const width = Math.max(layout.width, 1);
-    const height = Math.max(layout.height, 1);
+    const draftWidth = !isNew && path.width > 0 ? path.width : layout.width;
+    const draftHeight = !isNew && path.height > 0 ? path.height : layout.height;
+    const width = Math.max(draftWidth, 1);
+    const height = Math.max(draftHeight, 1);
 
     const transform = useMemo(() => {
         const viewMatrix = {
@@ -472,6 +474,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
                     spellCheck={false}
                     className="h-full w-full resize-none overflow-auto border-none bg-transparent p-0 focus:outline-none"
                     style={{
+                        boxSizing: 'border-box',
                         color: path.color,
                         fontSize: `${path.fontSize}px`,
                         lineHeight: `${layout.lineHeight}px`,
