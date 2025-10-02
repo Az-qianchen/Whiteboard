@@ -215,6 +215,20 @@ type CropManualDraft =
       brushSize: number;
     };
 
+interface TextEditingSnapshot {
+  text: string;
+  width: number;
+  height: number;
+  lineHeight: number;
+}
+
+interface TextEditingState {
+  pathId: string;
+  draft: string;
+  isNew: boolean;
+  original: TextEditingSnapshot | null;
+}
+
 interface AppState {
   contextMenu: { isOpen: boolean; x: number; y: number; worldX: number; worldY: number } | null;
   styleClipboard: StyleClipboardData | null;
@@ -236,7 +250,7 @@ interface AppState {
   cropManualDraft: CropManualDraft | null;
   hasUnsavedChanges: boolean;
   lastSavedDocumentSignature: string | null;
-  textEditing: { pathId: string; draft: string; isNew: boolean } | null;
+  textEditing: TextEditingState | null;
 }
 
 // --- Initial State Loaders ---
@@ -1397,9 +1411,18 @@ export const useAppStore = () => {
   const beginTextEditing = useCallback((pathId: string, options?: { isNew?: boolean }) => {
     const path = paths.find((p): p is TextData => p.id === pathId && p.tool === 'text');
     const draft = path?.text ?? '';
+    const original: TextEditingSnapshot | null = path
+      ? {
+          text: path.text,
+          width: path.width,
+          height: path.height,
+          lineHeight: path.lineHeight || path.fontSize * DEFAULT_TEXT_LINE_HEIGHT,
+        }
+      : null;
+
     setAppState(prev => ({
       ...prev,
-      textEditing: { pathId, draft, isNew: options?.isNew ?? false },
+      textEditing: { pathId, draft, isNew: options?.isNew ?? false, original },
     }));
   }, [paths, setAppState]);
 
@@ -1523,7 +1546,60 @@ export const useAppStore = () => {
       }
       return { ...prev, textEditing: { ...prev.textEditing, draft } };
     });
-  }, [setAppState]);
+
+    if (!textEditing) {
+      return;
+    }
+
+    const normalized = draft.replace(/\r/g, '');
+
+    setPaths(currentPaths => {
+      const index = currentPaths.findIndex(path => path.id === textEditing.pathId);
+      if (index === -1) {
+        return currentPaths;
+      }
+
+      const target = currentPaths[index];
+      if (target.tool !== 'text') {
+        return currentPaths;
+      }
+
+      const textPath = target as TextData;
+      const baseLineHeight = textPath.lineHeight || textPath.fontSize * DEFAULT_TEXT_LINE_HEIGHT;
+      const widthConstraint = textEditing.isNew ? undefined : Math.max(textPath.width, 0);
+      const layout = layoutText(
+        normalized,
+        textPath.fontSize,
+        textPath.fontFamily,
+        baseLineHeight,
+        textPath.fontWeight,
+        widthConstraint,
+      );
+
+      const nextWidth = textEditing.isNew ? layout.width : textPath.width;
+      const nextHeight = layout.height;
+      const nextLineHeight = layout.lineHeight;
+
+      if (
+        textPath.width === nextWidth &&
+        textPath.height === nextHeight &&
+        textPath.lineHeight === nextLineHeight
+      ) {
+        return currentPaths;
+      }
+
+      const updated: TextData = {
+        ...textPath,
+        width: nextWidth,
+        height: nextHeight,
+        lineHeight: nextLineHeight,
+      };
+
+      const nextPaths = [...currentPaths];
+      nextPaths[index] = updated;
+      return nextPaths;
+    });
+  }, [setAppState, textEditing, setPaths]);
 
   const commitTextEditing = useCallback(() => {
     if (!textEditing) {
@@ -1589,6 +1665,30 @@ export const useAppStore = () => {
     if (textEditing.isNew) {
       setPaths(currentPaths => currentPaths.filter(path => path.id !== textEditing.pathId));
       setSelectedPathIds(ids => ids.filter(id => id !== textEditing.pathId));
+    } else if (textEditing.original) {
+      setPaths(currentPaths => {
+        const index = currentPaths.findIndex(path => path.id === textEditing.pathId);
+        if (index === -1) {
+          return currentPaths;
+        }
+
+        const target = currentPaths[index];
+        if (target.tool !== 'text') {
+          return currentPaths;
+        }
+
+        const restored: TextData = {
+          ...(target as TextData),
+          text: textEditing.original.text,
+          width: textEditing.original.width,
+          height: textEditing.original.height,
+          lineHeight: textEditing.original.lineHeight,
+        };
+
+        const nextPaths = [...currentPaths];
+        nextPaths[index] = restored;
+        return nextPaths;
+      });
     }
 
     setAppState(prev => ({ ...prev, textEditing: null }));
