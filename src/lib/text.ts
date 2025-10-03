@@ -31,9 +31,47 @@ export interface TextLayoutResult extends TextMetricsResult {
 const MIN_WIDTH_FACTOR = 0.6;
 const MIN_HEIGHT_FACTOR = 1;
 
+interface GlyphMetrics {
+  ascent: number;
+  descent: number;
+  height: number;
+}
+
 const getFallbackWidth = (text: string, fontSize: number): number => {
   const safeLength = text.length > 0 ? text.length : 1;
   return safeLength * fontSize * MIN_WIDTH_FACTOR;
+};
+
+const measureGlyphMetrics = (
+  context: CanvasRenderingContext2D | null,
+  fontSize: number,
+): GlyphMetrics => {
+  if (!context) {
+    return {
+      ascent: fontSize,
+      descent: 0,
+      height: fontSize,
+    };
+  }
+
+  const metrics = context.measureText('Mg');
+  const ascent = Number.isFinite(metrics.actualBoundingBoxAscent)
+    ? metrics.actualBoundingBoxAscent
+    : fontSize;
+  const descent = Number.isFinite(metrics.actualBoundingBoxDescent)
+    ? metrics.actualBoundingBoxDescent
+    : 0;
+  const height = ascent + descent;
+
+  if (height > 0) {
+    return { ascent, descent, height };
+  }
+
+  return {
+    ascent: fontSize,
+    descent: 0,
+    height: fontSize,
+  };
 };
 
 const ensureContext = (): CanvasRenderingContext2D | null => {
@@ -93,7 +131,9 @@ export const layoutText = (
 
   const safeLineHeight = resolveLineHeight(fontSize, lineHeight);
   const widthLimit = typeof maxWidth === 'number' && maxWidth > 0 ? maxWidth : undefined;
-  const extraLeading = Math.max(safeLineHeight - fontSize, 0);
+  const glyphMetrics = measureGlyphMetrics(context, fontSize);
+  const glyphHeight = glyphMetrics.height;
+  const extraLeading = Math.max(safeLineHeight - glyphHeight, 0);
   const leadingTop = extraLeading > 0 ? extraLeading / 2 : 0;
   const leadingBottom = extraLeading > 0 ? extraLeading - leadingTop : 0;
 
