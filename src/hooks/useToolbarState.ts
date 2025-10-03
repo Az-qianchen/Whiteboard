@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
@@ -143,12 +143,15 @@ export const useToolbarState = (
     }
   };
 
-  const syncDrawingGradient = (gradient: GradientFill | null) => {
-    setDrawingFillGradient(gradient);
-    if (gradient && gradient.stops.length > 0) {
-      setDrawingFill(gradient.stops[0].color);
-    }
-  };
+  const syncDrawingGradient = useCallback(
+    (gradient: GradientFill | null) => {
+      setDrawingFillGradient(gradient);
+      if (gradient && gradient.stops.length > 0) {
+        setDrawingFill(gradient.stops[0].color);
+      }
+    },
+    [setDrawingFillGradient, setDrawingFill],
+  );
 
   const setFillGradient = (gradient: GradientFill | null) => {
     if (firstSelectedPath) {
@@ -304,6 +307,22 @@ export const useToolbarState = (
     setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
   ]);
 
+  const mirroredSelectedGradientRef = useRef<GradientFill | null>(null);
+
+  useEffect(() => {
+    if (!firstSelectedPath?.fillGradient) {
+      mirroredSelectedGradientRef.current = null;
+      return;
+    }
+
+    if (mirroredSelectedGradientRef.current === firstSelectedPath.fillGradient) {
+      return;
+    }
+
+    mirroredSelectedGradientRef.current = firstSelectedPath.fillGradient;
+    syncDrawingGradient(firstSelectedPath.fillGradient);
+  }, [firstSelectedPath, syncDrawingGradient]);
+
   return {
     tool, setTool,
     selectionMode, setSelectionMode,
@@ -343,4 +362,3 @@ export const useToolbarState = (
     resetState,
   };
 };
-

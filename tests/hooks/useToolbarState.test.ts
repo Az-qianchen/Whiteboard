@@ -241,6 +241,31 @@ describe('useToolbarState', () => {
     expect(result.current.fillGradient?.type).toBe('radial');
   });
 
+  it('mirrors a selected gradient onto the drawing defaults when selecting without editing', () => {
+    const gradient = createDefaultRadialGradient('#22AAFF');
+
+    const gradientRectangle: RectangleData = {
+      ...structuredClone(rectangleBase),
+      id: 'rect-gradient',
+      fill: gradient.stops[0].color,
+      fillGradient: gradient,
+    } as RectangleData;
+
+    currentPaths = [gradientRectangle];
+    currentSelectedIds = ['rect-gradient'];
+
+    const { result, rerender } = render({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
+    expect(drawingFillGradientSetter).toHaveBeenCalledWith(gradient);
+    expect(drawingFillSetter).toHaveBeenCalledWith(gradient.stops[0].color);
+
+    currentSelectedIds = [];
+    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
+  });
+
   it('persists the selected gradient type when deselecting after applying it to a shape', () => {
     const gradient = createDefaultRadialGradient('#00FF00');
 
