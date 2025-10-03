@@ -116,26 +116,57 @@ export function renderPathNode(rc: RoughSVG, data: AnyPath): SVGElement | null {
                 const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
                 const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
                 clipPath.setAttribute('id', clipId);
+                // 使用 userSpaceOnUse，确保剪裁路径不受被遮罩内容的包围盒影响，
+                // 以便在应用旋转或缩放时依然与遮罩图形对齐。
+                clipPath.setAttribute('clipPathUnits', 'userSpaceOnUse');
 
                 const maskShape = groupData.children[groupData.children.length - 1];
-                
+
                 // 为可靠的剪裁创建一个干净、非手绘、实心填充的遮罩形状版本。
                 // 在 clipPath 内部会忽略样式和手绘效果，
                 // 但这能确保我们生成一个简单的单一几何元素。
                 const clipShape = {
                     ...maskShape,
+                    id: `${maskShape.id}-clip`,
                     color: 'transparent', // 无描边
-                    fill: '#000',          // 实心填充
+                    fill: '#000', // 实心填充
                     fillStyle: 'solid',
-                    isRough: false,        // 非手绘
+                    fillGradient: null,
+                    isRough: false, // 非手绘
+                    opacity: 1,
                     // 重置效果
                     blur: 0,
                     shadowEnabled: false,
-                };
+                } as AnyPath;
+
+                let clipTransform: string | null = null;
+
+                if (
+                    clipShape.tool === 'rectangle' ||
+                    clipShape.tool === 'ellipse' ||
+                    clipShape.tool === 'polygon' ||
+                    clipShape.tool === 'frame' ||
+                    clipShape.tool === 'image'
+                ) {
+                    const matrix = getShapeTransformMatrix(clipShape as RectangleData | EllipseData | PolygonData | FrameData | ImageData);
+                    if (!isIdentityMatrix(matrix)) {
+                        clipTransform = matrixToString(matrix);
+                        const transformable = clipShape as RectangleData | EllipseData | PolygonData | FrameData | ImageData;
+                        transformable.rotation = 0;
+                        transformable.scaleX = 1;
+                        transformable.scaleY = 1;
+                        transformable.skewX = 0;
+                        transformable.skewY = 0;
+                    }
+                }
 
                 const maskNode = renderPathNode(rc, clipShape);
 
                 if (maskNode) {
+                    if (clipTransform) {
+                        clipPath.setAttribute('transform', clipTransform);
+                        maskNode.removeAttribute('transform');
+                    }
                     clipPath.appendChild(maskNode);
                 }
                 defs.appendChild(clipPath);
