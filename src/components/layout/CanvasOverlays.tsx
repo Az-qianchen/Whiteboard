@@ -395,6 +395,42 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     const draftWidth = !isNew && path.width > 0 ? path.width : layout.width;
     const width = Math.max(draftWidth, layout.width, 1);
     const height = Math.max(path.height, layout.height, 1);
+    const leadingTop = layout.leading.top;
+    const leadingBottom = layout.leading.bottom;
+    const verticalExtra = leadingTop + leadingBottom;
+
+    const textareaInlineStyle = useMemo<React.CSSProperties>(() => {
+        const style: React.CSSProperties = {
+            boxSizing: 'border-box',
+            color: path.color,
+            fontSize: `${path.fontSize}px`,
+            lineHeight: `${layout.lineHeight}px`,
+            fontFamily: path.fontFamily,
+            fontWeight: path.fontWeight ?? 400,
+            textAlign: path.textAlign as React.CSSProperties['textAlign'],
+            caretColor: path.color,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+        };
+
+        if (verticalExtra > 0.0001) {
+            const formatPx = (value: number) => `${Math.round(value * 1000) / 1000}px`;
+            style.height = `calc(100% + ${formatPx(verticalExtra)})`;
+            style.transform = `translateY(-${formatPx(leadingTop)})`;
+            style.transformOrigin = '0 0';
+        }
+
+        return style;
+    }, [
+        path.color,
+        path.fontFamily,
+        path.fontSize,
+        path.fontWeight,
+        path.textAlign,
+        layout.lineHeight,
+        leadingTop,
+        verticalExtra,
+    ]);
 
     const transform = useMemo(() => {
         const viewMatrix = {
@@ -472,18 +508,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
                     onWheel={handleWheel}
                     spellCheck={false}
                     className="h-full w-full resize-none overflow-hidden border-none bg-transparent p-0 focus:outline-none"
-                    style={{
-                        boxSizing: 'border-box',
-                        color: path.color,
-                        fontSize: `${path.fontSize}px`,
-                        lineHeight: `${layout.lineHeight}px`,
-                        fontFamily: path.fontFamily,
-                        fontWeight: path.fontWeight ?? 400,
-                        textAlign: path.textAlign as React.CSSProperties['textAlign'],
-                        caretColor: path.color,
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                    }}
+                    style={textareaInlineStyle}
                 />
             </div>
         </div>

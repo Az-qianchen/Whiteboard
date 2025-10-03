@@ -12,10 +12,16 @@ export const resolveLineHeight = (fontSize: number, rawLineHeight?: number): num
   return rawLineHeight;
 };
 
+export interface TextLeading {
+  top: number;
+  bottom: number;
+}
+
 export interface TextMetricsResult {
   width: number;
   height: number;
   lineHeight: number;
+  leading: TextLeading;
 }
 
 export interface TextLayoutResult extends TextMetricsResult {
@@ -43,6 +49,51 @@ const ensureContext = (): CanvasRenderingContext2D | null => {
     (ensureContext as any).context = context ?? null;
   }
   return context ?? null;
+};
+
+const DEFAULT_ASCENT_RATIO = 0.8;
+
+const getFallbackMetrics = (fontSize: number) => {
+  const ascent = fontSize * DEFAULT_ASCENT_RATIO;
+  return {
+    ascent,
+    descent: Math.max(fontSize - ascent, 0),
+  };
+};
+
+const measureGlyphMetrics = (
+  context: CanvasRenderingContext2D | null,
+  fontSize: number,
+): { ascent: number; descent: number } => {
+  const fallback = getFallbackMetrics(fontSize);
+  if (!context) {
+    return fallback;
+  }
+
+  const sample = context.measureText('Hg');
+  const rawAscent =
+    (Number.isFinite(sample.actualBoundingBoxAscent)
+      ? sample.actualBoundingBoxAscent
+      : undefined) ??
+    (Number.isFinite(sample.fontBoundingBoxAscent)
+      ? sample.fontBoundingBoxAscent
+      : undefined);
+  const rawDescent =
+    (Number.isFinite(sample.actualBoundingBoxDescent)
+      ? sample.actualBoundingBoxDescent
+      : undefined) ??
+    (Number.isFinite(sample.fontBoundingBoxDescent)
+      ? sample.fontBoundingBoxDescent
+      : undefined);
+
+  const ascent = rawAscent !== undefined ? Math.max(rawAscent, 0) : fallback.ascent;
+  const descent = rawDescent !== undefined ? Math.max(rawDescent, 0) : fallback.descent;
+
+  if (ascent + descent <= 0) {
+    return fallback;
+  }
+
+  return { ascent, descent };
 };
 
 const measureLineWidth = (
@@ -87,6 +138,11 @@ export const layoutText = (
 
   const safeLineHeight = resolveLineHeight(fontSize, lineHeight);
   const widthLimit = typeof maxWidth === 'number' && maxWidth > 0 ? maxWidth : undefined;
+  const glyphMetrics = measureGlyphMetrics(context, fontSize);
+  const glyphHeight = glyphMetrics.ascent + glyphMetrics.descent;
+  const extraLeading = Math.max(safeLineHeight - glyphHeight, 0);
+  const leadingTop = extraLeading > 0 ? extraLeading / 2 : 0;
+  const leadingBottom = extraLeading > 0 ? extraLeading - leadingTop : 0;
 
   const paragraphs = text.replace(/\r/g, '').split('\n');
   const safeParagraphs = paragraphs.length > 0 ? paragraphs : [''];
@@ -167,6 +223,10 @@ export const layoutText = (
     width: effectiveWidth,
     height: effectiveHeight,
     lineHeight: safeLineHeight,
+    leading: {
+      top: leadingTop,
+      bottom: leadingBottom,
+    },
   };
 };
 
@@ -182,5 +242,6 @@ export const measureTextMetrics = (
     width: layout.width,
     height: layout.height,
     lineHeight: layout.lineHeight,
+    leading: layout.leading,
   };
 };
