@@ -3,7 +3,8 @@ import { renderHook, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useToolbarState } from '@/hooks/useToolbarState';
 import { COLORS, DEFAULT_BOWING, DEFAULT_CURVE_STEP_COUNT, DEFAULT_CURVE_TIGHTNESS, DEFAULT_DISABLE_MULTI_STROKE, DEFAULT_DISABLE_MULTI_STROKE_FILL, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_PRESERVE_VERTICES, DEFAULT_ROUGHNESS } from '@/constants';
-import type { AnyPath, RectangleData } from '@/types';
+import { createDefaultRadialGradient } from '@/lib/gradient';
+import type { AnyPath, GradientFill, RectangleData } from '@/types';
 import type { Dispatch, SetStateAction } from 'react';
 
 const drawingColorSetter = vi.fn();
@@ -37,10 +38,18 @@ const drawingShadowOffsetYSetter = vi.fn();
 const drawingShadowBlurSetter = vi.fn();
 const drawingShadowColorSetter = vi.fn();
 
+let drawingFillGradientValue: GradientFill | null = null;
+
 vi.mock('@/hooks/toolbar-state/property-hooks', () => ({
   useDrawingColor: () => ({ drawingColor: '#222222', setDrawingColor: drawingColorSetter }),
   useDrawingFill: () => ({ drawingFill: 'transparent', setDrawingFill: drawingFillSetter }),
-  useDrawingFillGradient: () => ({ drawingFillGradient: null, setDrawingFillGradient: drawingFillGradientSetter }),
+  useDrawingFillGradient: () => ({
+    drawingFillGradient: drawingFillGradientValue,
+    setDrawingFillGradient: (value: GradientFill | null) => {
+      drawingFillGradientSetter(value);
+      drawingFillGradientValue = value;
+    },
+  }),
   useDrawingFillStyle: () => ({ drawingFillStyle: 'hachure', setDrawingFillStyle: drawingFillStyleSetter }),
   useDrawingStrokeWidth: () => ({ drawingStrokeWidth: 0, setDrawingStrokeWidth: drawingStrokeWidthSetter }),
   useDrawingOpacity: () => ({ drawingOpacity: 1, setDrawingOpacity: drawingOpacitySetter }),
@@ -176,6 +185,7 @@ describe('useToolbarState', () => {
     currentSelectedIds = [];
     currentTool = 'brush';
     currentSelectionMode = 'move';
+    drawingFillGradientValue = null;
     setterMocks.forEach(mock => mock.mockReset());
     setToolMock.mockReset();
     setSelectionModeMock.mockReset();
@@ -203,6 +213,89 @@ describe('useToolbarState', () => {
     expect(drawingColorSetter).not.toHaveBeenCalled();
     expect(drawingStrokeWidthSetter).not.toHaveBeenCalled();
     expect(result.current.color).toBe('#FF0000');
+  });
+
+  it('restores the drawing gradient when deselecting a solid-filled shape', () => {
+    drawingFillGradientValue = createDefaultRadialGradient('#FF0000');
+
+    const { result, rerender } = render({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
+
+    const solidRectangle: RectangleData = {
+      ...structuredClone(rectangleBase),
+      id: 'rect-solid',
+      fill: '#123456',
+      fillGradient: null,
+    } as RectangleData;
+
+    currentPaths = [solidRectangle];
+    currentSelectedIds = ['rect-solid'];
+    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient).toBeNull();
+
+    currentSelectedIds = [];
+    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
+  });
+
+  it('mirrors a selected gradient onto the drawing defaults when selecting without editing', () => {
+    const gradient = createDefaultRadialGradient('#22AAFF');
+
+    const gradientRectangle: RectangleData = {
+      ...structuredClone(rectangleBase),
+      id: 'rect-gradient',
+      fill: gradient.stops[0].color,
+      fillGradient: gradient,
+    } as RectangleData;
+
+    currentPaths = [gradientRectangle];
+    currentSelectedIds = ['rect-gradient'];
+
+    const { result, rerender } = render({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
+    expect(drawingFillGradientSetter).toHaveBeenCalledWith(gradient);
+    expect(drawingFillSetter).toHaveBeenCalledWith(gradient.stops[0].color);
+    expect(drawingFillStyleSetter).toHaveBeenCalledWith('solid');
+
+    currentSelectedIds = [];
+    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
+  });
+
+  it('persists the selected gradient type when deselecting after applying it to a shape', () => {
+    const gradient = createDefaultRadialGradient('#00FF00');
+
+    const gradientRectangle: RectangleData = {
+      ...structuredClone(rectangleBase),
+      id: 'rect-gradient',
+      fill: '#FFFFFF',
+      fillGradient: null,
+    } as RectangleData;
+
+    currentPaths = [gradientRectangle];
+    currentSelectedIds = ['rect-gradient'];
+
+    const { result, rerender } = render({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    act(() => {
+      result.current.setFillGradient(gradient);
+    });
+
+    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect((currentPaths[0] as RectangleData).fillGradient?.type).toBe('radial');
+    expect(drawingFillGradientValue?.type).toBe('radial');
+    expect(drawingFillStyleSetter).toHaveBeenCalledWith('solid');
+
+    currentSelectedIds = [];
+    rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
+
+    expect(result.current.fillGradient?.type).toBe('radial');
   });
 
   it('falls back to drawing defaults when no path is selected', () => {

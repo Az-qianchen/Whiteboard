@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 import type { AnyPath, ImageData, RectangleData, PolygonData, GroupData, VectorPathData, GradientFill } from '../types';
 import { useToolManagement } from './toolbar-state/useToolManagement';
 import { usePathActions } from './toolbar-state/usePathActions';
@@ -143,6 +143,17 @@ export const useToolbarState = (
     }
   };
 
+  const syncDrawingGradient = useCallback(
+    (gradient: GradientFill | null) => {
+      setDrawingFillGradient(gradient);
+      if (gradient && gradient.stops.length > 0) {
+        setDrawingFill(gradient.stops[0].color);
+        setDrawingFillStyle('solid');
+      }
+    },
+    [setDrawingFillGradient, setDrawingFill, setDrawingFillStyle],
+  );
+
   const setFillGradient = (gradient: GradientFill | null) => {
     if (firstSelectedPath) {
       updateSelectedPaths(() => {
@@ -152,11 +163,9 @@ export const useToolbarState = (
         }
         return updates;
       });
+      syncDrawingGradient(gradient);
     } else {
-      setDrawingFillGradient(gradient);
-      if (gradient && gradient.stops.length > 0) {
-        setDrawingFill(gradient.stops[0].color);
-      }
+      syncDrawingGradient(gradient);
     }
   };
   const setFillStyle = simpleSetter('fillStyle', setDrawingFillStyle);
@@ -214,7 +223,9 @@ export const useToolbarState = (
   const color = displayValue('color', drawingColor);
   const fill = displayValue('fill', drawingFill);
   const fillStyle = displayValue('fillStyle', drawingFillStyle);
-  const fillGradient = displayValue('fillGradient', drawingFillGradient);
+  const fillGradient = firstSelectedPath
+    ? firstSelectedPath.fillGradient ?? null
+    : drawingFillGradient;
   const strokeWidth = displayValue('strokeWidth', drawingStrokeWidth);
   const strokeLineDash = displayValue('strokeLineDash', drawingStrokeLineDash);
   const strokeLineCapStart = displayValue('strokeLineCapStart', drawingStrokeLineCapStart);
@@ -297,6 +308,22 @@ export const useToolbarState = (
     setDrawingShadowOffsetY, setDrawingShadowBlur, setDrawingShadowColor, setTool
   ]);
 
+  const mirroredSelectedGradientRef = useRef<GradientFill | null>(null);
+
+  useEffect(() => {
+    if (!firstSelectedPath?.fillGradient) {
+      mirroredSelectedGradientRef.current = null;
+      return;
+    }
+
+    if (mirroredSelectedGradientRef.current === firstSelectedPath.fillGradient) {
+      return;
+    }
+
+    mirroredSelectedGradientRef.current = firstSelectedPath.fillGradient;
+    syncDrawingGradient(firstSelectedPath.fillGradient);
+  }, [firstSelectedPath, syncDrawingGradient]);
+
   return {
     tool, setTool,
     selectionMode, setSelectionMode,
@@ -336,4 +363,3 @@ export const useToolbarState = (
     resetState,
   };
 };
-
