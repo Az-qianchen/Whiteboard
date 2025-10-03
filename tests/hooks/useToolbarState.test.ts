@@ -259,6 +259,7 @@ describe('useToolbarState', () => {
     expect(result.current.fillGradient?.type).toBe('radial');
     expect(drawingFillGradientSetter).toHaveBeenCalledWith(gradient);
     expect(drawingFillSetter).toHaveBeenCalledWith(gradient.stops[0].color);
+    expect(drawingFillStyleSetter).toHaveBeenCalledWith('solid');
 
     currentSelectedIds = [];
     rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });
@@ -289,6 +290,7 @@ describe('useToolbarState', () => {
 
     expect((currentPaths[0] as RectangleData).fillGradient?.type).toBe('radial');
     expect(drawingFillGradientValue?.type).toBe('radial');
+    expect(drawingFillStyleSetter).toHaveBeenCalledWith('solid');
 
     currentSelectedIds = [];
     rerender({ paths: currentPaths, selectedPathIds: currentSelectedIds });

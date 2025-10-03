@@ -148,9 +148,10 @@ export const useToolbarState = (
       setDrawingFillGradient(gradient);
       if (gradient && gradient.stops.length > 0) {
         setDrawingFill(gradient.stops[0].color);
+        setDrawingFillStyle('solid');
       }
     },
-    [setDrawingFillGradient, setDrawingFill],
+    [setDrawingFillGradient, setDrawingFill, setDrawingFillStyle],
   );
 
   const setFillGradient = (gradient: GradientFill | null) => {
