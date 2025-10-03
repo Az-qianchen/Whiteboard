@@ -45,6 +45,7 @@ const useGlobalEventHandlers = () => {
     croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
     textEditing,
+    commitTextEditing,
     cancelTextEditing,
   } = useAppContext();
 
@@ -326,7 +327,7 @@ const useGlobalEventHandlers = () => {
       if (textEditing) {
         if (handler.key === 'escape') {
           event.preventDefault();
-          cancelTextEditing();
+          commitTextEditing();
         }
         return;
       }

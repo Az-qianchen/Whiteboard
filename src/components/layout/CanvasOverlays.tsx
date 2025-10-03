@@ -155,10 +155,9 @@ export const CanvasOverlays: React.FC = () => {
                 viewTransform={camera}
                 onChange={updateTextEditing}
                 onCommit={commitTextEditing}
-                onCancel={cancelTextEditing}
             />
         );
-    }, [textEditing, activeTextPath, camera, updateTextEditing, commitTextEditing, cancelTextEditing]);
+    }, [textEditing, activeTextPath, camera, updateTextEditing, commitTextEditing]);
 
     /**
      * 构建上下文菜单的操作列表。
@@ -320,7 +319,6 @@ interface TextEditorOverlayProps {
     viewTransform: { scale: number; translateX: number; translateY: number };
     onChange: (value: string) => void;
     onCommit: () => void;
-    onCancel: () => void;
 }
 
 const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
@@ -330,7 +328,6 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     viewTransform,
     onChange,
     onCommit,
-    onCancel,
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const normalizedDraft = draft.replace(/\r/g, '');
@@ -370,7 +367,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         const handleKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                onCancel();
+                onCommit();
                 return;
             }
 
@@ -390,7 +387,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
 
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [onCancel, onCommit]);
+    }, [onCommit]);
 
     const draftWidth = !isNew && path.width > 0 ? path.width : layout.width;
     const width = Math.max(draftWidth, layout.width, 1);
@@ -473,7 +470,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         }
         if (event.key === 'Escape') {
             event.preventDefault();
-            onCancel();
+            onCommit();
         }
     };
 
