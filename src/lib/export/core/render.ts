@@ -95,13 +95,22 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
     const defs = document.createElementNS(SVG_NS, 'defs');
     group.appendChild(defs);
 
+    const layout = layoutText(
+      data.text,
+      data.fontSize,
+      data.fontFamily,
+      data.lineHeight,
+      data.fontWeight,
+      data.width,
+    );
     const textElement = document.createElementNS(SVG_NS, 'text');
     const align = data.textAlign ?? 'left';
     const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
     const xBase = align === 'center' ? data.x + data.width / 2 : align === 'right' ? data.x + data.width : data.x;
+    const yBase = data.y + layout.leading.top;
 
     textElement.setAttribute('x', xBase.toString());
-    textElement.setAttribute('y', data.y.toString());
+    textElement.setAttribute('y', yBase.toString());
     textElement.setAttribute('text-anchor', anchor);
     textElement.setAttribute('dominant-baseline', 'hanging');
     textElement.setAttribute('xml:space', 'preserve');
@@ -112,14 +121,6 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
     }
     textElement.setAttribute('fill', data.color ?? '#000');
 
-    const layout = layoutText(
-      data.text,
-      data.fontSize,
-      data.fontFamily,
-      data.lineHeight,
-      data.fontWeight,
-      data.width,
-    );
     const lines = layout.lines.length > 0 ? layout.lines : [''];
     lines.forEach((line, index) => {
         const tspan = document.createElementNS(SVG_NS, 'tspan');

@@ -394,7 +394,6 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     const height = Math.max(path.height, layout.height, 1);
     const leadingTop = layout.leading.top;
     const leadingBottom = layout.leading.bottom;
-    const verticalExtra = leadingTop + leadingBottom;
 
     const textareaInlineStyle = useMemo<React.CSSProperties>(() => {
         const style: React.CSSProperties = {
@@ -410,11 +409,14 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
             wordBreak: 'break-word',
         };
 
-        if (verticalExtra > 0.0001) {
-            const formatPx = (value: number) => `${Math.round(value * 1000) / 1000}px`;
-            style.height = `calc(100% + ${formatPx(verticalExtra)})`;
-            style.transform = `translateY(-${formatPx(leadingTop)})`;
-            style.transformOrigin = '0 0';
+        const formatPx = (value: number) => `${Math.round(value * 1000) / 1000}px`;
+
+        if (leadingTop > 0.0001) {
+            style.paddingTop = formatPx(leadingTop);
+        }
+
+        if (leadingBottom > 0.0001) {
+            style.paddingBottom = formatPx(leadingBottom);
         }
 
         return style;
@@ -426,7 +428,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         path.textAlign,
         layout.lineHeight,
         leadingTop,
-        verticalExtra,
+        leadingBottom,
     ]);
 
     const transform = useMemo(() => {

@@ -51,36 +51,6 @@ const ensureContext = (): CanvasRenderingContext2D | null => {
   return context ?? null;
 };
 
-interface GlyphMetrics {
-  ascent: number;
-  descent: number;
-  height: number;
-}
-
-const measureGlyphMetrics = (
-  context: CanvasRenderingContext2D | null,
-  fontSize: number,
-): GlyphMetrics => {
-  if (context) {
-    const metrics = context.measureText('Hg');
-    const ascent = metrics.actualBoundingBoxAscent ?? 0;
-    const descent = metrics.actualBoundingBoxDescent ?? 0;
-    const height = ascent + descent;
-
-    if (height > 0) {
-      return { ascent, descent, height };
-    }
-  }
-
-  const fallbackAscent = fontSize * 0.8;
-  const fallbackDescent = fontSize * 0.2;
-  return {
-    ascent: fallbackAscent,
-    descent: fallbackDescent,
-    height: fallbackAscent + fallbackDescent,
-  };
-};
-
 const measureLineWidth = (
   context: CanvasRenderingContext2D | null,
   value: string,
@@ -123,8 +93,7 @@ export const layoutText = (
 
   const safeLineHeight = resolveLineHeight(fontSize, lineHeight);
   const widthLimit = typeof maxWidth === 'number' && maxWidth > 0 ? maxWidth : undefined;
-  const glyph = measureGlyphMetrics(context, fontSize);
-  const extraLeading = Math.max(safeLineHeight - glyph.height, 0);
+  const extraLeading = Math.max(safeLineHeight - fontSize, 0);
   const leadingTop = extraLeading > 0 ? extraLeading / 2 : 0;
   const leadingBottom = extraLeading > 0 ? extraLeading - leadingTop : 0;
 
