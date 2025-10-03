@@ -117,6 +117,15 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
   const forcedSolidRef = useRef(false);
   const isForcingFillStyleRef = useRef(false);
 
+  const ensureSolidFillStyle = useCallback(() => {
+    if (fillStyle !== 'solid') {
+      previousFillStyleRef.current = fillStyle;
+      forcedSolidRef.current = true;
+      isForcingFillStyleRef.current = true;
+      setFillStyle('solid');
+    }
+  }, [fillStyle, setFillStyle]);
+
   useEffect(() => {
     if (isForcingFillStyleRef.current) {
       if (isGradientActive) {
@@ -131,14 +140,12 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     }
   }, [fillStyle, isGradientActive]);
 
-  const ensureSolidFillStyle = useCallback(() => {
-    if (fillStyle !== 'solid') {
-      previousFillStyleRef.current = fillStyle;
-      forcedSolidRef.current = true;
-      isForcingFillStyleRef.current = true;
-      setFillStyle('solid');
+  useEffect(() => {
+    if (!isGradientActive || fillStyle === 'solid' || isForcingFillStyleRef.current) {
+      return;
     }
-  }, [fillStyle, setFillStyle]);
+    ensureSolidFillStyle();
+  }, [ensureSolidFillStyle, fillStyle, isGradientActive]);
 
   const restoreFillStyle = useCallback(() => {
     if (!forcedSolidRef.current) {
@@ -201,13 +208,14 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         return;
       }
 
+      ensureSolidFillStyle();
+
       const currentStops = fillGradient ? fillGradient.stops.map(stop => ({ ...stop })) : null;
       const baseColor = currentStops?.[0]?.color ?? fill;
 
       if (!fillGradient) {
         beginCoalescing();
         try {
-          ensureSolidFillStyle();
           const nextBase = type === 'linear'
             ? (createDefaultLinearGradient(baseColor) as LinearGradientFill)
             : (createDefaultRadialGradient(baseColor) as RadialGradientFill);
@@ -225,7 +233,6 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
       beginCoalescing();
       try {
         if (type === 'linear') {
-          ensureSolidFillStyle();
           const base = createDefaultLinearGradient(baseColor) as LinearGradientFill;
           let configured: LinearGradientFill = base;
           if (fillGradient.type === 'radial') {
@@ -240,7 +247,6 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
           return;
         }
 
-        ensureSolidFillStyle();
         const base = createDefaultRadialGradient(baseColor) as RadialGradientFill;
         let configured: RadialGradientFill = base;
         if (fillGradient.type === 'linear') {
