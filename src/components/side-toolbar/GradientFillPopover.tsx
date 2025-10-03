@@ -1,4 +1,4 @@
-import React, { Fragment, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { Fragment, useCallback, useRef, useEffect } from 'react';
 import { Popover, Transition } from '@headlessui/react';
 import { useTranslation } from 'react-i18next';
 import PanelButton from '@/components/PanelButton';
@@ -155,22 +155,19 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
     isForcingFillStyleRef.current = false;
   }, [setFillStyle]);
 
-  const previewStyle = useMemo(() => {
-    if (!fillGradient) {
-      return {
+  const previewStyle: React.CSSProperties = fillGradient
+    ? {
+        backgroundImage: `${gradientToCss(fillGradient)}, ${CHECKERBOARD}`,
+        backgroundSize: `cover, ${CHECKERBOARD_SIZES}`,
+        backgroundPosition: `0 0, ${CHECKERBOARD_POSITIONS}`,
+        backgroundColor: 'transparent',
+      }
+    : {
         backgroundImage: `linear-gradient(${fill}, ${fill}), ${CHECKERBOARD}`,
         backgroundSize: `cover, ${CHECKERBOARD_SIZES}`,
         backgroundPosition: `0 0, ${CHECKERBOARD_POSITIONS}`,
         backgroundColor: 'transparent',
-      } as React.CSSProperties;
-    }
-    return {
-      backgroundImage: `${gradientToCss(fillGradient)}, ${CHECKERBOARD}`,
-      backgroundSize: `cover, ${CHECKERBOARD_SIZES}`,
-      backgroundPosition: `0 0, ${CHECKERBOARD_POSITIONS}`,
-      backgroundColor: 'transparent',
-    } as React.CSSProperties;
-  }, [fill, fillGradient]);
+      };
 
   const handleStopChange = useCallback(
     (index: number, color: string) => {
@@ -282,11 +279,15 @@ export const GradientFillPopover: React.FC<GradientFillPopoverProps> = React.mem
         <Popover.Button
           as={PanelButton}
           variant="unstyled"
-          className="h-7 w-7 rounded-full transition-transform transform hover:scale-110"
-          style={previewStyle}
+          className="relative h-7 w-7 rounded-full transition-transform transform hover:scale-110 overflow-hidden"
           title={selectLabel}
           aria-label={selectLabel}
         >
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full"
+            style={previewStyle}
+          />
           <span className="sr-only">{selectLabel}</span>
         </Popover.Button>
         <Transition

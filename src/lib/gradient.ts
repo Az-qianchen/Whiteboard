@@ -77,7 +77,9 @@ export function gradientToCss(gradient: GradientFill): string {
   const edge = clampHandle(gradient.edge);
   const radius = clamp(Math.hypot(edge.x - center.x, edge.y - center.y), 0.01, 2);
   const radiusPercent = clamp(Math.round(radius * 100), 1, 200);
-  return `radial-gradient(circle ${radiusPercent}% at ${Math.round(center.x * 100)}% ${Math.round(center.y * 100)}%, ${stops})`;
+  const centerX = Math.round(center.x * 100);
+  const centerY = Math.round(center.y * 100);
+  return `radial-gradient(${radiusPercent}% ${radiusPercent}% at ${centerX}% ${centerY}%, ${stops})`;
 }
 
 export function gradientHasVisibleColor(gradient: GradientFill): boolean {
