@@ -9,6 +9,7 @@ import type { AnyPath, FrameData, GroupData, ImageData } from '@/types';
 import { renderPathNode } from '@/lib/export';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
+import { useAppContext } from '@/context/AppContext';
 
 /**
  * 递归地查找并返回路径树中所有的画框对象。
@@ -31,7 +32,14 @@ const getAllFrames = (paths: AnyPath[], accumulator: AnyPath[] = []): AnyPath[] 
  * @description 对常规组进行递归渲染，以利用 React 的 diffing 算法，
  * 仅更新组内已更改的元素。遮罩组则被视为原子单元进行渲染。
  */
-const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcById?: Record<string, string>; }> = React.memo(({ rc, data, previewSrcById }) => {
+interface PathComponentProps {
+    rc: RoughSVG | null;
+    data: AnyPath;
+    previewSrcById?: Record<string, string>;
+    editingPathId: string | null;
+}
+
+const PathComponent: React.FC<PathComponentProps> = React.memo(({ rc, data, previewSrcById, editingPathId }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const lastImageKeyRef = useRef<string | null>(null);
     const latestImageDataRef = useRef<ImageData | null>(null);
@@ -98,10 +106,20 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcBy
         return (
             <g>
                 {(data as GroupData).children.map(child => (
-                    <PathComponent key={child.id} rc={rc} data={child} previewSrcById={previewSrcById} />
+                    <PathComponent
+                        key={child.id}
+                        rc={rc}
+                        data={child}
+                        previewSrcById={previewSrcById}
+                        editingPathId={editingPathId}
+                    />
                 ))}
             </g>
         );
+    }
+
+    if (data.tool === 'text' && editingPathId === data.id) {
+        return null;
     }
 
     // 对于原始路径和遮罩组，使用 `renderPathNode` 生成其 SVG 字符串。
@@ -210,12 +228,21 @@ interface PathsRendererProps {
  * 递归由 `PathComponent` 内部处理。
  */
 export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById }) => {
+  const { textEditing } = useAppContext();
+  const editingPathId = textEditing?.pathId ?? null;
+
   // 预先计算画框列表，以便在其上方渲染编号。
   const frames = useMemo(() => getAllFrames(paths), [paths]);
   return (
     <g opacity={isBackground ? 0.3 : 1} style={{ pointerEvents: isBackground ? 'none' : 'auto' }}>
       {paths.map((path) => (
-        <PathComponent key={path.id} rc={rc} data={path} previewSrcById={previewSrcById} />
+        <PathComponent
+          key={path.id}
+          rc={rc}
+          data={path}
+          previewSrcById={previewSrcById}
+          editingPathId={editingPathId}
+        />
       ))}
       {/* 渲染所有路径后，在其上方渲染画框编号 */}
       {frames.map((frame, index) => {
