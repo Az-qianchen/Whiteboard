@@ -9,7 +9,7 @@ import { useAppStore } from '../hooks/useAppStore';
 // useAppStore 的返回类型是我们上下文的值类型
 type AppContextType = ReturnType<typeof useAppStore>;
 
-const AppContext = createContext<AppContextType | null>(null);
+export const AppContext = createContext<AppContextType | null>(null);
 
 /**
  * AppProvider 组件
