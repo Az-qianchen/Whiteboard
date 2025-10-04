@@ -443,14 +443,9 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
             e: viewTransform.translateX,
             f: viewTransform.translateY,
         };
-        const baselineOffset = layout.leading.top;
         const translation = createTranslationMatrix(path.x, path.y);
         const shapeMatrix = getShapeTransformMatrix({ ...path, x: 0, y: 0 });
-        const baselineMatrix = createTranslationMatrix(0, -baselineOffset);
-        const localMatrix = multiplyMatrices(
-            translation,
-            multiplyMatrices(shapeMatrix, baselineMatrix),
-        );
+        const localMatrix = multiplyMatrices(translation, shapeMatrix);
         const combined = multiplyMatrices(viewMatrix, localMatrix);
         return matrixToCssString(combined);
     }, [
@@ -466,7 +461,6 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         path.scaleY,
         path.skewX,
         path.skewY,
-        layout.leading.top,
     ]);
 
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
