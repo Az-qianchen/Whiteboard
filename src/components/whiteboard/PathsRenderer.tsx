@@ -3,13 +3,12 @@
  * 它使用 RoughJS 库来创建手绘风格的 SVG 图形。
  */
 
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { RoughSVG } from 'roughjs/bin/svg';
 import type { AnyPath, FrameData, GroupData, ImageData } from '@/types';
 import { renderPathNode } from '@/lib/export';
 import { getImageDataUrl } from '@/lib/imageCache';
 import { getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
-import { AppContext } from '@/context/AppContext';
 
 /**
  * 递归地查找并返回路径树中所有的画框对象。
@@ -219,6 +218,7 @@ interface PathsRendererProps {
   rc: RoughSVG | null;
   isBackground?: boolean;
   previewSrcById?: Record<string, string>;
+  editingPathId?: string | null;
 }
 
 
@@ -227,10 +227,8 @@ interface PathsRendererProps {
  * @description 它遍历顶层路径，并为每个路径渲染一个 `PathComponent`。
  * 递归由 `PathComponent` 内部处理。
  */
-export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById }) => {
-  const appContext = useContext(AppContext);
-  const editingPathId = appContext?.textEditing?.pathId ?? null;
-
+export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById, editingPathId }) => {
+  const activeEditingPathId = editingPathId ?? null;
   // 预先计算画框列表，以便在其上方渲染编号。
   const frames = useMemo(() => getAllFrames(paths), [paths]);
   return (
@@ -241,7 +239,7 @@ export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, 
           rc={rc}
           data={path}
           previewSrcById={previewSrcById}
-          editingPathId={editingPathId}
+          editingPathId={activeEditingPathId}
         />
       ))}
       {/* 渲染所有路径后，在其上方渲染画框编号 */}

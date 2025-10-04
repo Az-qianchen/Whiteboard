@@ -59,6 +59,7 @@ export const MainLayout: React.FC = () => {
         cropTool,
         cropSelectionContours,
         cropManualDraft,
+        textEditing,
         // Drop handler props
         getPointerPosition,
         handleApplyMaterial,
@@ -240,6 +241,7 @@ export const MainLayout: React.FC = () => {
                             cropSelectionContours={cropSelectionContours}
                             cropManualDraft={cropManualDraft}
                             previewSrcById={handleAdjustImageHsv.previewSrcById}
+                            editingPathId={textEditing?.pathId ?? null}
                         />
                     </div>
                     <TimelinePanel />
