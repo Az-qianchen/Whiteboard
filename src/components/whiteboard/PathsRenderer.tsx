@@ -117,9 +117,7 @@ const PathComponent: React.FC<PathComponentProps> = React.memo(({ rc, data, prev
         );
     }
 
-    if (data.tool === 'text' && editingPathId === data.id) {
-        return null;
-    }
+    const isHiddenWhileEditing = data.tool === 'text' && editingPathId === data.id;
 
     // 对于原始路径和遮罩组，使用 `renderPathNode` 生成其 SVG 字符串。
     // 遮罩组需要作为一个整体进行渲染，以正确生成 <clipPath> 和相关结构。
@@ -137,6 +135,10 @@ const PathComponent: React.FC<PathComponentProps> = React.memo(({ rc, data, prev
     }, [rc, data, imageSrc]);
 
     // 使用 dangerouslySetInnerHTML 来渲染预先计算好的 SVG 字符串。
+    if (isHiddenWhileEditing) {
+        return null;
+    }
+
     return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;
 });
 
