@@ -103,18 +103,18 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
       data.fontWeight,
       data.width,
     );
-    const topOffset = layout.leading.top;
+    const baselineOffset = layout.leading.top + layout.metrics.ascent;
 
     const textElement = document.createElementNS(SVG_NS, 'text');
     const align = data.textAlign ?? 'left';
     const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
     const xBase = align === 'center' ? data.x + data.width / 2 : align === 'right' ? data.x + data.width : data.x;
-    const yBase = data.y + topOffset;
+    const yBase = data.y + baselineOffset;
 
     textElement.setAttribute('x', xBase.toString());
     textElement.setAttribute('y', yBase.toString());
     textElement.setAttribute('text-anchor', anchor);
-    textElement.setAttribute('dominant-baseline', 'hanging');
+    textElement.setAttribute('dominant-baseline', 'alphabetic');
     textElement.setAttribute('xml:space', 'preserve');
     textElement.setAttribute('font-family', data.fontFamily);
     textElement.setAttribute('font-size', data.fontSize.toString());
