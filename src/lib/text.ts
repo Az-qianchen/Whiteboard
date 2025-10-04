@@ -17,11 +17,18 @@ export interface TextLeading {
   bottom: number;
 }
 
+export interface FontMetrics {
+  ascent: number;
+  descent: number;
+  height: number;
+}
+
 export interface TextMetricsResult {
   width: number;
   height: number;
   lineHeight: number;
   leading: TextLeading;
+  metrics: FontMetrics;
 }
 
 export interface TextLayoutResult extends TextMetricsResult {
@@ -93,7 +100,13 @@ export const layoutText = (
 
   const safeLineHeight = resolveLineHeight(fontSize, lineHeight);
   const widthLimit = typeof maxWidth === 'number' && maxWidth > 0 ? maxWidth : undefined;
-  const extraLeading = Math.max(safeLineHeight - fontSize, 0);
+  const measuredMetrics = context?.measureText('Mg') ?? null;
+  const fallbackAscent = fontSize * 0.8;
+  const fallbackDescent = fontSize * 0.2;
+  const ascent = measuredMetrics?.actualBoundingBoxAscent ?? fallbackAscent;
+  const descent = measuredMetrics?.actualBoundingBoxDescent ?? fallbackDescent;
+  const glyphHeight = Math.max(ascent + descent, fontSize);
+  const extraLeading = Math.max(safeLineHeight - glyphHeight, 0);
   const leadingTop = extraLeading > 0 ? extraLeading / 2 : 0;
   const leadingBottom = extraLeading > 0 ? extraLeading - leadingTop : 0;
 
@@ -180,6 +193,11 @@ export const layoutText = (
       top: leadingTop,
       bottom: leadingBottom,
     },
+    metrics: {
+      ascent,
+      descent,
+      height: glyphHeight,
+    },
   };
 };
 
@@ -196,5 +214,6 @@ export const measureTextMetrics = (
     height: layout.height,
     lineHeight: layout.lineHeight,
     leading: layout.leading,
+    metrics: layout.metrics,
   };
 };
