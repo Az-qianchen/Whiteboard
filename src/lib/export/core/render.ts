@@ -103,9 +103,7 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
       data.fontWeight,
       data.width,
     );
-    const glyphHeight = layout.metrics.height;
-    const cssHalfLeading = Math.max(layout.lineHeight - glyphHeight, 0) / 2;
-    const topOffset = Math.max(layout.leading.top - cssHalfLeading, 0);
+    const topOffset = layout.leading.top;
 
     const textElement = document.createElementNS(SVG_NS, 'text');
     const align = data.textAlign ?? 'left';
