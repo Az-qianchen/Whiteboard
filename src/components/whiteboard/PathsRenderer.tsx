@@ -31,7 +31,14 @@ const getAllFrames = (paths: AnyPath[], accumulator: AnyPath[] = []): AnyPath[] 
  * @description 对常规组进行递归渲染，以利用 React 的 diffing 算法，
  * 仅更新组内已更改的元素。遮罩组则被视为原子单元进行渲染。
  */
-const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcById?: Record<string, string>; }> = React.memo(({ rc, data, previewSrcById }) => {
+interface PathComponentProps {
+    rc: RoughSVG | null;
+    data: AnyPath;
+    previewSrcById?: Record<string, string>;
+    editingPathId: string | null;
+}
+
+const PathComponent: React.FC<PathComponentProps> = React.memo(({ rc, data, previewSrcById, editingPathId }) => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const lastImageKeyRef = useRef<string | null>(null);
     const latestImageDataRef = useRef<ImageData | null>(null);
@@ -98,11 +105,19 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcBy
         return (
             <g>
                 {(data as GroupData).children.map(child => (
-                    <PathComponent key={child.id} rc={rc} data={child} previewSrcById={previewSrcById} />
+                    <PathComponent
+                        key={child.id}
+                        rc={rc}
+                        data={child}
+                        previewSrcById={previewSrcById}
+                        editingPathId={editingPathId}
+                    />
                 ))}
             </g>
         );
     }
+
+    const isHiddenWhileEditing = data.tool === 'text' && editingPathId === data.id;
 
     // 对于原始路径和遮罩组，使用 `renderPathNode` 生成其 SVG 字符串。
     // 遮罩组需要作为一个整体进行渲染，以正确生成 <clipPath> 和相关结构。
@@ -120,6 +135,10 @@ const PathComponent: React.FC<{ rc: RoughSVG | null; data: AnyPath; previewSrcBy
     }, [rc, data, imageSrc]);
 
     // 使用 dangerouslySetInnerHTML 来渲染预先计算好的 SVG 字符串。
+    if (isHiddenWhileEditing) {
+        return null;
+    }
+
     return <g className="pointer-events-none" dangerouslySetInnerHTML={{ __html: nodeString }} />;
 });
 
@@ -201,6 +220,7 @@ interface PathsRendererProps {
   rc: RoughSVG | null;
   isBackground?: boolean;
   previewSrcById?: Record<string, string>;
+  editingPathId?: string | null;
 }
 
 
@@ -209,13 +229,20 @@ interface PathsRendererProps {
  * @description 它遍历顶层路径，并为每个路径渲染一个 `PathComponent`。
  * 递归由 `PathComponent` 内部处理。
  */
-export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById }) => {
+export const PathsRenderer: React.FC<PathsRendererProps> = React.memo(({ paths, rc, isBackground, previewSrcById, editingPathId }) => {
+  const activeEditingPathId = editingPathId ?? null;
   // 预先计算画框列表，以便在其上方渲染编号。
   const frames = useMemo(() => getAllFrames(paths), [paths]);
   return (
     <g opacity={isBackground ? 0.3 : 1} style={{ pointerEvents: isBackground ? 'none' : 'auto' }}>
       {paths.map((path) => (
-        <PathComponent key={path.id} rc={rc} data={path} previewSrcById={previewSrcById} />
+        <PathComponent
+          key={path.id}
+          rc={rc}
+          data={path}
+          previewSrcById={previewSrcById}
+          editingPathId={activeEditingPathId}
+        />
       ))}
       {/* 渲染所有路径后，在其上方渲染画框编号 */}
       {frames.map((frame, index) => {

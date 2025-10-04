@@ -4,7 +4,7 @@
  * 或者一个图形是否与选择框相交。
  */
 
-import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData } from '../types';
+import type { Point, AnyPath, RectangleData, EllipseData, VectorPathData, BBox, ImageData, BrushPathData, PolygonData, ArcData, GroupData, TextData } from '../types';
 import { samplePath, getPathBoundingBox, doBboxesIntersect, dist, rotatePoint, getPolygonVertices, sampleArc, isBboxInside } from './drawing';
 import { parseColor } from './color';
 import { gradientHasVisibleColor } from './gradient';
@@ -122,8 +122,9 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
         }
         case 'image':
         case 'frame':
-        case 'rectangle': {
-            const { x, y, width, height, rotation } = path as RectangleData | ImageData;
+        case 'rectangle':
+        case 'text': {
+            const { x, y, width, height, rotation } = path as RectangleData | ImageData | TextData;
             let testPoint = point;
 
             if (rotation) {
@@ -131,7 +132,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 testPoint = rotatePoint(point, center, -rotation);
             }
 
-            const isFillVisible = hasVisibleFill(path);
+            const isFillVisible = path.tool === 'text' ? true : hasVisibleFill(path);
 
             // Check for hit on the fill area first.
             const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
@@ -142,12 +143,14 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             const p2 = { x: x + width, y };
             const p3 = { x: x + width, y: y + height };
             const p4 = { x, y: y + height };
-            return (
+            const borderHit = (
                 distSqToSegment(testPoint, p1, p2) < thresholdSq ||
                 distSqToSegment(testPoint, p2, p3) < thresholdSq ||
                 distSqToSegment(testPoint, p3, p4) < thresholdSq ||
                 distSqToSegment(testPoint, p4, p1) < thresholdSq
             );
+
+            return path.tool === 'text' ? isInside || borderHit : borderHit;
         }
         case 'polygon': {
             const { x, y, width, height, sides, rotation } = path as PolygonData;

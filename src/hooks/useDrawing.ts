@@ -4,10 +4,13 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData } from '../types';
+import type { Point, LivePath, DrawingShape, VectorPathData, Anchor, AnyPath, DrawingArcData, ArcData, FrameData, TextData } from '../types';
 import { snapAngle, dist } from '../lib/drawing';
 import { pointsToPathD } from '../lib/path-fitting';
 import { calculateArcPathD, getCircleFromThreePoints } from '../lib/drawing/arc';
+import { DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_FONT_WEIGHT, DEFAULT_TEXT_LINE_HEIGHT } from '@/constants';
+import { measureTextMetrics } from '@/lib/text';
+import { findDeepestHitPath } from '@/lib/hit-testing';
 
 // Props definition
 interface DrawingInteractionProps {
@@ -17,6 +20,7 @@ interface DrawingInteractionProps {
   isGridVisible: boolean;
   gridSize: number;
   gridSubdivisions: number;
+  beginTextEditing: (pathId: string, options?: { isNew?: boolean }) => void;
 }
 
 /**
@@ -31,6 +35,7 @@ export const useDrawing = ({
   isGridVisible,
   gridSize,
   gridSubdivisions,
+  beginTextEditing,
 }: DrawingInteractionProps) => {
   const [drawingShape, setDrawingShape] = useState<DrawingShape | null>(null);
   const [previewD, setPreviewD] = useState<string | null>(null);
@@ -43,6 +48,8 @@ export const useDrawing = ({
     setCurrentPenPath, currentPenPath,
     setCurrentLinePath, currentLinePath,
     setPaths,
+    paths,
+    setSelectedPathIds,
   } = pathState;
 
   const { getPointerPosition } = viewTransform;
@@ -232,6 +239,49 @@ export const useDrawing = ({
           };
           setCurrentPenPath(newPath);
         }
+        break;
+      }
+      case 'text': {
+        const scale = Number.isFinite(viewTransform.viewTransform?.scale)
+          ? viewTransform.viewTransform.scale
+          : 1;
+        const hitPath = findDeepestHitPath(point, paths, scale);
+        if (hitPath && hitPath.tool === 'text' && !hitPath.isLocked) {
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          setSelectedPathIds([hitPath.id]);
+          beginTextEditing(hitPath.id);
+          return;
+        }
+
+        const metrics = measureTextMetrics('', DEFAULT_TEXT_FONT_SIZE, DEFAULT_TEXT_FONT_FAMILY, DEFAULT_TEXT_LINE_HEIGHT, DEFAULT_TEXT_FONT_WEIGHT);
+        const newText: TextData = {
+          id,
+          tool: 'text',
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          width: metrics.width,
+          height: metrics.height,
+          text: '',
+          fontFamily: DEFAULT_TEXT_FONT_FAMILY,
+          fontSize: DEFAULT_TEXT_FONT_SIZE,
+          fontWeight: DEFAULT_TEXT_FONT_WEIGHT,
+          lineHeight: metrics.lineHeight,
+          textAlign: 'left',
+          ...sharedProps,
+          fill: 'transparent',
+          fillGradient: null,
+          fillStyle: 'solid',
+          strokeWidth: 0,
+          disableMultiStroke: true,
+          disableMultiStrokeFill: true,
+          isRough: false,
+        };
+
+        setPaths((prev: AnyPath[]) => [...prev, newText]);
+        setSelectedPathIds([id]);
+        beginTextEditing(id, { isNew: true });
         break;
       }
     }

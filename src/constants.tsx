@@ -26,6 +26,7 @@ import {
   SquareDashed,
   RotateCcw,
   Crop,
+  Type,
 } from 'lucide-react';
 
 
@@ -61,6 +62,11 @@ export const DEFAULT_CURVE_STEP_COUNT = 1;
 export const DEFAULT_PRESERVE_VERTICES = false;
 export const DEFAULT_DISABLE_MULTI_STROKE = false;
 export const DEFAULT_DISABLE_MULTI_STROKE_FILL = false;
+
+export const DEFAULT_TEXT_FONT_FAMILY = 'Inter, system-ui, sans-serif';
+export const DEFAULT_TEXT_FONT_WEIGHT = 500;
+export const DEFAULT_TEXT_FONT_SIZE = 28;
+export const DEFAULT_TEXT_LINE_HEIGHT = 1.3;
 
 const ENDPOINT_ICONS = {
   NONE: (
@@ -146,6 +152,7 @@ export const ICONS = {
   LINE: <Slash className="h-5 w-5" />,
   ARC: <Spline className="h-5 w-5" />,
   FRAME: <SquareDashed className="h-5 w-5" />,
+  TEXT: <Type className="h-5 w-5" />,
   LASSO: <Lasso className="h-5 w-5" />,
   PROPERTIES: <SlidersHorizontal className="h-5 w-5" />,
   GRID: <Grid3X3 className="h-5 w-5" />,

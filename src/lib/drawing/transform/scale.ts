@@ -1,4 +1,5 @@
-import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData } from '@/types';
+import type { AnyPath, Point, ArcData, BrushPathData, VectorPathData, GroupData, TextData } from '@/types';
+import { layoutText, resolveLineHeight } from '@/lib/text';
 
 /**
  * 缩放图形。
@@ -30,7 +31,8 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
     case 'rectangle':
     case 'ellipse':
     case 'image':
-    case 'polygon': {
+    case 'polygon':
+    case 'text': {
       const scaledX = pivot.x + (path.x - pivot.x) * scaleX;
       const scaledY = pivot.y + (path.y - pivot.y) * scaleY;
       const scaledWidth = path.width * scaleX;
@@ -39,6 +41,31 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
       const newY = scaledHeight < 0 ? scaledY + scaledHeight : scaledY;
       const newScaleX = (path.scaleX ?? 1) * (scaleX < 0 ? -1 : 1);
       const newScaleY = (path.scaleY ?? 1) * (scaleY < 0 ? -1 : 1);
+
+      if (path.tool === 'text') {
+        const textPath = path as TextData;
+        const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
+        const targetWidth = Math.abs(scaledWidth);
+        const layout = layoutText(
+          textPath.text,
+          textPath.fontSize,
+          textPath.fontFamily,
+          baseLineHeight,
+          textPath.fontWeight,
+          targetWidth,
+        );
+        return {
+          ...textPath,
+          x: newX,
+          y: newY,
+          width: layout.width,
+          height: layout.height,
+          scaleX: newScaleX,
+          scaleY: newScaleY,
+          lineHeight: layout.lineHeight,
+        } as T;
+      }
+
       return {
         ...path,
         x: newX,
