@@ -103,11 +103,15 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
       data.fontWeight,
       data.width,
     );
+    const glyphHeight = layout.metrics.height;
+    const cssHalfLeading = Math.max(layout.lineHeight - glyphHeight, 0) / 2;
+    const topOffset = Math.max(layout.leading.top - cssHalfLeading, 0);
+
     const textElement = document.createElementNS(SVG_NS, 'text');
     const align = data.textAlign ?? 'left';
     const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
     const xBase = align === 'center' ? data.x + data.width / 2 : align === 'right' ? data.x + data.width : data.x;
-    const yBase = data.y + layout.leading.top;
+    const yBase = data.y + topOffset;
 
     textElement.setAttribute('x', xBase.toString());
     textElement.setAttribute('y', yBase.toString());
