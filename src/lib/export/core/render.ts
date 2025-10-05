@@ -111,6 +111,16 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
     const xBase = align === 'center' ? data.x + data.width / 2 : align === 'right' ? data.x + data.width : data.x;
     const yBase = data.y + baselineOffset;
 
+    const bboxElement = document.createElementNS(SVG_NS, 'rect');
+    bboxElement.setAttribute('x', data.x.toString());
+    bboxElement.setAttribute('y', data.y.toString());
+    bboxElement.setAttribute('width', data.width.toString());
+    bboxElement.setAttribute('height', data.height.toString());
+    bboxElement.setAttribute('fill', '#000');
+    bboxElement.setAttribute('fill-opacity', '0');
+    bboxElement.setAttribute('stroke', 'none');
+    bboxElement.setAttribute('pointer-events', 'none');
+
     textElement.setAttribute('x', xBase.toString());
     textElement.setAttribute('y', yBase.toString());
     textElement.setAttribute('text-anchor', anchor);
@@ -134,6 +144,7 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
         textElement.appendChild(tspan);
     });
 
+    group.appendChild(bboxElement);
     group.appendChild(textElement);
 
     if ((data.blur ?? 0) > 0 || data.shadowEnabled === true) {
