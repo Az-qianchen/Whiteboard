@@ -325,31 +325,35 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
         const vertices = (path.tool === 'polygon')
             ? getPolygonVertices(path.x, path.y, path.width, path.height, (path as PolygonData).sides)
             : getPolygonVertices(path.x, path.y, path.width, path.height, 4); // Treat rects as 4-sided polygons
-        
+
         if (path.rotation) {
             const center = { x: path.x + path.width / 2, y: path.y + path.height / 2 };
             pathSamples = vertices.map(p => rotatePoint(p, center, path.rotation ?? 0));
         } else {
             pathSamples = vertices;
         }
-        // Also check the center point for large shapes
-        pathSamples.push({x: path.x + path.width/2, y: path.y + path.height/2});
+        // Also check the center point when the shape has a visible fill
+        const shouldCheckCenter = path.tool === 'image' || hasVisibleFill(path);
+        if (shouldCheckCenter) {
+            pathSamples.push({ x: path.x + path.width / 2, y: path.y + path.height / 2 });
+        }
         break;
     }
     case 'ellipse': {
-        // Check center and 4 cardinal points on the ellipse boundary
+        // Check cardinal points on the ellipse boundary (and center when filled)
         const { x, y, width, height, rotation } = path;
         const cx = x + width/2;
         const cy = y + height/2;
         const rx = width/2;
         const ry = height/2;
-        let points = [
-            {x: cx, y: cy},
-            {x: cx + rx, y: cy},
-            {x: cx - rx, y: cy},
-            {x: cx, y: cy + ry},
-            {x: cx, y: cy - ry},
+        const boundaryPoints = [
+            { x: cx + rx, y: cy },
+            { x: cx - rx, y: cy },
+            { x: cx, y: cy + ry },
+            { x: cx, y: cy - ry },
         ];
+        const includeCenter = hasVisibleFill(path);
+        const points = includeCenter ? [{ x: cx, y: cy }, ...boundaryPoints] : boundaryPoints;
         if (rotation) {
             pathSamples = points.map(p => rotatePoint(p, {x: cx, y: cy}, rotation));
         } else {
