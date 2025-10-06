@@ -50,17 +50,56 @@ export const useExportActions = ({
    */
   const handleCopyAsSvg = useCallback(async () => {
     if (selectedPathIds.length === 0) return;
+
+    if (selectedPathIds.length === 1) {
+      const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
+      if (selectedPath?.tool === 'frame') {
+        const frame = selectedPath as FrameData;
+        const frameBbox = getPathBoundingBox(frame, true);
+
+        if (!frameBbox) {
+          alert('Could not generate SVG.');
+          return;
+        }
+
+        const contentPaths = paths.filter(path => {
+          if (path.id === frame.id) return false;
+          const pathBbox = getPathBoundingBox(path, true);
+          return pathBbox ? doBboxesIntersect(pathBbox, frameBbox) : false;
+        });
+
+        if (contentPaths.length === 0) {
+          alert('无法复制空画框。');
+          return;
+        }
+
+        const svgString = await pathsToSvgString(contentPaths, { clipFrame: frame, padding: 0 });
+        if (!svgString) {
+          alert('Could not generate SVG.');
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(svgString);
+        } catch (err) {
+          console.error('Failed to copy SVG to clipboard:', err);
+          alert('无法将 SVG 复制到剪贴板。');
+        }
+        return;
+      }
+    }
+
     const selected = paths.filter(p => selectedPathIds.includes(p.id));
     const svgString = await pathsToSvgString(selected, { padding: 10 });
     if (!svgString) {
-        alert("Could not generate SVG.");
-        return;
+      alert('Could not generate SVG.');
+      return;
     }
     try {
-        await navigator.clipboard.writeText(svgString);
+      await navigator.clipboard.writeText(svgString);
     } catch (err) {
-        console.error("Failed to copy SVG to clipboard:", err);
-        alert("无法将 SVG 复制到剪贴板。");
+      console.error('Failed to copy SVG to clipboard:', err);
+      alert('无法将 SVG 复制到剪贴板。');
     }
   }, [paths, selectedPathIds]);
   
