@@ -50,6 +50,38 @@ export const useExportActions = ({
    */
   const handleCopyAsSvg = useCallback(async () => {
     if (selectedPathIds.length === 0) return;
+
+    if (selectedPathIds.length === 1) {
+      const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
+      if (selectedPath?.tool === 'frame') {
+        const frame = selectedPath as FrameData;
+        const rotatedFrameBbox = getPathBoundingBox(frame, true);
+        if (!rotatedFrameBbox) {
+          alert('Could not generate SVG.');
+          return;
+        }
+
+        const contentPaths = paths.filter(p => {
+          if (p.id === frame.id) return false;
+          const pathBbox = getPathBoundingBox(p, true);
+          return pathBbox ? doBboxesIntersect(pathBbox, rotatedFrameBbox) : false;
+        });
+
+        const svgString = await pathsToSvgString(contentPaths, { clipFrame: frame });
+        if (!svgString) {
+          alert('Could not generate SVG.');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(svgString);
+        } catch (err) {
+          console.error('Failed to copy SVG to clipboard:', err);
+          alert('无法将 SVG 复制到剪贴板。');
+        }
+        return;
+      }
+    }
+
     const selected = paths.filter(p => selectedPathIds.includes(p.id));
     const svgString = await pathsToSvgString(selected, { padding: 10 });
     if (!svgString) {
