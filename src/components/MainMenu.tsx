@@ -12,6 +12,7 @@ import { FloatingPngExporter } from './FloatingPngExporter';
 import { FloatingAnimationExporter } from './FloatingAnimationExporter';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
+import { FilesPanel } from './files-panel/FilesPanel';
 
 // --- 主菜单组件 ---
 
@@ -116,6 +117,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
   const tabs = [
     { name: t('menu'), icon: ICONS.MENU },
     { name: t('layers'), icon: ICONS.LAYERS },
+    { name: t('files'), icon: ICONS.OPEN },
   ];
 
   return (
@@ -291,6 +293,9 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
           </Tab.Panel>
           <Tab.Panel className="h-full focus:outline-none">
             <LayersPanel />
+          </Tab.Panel>
+          <Tab.Panel className="h-full focus:outline-none overflow-hidden">
+            <FilesPanel />
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>
