@@ -124,6 +124,7 @@ export const CanvasOverlays: React.FC = () => {
         commitTextEditing,
         cancelTextEditing,
         viewTransform: camera,
+        handleWheel: handleCanvasWheel,
     } = store;
 
     const canGroup = useMemo(() => selectedPathIds.length > 1, [selectedPathIds]);
@@ -155,6 +156,7 @@ export const CanvasOverlays: React.FC = () => {
                 viewTransform={camera}
                 onChange={updateTextEditing}
                 onCommit={commitTextEditing}
+                onCanvasWheel={handleCanvasWheel}
             />
         );
     }, [textEditing, activeTextPath, camera, updateTextEditing, commitTextEditing]);
@@ -319,6 +321,7 @@ interface TextEditorOverlayProps {
     viewTransform: { scale: number; translateX: number; translateY: number };
     onChange: (value: string) => void;
     onCommit: () => void;
+    onCanvasWheel: (event: WheelEvent) => void;
 }
 
 const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
@@ -328,6 +331,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     viewTransform,
     onChange,
     onCommit,
+    onCanvasWheel,
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const normalizedDraft = draft.replace(/\r/g, '');
@@ -484,9 +488,53 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
         event.stopPropagation();
     };
 
-    const handleWheel = (event: React.WheelEvent<HTMLTextAreaElement>) => {
+    const handleWheel = useCallback((event: React.WheelEvent<HTMLTextAreaElement>) => {
+        const isZoomGesture = event.ctrlKey || event.metaKey;
+        if (!isZoomGesture) {
+            event.stopPropagation();
+            return;
+        }
+
+        event.preventDefault();
         event.stopPropagation();
-    };
+
+        const canvasSvg = document.querySelector<SVGSVGElement>('[data-whiteboard-canvas="true"]');
+        const canvasContainer = canvasSvg?.parentElement as HTMLDivElement | null;
+
+        if (!canvasContainer) {
+            return;
+        }
+
+        const {
+            deltaX,
+            deltaY,
+            deltaMode,
+            clientX,
+            clientY,
+            metaKey,
+            shiftKey,
+            altKey,
+        } = event.nativeEvent;
+
+        const forwardedEvent = {
+            deltaX,
+            deltaY,
+            deltaMode,
+            clientX,
+            clientY,
+            ctrlKey: event.ctrlKey || event.metaKey,
+            metaKey,
+            shiftKey,
+            altKey,
+            type: event.nativeEvent.type,
+            currentTarget: canvasContainer,
+            target: canvasSvg ?? canvasContainer,
+            preventDefault: () => event.preventDefault(),
+            stopPropagation: () => event.stopPropagation(),
+        } as unknown as WheelEvent;
+
+        onCanvasWheel(forwardedEvent);
+    }, [onCanvasWheel]);
 
     return (
         <div className="absolute inset-0 z-40 pointer-events-none">
