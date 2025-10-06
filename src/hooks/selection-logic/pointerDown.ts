@@ -21,6 +21,21 @@ import { recursivelyUpdatePaths } from './utils';
 
 const HIT_RADIUS = 10; // 点击命中控制点的半径
 
+interface SelectionContext {
+  ids: string[];
+  paths: AnyPath[];
+}
+
+const buildSelectionContext = (paths: AnyPath[], selectionIds: string[]): SelectionContext => {
+  const idSet = new Set(selectionIds);
+  if (selectionIds.length === 0) {
+    return { ids: selectionIds, paths: [] };
+  }
+
+  const selectedPaths = paths.filter((p: AnyPath) => idSet.has(p.id));
+  return { ids: selectionIds, paths: selectedPaths };
+};
+
 /**
  * 处理在“移动/变换”模式下的指针按下事件。
  * @param point - 指针在画布坐标系中的位置。
@@ -41,34 +56,39 @@ const handlePointerDownForMove = (
     const { pathState, setDragState, setMarquee } = props;
     const { paths, selectedPathIds, setSelectedPathIds, beginCoalescing } = pathState;
 
-    const startMoveDrag = (selectionIds: string[]) => {
-      if (selectionIds.length === 0) return;
-      const selectedPaths = paths.filter((p: AnyPath) => selectionIds.includes(p.id));
+    const startMoveDrag = ({ ids, paths: selectedPaths }: SelectionContext) => {
+      if (ids.length === 0 || selectedPaths.length === 0) return;
       const selectionGeometricBbox = getPathsBoundingBox(selectedPaths, false);
-  
-      if (selectedPaths.length > 0 && selectionGeometricBbox) {
-          beginCoalescing();
-          setDragState({
-              type: 'move',
-              pathIds: selectionIds,
-              originalPaths: selectedPaths,
-              initialPointerPos: point,
-              initialSelectionBbox: selectionGeometricBbox,
-              axisLock: null,
-          });
+
+      if (selectionGeometricBbox) {
+        beginCoalescing();
+        setDragState({
+          type: 'move',
+          pathIds: ids,
+          originalPaths: selectedPaths,
+          initialPointerPos: point,
+          initialSelectionBbox: selectionGeometricBbox,
+          axisLock: null,
+        });
       }
     };
 
     if (clickedPath) {
-      const isSelected = selectedPathIds.includes(clickedPath.id);
-      let nextSelection = e.shiftKey ? (isSelected ? selectedPathIds.filter((id: string) => id !== clickedPath.id) : [...selectedPathIds, clickedPath.id]) : (isSelected ? selectedPathIds : [clickedPath.id]);
+      const selectedIdSet = new Set(selectedPathIds);
+      const isSelected = selectedIdSet.has(clickedPath.id);
+      const nextSelection = e.shiftKey
+        ? (isSelected
+            ? selectedPathIds.filter((id: string) => id !== clickedPath.id)
+            : [...selectedPathIds, clickedPath.id])
+        : (isSelected ? selectedPathIds : [clickedPath.id]);
+      const nextSelectionContext = buildSelectionContext(paths, nextSelection);
       setSelectedPathIds(nextSelection);
-      startMoveDrag(nextSelection);
-    } else { 
-      const selected = paths.filter((p: AnyPath) => selectedPathIds.includes(p.id));
-      const selectionHitBbox = getPathsBoundingBox(selected, true);
+      startMoveDrag(nextSelectionContext);
+    } else {
+      const currentSelection = buildSelectionContext(paths, selectedPathIds);
+      const selectionHitBbox = getPathsBoundingBox(currentSelection.paths, true);
       if (selectionHitBbox && point.x >= selectionHitBbox.x && point.x <= selectionHitBbox.x + selectionHitBbox.width && point.y >= selectionHitBbox.y && point.y <= selectionHitBbox.y + selectionHitBbox.height) {
-        startMoveDrag(selectedPathIds);
+        startMoveDrag(currentSelection);
       } else {
         if (!e.shiftKey) setSelectedPathIds([]);
         setMarquee({ start: point, end: point });
@@ -235,13 +255,14 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
     if ((handle || type) && pathId) {
         beginCoalescing();
         if (selectionMode === 'move' && handle) {
-            const selected = paths.filter((p: AnyPath) => selectedPathIds.includes(p.id));
+            const selection = buildSelectionContext(paths, selectedPathIds);
+            const { paths: selected, ids } = selection;
             const bbox = getPathsBoundingBox(selected, false);
             if (handle === 'rotate') {
                 if (!bbox) { endCoalescing(); return; }
                 const center = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
                 const startAngle = Math.atan2(point.y - center.y, point.x - center.x);
-                setDragState({ type: 'rotate', pathIds: selectedPathIds, originalPaths: selected, center, initialAngle: startAngle });
+                setDragState({ type: 'rotate', pathIds: ids, originalPaths: selected, center, initialAngle: startAngle });
             } else if (handle === 'border-radius' && selected.length === 1) {
                 const path = selected[0];
                 if (path.tool === 'rectangle' || path.tool === 'image' || path.tool === 'polygon') setDragState({ type: 'border-radius', pathId: path.id, originalPath: path as any, initialPointerPos: point });
@@ -261,7 +282,7 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                     }
                 } else {
                     if (!bbox) { endCoalescing(); return; }
-                    setDragState({ type: 'scale', pathIds: selectedPathIds, handle, originalPaths: selected, initialPointerPos: point, initialSelectionBbox: bbox });
+                    setDragState({ type: 'scale', pathIds: ids, handle, originalPaths: selected, initialPointerPos: point, initialSelectionBbox: bbox });
                 }
             }
         } else if (selectionMode === 'edit') {
