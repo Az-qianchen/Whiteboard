@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('paper', () => ({}));
 import { findDeepestHitPath, isPathIntersectingLasso, isPathIntersectingMarquee, isPointHittingPath, isPointInPolygon } from '@/lib/hit-testing';
-import type { AnyPath, RectangleData, EllipseData, BrushPathData, Point, GroupData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, BrushPathData, Point, GroupData, FrameData } from '@/types';
 
 const baseShape = {
   id: 'shape-base',
@@ -87,6 +87,21 @@ describe('命中检测函数测试', () => {
 
       // 点远离画笔路径，不应命中
       expect(isPointHittingPath({ x: 50, y: 20 }, brush, 1)).toBe(false);
+    });
+
+    it('透明填充的画框在内部点击仍可命中', () => {
+      const frame = {
+        ...baseShape,
+        tool: 'frame',
+        x: 0,
+        y: 0,
+        width: 120,
+        height: 90,
+        fill: 'transparent',
+      } as unknown as FrameData;
+
+      expect(isPointHittingPath({ x: 60, y: 45 }, frame, 1)).toBe(true);
+      expect(isPointHittingPath({ x: 200, y: 200 }, frame, 1)).toBe(false);
     });
   });
 
