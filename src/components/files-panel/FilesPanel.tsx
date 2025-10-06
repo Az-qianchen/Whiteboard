@@ -73,11 +73,6 @@ export const FilesPanel: React.FC = () => {
             <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
               {directoryHandle ? directoryHandle.name : t('filesPanel.noFolderSelected')}
             </h2>
-            <p className="text-xs text-[var(--text-secondary)]">
-              {directoryHandle
-                ? t('filesPanel.currentFolder', { name: directoryHandle.name })
-                : t('filesPanel.noFolderDescription')}
-            </p>
           </div>
           <div className="flex flex-shrink-0 items-center gap-2">
             {directoryHandle ? (
@@ -100,9 +95,6 @@ export const FilesPanel: React.FC = () => {
             </button>
           </div>
         </div>
-        {directoryHandle ? (
-          <p className="text-xs text-[var(--text-secondary)]">{t('filesPanel.hint')}</p>
-        ) : null}
       </div>
 
       {errorMessage ? (

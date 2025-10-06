@@ -13,6 +13,7 @@ import { FloatingAnimationExporter } from './FloatingAnimationExporter';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
 import { FilesPanel } from './files-panel/FilesPanel';
+import { useAppContext } from '@/context/AppContext';
 
 // --- 主菜单组件 ---
 
@@ -32,7 +33,6 @@ interface MainMenuProps {
   frameCount: number;
   backgroundColor: string;
   setBackgroundColor: (color: string) => void;
-  activeFileName: string | null;
   hasUnsavedChanges: boolean;
   isDocumentUncreated: boolean;
   onResetPreferences: () => void;
@@ -55,7 +55,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
     backgroundColor, setBackgroundColor,
-    activeFileName, hasUnsavedChanges, isDocumentUncreated,
+    hasUnsavedChanges, isDocumentUncreated,
     onResetPreferences,
     zoomLevel,
     selectionInfo, elementCount, canvasWidth, canvasHeight,
@@ -64,6 +64,8 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
   } = props;
 
   const { t } = useTranslation();
+  const { directoryHandle } = useAppContext();
+  const menuTitle = directoryHandle?.name ?? t('appTitle');
 
   type MenuAction = {
     label?: string;
@@ -125,12 +127,9 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
       <div className="flex items-center gap-2 mb-4">
         <div className="h-10 w-10 p-2 rounded-lg flex items-center justify-center bg-[var(--accent-bg)] text-[var(--accent-primary)] ring-1 ring-inset ring-[var(--accent-primary-muted)]"><Paintbrush className="h-6 w-6" /></div>
         <div>
-          <h1 className="text-base font-bold text-[var(--text-primary)]">{t('appTitle')}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)] min-w-0">
-            <span className="truncate" title={activeFileName ?? t('untitled')}>
-              {activeFileName ?? t('untitled')}
-            </span>
-          </div>
+          <h1 className="text-base font-bold text-[var(--text-primary)]" title={menuTitle}>
+            {menuTitle}
+          </h1>
         </div>
       </div>
       
