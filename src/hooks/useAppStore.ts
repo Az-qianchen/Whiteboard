@@ -1783,10 +1783,16 @@ export const useAppStore = () => {
     });
   }, []);
 
+  const directoryHandleRef = useRef<FileSystemDirectoryHandle | null>(appState.directoryHandle);
+
+  useEffect(() => {
+    directoryHandleRef.current = appState.directoryHandle;
+  }, [appState.directoryHandle]);
+
   const refreshDirectoryEntries = useCallback(async (handle?: FileSystemDirectoryHandle | null) => {
     setIsDirectoryLoading(true);
     setDirectoryError(null);
-    const targetHandle = handle ?? appState.directoryHandle;
+    const targetHandle = handle ?? directoryHandleRef.current;
     if (!targetHandle) {
       setDirectoryEntries([]);
       setIsDirectoryLoading(false);
@@ -1840,7 +1846,7 @@ export const useAppStore = () => {
     } finally {
       setIsDirectoryLoading(false);
     }
-  }, [appState.directoryHandle, setDirectoryEntries, setDirectoryHandle, setIsDirectoryLoading, setDirectoryError]);
+  }, [setDirectoryEntries, setDirectoryHandle, setIsDirectoryLoading, setDirectoryError]);
 
   const chooseDirectory = useCallback(async () => {
     if (typeof window === 'undefined') {
