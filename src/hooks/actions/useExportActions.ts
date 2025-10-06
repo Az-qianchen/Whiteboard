@@ -37,9 +37,26 @@ const createClipboardItem = (
 };
 
 const writeBlobToClipboard = async (blob: Blob, type: string) => {
-  const presentationStyle = type === 'image/png' ? 'attachment' : undefined;
-  const item = createClipboardItem(type, blob, presentationStyle);
-  await navigator.clipboard.write([item]);
+  if (type !== 'image/png') {
+    const item = createClipboardItem(type, blob);
+    await navigator.clipboard.write([item]);
+    return;
+  }
+
+  const attachmentItem = createClipboardItem(type, blob, 'attachment');
+
+  try {
+    await navigator.clipboard.write([attachmentItem]);
+    return;
+  } catch (error) {
+    console.warn(
+      'Failed to write PNG to clipboard with attachment presentation style. Retrying without attachment.',
+      error
+    );
+  }
+
+  const fallbackItem = createClipboardItem(type, blob);
+  await navigator.clipboard.write([fallbackItem]);
 };
 
 /**
