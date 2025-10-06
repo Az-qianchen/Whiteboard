@@ -24,6 +24,7 @@ export interface UiState {
   onionSkinPrevFrames: number;
   onionSkinNextFrames: number;
   onionSkinOpacity: number;
+  fileManagerSelectedFolder: string;
 }
 
 // 根据屏幕宽度判断是否为移动端
@@ -49,6 +50,7 @@ const initialUiState = (): UiState => ({
   onionSkinPrevFrames: getLocalStorageItem('whiteboard_onionSkinPrevFrames', 1),
   onionSkinNextFrames: getLocalStorageItem('whiteboard_onionSkinNextFrames', 1),
   onionSkinOpacity: getLocalStorageItem('whiteboard_onionSkinOpacity', 0.4),
+  fileManagerSelectedFolder: getLocalStorageItem('whiteboard_fileManagerSelectedFolder', '/'),
 });
 
 // Expose a single store for the UI slice.
@@ -76,6 +78,7 @@ export const useUiStore = create<UiState>()(
         onionSkinPrevFrames: s.onionSkinPrevFrames,
         onionSkinNextFrames: s.onionSkinNextFrames,
         onionSkinOpacity: s.onionSkinOpacity,
+        fileManagerSelectedFolder: s.fileManagerSelectedFolder,
         // exclude: isPlaying, isStyleLibraryOpen, styleLibraryPosition
       }),
     }

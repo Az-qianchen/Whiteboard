@@ -195,6 +195,7 @@ interface UiState {
   onionSkinPrevFrames: number;
   onionSkinNextFrames: number;
   onionSkinOpacity: number;
+  fileManagerSelectedFolder: string;
 }
 
 type CropManualDraft =
@@ -282,6 +283,7 @@ const getInitialUiState = (): UiState => {
     onionSkinPrevFrames: getLocalStorageItem('whiteboard_onionSkinPrevFrames', 1),
     onionSkinNextFrames: getLocalStorageItem('whiteboard_onionSkinNextFrames', 1),
     onionSkinOpacity: getLocalStorageItem('whiteboard_onionSkinOpacity', 0.4),
+    fileManagerSelectedFolder: getLocalStorageItem('whiteboard_fileManagerSelectedFolder', '/'),
   };
 };
 
@@ -336,6 +338,7 @@ export const useAppStore = () => {
     onionSkinPrevFrames: state.onionSkinPrevFrames,
     onionSkinNextFrames: state.onionSkinNextFrames,
     onionSkinOpacity: state.onionSkinOpacity,
+    fileManagerSelectedFolder: state.fileManagerSelectedFolder,
   })));
   const initialFpsRef = useRef(uiState.fps);
   const initialFitRequestedRef = useRef(false);
@@ -477,6 +480,12 @@ export const useAppStore = () => {
   const setOnionSkinPrevFrames = useCallback((val: number | ((prev: number) => number)) => setUiState(s => ({ ...s, onionSkinPrevFrames: typeof val === 'function' ? val(s.onionSkinPrevFrames) : val })), []);
   const setOnionSkinNextFrames = useCallback((val: number | ((prev: number) => number)) => setUiState(s => ({ ...s, onionSkinNextFrames: typeof val === 'function' ? val(s.onionSkinNextFrames) : val })), []);
   const setOnionSkinOpacity = useCallback((val: number | ((prev: number) => number)) => setUiState(s => ({ ...s, onionSkinOpacity: typeof val === 'function' ? val(s.onionSkinOpacity) : val })), []);
+  const setFileManagerSelectedFolder = useCallback((val: string | ((prev: string) => string)) =>
+    setUiState(s => ({
+      ...s,
+      fileManagerSelectedFolder: typeof val === 'function' ? val(s.fileManagerSelectedFolder) : val,
+    })),
+  []);
 
   const setContextMenu = useCallback((val: AppState['contextMenu'] | ((prev: AppState['contextMenu']) => AppState['contextMenu'])) => setAppState(s => ({ ...s, contextMenu: typeof val === 'function' ? val(s.contextMenu) : val })), []);
   const setStyleClipboard = useCallback((val: AppState['styleClipboard'] | ((prev: AppState['styleClipboard']) => AppState['styleClipboard'])) => setAppState(s => ({ ...s, styleClipboard: typeof val === 'function' ? val(s.styleClipboard) : val })), []);
@@ -1902,6 +1911,7 @@ export const useAppStore = () => {
       setGridSubdivisions,
       setGridOpacity,
       setBackgroundColor,
+      setFileManagerSelectedFolder,
       setIsStatusBarCollapsed,
       setIsSideToolbarCollapsed,
       setIsMainMenuCollapsed,
@@ -2002,6 +2012,7 @@ export const useAppStore = () => {
       setGridSubdivisions,
       setGridOpacity,
       setBackgroundColor,
+      setFileManagerSelectedFolder,
       setIsStatusBarCollapsed,
       setIsSideToolbarCollapsed,
       setIsMainMenuCollapsed,

@@ -22,6 +22,7 @@ interface FilesStoreState {
   getBlob: (fileId: string) => Promise<Blob | null>;
   getDataUrl: (fileId: string) => Promise<string | null>;
   deleteFiles: (fileIds: string[]) => Promise<void>;
+  renameFile: (fileId: string, name: string) => void;
 }
 
 export const useFilesStore = create<FilesStoreState>()(
@@ -96,6 +97,23 @@ export const useFilesStore = create<FilesStoreState>()(
         });
         const { invalidateImageCache } = await import('@/lib/imageCache');
         invalidateImageCache(fileIds);
+      },
+
+      renameFile(fileId, name) {
+        set(state => {
+          const existing = state.files[fileId];
+          if (!existing) {
+            return {};
+          }
+          const trimmed = name.trim();
+          const nextName = trimmed.length > 0 ? trimmed : existing.name;
+          const updated: BinaryFileMetadata = {
+            ...existing,
+            name: nextName,
+            lastModified: Date.now(),
+          };
+          return { files: { ...state.files, [fileId]: updated } };
+        });
       },
     }),
     {
