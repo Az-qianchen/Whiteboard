@@ -301,7 +301,19 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
         } return;
     }
     
-    let clickedPath: AnyPath | null = selectionMode === 'edit' ? findDeepestHitPath(point, paths, vt.scale) : paths.slice().reverse().find((p: AnyPath) => !p.isLocked && isPointHittingPath(point, p, vt.scale)) || null;
+    let clickedPath: AnyPath | null = null;
+    if (selectionMode === 'edit') {
+        clickedPath = findDeepestHitPath(point, paths, vt.scale);
+    } else {
+        for (let i = paths.length - 1; i >= 0; i--) {
+            const path = paths[i];
+            if (path.isLocked) continue;
+            if (isPointHittingPath(point, path, vt.scale)) {
+                clickedPath = path;
+                break;
+            }
+        }
+    }
 
     if (clickedPath) {
         const now = Date.now();
