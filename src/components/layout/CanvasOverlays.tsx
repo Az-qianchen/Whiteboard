@@ -391,7 +391,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
 
     const draftWidth = !isNew && path.width > 0 ? path.width : layout.width;
     const width = Math.max(draftWidth, layout.width, 1);
-    const height = Math.max(path.height, layout.height, 1);
+    const height = Math.max(layout.height, 1);
     const leadingTop = layout.leading.top;
     const leadingBottom = layout.leading.bottom;
     const glyphHeight = layout.metrics.height;
