@@ -51,6 +51,29 @@ export const useExportActions = ({
   const handleCopyAsSvg = useCallback(async () => {
     if (selectedPathIds.length === 0) return;
 
+    const baseFileName = activeFileName
+      ? activeFileName.replace(/\.whiteboard$/, '')
+      : 'whiteboard';
+
+    const copySvgToClipboard = async (svgString: string, fileName: string) => {
+      try {
+        const svgFile = new File([svgString], `${fileName}.svg`, { type: 'image/svg+xml' });
+        const clipboardItem = new ClipboardItem({
+          'image/svg+xml': svgFile,
+          'text/plain': new Blob([svgString], { type: 'text/plain' })
+        });
+        await navigator.clipboard.write([clipboardItem]);
+      } catch (err) {
+        console.error('Failed to copy SVG as file to clipboard:', err);
+        try {
+          await navigator.clipboard.writeText(svgString);
+        } catch (textErr) {
+          console.error('Failed to copy SVG to clipboard as text:', textErr);
+          alert('无法将 SVG 复制到剪贴板。');
+        }
+      }
+    };
+
     if (selectedPathIds.length === 1) {
       const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
       if (selectedPath?.tool === 'frame') {
@@ -72,12 +95,7 @@ export const useExportActions = ({
           alert('Could not generate SVG.');
           return;
         }
-        try {
-          await navigator.clipboard.writeText(svgString);
-        } catch (err) {
-          console.error('Failed to copy SVG to clipboard:', err);
-          alert('无法将 SVG 复制到剪贴板。');
-        }
+        await copySvgToClipboard(svgString, `${baseFileName}-frame-${frame.id.slice(0, 6)}`);
         return;
       }
     }
@@ -85,16 +103,11 @@ export const useExportActions = ({
     const selected = paths.filter(p => selectedPathIds.includes(p.id));
     const svgString = await pathsToSvgString(selected, { padding: 10 });
     if (!svgString) {
-        alert("Could not generate SVG.");
-        return;
+      alert('Could not generate SVG.');
+      return;
     }
-    try {
-        await navigator.clipboard.writeText(svgString);
-    } catch (err) {
-        console.error("Failed to copy SVG to clipboard:", err);
-        alert("无法将 SVG 复制到剪贴板。");
-    }
-  }, [paths, selectedPathIds]);
+    await copySvgToClipboard(svgString, `${baseFileName}-selection`);
+  }, [paths, selectedPathIds, activeFileName]);
   
   /**
    * 将选中的图形复制为 PNG 图像到剪贴板。
