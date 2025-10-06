@@ -205,6 +205,45 @@ export const useExportActions = ({
    */
   const handleExportAsSvg = useCallback(async () => {
     if (paths.length === 0) return;
+
+    if (selectedPathIds.length === 1) {
+      const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
+      if (selectedPath?.tool === 'frame') {
+        const frame = selectedPath as FrameData;
+        const rotatedFrameBbox = getPathBoundingBox(frame, true);
+        if (!rotatedFrameBbox) {
+          alert('无法导出空画框。');
+          return;
+        }
+
+        const contentPaths = paths.filter(path => {
+          if (path.id === frame.id) return false;
+          const pathBbox = getPathBoundingBox(path, true);
+          return pathBbox ? doBboxesIntersect(pathBbox, rotatedFrameBbox) : false;
+        });
+
+        if (contentPaths.length === 0) {
+          alert('无法导出空画框。');
+          return;
+        }
+
+        const svgString = await pathsToSvgString(contentPaths, { clipFrame: frame, padding: 0 });
+        if (!svgString) {
+          alert('Could not generate SVG for export.');
+          return;
+        }
+
+        const blob = new Blob([svgString], { type: 'image/svg+xml' });
+        const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.svg') : 'whiteboard.svg';
+        await fileSave(blob, {
+          fileName,
+          extensions: ['.svg'],
+          id: 'whiteboardExportSvg',
+        });
+        return;
+      }
+    }
+
     const svgString = await pathsToSvgString(paths, { padding: 20 });
     if (!svgString) {
       alert("Could not generate SVG for export.");
@@ -217,13 +256,56 @@ export const useExportActions = ({
         extensions: ['.svg'],
         id: 'whiteboardExportSvg',
     });
-  }, [paths, activeFileName]);
+  }, [paths, activeFileName, selectedPathIds]);
 
   /**
    * 导出整个画布为 PNG 文件。
    */
   const handleExportAsPng = useCallback(async () => {
     if (paths.length === 0) return;
+
+    if (selectedPathIds.length === 1) {
+      const selectedPath = paths.find(p => p.id === selectedPathIds[0]);
+      if (selectedPath?.tool === 'frame') {
+        const frame = selectedPath as FrameData;
+        const rotatedFrameBbox = getPathBoundingBox(frame, true);
+        if (!rotatedFrameBbox) {
+          alert('无法导出空画框。');
+          return;
+        }
+
+        const contentPaths = paths.filter(path => {
+          if (path.id === frame.id) return false;
+          const pathBbox = getPathBoundingBox(path, true);
+          return pathBbox ? doBboxesIntersect(pathBbox, rotatedFrameBbox) : false;
+        });
+
+        if (contentPaths.length === 0) {
+          alert('无法导出空画框。');
+          return;
+        }
+
+        const blob = await pathsToPngBlob(contentPaths, {
+          ...pngExportOptions,
+          backgroundColor: pngExportOptions.transparentBg ? 'transparent' : backgroundColor,
+          clipFrame: frame,
+          padding: 0,
+        });
+        if (!blob) {
+          alert('Could not generate PNG for export.');
+          return;
+        }
+        const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.png') : 'whiteboard.png';
+        const scaleSuffix = pngExportOptions.scale !== 1 ? `@${pngExportOptions.scale}x` : '';
+        await fileSave(blob, {
+          fileName: fileName.replace(/(\.png)$/, `${scaleSuffix}$1`),
+          extensions: ['.png'],
+          id: 'whiteboardExportPng',
+        });
+        return;
+      }
+    }
+
     const blob = await pathsToPngBlob(paths, {
         backgroundColor: pngExportOptions.transparentBg ? 'transparent' : backgroundColor,
         ...pngExportOptions
@@ -239,7 +321,7 @@ export const useExportActions = ({
         extensions: ['.png'],
         id: 'whiteboardExportPng',
     });
-  }, [paths, backgroundColor, pngExportOptions, activeFileName]);
+  }, [paths, backgroundColor, pngExportOptions, activeFileName, selectedPathIds]);
   
   /**
    * 导出动画。
