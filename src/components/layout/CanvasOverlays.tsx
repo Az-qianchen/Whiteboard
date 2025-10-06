@@ -485,6 +485,11 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     };
 
     const handleWheel = (event: React.WheelEvent<HTMLTextAreaElement>) => {
+        const isZoomGesture = event.ctrlKey || event.metaKey;
+        if (isZoomGesture) {
+            // Allow the wheel event to bubble so the canvas view can handle zooming.
+            return;
+        }
         event.stopPropagation();
     };
 
