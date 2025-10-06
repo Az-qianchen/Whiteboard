@@ -133,10 +133,11 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             }
 
             const isFillVisible = path.tool === 'text' ? true : hasVisibleFill(path);
+            const treatInteriorAsHit = isFillVisible || path.tool === 'frame';
 
             // Check for hit on the fill area first.
             const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
-            if (isInside && isFillVisible) return true;
+            if (isInside && treatInteriorAsHit) return true;
 
             // If not inside, or if fill is transparent, check for hit on the stroke, which is important for transparent shapes.
             const p1 = { x, y };
@@ -150,7 +151,11 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
                 distSqToSegment(testPoint, p4, p1) < thresholdSq
             );
 
-            return path.tool === 'text' ? isInside || borderHit : borderHit;
+            if (borderHit) {
+                return true;
+            }
+
+            return false;
         }
         case 'polygon': {
             const { x, y, width, height, sides, rotation } = path as PolygonData;
