@@ -394,8 +394,7 @@ const TextEditingOverlay: React.FC<TextEditorOverlayProps> = ({
     const height = Math.max(path.height, layout.height, 1);
     const leadingTop = layout.leading.top;
     const leadingBottom = layout.leading.bottom;
-    const glyphHeight = layout.metrics.height;
-    const cssHalfLeading = Math.max(layout.lineHeight - glyphHeight, 0) / 2;
+    const cssHalfLeading = Math.max(layout.lineHeight - path.fontSize, 0) / 2;
     const paddingTop = Math.max(leadingTop - cssHalfLeading, 0);
     const paddingBottom = Math.max(leadingBottom - cssHalfLeading, 0);
 
