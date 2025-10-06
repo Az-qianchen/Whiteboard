@@ -181,6 +181,7 @@ export const ICONS = {
   TRASH: <Trash2 className="h-5 w-5" />,
   LAYERS: <Layers className="h-5 w-5" />,
   BACKGROUND_COLOR: <Paintbrush className="h-5 w-5" />,
+  FILE_MANAGER: <Boxes className="h-5 w-5" />,
   ALIGN_LEFT: <AlignLeft className="h-5 w-5" />,
   ALIGN_HORIZONTAL_CENTER: <AlignJustify className="h-5 w-5" />,
   ALIGN_RIGHT: <AlignRight className="h-5 w-5" />,

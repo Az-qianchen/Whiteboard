@@ -11,6 +11,7 @@ import { LayersPanel } from './layers-panel/LayersPanel';
 import { FloatingPngExporter } from './FloatingPngExporter';
 import { FloatingAnimationExporter } from './FloatingAnimationExporter';
 import LanguageSelector from './LanguageSelector';
+import { FileManagerPanel } from './file-manager/FileManagerPanel';
 import { useTranslation } from 'react-i18next';
 
 // --- 主菜单组件 ---
@@ -114,9 +115,10 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
   };
   
   const tabs = [
-    { name: t('menu'), icon: ICONS.MENU },
-    { name: t('layers'), icon: ICONS.LAYERS },
-  ];
+    { key: 'menu', name: t('menu'), icon: ICONS.MENU },
+    { key: 'layers', name: t('layers'), icon: ICONS.LAYERS },
+    { key: 'fileManager', name: t('fileManagerTab'), icon: ICONS.FILE_MANAGER },
+  ] as const;
 
   return (
     <nav className="w-full h-full bg-[var(--ui-panel-bg)] border-r border-[var(--ui-panel-border)] flex flex-col p-3 z-30">
@@ -135,7 +137,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
       <Tab.Group as="div" className="flex flex-col flex-grow min-h-0">
         <Tab.List className="flex-shrink-0 flex space-x-1 rounded-lg bg-[var(--ui-element-bg)] p-1 mb-3">
           {tabs.map(tab => (
-            <Tab as={Fragment} key={tab.name}>
+            <Tab as={Fragment} key={tab.key}>
               {({ selected }) => (
                 <PanelButton
                   variant="unstyled"
@@ -291,6 +293,9 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
           </Tab.Panel>
           <Tab.Panel className="h-full focus:outline-none">
             <LayersPanel />
+          </Tab.Panel>
+          <Tab.Panel className="h-full focus:outline-none overflow-hidden">
+            <FileManagerPanel />
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>
