@@ -19,8 +19,8 @@ import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
 import * as idb from '../lib/indexedDB';
-import type { FileSystemFileHandle } from 'wicg-file-system-access';
-import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData } from '../types';
+import type { FileSystemDirectoryHandle, FileSystemFileHandle } from 'wicg-file-system-access';
+import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData, BoardFileEntry, DirectoryAccessError } from '../types';
 import { rotatePoint, dist } from '@/lib/drawing';
 import { normalizeFrames, createFrame, usePathsStore as usePathsStoreBase } from '@/context/pathsStore';
 
@@ -238,6 +238,10 @@ interface AppState {
   activeFileHandle: FileSystemFileHandle | null;
   activeFileName: string | null;
   isLoading: boolean;
+  directoryHandle: FileSystemDirectoryHandle | null;
+  directoryEntries: BoardFileEntry[];
+  isDirectoryLoading: boolean;
+  directoryError: DirectoryAccessError | null;
   confirmationDialog: ConfirmationDialogState | null;
   croppingState: { pathId: string; originalPath: PathImageData } | null;
   currentCropRect: BBox | null;
@@ -293,6 +297,10 @@ const getInitialAppState = (): AppState => ({
       activeFileHandle: null,
   activeFileName: null,
   isLoading: true,
+  directoryHandle: null,
+  directoryEntries: [],
+  isDirectoryLoading: false,
+  directoryError: null,
   confirmationDialog: null,
   croppingState: null,
   currentCropRect: null,
@@ -485,6 +493,10 @@ export const useAppStore = () => {
   const setActiveFileHandle = useCallback((val: AppState['activeFileHandle'] | ((prev: AppState['activeFileHandle']) => AppState['activeFileHandle'])) => setAppState(s => ({ ...s, activeFileHandle: typeof val === 'function' ? val(s.activeFileHandle) : val })), []);
   const setActiveFileName = useCallback((val: AppState['activeFileName'] | ((prev: AppState['activeFileName']) => AppState['activeFileName'])) => setAppState(s => ({ ...s, activeFileName: typeof val === 'function' ? val(s.activeFileName) : val })), []);
   const setIsLoading = useCallback((val: AppState['isLoading'] | ((prev: AppState['isLoading']) => AppState['isLoading'])) => setAppState(s => ({ ...s, isLoading: typeof val === 'function' ? val(s.isLoading) : val })), []);
+  const setDirectoryHandle = useCallback((val: AppState['directoryHandle'] | ((prev: AppState['directoryHandle']) => AppState['directoryHandle'])) => setAppState(s => ({ ...s, directoryHandle: typeof val === 'function' ? val(s.directoryHandle) : val })), []);
+  const setDirectoryEntries = useCallback((val: AppState['directoryEntries'] | ((prev: AppState['directoryEntries']) => AppState['directoryEntries'])) => setAppState(s => ({ ...s, directoryEntries: typeof val === 'function' ? val(s.directoryEntries) : val })), []);
+  const setIsDirectoryLoading = useCallback((val: AppState['isDirectoryLoading'] | ((prev: AppState['isDirectoryLoading']) => AppState['isDirectoryLoading'])) => setAppState(s => ({ ...s, isDirectoryLoading: typeof val === 'function' ? val(s.isDirectoryLoading) : val })), []);
+  const setDirectoryError = useCallback((val: AppState['directoryError'] | ((prev: AppState['directoryError']) => AppState['directoryError'])) => setAppState(s => ({ ...s, directoryError: typeof val === 'function' ? val(s.directoryError) : val })), []);
   const setConfirmationDialog = useCallback((val: AppState['confirmationDialog'] | ((prev: AppState['confirmationDialog']) => AppState['confirmationDialog'])) => setAppState(s => ({ ...s, confirmationDialog: typeof val === 'function' ? val(s.confirmationDialog) : val })), []);
   const setCroppingState = useCallback((val: AppState['croppingState'] | ((prev: AppState['croppingState']) => AppState['croppingState'])) => setAppState(s => ({ ...s, croppingState: typeof val === 'function' ? val(s.croppingState) : val })), []);
   const setCurrentCropRect = useCallback((val: AppState['currentCropRect'] | ((prev: AppState['currentCropRect']) => AppState['currentCropRect'])) => setAppState(s => ({ ...s, currentCropRect: typeof val === 'function' ? val(s.currentCropRect) : val })), []);
@@ -1771,6 +1783,100 @@ export const useAppStore = () => {
     });
   }, []);
 
+  const refreshDirectoryEntries = useCallback(async (handle?: FileSystemDirectoryHandle | null) => {
+    setIsDirectoryLoading(true);
+    setDirectoryError(null);
+    const targetHandle = handle ?? appState.directoryHandle;
+    if (!targetHandle) {
+      setDirectoryEntries([]);
+      setIsDirectoryLoading(false);
+      return;
+    }
+
+    try {
+      let permission = await targetHandle.queryPermission({ mode: 'read' as const });
+      if (permission === 'prompt') {
+        permission = await targetHandle.requestPermission({ mode: 'read' as const });
+      }
+      if (permission !== 'granted') {
+        throw new DOMException('Permission denied', 'SecurityError');
+      }
+
+      const files: BoardFileEntry[] = [];
+      for await (const [name, entry] of targetHandle.entries()) {
+        if (entry.kind !== 'file' || !name.toLowerCase().endsWith('.whiteboard')) {
+          continue;
+        }
+        const fileHandle = entry as FileSystemFileHandle;
+        let lastModified: number | undefined;
+        let size: number | undefined;
+        try {
+          const file = await fileHandle.getFile();
+          lastModified = file.lastModified;
+          size = file.size;
+        } catch (err) {
+          console.warn('Unable to read metadata for file', name, err);
+        }
+        files.push({ name, handle: fileHandle, lastModified, size });
+      }
+
+      files.sort((a, b) => a.name.localeCompare(b.name));
+      setDirectoryEntries(files);
+      setDirectoryHandle(targetHandle);
+      await idb.set('last-directory-handle', targetHandle);
+    } catch (error) {
+      console.error('Failed to read directory entries:', error);
+      setDirectoryEntries([]);
+      setDirectoryHandle(null);
+      if (error instanceof DOMException && error.name === 'SecurityError') {
+        setDirectoryError({ type: 'permission' });
+      } else {
+        setDirectoryError({
+          type: 'unknown',
+          message: error instanceof Error ? error.message : undefined,
+        });
+      }
+      await idb.del('last-directory-handle').catch(() => {});
+    } finally {
+      setIsDirectoryLoading(false);
+    }
+  }, [appState.directoryHandle, setDirectoryEntries, setDirectoryHandle, setIsDirectoryLoading, setDirectoryError]);
+
+  const chooseDirectory = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      setDirectoryError({ type: 'unsupported' });
+      return;
+    }
+
+    const win = window as typeof window & {
+      showDirectoryPicker?: (options?: unknown) => Promise<FileSystemDirectoryHandle>;
+    };
+
+    if (typeof win.showDirectoryPicker !== 'function') {
+      setDirectoryError({ type: 'unsupported' });
+      return;
+    }
+
+    try {
+      setDirectoryError(null);
+      const handle = await win.showDirectoryPicker({ id: 'whiteboard-directory' } as unknown);
+      await refreshDirectoryEntries(handle);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      if (error instanceof DOMException && (error.name === 'SecurityError' || error.name === 'NotAllowedError')) {
+        setDirectoryError({ type: 'permission' });
+        return;
+      }
+      console.error('Failed to choose directory:', error);
+      setDirectoryError({
+        type: 'unknown',
+        message: error instanceof Error ? error.message : undefined,
+      });
+    }
+  }, [refreshDirectoryEntries, setDirectoryError]);
+
   const appActions = useAppActions({
     paths: activePaths, backgroundColor: uiState.backgroundColor, selectedPathIds,
     pathState: { ...activePathState, handleLoadFile },
@@ -1863,6 +1969,39 @@ export const useAppStore = () => {
   }, [handleLoadFile, setActiveFileHandle, setActiveFileName, setBackgroundColor, setIsLoading, setFps, markDocumentSaved, initialFpsRef]);
 
   useEffect(() => {
+    let isCancelled = false;
+    const restoreDirectory = async () => {
+      try {
+        const handle = await idb.get<FileSystemDirectoryHandle>('last-directory-handle');
+        if (!handle) {
+          return;
+        }
+
+        let permission = await handle.queryPermission({ mode: 'read' as const });
+        if (permission === 'prompt') {
+          permission = await handle.requestPermission({ mode: 'read' as const });
+        }
+        if (permission !== 'granted') {
+          await idb.del('last-directory-handle');
+          return;
+        }
+        if (isCancelled) {
+          return;
+        }
+        await refreshDirectoryEntries(handle);
+      } catch (error) {
+        console.error('Failed to restore directory handle:', error);
+        await idb.del('last-directory-handle').catch(() => {});
+      }
+    };
+
+    void restoreDirectory();
+    return () => {
+      isCancelled = true;
+    };
+  }, [refreshDirectoryEntries]);
+
+  useEffect(() => {
     if (!uiState.isPlaying || frames.length === 0) return;
     let frameInterval = 1000 / uiState.fps;
     let lastFrameTime = 0;
@@ -1938,6 +2077,8 @@ export const useAppStore = () => {
       cancelCrop,
       handleSetTool,
       handleToggleStyleLibrary,
+      chooseDirectory,
+      refreshDirectoryEntries,
       handleClear,
       handleClearAllData,
       handleResetPreferences,
@@ -2037,6 +2178,8 @@ export const useAppStore = () => {
       cancelCrop,
       handleSetTool,
       handleToggleStyleLibrary,
+      chooseDirectory,
+      refreshDirectoryEntries,
       handleClear,
       handleClearAllData,
       handleResetPreferences,

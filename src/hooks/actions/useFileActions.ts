@@ -149,6 +149,48 @@ export const useFileActions = ({
     }
   }, [activeFileHandle, frames, revision, backgroundColor, fps, handleSaveAs, markDocumentSaved]);
 
+  const loadWhiteboardDocument = useCallback(async (file: File, handle: FileSystemFileHandle | null) => {
+    const contents = await file.text();
+    const data: WhiteboardData = JSON.parse(contents);
+
+    if (data?.type === 'whiteboard/shapes' && (data.frames || data.paths)) {
+        if (data.files) {
+            const filesStore = useFilesStore.getState();
+            await Promise.all(
+                Object.entries(data.files).map(async ([fileId, storedFile]) => {
+                    if (filesStore.files[fileId]) return;
+                    const blob = await (await fetch(storedFile.dataURL)).blob();
+                    await filesStore.addFile(blob, { id: fileId, mimeType: storedFile.mimeType });
+                })
+            );
+        }
+
+        const rawFrames = data.frames || [{ paths: data.paths ?? [] }];
+        const framesToLoad = normalizeFrames(rawFrames);
+        const nextBackgroundColor = data.backgroundColor ?? '#212529';
+        const nextFps = data.fps ?? fps;
+        pathState.handleLoadFile(framesToLoad);
+        requestFitToContent();
+        setBackgroundColor(nextBackgroundColor);
+        if (setFps) setFps(nextFps);
+
+        if (handle) {
+            setActiveFileHandle(handle);
+            setActiveFileName(handle.name);
+            await idb.set('last-active-file-handle', handle);
+        } else {
+            setActiveFileHandle(null);
+            setActiveFileName(file.name);
+            await idb.del('last-active-file-handle');
+        }
+
+        const { revision: updatedRevision } = usePathsStoreBase.getState();
+        markDocumentSaved(createDocumentSignature(updatedRevision, nextBackgroundColor, nextFps));
+    } else {
+        alert("Invalid whiteboard file.");
+    }
+  }, [fps, markDocumentSaved, pathState, requestFitToContent, setActiveFileHandle, setActiveFileName, setBackgroundColor, setFps]);
+
   /**
    * 打开一个文件。
    */
@@ -158,53 +200,36 @@ export const useFileActions = ({
             mimeTypes: ['application/vnd.whiteboard+json', 'application/json'],
             extensions: ['.whiteboard'],
             id: 'whiteboardOpen',
-        });
+        }) as FileWithHandle;
         if (!file) return;
 
-        const contents = await file.text();
-        const data: WhiteboardData = JSON.parse(contents);
-
-        if (data?.type === 'whiteboard/shapes' && (data.frames || data.paths)) {
-            if (data.files) {
-                const filesStore = useFilesStore.getState();
-                await Promise.all(
-                    Object.entries(data.files).map(async ([fileId, file]) => {
-                        if (filesStore.files[fileId]) return;
-                        const blob = await (await fetch(file.dataURL)).blob();
-                        await filesStore.addFile(blob, { id: fileId, mimeType: file.mimeType });
-                    })
-                );
-            }
-            const rawFrames = data.frames || [{ paths: data.paths ?? [] }];
-            const framesToLoad = normalizeFrames(rawFrames);
-            const nextBackgroundColor = data.backgroundColor ?? '#212529';
-            const nextFps = data.fps ?? fps;
-            pathState.handleLoadFile(framesToLoad);
-            requestFitToContent();
-            setBackgroundColor(nextBackgroundColor);
-            if (setFps) setFps(nextFps);
-
-            if ('handle' in file) {
-                const handle = (file as unknown as FileWithHandle).handle;
-                setActiveFileHandle(handle);
-                setActiveFileName(file.name);
-                await idb.set('last-active-file-handle', handle);
-            } else {
-                setActiveFileHandle(null);
-                setActiveFileName(file.name);
-                await idb.del('last-active-file-handle');
-            }
-            const { revision: updatedRevision } = usePathsStoreBase.getState();
-            markDocumentSaved(createDocumentSignature(updatedRevision, nextBackgroundColor, nextFps));
-        } else {
-            alert("Invalid whiteboard file.");
-        }
+        const handle = 'handle' in file ? file.handle : null;
+        await loadWhiteboardDocument(file, handle ?? null);
     } catch (err) {
         if ((err as Error).name === 'AbortError') return;
         console.error("Error opening file:", err);
         alert("Failed to open file.");
     }
-  }, [pathState, setBackgroundColor, setFps, setActiveFileHandle, setActiveFileName, fps, markDocumentSaved, requestFitToContent]);
+  }, [loadWhiteboardDocument]);
+
+  const handleOpenFromHandle = useCallback(async (fileHandle: FileSystemFileHandle) => {
+    try {
+        let permission = await fileHandle.queryPermission({ mode: 'read' as const });
+        if (permission === 'prompt') {
+            permission = await fileHandle.requestPermission({ mode: 'read' as const });
+        }
+        if (permission !== 'granted') {
+            alert('Permission to open this file was denied.');
+            return;
+        }
+
+        const file = await fileHandle.getFile();
+        await loadWhiteboardDocument(file, fileHandle);
+    } catch (err) {
+        console.error('Error opening file from handle:', err);
+        alert('Failed to open file.');
+    }
+  }, [loadWhiteboardDocument]);
 
   /**
    * 触发文件导入对话框。
@@ -237,5 +262,5 @@ export const useFileActions = ({
     e.target.value = '';
   };
 
-  return { handleSaveFile, handleSaveAs, handleOpen, handleImportClick, handleSvgFileChange, importFileRef, handleFileImport };
+  return { handleSaveFile, handleSaveAs, handleOpen, handleOpenFromHandle, handleImportClick, handleSvgFileChange, importFileRef, handleFileImport };
 };

@@ -3,6 +3,7 @@
  * 这有助于确保代码的类型安全和可读性，定义了如点、路径、工具等核心数据结构。
  */
 import type { Dispatch, SetStateAction } from 'react';
+import type { FileSystemFileHandle } from 'wicg-file-system-access';
 
 export interface Point {
   x: number;
@@ -65,6 +66,18 @@ export interface StyleClipboardData {
 export type MaterialData = {
   shapes: AnyPath[];
 }
+
+export interface BoardFileEntry {
+  name: string;
+  handle: FileSystemFileHandle;
+  lastModified?: number;
+  size?: number;
+}
+
+export type DirectoryAccessError =
+  | { type: 'unsupported' }
+  | { type: 'permission' }
+  | { type: 'unknown'; message?: string };
 
 export interface GradientStop {
   offset: number; // 0 - 1
