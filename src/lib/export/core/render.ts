@@ -116,8 +116,10 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
     bboxElement.setAttribute('y', data.y.toString());
     bboxElement.setAttribute('width', data.width.toString());
     bboxElement.setAttribute('height', data.height.toString());
+    // 使用极低的不透明度来确保该矩形参与 SVG 的几何边界计算，
+    // 以便旋转后的缩放锚点与对角线控制点对齐，同时保持对用户不可见。
     bboxElement.setAttribute('fill', '#000');
-    bboxElement.setAttribute('fill-opacity', '0');
+    bboxElement.setAttribute('fill-opacity', '0.0001');
     bboxElement.setAttribute('stroke', 'none');
     bboxElement.setAttribute('pointer-events', 'none');
 
