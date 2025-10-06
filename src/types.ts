@@ -345,7 +345,7 @@ type ResizeDragState = {
   type: 'resize';
   pathId: string;
   handle: ResizeHandlePosition;
-  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData;
+  originalPath: RectangleData | EllipseData | ImageData | PolygonData | FrameData | TextData;
   initialPointerPos: Point;
 };
 
