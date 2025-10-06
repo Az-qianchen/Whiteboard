@@ -7,6 +7,7 @@ import rough from 'roughjs/bin/rough';
 import { getPathsBoundingBox } from '@/lib/drawing';
 import { renderPathNode } from '../core/render';
 import { getImageDataUrl } from '@/lib/imageCache';
+import { normalizePaintAttributes } from '@/lib/export/utils/color';
 
 /**
  * 递归地查找并返回路径树中所有的画框对象。
@@ -140,7 +141,9 @@ export async function pathsToSvgString(paths: AnyPath[], options?: {
   });
 
   svg.appendChild(mainGroup);
-  
+
+  normalizePaintAttributes(svg);
+
   const rawSvgString = new XMLSerializer().serializeToString(svg);
 
   if (!shouldOptimize) {
