@@ -133,7 +133,7 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
             }
 
             const isFillVisible = path.tool === 'text' ? true : hasVisibleFill(path);
-            const treatInteriorAsHit = isFillVisible || path.tool === 'frame';
+            const treatInteriorAsHit = path.tool === 'frame' ? false : isFillVisible;
 
             // Check for hit on the fill area first.
             const isInside = testPoint.x >= x && testPoint.x <= x + width && testPoint.y >= y && testPoint.y <= y + height;
