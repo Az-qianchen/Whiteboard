@@ -10,6 +10,38 @@ import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '@/li
 import JSZip from 'jszip';
 import { useFilesStore } from '@/context/filesStore';
 
+type ClipboardItemPresentationStyle = 'unspecified' | 'inline' | 'attachment';
+
+const createClipboardItem = (
+  type: string,
+  blob: Blob,
+  presentationStyle?: ClipboardItemPresentationStyle
+): ClipboardItem => {
+  const itemInit: Record<string, Blob> = { [type]: blob };
+  if (!presentationStyle) {
+    return new ClipboardItem(itemInit);
+  }
+
+  const ClipboardItemConstructor = ClipboardItem as typeof ClipboardItem & {
+    new (
+      items: Record<string, Blob>,
+      options?: { presentationStyle?: ClipboardItemPresentationStyle }
+    ): ClipboardItem;
+  };
+
+  try {
+    return new ClipboardItemConstructor(itemInit, { presentationStyle });
+  } catch {
+    return new ClipboardItem(itemInit);
+  }
+};
+
+const writeBlobToClipboard = async (blob: Blob, type: string) => {
+  const presentationStyle = type === 'image/png' ? 'attachment' : undefined;
+  const item = createClipboardItem(type, blob, presentationStyle);
+  await navigator.clipboard.write([item]);
+};
+
 /**
  * 递归移除路径数组中的画框对象。
  * @param inputPaths - 需要处理的路径数组。
@@ -78,7 +110,12 @@ export const useExportActions = ({
           const blob = await filesStore.getBlob((selectedPath as ImageData).fileId);
           if (!blob) throw new Error('Missing blob for image');
           try {
-            await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+            if (blob.type === 'image/png') {
+              await writeBlobToClipboard(blob, 'image/png');
+            } else {
+              const item = createClipboardItem(blob.type, blob);
+              await navigator.clipboard.write([item]);
+            }
           } catch (err) {
             console.error('Failed to copy image to clipboard:', err);
             if (blob.type !== 'image/png') {
@@ -92,9 +129,7 @@ export const useExportActions = ({
                   canvas.toBlob(b => resolve(b), 'image/png')
                 );
                 if (pngBlob) {
-                  await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': pngBlob })
-                  ]);
+                  await writeBlobToClipboard(pngBlob, 'image/png');
                   return;
                 }
               } catch (err2) {
@@ -132,7 +167,7 @@ export const useExportActions = ({
             return;
         }
         try {
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            await writeBlobToClipboard(blob, 'image/png');
         } catch (err) {
             console.error("Failed to copy PNG to clipboard:", err);
             alert("Could not copy PNG to clipboard. Your browser might not support this feature.");
@@ -154,7 +189,7 @@ export const useExportActions = ({
         return;
     }
     try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        await writeBlobToClipboard(blob, 'image/png');
     } catch (err) {
         console.error("Failed to copy PNG to clipboard:", err);
         alert("Could not copy PNG to clipboard. Your browser might not support this feature.");
