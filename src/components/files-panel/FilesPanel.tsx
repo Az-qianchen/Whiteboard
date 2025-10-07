@@ -11,6 +11,7 @@ export const FilesPanel: React.FC = () => {
     directoryError,
     chooseDirectory,
     refreshDirectoryEntries,
+    createNewBoardFile,
     handleOpenFromHandle,
     activeFileName,
   } = useAppContext();
@@ -23,6 +24,10 @@ export const FilesPanel: React.FC = () => {
         return t('filesPanel.unsupported');
       case 'permission':
         return t('filesPanel.permissionDenied');
+      case 'creation':
+        return directoryError.message
+          ? t('filesPanel.createFileFailedWithMessage', { message: directoryError.message })
+          : t('filesPanel.createFileFailed');
       case 'unknown':
         return directoryError.message
           ? t('filesPanel.unknownErrorWithMessage', { message: directoryError.message })
@@ -57,6 +62,10 @@ export const FilesPanel: React.FC = () => {
     void refreshDirectoryEntries();
   }, [refreshDirectoryEntries]);
 
+  const handleCreateFile = useCallback(() => {
+    void createNewBoardFile();
+  }, [createNewBoardFile]);
+
   const handleOpenFile = useCallback(
     (entry: BoardFileEntry) => {
       void handleOpenFromHandle(entry.handle);
@@ -68,14 +77,24 @@ export const FilesPanel: React.FC = () => {
     <div className="flex h-full flex-col text-sm text-[var(--text-primary)]">
       <div className="flex items-center justify-end gap-2 border-b border-[var(--ui-separator)] pb-3">
         {directoryHandle ? (
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isDirectoryLoading}
-            className="rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {t('filesPanel.refresh')}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleCreateFile}
+              disabled={isDirectoryLoading}
+              className="rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t('filesPanel.createFile')}
+            </button>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isDirectoryLoading}
+              className="rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t('filesPanel.refresh')}
+            </button>
+          </>
         ) : null}
         <button
           type="button"

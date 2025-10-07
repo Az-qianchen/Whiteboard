@@ -1895,6 +1895,77 @@ export const useAppStore = () => {
     setCroppingState,
   });
 
+  const { handleOpenFromHandle } = appActions;
+
+  const createNewBoardFile = useCallback(async () => {
+    const targetHandle = directoryHandleRef.current;
+    if (!targetHandle) {
+      return;
+    }
+
+    setIsDirectoryLoading(true);
+    setDirectoryError(null);
+
+    try {
+      let permission = await targetHandle.queryPermission({ mode: 'readwrite' as const });
+      if (permission === 'prompt') {
+        permission = await targetHandle.requestPermission({ mode: 'readwrite' as const });
+      }
+      if (permission !== 'granted') {
+        setDirectoryError({ type: 'permission' });
+        return;
+      }
+
+      const rawBaseName = t('untitled');
+      const fallbackBase = typeof rawBaseName === 'string' && rawBaseName.trim().length > 0 ? rawBaseName.trim() : 'untitled';
+      const sanitizedBase = fallbackBase.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+      const baseName = sanitizedBase.length > 0 ? sanitizedBase : 'untitled';
+
+      const existingNames = new Set(appState.directoryEntries.map(entry => entry.name.toLowerCase()));
+      const buildFileName = (index: number) =>
+        index === 0 ? `${baseName}.whiteboard` : `${baseName} ${index}.whiteboard`;
+
+      let attempt = 0;
+      let fileName = buildFileName(attempt);
+      while (existingNames.has(fileName.toLowerCase())) {
+        attempt += 1;
+        fileName = buildFileName(attempt);
+      }
+
+      const fileHandle = await targetHandle.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      const newDocument: WhiteboardData = {
+        type: 'whiteboard/shapes',
+        version: 3,
+        frames: [createFrame()],
+        backgroundColor: uiState.backgroundColor,
+        fps: uiState.fps,
+      };
+      await writable.write(`${JSON.stringify(newDocument, null, 2)}\n`);
+      await writable.close();
+
+      await refreshDirectoryEntries(targetHandle);
+      await handleOpenFromHandle(fileHandle);
+    } catch (error) {
+      console.error('Failed to create new whiteboard file:', error);
+      setDirectoryError({
+        type: 'creation',
+        message: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsDirectoryLoading(false);
+    }
+  }, [
+    appState.directoryEntries,
+    handleOpenFromHandle,
+    refreshDirectoryEntries,
+    setDirectoryError,
+    setIsDirectoryLoading,
+    t,
+    uiState.backgroundColor,
+    uiState.fps,
+  ]);
+
   useEffect(() => {
     setAppState(prev => {
       if (prev.lastSavedDocumentSignature === null) {
@@ -2084,6 +2155,7 @@ export const useAppStore = () => {
       handleSetTool,
       handleToggleStyleLibrary,
       chooseDirectory,
+      createNewBoardFile,
       refreshDirectoryEntries,
       handleClear,
       handleClearAllData,
@@ -2185,6 +2257,7 @@ export const useAppStore = () => {
       handleSetTool,
       handleToggleStyleLibrary,
       chooseDirectory,
+      createNewBoardFile,
       refreshDirectoryEntries,
       handleClear,
       handleClearAllData,
