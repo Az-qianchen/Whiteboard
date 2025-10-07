@@ -14,6 +14,8 @@ export const FilesPanel: React.FC = () => {
     createNewBoardFile,
     handleOpenFromHandle,
     activeFileName,
+    hasUnsavedChanges,
+    showConfirmation,
   } = useAppContext();
   const { t } = useTranslation();
 
@@ -68,9 +70,19 @@ export const FilesPanel: React.FC = () => {
 
   const handleOpenFile = useCallback(
     (entry: BoardFileEntry) => {
+      if (hasUnsavedChanges) {
+        showConfirmation(
+          t('filesPanel.confirmSwitchTitle'),
+          t('filesPanel.confirmSwitchMessage'),
+          () => handleOpenFromHandle(entry.handle),
+          t('filesPanel.confirmSwitchConfirm')
+        );
+        return;
+      }
+
       void handleOpenFromHandle(entry.handle);
     },
-    [handleOpenFromHandle]
+    [handleOpenFromHandle, hasUnsavedChanges, showConfirmation, t]
   );
 
   return (
