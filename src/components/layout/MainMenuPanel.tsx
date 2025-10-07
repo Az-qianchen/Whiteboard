@@ -32,6 +32,7 @@ export const MainMenuPanel: React.FC = () => {
         selectedPathIds,
         backgroundColor,
         setBackgroundColor,
+        activeFileName,
         hasUnsavedChanges,
         lastSavedDocumentSignature,
         viewTransform,
@@ -160,6 +161,7 @@ export const MainMenuPanel: React.FC = () => {
                     frameCount={frames.length}
                     backgroundColor={backgroundColor}
                     setBackgroundColor={setBackgroundColor}
+                    activeFileName={activeFileName}
                     hasUnsavedChanges={hasUnsavedChanges}
                     isDocumentUncreated={isDocumentUncreated}
                     onResetPreferences={handleResetPreferences}

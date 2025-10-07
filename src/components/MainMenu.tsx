@@ -33,6 +33,7 @@ interface MainMenuProps {
   frameCount: number;
   backgroundColor: string;
   setBackgroundColor: (color: string) => void;
+  activeFileName: string | null;
   hasUnsavedChanges: boolean;
   isDocumentUncreated: boolean;
   onResetPreferences: () => void;
@@ -55,6 +56,7 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
     onSave, onSaveAs, onOpen, onImport, onClear, canClear, onClearAllData, canClearAllData,
     onExportSvg, onExportPng, onExportAnimation, canExport, frameCount,
     backgroundColor, setBackgroundColor,
+    activeFileName,
     hasUnsavedChanges, isDocumentUncreated,
     onResetPreferences,
     zoomLevel,
@@ -131,8 +133,16 @@ export const MainMenu: React.FC<MainMenuProps> = (props) => {
         >
           <Paintbrush className="h-6 w-6" />
         </div>
+        <div className="min-w-0">
+          <h1 className="text-base font-bold text-[var(--text-primary)]">{menuTitle}</h1>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)] min-w-0">
+            <span className="truncate" title={activeFileName ?? t('untitled')}>
+              {activeFileName ?? t('untitled')}
+            </span>
+          </div>
+        </div>
       </div>
-      
+
       <Tab.Group as="div" className="flex flex-col flex-grow min-h-0">
         <Tab.List className="flex-shrink-0 flex space-x-1 rounded-lg bg-[var(--ui-element-bg)] p-1 mb-3">
           {tabs.map(tab => (
