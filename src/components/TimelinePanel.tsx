@@ -25,23 +25,14 @@ const getTimelineButtonClasses = (isActive = false) =>
 const FrameThumbnail: React.FC<{ frame: Frame }> = React.memo(({ frame }) => {
     const [svgString, setSvgString] = useState<string | null>(null);
 
-    // Build a lightweight signature that changes only when visual content likely changed
+    // Build a signature that reacts to meaningful changes in path data so thumbnails refresh correctly
     const signature = useMemo(() => {
         try {
-            return JSON.stringify(
-                frame.paths.map((p: any) => ({
-                    id: p.id,
-                    tool: p.tool,
-                    x: p.x, y: p.y, width: p.width, height: p.height, rotation: p.rotation,
-                    opacity: p.opacity,
-                    points: Array.isArray(p.points) ? p.points.length : undefined,
-                    anchors: Array.isArray(p.anchors) ? p.anchors.length : undefined,
-                }))
-            );
+            return JSON.stringify(frame.paths);
         } catch {
-            return String(frame.paths.length);
+            return `${frame.id}:${frame.paths.length}`;
         }
-    }, [frame.paths]);
+    }, [frame.id, frame.paths]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -53,8 +44,6 @@ const FrameThumbnail: React.FC<{ frame: Frame }> = React.memo(({ frame }) => {
         };
         generateSvg();
         return () => { isCancelled = true; };
-        // Depend on signature, not the entire frame object to avoid remount loops
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [signature]);
 
     const dataUrl = useMemo(() => {
