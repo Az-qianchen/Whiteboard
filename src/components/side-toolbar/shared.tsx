@@ -45,9 +45,14 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
   };
 
   return (
-    <div className="grid grid-cols-[auto,1fr] items-center gap-x-4 min-h-[2rem]">
-      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap flex items-center leading-none`} htmlFor={label}>{label}</label>
-      <div className="w-full flex flex-col justify-center">
+    <div className="flex items-center gap-4 min-h-[2rem]">
+      <label
+        className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex items-center leading-none w-40 shrink-0 text-left whitespace-normal`}
+        htmlFor={label}
+      >
+        {label}
+      </label>
+      <div className="w-full flex flex-col justify-center flex-1">
         <input
           type="range"
           id={label}
