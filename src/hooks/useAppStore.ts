@@ -1810,7 +1810,7 @@ export const useAppStore = () => {
 
       const files: BoardFileEntry[] = [];
       for await (const [name, entry] of targetHandle.entries()) {
-        if (entry.kind !== 'file' || !name.toLowerCase().endsWith('.whiteboard')) {
+        if (entry.kind !== 'file' || !name.toLowerCase().endsWith('.wb')) {
           continue;
         }
         const fileHandle = entry as FileSystemFileHandle;
