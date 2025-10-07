@@ -10,7 +10,7 @@ import { Whiteboard } from './Whiteboard';
 import { LayersProvider, type LayersContextValue } from '../lib/layers-context';
 import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
-import type { MaterialData, AnyPath } from '../types';
+import type { MaterialData, AnyPath, GroupData } from '../types';
 import { useTranslation } from 'react-i18next';
 
 // Import new layout components
@@ -18,6 +18,26 @@ import { MainMenuPanel } from './layout/MainMenuPanel';
 import { SideToolbarPanel } from './layout/SideToolbarPanel';
 import { CanvasOverlays } from './layout/CanvasOverlays';
 import { TimelinePanel } from './TimelinePanel';
+
+const clonePathForOnionSkin = (path: AnyPath, prefix: string, opacityFactor: number): AnyPath => {
+    const baseOpacity = path.opacity ?? 1;
+    const cloned = {
+        ...path,
+        id: `${prefix}${path.id}`,
+        opacity: baseOpacity * opacityFactor,
+        isLocked: true,
+    } as AnyPath;
+
+    if (path.tool === 'group') {
+        const group = path as GroupData;
+        return {
+            ...(cloned as GroupData),
+            children: group.children.map(child => clonePathForOnionSkin(child, prefix, opacityFactor)),
+        };
+    }
+
+    return cloned;
+};
 
 export const MainLayout: React.FC = () => {
     const store = useAppContext();
@@ -87,12 +107,9 @@ export const MainLayout: React.FC = () => {
             const frameIndex = currentFrameIndex - i;
             if (frameIndex < 0) break;
             const opacity = maxOpacity * ((onionSkinPrevFrames - i + 1) / (onionSkinPrevFrames + 1));
-            const framePaths = frames[frameIndex].paths.map(p => ({
-                ...p,
-                id: `onion-prev-${i}-${p.id}`,
-                opacity: (p.opacity ?? 1) * opacity,
-                isLocked: true,
-            }));
+            const framePaths = frames[frameIndex].paths
+                .filter(p => p.isVisible !== false)
+                .map(p => clonePathForOnionSkin(p, `onion-prev-${i}-`, opacity));
             skinPaths.push(...framePaths);
         }
 
@@ -101,12 +118,9 @@ export const MainLayout: React.FC = () => {
             const frameIndex = currentFrameIndex + i;
             if (frameIndex >= frames.length) break;
             const opacity = maxOpacity * ((onionSkinNextFrames - i + 1) / (onionSkinNextFrames + 1));
-            const framePaths = frames[frameIndex].paths.map(p => ({
-                ...p,
-                id: `onion-next-${i}-${p.id}`,
-                opacity: (p.opacity ?? 1) * opacity,
-                isLocked: true,
-            }));
+            const framePaths = frames[frameIndex].paths
+                .filter(p => p.isVisible !== false)
+                .map(p => clonePathForOnionSkin(p, `onion-next-${i}-`, opacity));
             skinPaths.push(...framePaths);
         }
 
