@@ -72,8 +72,8 @@ export const useFileActions = ({
         // 移除了 'id' 属性，以确保在所有浏览器中都能可靠地触发原生保存对话框，
         // 而不是依赖可能导致问题的浏览器特定行为。
         const fileHandle = await fileSave(blob, {
-            fileName: activeFileName || 'untitled.whiteboard',
-            extensions: ['.whiteboard'],
+            fileName: activeFileName || 'untitled.wb',
+            extensions: ['.wb'],
         });
 
         if (fileHandle) {
@@ -198,7 +198,7 @@ export const useFileActions = ({
     try {
         const file = await fileOpen({
             mimeTypes: ['application/vnd.whiteboard+json', 'application/json'],
-            extensions: ['.whiteboard'],
+            extensions: ['.wb'],
             id: 'whiteboardOpen',
         }) as FileWithHandle;
         if (!file) return;

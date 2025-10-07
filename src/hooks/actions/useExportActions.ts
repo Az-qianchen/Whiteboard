@@ -234,7 +234,7 @@ export const useExportActions = ({
         }
 
         const blob = new Blob([svgString], { type: 'image/svg+xml' });
-        const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.svg') : 'whiteboard.svg';
+        const fileName = activeFileName ? activeFileName.replace(/\.(?:whiteboard|wb)$/i, '.svg') : 'whiteboard.svg';
         await fileSave(blob, {
           fileName,
           extensions: ['.svg'],
@@ -250,7 +250,7 @@ export const useExportActions = ({
       return;
     }
     const blob = new Blob([svgString], { type: 'image/svg+xml' });
-    const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.svg') : 'whiteboard.svg';
+    const fileName = activeFileName ? activeFileName.replace(/\.(?:whiteboard|wb)$/i, '.svg') : 'whiteboard.svg';
     await fileSave(blob, {
         fileName: fileName,
         extensions: ['.svg'],
@@ -295,7 +295,7 @@ export const useExportActions = ({
           alert('Could not generate PNG for export.');
           return;
         }
-        const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.png') : 'whiteboard.png';
+        const fileName = activeFileName ? activeFileName.replace(/\.(?:whiteboard|wb)$/i, '.png') : 'whiteboard.png';
         const scaleSuffix = pngExportOptions.scale !== 1 ? `@${pngExportOptions.scale}x` : '';
         await fileSave(blob, {
           fileName: fileName.replace(/(\.png)$/, `${scaleSuffix}$1`),
@@ -314,7 +314,7 @@ export const useExportActions = ({
         alert("Could not generate PNG for export.");
         return;
     }
-    const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.png') : 'whiteboard.png';
+    const fileName = activeFileName ? activeFileName.replace(/\.(?:whiteboard|wb)$/i, '.png') : 'whiteboard.png';
     const scaleSuffix = pngExportOptions.scale !== 1 ? `@${pngExportOptions.scale}x` : '';
     await fileSave(blob, {
         fileName: fileName.replace(/(\.png)$/, `${scaleSuffix}$1`),
@@ -368,7 +368,7 @@ export const useExportActions = ({
         }
       }
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '.zip') : 'animation.zip';
+      const fileName = activeFileName ? activeFileName.replace(/\.(?:whiteboard|wb)$/i, '.zip') : 'animation.zip';
       await fileSave(zipBlob, { fileName, extensions: ['.zip'], id: 'whiteboardExportAnimation' });
     } else { // spritesheet
       const frameBbox = clipFrame ? getPathBoundingBox(clipFrame, false) : globalBbox;
@@ -410,7 +410,7 @@ export const useExportActions = ({
       
       canvas.toBlob(async (blob) => {
         if (blob) {
-          const fileName = activeFileName ? activeFileName.replace(/\.whiteboard$/, '_spritesheet.png') : 'spritesheet.png';
+          const fileName = activeFileName ? activeFileName.replace(/\.(?:whiteboard|wb)$/i, '_spritesheet.png') : 'spritesheet.png';
           await fileSave(blob, { fileName, extensions: ['.png'], id: 'whiteboardExportAnimation' });
         }
       }, 'image/png');
