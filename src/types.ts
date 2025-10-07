@@ -77,7 +77,8 @@ export interface BoardFileEntry {
 export type DirectoryAccessError =
   | { type: 'unsupported' }
   | { type: 'permission' }
-  | { type: 'unknown'; message?: string };
+  | { type: 'unknown'; message?: string }
+  | { type: 'creation'; message?: string };
 
 export interface GradientStop {
   offset: number; // 0 - 1
