@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
-import { ICONS } from '@/constants';
 import type { BoardFileEntry } from '@/types';
 
 export const FilesPanel: React.FC = () => {
@@ -133,13 +132,6 @@ export const FilesPanel: React.FC = () => {
                           : t('filesPanel.unknownDate')}
                       </span>
                     </span>
-                    {isActive ? (
-                      <span className="ml-2 rounded-full bg-[var(--accent-primary)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--accent-primary)]">
-                        {t('filesPanel.activeBadge')}
-                      </span>
-                    ) : (
-                      <span className="ml-3 text-[var(--text-secondary)]">{ICONS.OPEN}</span>
-                    )}
                   </button>
                 </li>
               );
