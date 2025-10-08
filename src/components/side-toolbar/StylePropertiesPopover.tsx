@@ -70,10 +70,10 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
                 </Popover.Button>
                 <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
                     <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
-                        <div className="flex flex-col gap-3">
-                            <div className="space-y-3">
+                        <div className="flex flex-col gap-2">
+                            <div className="space-y-2">
                                 <SwitchControl label={sketchyLabel} enabled={isRough} setEnabled={setIsRough} />
-                                <div className="space-y-3 transition-opacity">
+                                <div className="space-y-2 transition-opacity">
                                     <Slider
                                         label={roughnessLabel}
                                         value={roughness}
@@ -121,7 +121,7 @@ export const StylePropertiesPopover: React.FC<StylePropertiesPopoverProps> = Rea
 
                             <div className="h-px bg-[var(--ui-separator)]" />
 
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <Slider
                                     label={fillWeightLabel}
                                     value={fillWeight}
