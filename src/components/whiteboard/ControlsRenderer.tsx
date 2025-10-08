@@ -232,13 +232,9 @@ const ShapeControls: React.FC<{
 
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof path.rotation === 'number') {
-        const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
-        const handleLength = Math.hypot(handleVec.x, handleVec.y);
-        const handleUnit = handleLength > 0.0001 ? { x: handleVec.x / handleLength, y: handleVec.y / handleLength } : { x: 0, y: -1 };
-
         const labelCenter = {
-            x: rotationHandlePos.x + handleUnit.x * handleLabelOffsetWorld,
-            y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
+            x: rotationHandlePos.x + handleLabelOffsetWorld,
+            y: rotationHandlePos.y,
         };
 
         const handleRotationSubmit = (newRotation: number) => {
@@ -297,19 +293,10 @@ const ShapeControls: React.FC<{
                     const handlePos = transformPoint(unrotatedHandlePos);
                     const rotatedCornerPos = transformPoint(cornerPos);
 
-                    const handleDirection = {
-                        x: handlePos.x - rotatedCornerPos.x,
-                        y: handlePos.y - rotatedCornerPos.y,
-                    };
-                    const handleLength = Math.hypot(handleDirection.x, handleDirection.y);
-                    const handleUnit = handleLength > 0.0001
-                        ? { x: handleDirection.x / handleLength, y: handleDirection.y / handleLength }
-                        : { x: 0, y: -1 };
-
                     const cornerRadiusValue = 'borderRadius' in path ? Math.max(0, path.borderRadius ?? 0) : 0;
                     const cornerLabelCenter = {
-                        x: handlePos.x + handleUnit.x * handleLabelOffsetWorld,
-                        y: handlePos.y + handleUnit.y * handleLabelOffsetWorld,
+                        x: handlePos.x - handleLabelOffsetWorld,
+                        y: handlePos.y,
                     };
 
                     return (
@@ -1070,13 +1057,9 @@ const MultiSelectionControls: React.FC<{
 
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof rotationValue === 'number') {
-        const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
-        const handleLength = Math.hypot(handleVec.x, handleVec.y);
-        const handleUnit = handleLength > 0.0001 ? { x: handleVec.x / handleLength, y: handleVec.y / handleLength } : { x: 0, y: -1 };
-
         const labelCenter = {
-            x: rotationHandlePos.x + handleUnit.x * handleLabelOffsetWorld,
-            y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
+            x: rotationHandlePos.x + handleLabelOffsetWorld,
+            y: rotationHandlePos.y,
         };
 
         const labelOrientation = normalizeLabelOrientation(rotationValue);
