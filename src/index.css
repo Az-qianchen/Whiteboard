@@ -28,6 +28,7 @@
   --dark-bg: #1a1b1e;
   --oc-gray-6-rgb: 134, 142, 150; /* Added for grid lines */
   --oc-gray-7-rgb: 73, 80, 87;
+  --oc-gray-8-rgb: 52, 58, 64;
 
   /* Base & Text */
   --bg-color: var(--dark-bg);
@@ -241,15 +242,16 @@ input[type='range'].themed-slider {
   cursor: pointer;
   width: 100%;
   --slider-track-height: 0.375rem;
-  --slider-track-bg: rgba(var(--oc-gray-7-rgb), 0.7);
-  --slider-track-fill: var(--oc-blue-8);
+  --slider-track-bg: rgba(var(--oc-gray-8-rgb), 0.85);
+  --slider-track-fill-start: #0f2443;
+  --slider-track-fill-end: #1e5cae;
   --slider-progress: 50%;
 }
 input[type='range'].themed-slider::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
-    var(--slider-track-fill) 0%,
-    var(--slider-track-fill) var(--slider-progress),
+    var(--slider-track-fill-start) 0%,
+    var(--slider-track-fill-end) var(--slider-progress),
     var(--slider-track-bg) var(--slider-progress),
     var(--slider-track-bg) 100%
   );
@@ -273,7 +275,11 @@ input[type='range'].themed-slider::-moz-range-track {
   border-radius: 9999px;
 }
 input[type='range'].themed-slider::-moz-range-progress {
-  background: var(--slider-track-fill);
+  background: linear-gradient(
+    to right,
+    var(--slider-track-fill-start),
+    var(--slider-track-fill-end)
+  );
   height: var(--slider-track-height);
   border-radius: 9999px;
 }
