@@ -45,22 +45,24 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
   };
 
   return (
-    <div className="grid grid-cols-[auto,1fr] items-center gap-x-4 min-h-[2rem]">
-      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap flex items-center leading-none`} htmlFor={label}>{label}</label>
-      <div className="w-full flex flex-col justify-center">
-        <input
-          type="range"
-          id={label}
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
-          onPointerDown={handlePointerDown}
-          className="w-full h-6 themed-slider"
-        />
-        {displayValue && <span className="text-xs text-[var(--text-secondary)] block text-center mt-1 leading-none">{displayValue}</span>}
+    <div className="flex flex-col gap-2 min-h-[2rem]">
+      <div className="flex items-center justify-between gap-2">
+        <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap leading-none`} htmlFor={label}>{label}</label>
+        {displayValue && (
+          <span className="text-xs text-[var(--text-secondary)] leading-none">{displayValue}</span>
+        )}
       </div>
+      <input
+        type="range"
+        id={label}
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        onPointerDown={handlePointerDown}
+        className="w-full h-6 themed-slider"
+      />
     </div>
   );
 });
