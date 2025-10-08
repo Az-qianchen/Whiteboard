@@ -103,16 +103,30 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
       data.fontWeight,
       data.width,
     );
+    const baselineOffset = layout.leading.top + layout.metrics.ascent;
+
     const textElement = document.createElementNS(SVG_NS, 'text');
     const align = data.textAlign ?? 'left';
     const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
     const xBase = align === 'center' ? data.x + data.width / 2 : align === 'right' ? data.x + data.width : data.x;
-    const yBase = data.y + layout.leading.top;
+    const yBase = data.y + baselineOffset;
+
+    const bboxElement = document.createElementNS(SVG_NS, 'rect');
+    bboxElement.setAttribute('x', data.x.toString());
+    bboxElement.setAttribute('y', data.y.toString());
+    bboxElement.setAttribute('width', data.width.toString());
+    bboxElement.setAttribute('height', data.height.toString());
+    // 使用极低的不透明度来确保该矩形参与 SVG 的几何边界计算，
+    // 以便旋转后的缩放锚点与对角线控制点对齐，同时保持对用户不可见。
+    bboxElement.setAttribute('fill', '#000');
+    bboxElement.setAttribute('fill-opacity', '0.0001');
+    bboxElement.setAttribute('stroke', 'none');
+    bboxElement.setAttribute('pointer-events', 'none');
 
     textElement.setAttribute('x', xBase.toString());
     textElement.setAttribute('y', yBase.toString());
     textElement.setAttribute('text-anchor', anchor);
-    textElement.setAttribute('dominant-baseline', 'hanging');
+    textElement.setAttribute('dominant-baseline', 'alphabetic');
     textElement.setAttribute('xml:space', 'preserve');
     textElement.setAttribute('font-family', data.fontFamily);
     textElement.setAttribute('font-size', data.fontSize.toString());
@@ -132,6 +146,7 @@ const createSmoothTextNode = (data: TextData): SVGElement => {
         textElement.appendChild(tspan);
     });
 
+    group.appendChild(bboxElement);
     group.appendChild(textElement);
 
     if ((data.blur ?? 0) > 0 || data.shadowEnabled === true) {
