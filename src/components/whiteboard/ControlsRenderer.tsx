@@ -228,6 +228,8 @@ const ShapeControls: React.FC<{
     const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
     const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
 
+    const labelOrientation = normalizeLabelOrientation(path.rotation ?? 0);
+
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof path.rotation === 'number') {
         const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
@@ -249,7 +251,7 @@ const ShapeControls: React.FC<{
             <EditableMeasurementLabel
                 value={path.rotation ?? 0}
                 position={labelCenter}
-                rotation={0}
+                rotation={labelOrientation}
                 scale={scale}
                 formatDisplay={formatRotationValue}
                 getInputValue={formatRotationInputValue}
@@ -335,7 +337,7 @@ const ShapeControls: React.FC<{
                                 <EditableMeasurementLabel
                                     value={cornerRadiusValue}
                                     position={cornerLabelCenter}
-                                    rotation={0}
+                                    rotation={labelOrientation}
                                     scale={scale}
                                     formatDisplay={value => `R ${formatDimensionValue(Math.max(0, value))}`}
                                     getInputValue={value => formatDimensionValue(Math.max(0, value))}
@@ -649,6 +651,14 @@ const normalizeRotationRadians = (radians: number) => {
     normalized = 0;
   }
   return normalized;
+};
+
+const normalizeLabelOrientation = (radians: number) => {
+  const normalized = normalizeRotationRadians(radians);
+  if (Math.abs(normalized) <= Math.PI / 2) {
+    return normalized;
+  }
+  return normalized > 0 ? normalized - Math.PI : normalized + Math.PI;
 };
 
 const formatRotationInputValue = (radians: number) => {
@@ -1069,6 +1079,8 @@ const MultiSelectionControls: React.FC<{
             y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
         };
 
+        const labelOrientation = normalizeLabelOrientation(rotationValue);
+
         const handleRotationSubmit = (newRotation: number) => {
             if (onRotationCommit) {
                 onRotationCommit(paths, normalizeRotationRadians(newRotation));
@@ -1079,7 +1091,7 @@ const MultiSelectionControls: React.FC<{
             <EditableMeasurementLabel
                 value={rotationValue}
                 position={labelCenter}
-                rotation={0}
+                rotation={labelOrientation}
                 scale={scale}
                 formatDisplay={formatRotationValue}
                 getInputValue={formatRotationInputValue}
