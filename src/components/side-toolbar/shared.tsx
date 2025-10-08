@@ -44,10 +44,18 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
     window.addEventListener('pointerup', handlePointerUp);
   };
 
+  const sliderProgress = max === min ? 0 : ((value - min) / (max - min)) * 100;
+  const clampedProgress = Math.min(100, Math.max(0, sliderProgress));
+
   return (
-    <div className="grid grid-cols-[auto,1fr] items-center gap-x-4 min-h-[2rem]">
-      <label className={`${PANEL_CLASSES.label} text-[var(--text-primary)] whitespace-nowrap flex items-center leading-none`} htmlFor={label}>{label}</label>
-      <div className="w-full flex flex-col justify-center">
+    <div className="grid w-full grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2 min-h-[2.25rem]">
+      <label
+        className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex items-center leading-tight text-left whitespace-normal`}
+        htmlFor={label}
+      >
+        {label}
+      </label>
+      <div className="flex flex-col justify-center min-w-0">
         <input
           type="range"
           id={label}
@@ -58,6 +66,7 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
           onChange={(e) => setValue(Number(e.target.value))}
           onPointerDown={handlePointerDown}
           className="w-full h-6 themed-slider"
+          style={{ '--slider-progress': `${clampedProgress}%` } as React.CSSProperties}
         />
         {displayValue && <span className="text-xs text-[var(--text-secondary)] block text-center mt-1 leading-none">{displayValue}</span>}
       </div>
