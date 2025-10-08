@@ -241,8 +241,8 @@ input[type='range'].themed-slider {
   cursor: pointer;
   width: 100%;
   --slider-track-height: 0.375rem;
-  --slider-track-bg: rgba(var(--oc-gray-6-rgb), 0.35);
-  --slider-track-fill: rgba(var(--oc-blue-6-rgb), 0.75);
+  --slider-track-bg: rgba(var(--oc-gray-7-rgb), 0.7);
+  --slider-track-fill: var(--oc-blue-8);
   --slider-progress: 50%;
 }
 input[type='range'].themed-slider::-webkit-slider-runnable-track {

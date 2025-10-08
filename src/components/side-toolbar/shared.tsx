@@ -48,14 +48,14 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
   const clampedProgress = Math.min(100, Math.max(0, sliderProgress));
 
   return (
-    <div className="flex items-center gap-4 min-h-[2rem] w-full">
+    <div className="grid w-full grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2 min-h-[2.25rem]">
       <label
-        className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex items-center leading-tight w-32 shrink-0 text-left whitespace-normal`}
+        className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex items-center leading-tight text-left whitespace-normal`}
         htmlFor={label}
       >
         {label}
       </label>
-      <div className="w-full flex flex-col justify-center flex-1">
+      <div className="flex flex-col justify-center min-w-0">
         <input
           type="range"
           id={label}
