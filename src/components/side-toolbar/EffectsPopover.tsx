@@ -52,12 +52,12 @@ export const EffectsPopover: React.FC<EffectsPopoverProps> = React.memo((props) 
                 </Popover.Button>
                 <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
                     <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-64 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
-                        <div className="flex flex-col gap-4">
-                             <div className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                             <div className="space-y-2">
                                 <h3 className="text-sm font-bold text-center text-[var(--text-primary)]">{title}</h3>
                                 <Slider label={blurLabel} value={blur} setValue={setBlur} min={0} max={50} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
                                 <SwitchControl label={shadowLabel} enabled={shadowEnabled} setEnabled={setShadowEnabled} />
-                                <div className={`space-y-4 transition-opacity ${!shadowEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <div className={`space-y-2 transition-opacity ${!shadowEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
                                      <Slider label={offsetXLabel} value={shadowOffsetX} setValue={setShadowOffsetX} min={-20} max={20} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
                                      <Slider label={offsetYLabel} value={shadowOffsetY} setValue={setShadowOffsetY} min={-20} max={20} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />
                                      <Slider label={shadowBlurLabel} value={shadowBlur} setValue={setShadowBlur} min={0} max={50} step={1} onInteractionStart={beginCoalescing} onInteractionEnd={endCoalescing} />

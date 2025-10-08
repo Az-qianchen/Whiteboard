@@ -70,7 +70,7 @@ export const EndpointPopover: React.FC<EndpointPopoverProps> = React.memo((props
                 </Popover.Button>
                 <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
                     <Popover.Panel className="absolute bottom-0 mb-0 right-full mr-2 w-60 bg-[var(--ui-popover-bg)] backdrop-blur-lg rounded-xl shadow-lg border border-[var(--ui-panel-border)] z-20 p-4">
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
                             <EndpointGrid
                                 label={startMarkerLabel}
                                 options={markerOptions}
