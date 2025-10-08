@@ -226,10 +226,7 @@ const ShapeControls: React.FC<{
     const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
 
     const labelOrientation = normalizeLabelOrientation(path.rotation ?? 0);
-    const orientationVector = {
-        x: Math.cos(labelOrientation),
-        y: Math.sin(labelOrientation),
-    };
+    const orientationVector = getStableHandleOffsetVector(labelOrientation);
 
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof path.rotation === 'number') {
@@ -660,6 +657,11 @@ const normalizeLabelOrientation = (radians: number) => {
   return normalized > 0 ? normalized - Math.PI : normalized + Math.PI;
 };
 
+const getStableHandleOffsetVector = (orientationRadians: number) => ({
+  x: Math.cos(orientationRadians),
+  y: Math.abs(Math.sin(orientationRadians)),
+});
+
 const formatRotationInputValue = (radians: number) => {
   const normalizedDegrees = (normalizeRotationRadians(radians) * 180) / Math.PI;
   if (Math.abs(normalizedDegrees) < 0.01) {
@@ -1069,10 +1071,7 @@ const MultiSelectionControls: React.FC<{
         const rotationLabelText = formatRotationValue(rotationValue);
         const { width: rotationLabelWidthPx } = getLabelDimensionsPx(rotationLabelText);
         const labelOrientation = normalizeLabelOrientation(rotationValue);
-        const orientationVector = {
-            x: Math.cos(labelOrientation),
-            y: Math.sin(labelOrientation),
-        };
+        const orientationVector = getStableHandleOffsetVector(labelOrientation);
         const rotationLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + rotationLabelWidthPx / 2) / scale;
         const labelCenter = {
             x: rotationHandlePos.x + orientationVector.x * rotationLabelOffsetWorld,
