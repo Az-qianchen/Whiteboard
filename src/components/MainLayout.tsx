@@ -57,8 +57,8 @@ export const MainLayout: React.FC = () => {
         onionSkinNextFrames,
         onionSkinOpacity,
         // Whiteboard props
-        activePaths,
-        backgroundPaths,
+        renderPaths,
+        renderBackgroundPaths,
         tool,
         selectionMode,
         currentBrushPath,
@@ -225,9 +225,9 @@ export const MainLayout: React.FC = () => {
                         onDragOver={(e) => e.preventDefault()}
                     >
                         <Whiteboard
-                            paths={activePaths}
+                            paths={renderPaths}
                             onionSkinPaths={onionSkinPaths}
-                            backgroundPaths={backgroundPaths}
+                            backgroundPaths={renderBackgroundPaths}
                             tool={tool}
                             selectionMode={selectionMode}
                             currentLivePath={currentBrushPath}
