@@ -44,10 +44,13 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
     window.addEventListener('pointerup', handlePointerUp);
   };
 
+  const sliderProgress = max === min ? 0 : ((value - min) / (max - min)) * 100;
+  const clampedProgress = Math.min(100, Math.max(0, sliderProgress));
+
   return (
-    <div className="flex items-center gap-4 min-h-[2rem]">
+    <div className="flex items-center gap-4 min-h-[2rem] w-full">
       <label
-        className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex items-center leading-none w-40 shrink-0 text-left whitespace-normal`}
+        className={`${PANEL_CLASSES.label} text-[var(--text-primary)] flex items-center leading-tight w-32 shrink-0 text-left whitespace-normal`}
         htmlFor={label}
       >
         {label}
@@ -63,6 +66,7 @@ export const Slider: React.FC<SliderProps> = React.memo(({ label, value, setValu
           onChange={(e) => setValue(Number(e.target.value))}
           onPointerDown={handlePointerDown}
           className="w-full h-6 themed-slider"
+          style={{ '--slider-progress': `${clampedProgress}%` } as React.CSSProperties}
         />
         {displayValue && <span className="text-xs text-[var(--text-secondary)] block text-center mt-1 leading-none">{displayValue}</span>}
       </div>
