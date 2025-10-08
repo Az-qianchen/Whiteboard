@@ -225,16 +225,20 @@ const ShapeControls: React.FC<{
     const topCenter = transformPoint(topCenterUnrotated);
     const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
 
-    const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
-    const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
-
     const labelOrientation = normalizeLabelOrientation(path.rotation ?? 0);
+    const orientationVector = {
+        x: Math.cos(labelOrientation),
+        y: Math.sin(labelOrientation),
+    };
 
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof path.rotation === 'number') {
+        const rotationLabelText = formatRotationValue(path.rotation ?? 0);
+        const { width: rotationLabelWidthPx } = getLabelDimensionsPx(rotationLabelText);
+        const rotationLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + rotationLabelWidthPx / 2) / scale;
         const labelCenter = {
-            x: rotationHandlePos.x + handleLabelOffsetWorld,
-            y: rotationHandlePos.y,
+            x: rotationHandlePos.x + orientationVector.x * rotationLabelOffsetWorld,
+            y: rotationHandlePos.y + orientationVector.y * rotationLabelOffsetWorld,
         };
 
         const handleRotationSubmit = (newRotation: number) => {
@@ -294,9 +298,12 @@ const ShapeControls: React.FC<{
                     const rotatedCornerPos = transformPoint(cornerPos);
 
                     const cornerRadiusValue = 'borderRadius' in path ? Math.max(0, path.borderRadius ?? 0) : 0;
+                    const cornerLabelText = `R ${formatDimensionValue(Math.max(0, cornerRadiusValue))}`;
+                    const { width: cornerLabelWidthPx } = getLabelDimensionsPx(cornerLabelText);
+                    const cornerLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + cornerLabelWidthPx / 2) / scale;
                     const cornerLabelCenter = {
-                        x: handlePos.x - handleLabelOffsetWorld,
-                        y: handlePos.y,
+                        x: handlePos.x - orientationVector.x * cornerLabelOffsetWorld,
+                        y: handlePos.y - orientationVector.y * cornerLabelOffsetWorld,
                     };
 
                     return (
@@ -573,6 +580,11 @@ const LABEL_PADDING_X = 10;
 const LABEL_PADDING_Y = 4;
 const LABEL_OFFSET_PX = 12;
 const HANDLE_LABEL_OFFSET_PX = 8;
+
+const getLabelDimensionsPx = (text: string) => ({
+  width: measureTextWidth(text, LABEL_FONT) + LABEL_PADDING_X * 2,
+  height: LABEL_FONT_SIZE + LABEL_PADDING_Y * 2,
+});
 
 type DimensionGuide = {
   width: number;
@@ -1052,17 +1064,20 @@ const MultiSelectionControls: React.FC<{
     const rotationHandlePos = { x: topCenter.x, y: topCenter.y - rotationHandleOffset };
     const firstPathId = paths[0]?.id;
 
-    const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
-    const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
-
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof rotationValue === 'number') {
-        const labelCenter = {
-            x: rotationHandlePos.x + handleLabelOffsetWorld,
-            y: rotationHandlePos.y,
-        };
-
+        const rotationLabelText = formatRotationValue(rotationValue);
+        const { width: rotationLabelWidthPx } = getLabelDimensionsPx(rotationLabelText);
         const labelOrientation = normalizeLabelOrientation(rotationValue);
+        const orientationVector = {
+            x: Math.cos(labelOrientation),
+            y: Math.sin(labelOrientation),
+        };
+        const rotationLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + rotationLabelWidthPx / 2) / scale;
+        const labelCenter = {
+            x: rotationHandlePos.x + orientationVector.x * rotationLabelOffsetWorld,
+            y: rotationHandlePos.y + orientationVector.y * rotationLabelOffsetWorld,
+        };
 
         const handleRotationSubmit = (newRotation: number) => {
             if (onRotationCommit) {
