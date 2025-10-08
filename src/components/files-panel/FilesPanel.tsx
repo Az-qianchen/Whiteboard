@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
+import { FilePlus, FolderOpen, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
+import PanelButton from '@/components/PanelButton';
 import type { BoardFileEntry } from '@/types';
 
 export const FilesPanel: React.FC = () => {
@@ -78,32 +80,46 @@ export const FilesPanel: React.FC = () => {
       <div className="flex items-center justify-end gap-2 border-b border-[var(--ui-separator)] pb-3">
         {directoryHandle ? (
           <>
-            <button
+            <PanelButton
               type="button"
               onClick={handleCreateFile}
               disabled={isDirectoryLoading}
-              className="rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={t('filesPanel.createFile')}
+              title={t('filesPanel.createFile')}
+              variant="unstyled"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t('filesPanel.createFile')}
-            </button>
-            <button
+              <FilePlus aria-hidden="true" className="h-4 w-4" />
+              <span className="sr-only">{t('filesPanel.createFile')}</span>
+            </PanelButton>
+            <PanelButton
               type="button"
               onClick={handleRefresh}
               disabled={isDirectoryLoading}
-              className="rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={t('filesPanel.refresh')}
+              title={t('filesPanel.refresh')}
+              variant="unstyled"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t('filesPanel.refresh')}
-            </button>
+              <RefreshCw aria-hidden="true" className="h-4 w-4" />
+              <span className="sr-only">{t('filesPanel.refresh')}</span>
+            </PanelButton>
           </>
         ) : null}
-        <button
+        <PanelButton
           type="button"
           onClick={handleSelectFolder}
           disabled={isDirectoryLoading}
-          className="rounded-md border border-[var(--ui-panel-border)] bg-[var(--ui-element-bg)] px-2 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--ui-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={directoryHandle ? t('filesPanel.changeFolder') : t('filesPanel.selectFolder')}
+          title={directoryHandle ? t('filesPanel.changeFolder') : t('filesPanel.selectFolder')}
+          variant="unstyled"
+          className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--ui-element-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {directoryHandle ? t('filesPanel.changeFolder') : t('filesPanel.selectFolder')}
-        </button>
+          <FolderOpen aria-hidden="true" className="h-4 w-4" />
+          <span className="sr-only">
+            {directoryHandle ? t('filesPanel.changeFolder') : t('filesPanel.selectFolder')}
+          </span>
+        </PanelButton>
       </div>
 
       {errorMessage ? (
