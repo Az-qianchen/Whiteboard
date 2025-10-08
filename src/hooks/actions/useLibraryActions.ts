@@ -20,6 +20,26 @@ export const useLibraryActions = ({
 }: AppActionsProps) => {
   const { t } = useTranslation();
 
+  const createPathId = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  };
+
+  const assignNewIds = (path: AnyPath): AnyPath => {
+    const id = createPathId();
+    if (path.tool === 'group') {
+      const group = path as GroupData;
+      return {
+        ...group,
+        id,
+        children: group.children.map(assignNewIds),
+      };
+    }
+    return { ...path, id };
+  };
+
   /**
    * 从选中的单个图形复制样式。
    */
@@ -192,11 +212,11 @@ export const useLibraryActions = ({
           }
       }
 
-      material.shapes.forEach((path, index) => {
-          const newId = `${Date.now()}-mat-${index}`;
-          const newPath = { ...movePath(path, dx, dy), id: newId };
+      material.shapes.forEach((path) => {
+          const movedPath = movePath(path, dx, dy);
+          const newPath = assignNewIds(movedPath);
           newPaths.push(newPath);
-          newIds.push(newId);
+          newIds.push(newPath.id);
       });
 
       pathState.setPaths((prev: any) => [...prev, ...newPaths]);
