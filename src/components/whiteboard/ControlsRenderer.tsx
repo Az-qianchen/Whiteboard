@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, FrameData, BBox, TextData } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
+import type { TransformMatrix } from '@/lib/drawing/transform/matrix';
 import { getLinearHandles } from '@/lib/gradient';
 import { getGradientHandleSpace } from '@/lib/gradientHandles';
 import { usePathsStore } from '@/hooks/usePathsStore';
@@ -198,6 +199,8 @@ const ShapeControls: React.FC<{
 
     const transformMatrix = getShapeTransformMatrix(path);
     const transformPoint = (point: Point) => applyMatrixToPoint(transformMatrix, point);
+    const labelOrientation = getLabelOrientationFromMatrix(transformMatrix);
+    const orientationVector = getStableHandleOffsetVector(labelOrientation);
 
     const unrotatedHandles: { pos: Point; name: ResizeHandlePosition }[] = [
         { pos: { x, y }, name: 'top-left' },
@@ -224,9 +227,6 @@ const ShapeControls: React.FC<{
     const rotationHandlePosUnrotated = { x: topCenterUnrotated.x, y: topCenterUnrotated.y - rotationHandleOffset };
     const topCenter = transformPoint(topCenterUnrotated);
     const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
-
-    const labelOrientation = normalizeLabelOrientation(path.rotation ?? 0);
-    const orientationVector = getStableHandleOffsetVector(labelOrientation);
 
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof path.rotation === 'number') {
@@ -655,6 +655,15 @@ const normalizeLabelOrientation = (radians: number) => {
     return normalized;
   }
   return normalized > 0 ? normalized - Math.PI : normalized + Math.PI;
+};
+
+const getLabelOrientationFromMatrix = (matrix: TransformMatrix) => {
+  const axisLength = Math.hypot(matrix.a, matrix.b);
+  if (axisLength < 1e-8) {
+    return 0;
+  }
+  const angle = Math.atan2(matrix.b, matrix.a);
+  return normalizeLabelOrientation(angle);
 };
 
 const getStableHandleOffsetVector = (orientationRadians: number) => ({
