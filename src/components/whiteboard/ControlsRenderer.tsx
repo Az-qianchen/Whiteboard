@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import type { AnyPath, VectorPathData, RectangleData, EllipseData, Point, DragState, Tool, SelectionMode, ResizeHandlePosition, ImageData, PolygonData, GroupData, ArcData, FrameData, BBox, TextData } from '@/types';
 import { getPathBoundingBox, getPathsBoundingBox, dist, getPathD, calculateArcPathD, rotateResizeHandle } from '@/lib/drawing';
 import { applyMatrixToPoint, getShapeTransformMatrix, isIdentityMatrix, matrixToString } from '@/lib/drawing/transform/matrix';
+import type { TransformMatrix } from '@/lib/drawing/transform/matrix';
 import { getLinearHandles } from '@/lib/gradient';
 import { getGradientHandleSpace } from '@/lib/gradientHandles';
 import { usePathsStore } from '@/hooks/usePathsStore';
@@ -198,6 +199,8 @@ const ShapeControls: React.FC<{
 
     const transformMatrix = getShapeTransformMatrix(path);
     const transformPoint = (point: Point) => applyMatrixToPoint(transformMatrix, point);
+    const labelOrientation = getLabelOrientationFromMatrix(transformMatrix);
+    const orientationVector = getStableHandleOffsetVector(labelOrientation);
 
     const unrotatedHandles: { pos: Point; name: ResizeHandlePosition }[] = [
         { pos: { x, y }, name: 'top-left' },
@@ -225,20 +228,14 @@ const ShapeControls: React.FC<{
     const topCenter = transformPoint(topCenterUnrotated);
     const rotationHandlePos = transformPoint(rotationHandlePosUnrotated);
 
-    const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
-    const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
-
-    const labelOrientation = normalizeLabelOrientation(path.rotation ?? 0);
-
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof path.rotation === 'number') {
-        const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
-        const handleLength = Math.hypot(handleVec.x, handleVec.y);
-        const handleUnit = handleLength > 0.0001 ? { x: handleVec.x / handleLength, y: handleVec.y / handleLength } : { x: 0, y: -1 };
-
+        const rotationLabelText = formatRotationValue(path.rotation ?? 0);
+        const { width: rotationLabelWidthPx } = getLabelDimensionsPx(rotationLabelText);
+        const rotationLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + rotationLabelWidthPx / 2) / scale;
         const labelCenter = {
-            x: rotationHandlePos.x + handleUnit.x * handleLabelOffsetWorld,
-            y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
+            x: rotationHandlePos.x + orientationVector.x * rotationLabelOffsetWorld,
+            y: rotationHandlePos.y + orientationVector.y * rotationLabelOffsetWorld,
         };
 
         const handleRotationSubmit = (newRotation: number) => {
@@ -297,19 +294,13 @@ const ShapeControls: React.FC<{
                     const handlePos = transformPoint(unrotatedHandlePos);
                     const rotatedCornerPos = transformPoint(cornerPos);
 
-                    const handleDirection = {
-                        x: handlePos.x - rotatedCornerPos.x,
-                        y: handlePos.y - rotatedCornerPos.y,
-                    };
-                    const handleLength = Math.hypot(handleDirection.x, handleDirection.y);
-                    const handleUnit = handleLength > 0.0001
-                        ? { x: handleDirection.x / handleLength, y: handleDirection.y / handleLength }
-                        : { x: 0, y: -1 };
-
                     const cornerRadiusValue = 'borderRadius' in path ? Math.max(0, path.borderRadius ?? 0) : 0;
+                    const cornerLabelText = `R ${formatDimensionValue(Math.max(0, cornerRadiusValue))}`;
+                    const { width: cornerLabelWidthPx } = getLabelDimensionsPx(cornerLabelText);
+                    const cornerLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + cornerLabelWidthPx / 2) / scale;
                     const cornerLabelCenter = {
-                        x: handlePos.x + handleUnit.x * handleLabelOffsetWorld,
-                        y: handlePos.y + handleUnit.y * handleLabelOffsetWorld,
+                        x: handlePos.x - orientationVector.x * cornerLabelOffsetWorld,
+                        y: handlePos.y - orientationVector.y * cornerLabelOffsetWorld,
                     };
 
                     return (
@@ -587,6 +578,11 @@ const LABEL_PADDING_Y = 4;
 const LABEL_OFFSET_PX = 12;
 const HANDLE_LABEL_OFFSET_PX = 8;
 
+const getLabelDimensionsPx = (text: string) => ({
+  width: measureTextWidth(text, LABEL_FONT) + LABEL_PADDING_X * 2,
+  height: LABEL_FONT_SIZE + LABEL_PADDING_Y * 2,
+});
+
 type DimensionGuide = {
   width: number;
   height: number;
@@ -660,6 +656,20 @@ const normalizeLabelOrientation = (radians: number) => {
   }
   return normalized > 0 ? normalized - Math.PI : normalized + Math.PI;
 };
+
+const getLabelOrientationFromMatrix = (matrix: TransformMatrix) => {
+  const axisLength = Math.hypot(matrix.a, matrix.b);
+  if (axisLength < 1e-8) {
+    return 0;
+  }
+  const angle = Math.atan2(matrix.b, matrix.a);
+  return normalizeLabelOrientation(angle);
+};
+
+const getStableHandleOffsetVector = (orientationRadians: number) => ({
+  x: Math.cos(orientationRadians),
+  y: Math.abs(Math.sin(orientationRadians)),
+});
 
 const formatRotationInputValue = (radians: number) => {
   const normalizedDegrees = (normalizeRotationRadians(radians) * 180) / Math.PI;
@@ -1065,21 +1075,17 @@ const MultiSelectionControls: React.FC<{
     const rotationHandlePos = { x: topCenter.x, y: topCenter.y - rotationHandleOffset };
     const firstPathId = paths[0]?.id;
 
-    const labelHeight = LABEL_FONT_SIZE + LABEL_PADDING_Y * 2;
-    const handleLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + labelHeight / 2) / scale;
-
     let rotationHandleLabel: React.ReactNode = null;
     if (showMeasurements && typeof rotationValue === 'number') {
-        const handleVec = { x: rotationHandlePos.x - topCenter.x, y: rotationHandlePos.y - topCenter.y };
-        const handleLength = Math.hypot(handleVec.x, handleVec.y);
-        const handleUnit = handleLength > 0.0001 ? { x: handleVec.x / handleLength, y: handleVec.y / handleLength } : { x: 0, y: -1 };
-
-        const labelCenter = {
-            x: rotationHandlePos.x + handleUnit.x * handleLabelOffsetWorld,
-            y: rotationHandlePos.y + handleUnit.y * handleLabelOffsetWorld,
-        };
-
+        const rotationLabelText = formatRotationValue(rotationValue);
+        const { width: rotationLabelWidthPx } = getLabelDimensionsPx(rotationLabelText);
         const labelOrientation = normalizeLabelOrientation(rotationValue);
+        const orientationVector = getStableHandleOffsetVector(labelOrientation);
+        const rotationLabelOffsetWorld = (HANDLE_LABEL_OFFSET_PX + rotationLabelWidthPx / 2) / scale;
+        const labelCenter = {
+            x: rotationHandlePos.x + orientationVector.x * rotationLabelOffsetWorld,
+            y: rotationHandlePos.y + orientationVector.y * rotationLabelOffsetWorld,
+        };
 
         const handleRotationSubmit = (newRotation: number) => {
             if (onRotationCommit) {
