@@ -10,6 +10,49 @@ import { getPathBoundingBox, getPathsBoundingBox, doBboxesIntersect } from '@/li
 import JSZip from 'jszip';
 import { useFilesStore } from '@/context/filesStore';
 
+type ClipboardItemOptions = ConstructorParameters<typeof ClipboardItem>[1];
+
+const ATTACHMENT_CLIPBOARD_OPTIONS: ClipboardItemOptions = { presentationStyle: 'attachment' };
+
+const createAttachmentClipboardItem = (blob: Blob) =>
+  new ClipboardItem({ 'image/png': blob }, ATTACHMENT_CLIPBOARD_OPTIONS);
+
+const convertBlobToPng = async (blob: Blob): Promise<Blob> => {
+  if (blob.type === 'image/png') {
+    return blob;
+  }
+
+  const bitmap = await createImageBitmap(blob);
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Failed to acquire canvas context for PNG conversion.');
+    }
+    context.drawImage(bitmap, 0, 0);
+
+    const pngBlob = await new Promise<Blob | null>(resolve =>
+      canvas.toBlob(b => resolve(b), 'image/png')
+    );
+
+    if (!pngBlob) {
+      throw new Error('Canvas failed to produce a PNG blob.');
+    }
+
+    return pngBlob;
+  } finally {
+    bitmap.close();
+  }
+};
+
+const writeBlobAsPngToClipboard = async (blob: Blob) => {
+  const pngBlob = await convertBlobToPng(blob);
+  await navigator.clipboard.write([createAttachmentClipboardItem(pngBlob)]);
+};
+
 /**
  * 递归移除路径数组中的画框对象。
  * @param inputPaths - 需要处理的路径数组。
@@ -116,34 +159,10 @@ export const useExportActions = ({
           const filesStore = useFilesStore.getState();
           const blob = await filesStore.getBlob((selectedPath as ImageData).fileId);
           if (!blob) throw new Error('Missing blob for image');
-          try {
-            await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-          } catch (err) {
-            console.error('Failed to copy image to clipboard:', err);
-            if (blob.type !== 'image/png') {
-              try {
-                const bitmap = await createImageBitmap(blob);
-                const canvas = document.createElement('canvas');
-                canvas.width = bitmap.width;
-                canvas.height = bitmap.height;
-                canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
-                const pngBlob = await new Promise<Blob | null>(resolve =>
-                  canvas.toBlob(b => resolve(b), 'image/png')
-                );
-                if (pngBlob) {
-                  await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': pngBlob })
-                  ]);
-                  return;
-                }
-              } catch (err2) {
-                console.error('Failed to copy image as PNG to clipboard:', err2);
-              }
-            }
-            alert('Could not copy image.');
-          }
+
+          await writeBlobAsPngToClipboard(blob);
         } catch (err) {
-          console.error('Failed to fetch image for clipboard:', err);
+          console.error('Failed to copy image to clipboard:', err);
           alert('Could not copy image.');
         }
         return;
@@ -171,7 +190,7 @@ export const useExportActions = ({
             return;
         }
         try {
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            await writeBlobAsPngToClipboard(blob);
         } catch (err) {
             console.error("Failed to copy PNG to clipboard:", err);
             alert("Could not copy PNG to clipboard. Your browser might not support this feature.");
@@ -193,7 +212,7 @@ export const useExportActions = ({
         return;
     }
     try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        await writeBlobAsPngToClipboard(blob);
     } catch (err) {
         console.error("Failed to copy PNG to clipboard:", err);
         alert("Could not copy PNG to clipboard. Your browser might not support this feature.");
