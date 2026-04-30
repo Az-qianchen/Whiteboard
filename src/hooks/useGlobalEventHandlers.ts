@@ -44,6 +44,7 @@ const useGlobalEventHandlers = () => {
     groupIsolationPath, handleExitGroup, activePathState,
     croppingState, currentCropRect, setCurrentCropRect, pushCropHistory,
     cancelCrop,
+    cutMagicWandSelection, cropTool, cropSelectionContours,
     textEditing,
     commitTextEditing,
     cancelTextEditing,
@@ -371,7 +372,11 @@ const useGlobalEventHandlers = () => {
           break;
         case 'backspace':
         case 'delete':
-          handleDeleteSelected();
+          if (croppingState && cropTool === 'magic-wand' && (cropSelectionContours?.length ?? 0) > 0) {
+            cutMagicWandSelection();
+          } else {
+            handleDeleteSelected();
+          }
           break;
       }
     });
@@ -603,6 +608,7 @@ const useGlobalEventHandlers = () => {
     handleUndo,
     handleRedo,
     handleDeleteSelected,
+    cutMagicWandSelection,
     drawingShape,
     cancelDrawingShape,
     handleCut,
@@ -624,6 +630,8 @@ const useGlobalEventHandlers = () => {
     groupIsolationPath,
     handleExitGroup,
     croppingState,
+    cropTool,
+    cropSelectionContours,
     cancelCrop,
     activePaths,
     textEditing,

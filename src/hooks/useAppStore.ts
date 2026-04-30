@@ -173,6 +173,26 @@ const areMasksEqual = (a: MagicWandMask | null, b: MagicWandMask | null): boolea
   return true;
 };
 
+const resolveNextSelectionMask = (
+  currentMask: MagicWandMask | null,
+  incomingMask: MagicWandMask | null,
+  operation: 'add' | 'subtract' | 'replace'
+): MagicWandMask | null => {
+  if (!incomingMask) {
+    return operation === 'replace' ? null : currentMask;
+  }
+
+  if (operation === 'replace') {
+    return incomingMask;
+  }
+
+  if (!currentMask) {
+    return operation === 'add' ? incomingMask : null;
+  }
+
+  return combineMasks(currentMask, incomingMask, operation);
+};
+
 // --- State Type Definitions ---
 
 interface UiState {
@@ -617,17 +637,9 @@ export const useAppStore = () => {
       return;
     }
 
-    let nextMask: MagicWandMask | null = null;
-    if (operation === 'replace') {
-      nextMask = result.mask;
-    } else if (!cropMagicWandMaskRef.current) {
-      if (operation === 'add') {
-        nextMask = result.mask;
-      } else {
-        return;
-      }
-    } else {
-      nextMask = combineMasks(cropMagicWandMaskRef.current, result.mask, operation);
+    const nextMask = resolveNextSelectionMask(cropMagicWandMaskRef.current, result.mask, operation);
+    if (!nextMask && operation !== 'replace') {
+      return;
     }
 
     updateMagicWandSelection(nextMask);
@@ -663,17 +675,9 @@ export const useAppStore = () => {
       return;
     }
 
-    let nextMask: MagicWandMask | null = null;
-    if (operation === 'replace') {
-      nextMask = mask;
-    } else if (!cropMagicWandMaskRef.current) {
-      if (operation === 'add') {
-        nextMask = mask;
-      } else {
-        return;
-      }
-    } else {
-      nextMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
+    const nextMask = resolveNextSelectionMask(cropMagicWandMaskRef.current, mask, operation);
+    if (!nextMask && operation !== 'replace') {
+      return;
     }
 
     updateMagicWandSelection(nextMask);
@@ -711,17 +715,9 @@ export const useAppStore = () => {
       return;
     }
 
-    let nextMask: MagicWandMask | null = null;
-    if (operation === 'replace') {
-      nextMask = mask;
-    } else if (!cropMagicWandMaskRef.current) {
-      if (operation === 'add') {
-        nextMask = mask;
-      } else {
-        return;
-      }
-    } else {
-      nextMask = combineMasks(cropMagicWandMaskRef.current, mask, operation);
+    const nextMask = resolveNextSelectionMask(cropMagicWandMaskRef.current, mask, operation);
+    if (!nextMask && operation !== 'replace') {
+      return;
     }
 
     updateMagicWandSelection(nextMask);
