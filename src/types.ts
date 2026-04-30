@@ -240,7 +240,8 @@ export interface EllipseData extends ShapeBase {
   skewY?: number;
 }
 
-export interface TextData extends ShapeBase {
+export interface TextElement extends ShapeBase {
+  type: 'text';
   tool: 'text';
   x: number;
   y: number;
@@ -251,8 +252,14 @@ export interface TextData extends ShapeBase {
   fontSize: number;
   fontWeight?: number;
   lineHeight: number;
-  textAlign: 'left' | 'center' | 'right';
+  letterSpacing: number;
+  textAlign?: 'left' | 'center' | 'right';
+  align?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  background?: string;
 }
+
+export type TextData = TextElement;
 
 export interface BinaryFileMetadata {
   id: string;
@@ -294,7 +301,7 @@ export interface GroupData extends ShapeBase {
 }
 
 // 任何已存储并已转换为锚点的路径的通用类型。
-export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData | TextData;
+export type AnyPath = VectorPathData | RectangleData | EllipseData | ImageData | BrushPathData | PolygonData | ArcData | GroupData | FrameData | TextElement;
 
 export interface Frame {
   id: string;

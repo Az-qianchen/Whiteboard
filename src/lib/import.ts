@@ -4,7 +4,7 @@
  * 从而允许用户将外部 SVG 文件导入到白板中。
  */
 import paper from 'paper';
-import type { AnyPath, VectorPathData, Anchor, Point, RectangleData, EllipseData } from '../types';
+import type { AnyPath, VectorPathData, Anchor, Point, RectangleData, EllipseData, TextElement } from '../types';
 import { DEFAULT_ROUGHNESS, DEFAULT_BOWING, DEFAULT_FILL_WEIGHT, DEFAULT_HACHURE_ANGLE, DEFAULT_HACHURE_GAP, DEFAULT_CURVE_TIGHTNESS, DEFAULT_CURVE_STEP_COUNT } from '../constants';
 
 /**
@@ -139,6 +139,26 @@ export function importSvg(svgString: string): AnyPath[] {
                 width: item.bounds.width,
                 height: item.bounds.height,
             } as EllipseData;
+        } else if (item instanceof paper.PointText) {
+            const style = item.style;
+            newPath = {
+                ...getSharedSvgProps(item),
+                type: 'text',
+                tool: 'text',
+                x: item.bounds.x,
+                y: item.bounds.y,
+                width: item.bounds.width,
+                height: item.bounds.height,
+                text: item.content ?? '',
+                fontSize: Number(style.fontSize ?? 16),
+                fontFamily: String(style.fontFamily ?? 'sans-serif'),
+                fontWeight: Number(style.fontWeight ?? 400),
+                lineHeight: 1.2,
+                letterSpacing: 0,
+                align: style.justification as 'left' | 'center' | 'right' | undefined,
+                textAlign: style.justification as 'left' | 'center' | 'right' | undefined,
+                fill: paperColorToCss(style.fillColor ?? item.fillColor),
+            } as TextElement;
         } else {
             let path = item;
             let tempPath = null;
