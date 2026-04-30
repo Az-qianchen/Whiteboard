@@ -246,7 +246,7 @@ export const useDrawing = ({
           ? viewTransform.viewTransform.scale
           : 1;
         const hitPath = findDeepestHitPath(point, paths, scale);
-        if (hitPath && hitPath.tool === 'text' && !hitPath.isLocked) {
+        if (e.detail >= 2 && hitPath && hitPath.tool === 'text' && !hitPath.isLocked) {
           if (e.currentTarget.hasPointerCapture(e.pointerId)) {
             e.currentTarget.releasePointerCapture(e.pointerId);
           }
