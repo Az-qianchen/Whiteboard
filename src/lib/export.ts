@@ -7,3 +7,4 @@
 export { renderPathNode } from './export/core/render';
 export { pathsToSvgString } from './export/svg/export';
 export { pathsToPngBlob } from './export/png/export';
+export { normalizeDocumentForRead, normalizeDocumentForWrite } from './document';

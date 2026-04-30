@@ -2,7 +2,7 @@
  * Imports Excalidraw JSON and converts it into internal AnyPath objects.
  */
 
-import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData } from '@/types';
+import type { AnyPath, RectangleData, EllipseData, VectorPathData, Anchor, ImageData, TextElement } from '@/types';
 import {
   DEFAULT_ROUGHNESS,
   DEFAULT_BOWING,
@@ -122,6 +122,28 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
           strokeWidth: 0,
         } as ImageData);
       }
+    } else if (el.type === 'text') {
+      const resolvedAlign = el.textAlign ?? 'left';
+      paths.push({
+        ...sharedProps(el),
+        type: 'text',
+        tool: 'text',
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        text: el.text ?? '',
+        fontSize: el.fontSize ?? 20,
+        fontFamily: typeof el.fontFamily === 'string' ? el.fontFamily : 'Virgil, sans-serif',
+        fontWeight: 400,
+        lineHeight: 1.2,
+        letterSpacing: 0,
+        align: resolvedAlign,
+        textAlign: resolvedAlign,
+        fill: el.strokeColor ?? '#000000',
+        color: 'transparent',
+        strokeWidth: 0,
+      } as TextElement);
     }
   }
 
