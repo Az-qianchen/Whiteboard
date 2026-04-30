@@ -10,7 +10,7 @@ import { Whiteboard } from './Whiteboard';
 import { LayersProvider, type LayersContextValue } from '../lib/layers-context';
 import { ICONS, CONTROL_BUTTON_CLASS } from '../constants';
 import PanelButton from '@/components/PanelButton';
-import type { MaterialData, AnyPath, GroupData } from '../types';
+import type { MaterialData } from '../types';
 import { useTranslation } from 'react-i18next';
 
 // Import new layout components
@@ -18,26 +18,8 @@ import { MainMenuPanel } from './layout/MainMenuPanel';
 import { SideToolbarPanel } from './layout/SideToolbarPanel';
 import { CanvasOverlays } from './layout/CanvasOverlays';
 import { TimelinePanel } from './TimelinePanel';
-
-const clonePathForOnionSkin = (path: AnyPath, prefix: string, opacityFactor: number): AnyPath => {
-    const baseOpacity = path.opacity ?? 1;
-    const cloned = {
-        ...path,
-        id: `${prefix}${path.id}`,
-        opacity: baseOpacity * opacityFactor,
-        isLocked: true,
-    } as AnyPath;
-
-    if (path.tool === 'group') {
-        const group = path as GroupData;
-        return {
-            ...(cloned as GroupData),
-            children: group.children.map(child => clonePathForOnionSkin(child, prefix, opacityFactor)),
-        };
-    }
-
-    return cloned;
-};
+import { selectOnionSkinPaths } from '@/features/timeline/selectors';
+import { resolveCanvasCursor } from '@/features/canvas/cursorPolicy';
 
 export const MainLayout: React.FC = () => {
     const store = useAppContext();
@@ -94,38 +76,14 @@ export const MainLayout: React.FC = () => {
 
     const layersValue = useMemo<LayersContextValue>(() => store.activePathState, [store.activePathState]);
 
-    const onionSkinPaths = useMemo(() => {
-        if (!isOnionSkinEnabled || frames.length <= 1) {
-            return [];
-        }
-
-        const skinPaths: AnyPath[] = [];
-        const maxOpacity = onionSkinOpacity;
-
-        // Previous frames
-        for (let i = 1; i <= onionSkinPrevFrames; i++) {
-            const frameIndex = currentFrameIndex - i;
-            if (frameIndex < 0) break;
-            const opacity = maxOpacity * ((onionSkinPrevFrames - i + 1) / (onionSkinPrevFrames + 1));
-            const framePaths = frames[frameIndex].paths
-                .filter(p => p.isVisible !== false)
-                .map(p => clonePathForOnionSkin(p, `onion-prev-${i}-`, opacity));
-            skinPaths.push(...framePaths);
-        }
-
-        // Next frames
-        for (let i = 1; i <= onionSkinNextFrames; i++) {
-            const frameIndex = currentFrameIndex + i;
-            if (frameIndex >= frames.length) break;
-            const opacity = maxOpacity * ((onionSkinNextFrames - i + 1) / (onionSkinNextFrames + 1));
-            const framePaths = frames[frameIndex].paths
-                .filter(p => p.isVisible !== false)
-                .map(p => clonePathForOnionSkin(p, `onion-next-${i}-`, opacity));
-            skinPaths.push(...framePaths);
-        }
-
-        return skinPaths;
-    }, [isOnionSkinEnabled, frames, currentFrameIndex, onionSkinPrevFrames, onionSkinNextFrames, onionSkinOpacity]);
+    const onionSkinPaths = useMemo(() => selectOnionSkinPaths({
+        isOnionSkinEnabled,
+        frames,
+        currentFrameIndex,
+        onionSkinPrevFrames,
+        onionSkinNextFrames,
+        onionSkinOpacity,
+    }), [isOnionSkinEnabled, frames, currentFrameIndex, onionSkinPrevFrames, onionSkinNextFrames, onionSkinOpacity]);
 
     /**
      * 创建一个处理画布右键菜单的函数。
@@ -150,21 +108,16 @@ export const MainLayout: React.FC = () => {
     /**
      * 根据当前状态决定光标样式。
      */
-    const getCursor = useCallback(() => {
-        if (isPanning) return 'grabbing';
-        if (selectionInteraction.dragState?.type === 'move' || selectionInteraction.dragState?.type === 'rotate') return 'grabbing';
-        if (selectionInteraction.dragState?.type === 'crop') return (selectionInteraction.dragState as any).cursor || 'crosshair';
-        if (croppingState && cropTool === 'magic-wand') return 'crosshair';
-        switch (tool) {
-            case 'selection':
-                if (selectionMode === 'lasso') return 'crosshair';
-                if (selectionMode === 'move') return selectionInteraction.isHoveringMovable ? 'grab' : 'default';
-                if (selectionMode === 'edit') return selectionInteraction.isHoveringEditable ? 'pointer' : 'default';
-                return 'default';
-            case 'brush': case 'pen': case 'rectangle': case 'polygon': case 'ellipse': case 'line': case 'arc': return 'crosshair';
-            default: return 'default';
-        }
-    }, [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, cropTool]);
+    const getCursor = useCallback(() => resolveCanvasCursor({
+        isPanning,
+        tool,
+        selectionMode,
+        dragState: selectionInteraction.dragState,
+        isHoveringMovable: selectionInteraction.isHoveringMovable,
+        isHoveringEditable: selectionInteraction.isHoveringEditable,
+        hasCroppingState: Boolean(croppingState),
+        cropTool,
+    }), [isPanning, tool, selectionMode, selectionInteraction.dragState, selectionInteraction.isHoveringMovable, selectionInteraction.isHoveringEditable, croppingState, cropTool]);
 
     /**
      * 处理画布上的拖放事件，用于素材和文件导入。
