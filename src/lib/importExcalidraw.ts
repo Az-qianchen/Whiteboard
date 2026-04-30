@@ -141,7 +141,7 @@ export async function importExcalidraw(json: string): Promise<AnyPath[]> {
         align: resolvedAlign,
         textAlign: resolvedAlign,
         fill: el.strokeColor ?? '#000000',
-        color: 'transparent',
+        color: el.strokeColor ?? '#000000',
         strokeWidth: 0,
       } as TextElement);
     }
