@@ -18,6 +18,7 @@ import { useAppActions } from './actions/useAppActions';
 import { useGroupIsolation } from './useGroupIsolation';
 import { getLocalStorageItem } from '../lib/utils';
 import { DEFAULT_MAIN_MENU_WIDTH } from '@/constants';
+import { interpolateFramePaths } from '@/lib/animation/interpolatePaths';
 import * as idb from '../lib/indexedDB';
 import type { FileSystemDirectoryHandle, FileSystemFileHandle } from 'wicg-file-system-access';
 import type { WhiteboardData, Tool, AnyPath, StyleClipboardData, MaterialData, PngExportOptions, ImageData as PathImageData, BBox, Point, GroupData, TextData, BoardFileEntry, DirectoryAccessError } from '../types';
@@ -368,11 +369,14 @@ export const useAppStore = () => {
   const cropMagicWandMaskRef = useRef<MagicWandMask | null>(null);
   const cropMagicWandSampleRef = useRef<{ x: number; y: number } | null>(null);
   const cropManualDraftRef = useRef<CropManualDraft | null>(null);
+  const [frameProgress, setFrameProgress] = useState(0);
+  const lastFrameTimestampRef = useRef<number | null>(null);
 
   const pathState = usePathsStoreHook();
   const {
     paths,
     frames,
+    currentFrameIndex,
     revision,
     setCurrentFrameIndex,
     setPaths,
@@ -413,6 +417,57 @@ export const useAppStore = () => {
     () => createDocumentSignature(revision, uiState.backgroundColor, uiState.fps),
     [revision, uiState.backgroundColor, uiState.fps]
   );
+
+  useEffect(() => {
+    lastFrameTimestampRef.current = null;
+    setFrameProgress(0);
+  }, [uiState.isPlaying, currentFrameIndex, frames.length]);
+
+  useEffect(() => {
+    if (!uiState.isPlaying || frames.length <= 1) {
+      return () => {
+        lastFrameTimestampRef.current = null;
+      };
+    }
+
+    let rafId: number;
+    const step = (timestamp: number) => {
+      if (lastFrameTimestampRef.current === null) {
+        lastFrameTimestampRef.current = timestamp;
+        rafId = requestAnimationFrame(step);
+        return;
+      }
+
+      const delta = timestamp - lastFrameTimestampRef.current;
+      lastFrameTimestampRef.current = timestamp;
+      const frameDuration = 1000 / Math.max(uiState.fps, 1);
+      if (!Number.isFinite(frameDuration) || frameDuration <= 0) {
+        rafId = requestAnimationFrame(step);
+        return;
+      }
+
+      setFrameProgress(prev => {
+        let nextProgress = prev + delta / frameDuration;
+        if (nextProgress >= 1) {
+          let remaining = nextProgress;
+          while (remaining >= 1) {
+            remaining -= 1;
+            setCurrentFrameIndex(prevIndex => (frames.length === 0 ? prevIndex : (prevIndex + 1) % frames.length));
+          }
+          return remaining;
+        }
+        return nextProgress;
+      });
+
+      rafId = requestAnimationFrame(step);
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(rafId);
+      lastFrameTimestampRef.current = null;
+    };
+  }, [uiState.isPlaying, uiState.fps, frames.length, setCurrentFrameIndex]);
 
   useEffect(() => {
     if (!appState.croppingState) {
@@ -1140,6 +1195,42 @@ export const useAppStore = () => {
   const viewTransform = useViewTransform();
   const requestFitToContent = useViewTransformStore(s => s.requestFitToContent);
   const toolbarState = useToolsStore(activePaths, selectedPathIds, activePathState.setPaths, setSelectedPathIds, beginCoalescing, endCoalescing);
+  const renderFramePaths = useMemo(() => {
+    if (frames.length === 0) {
+      return [] as AnyPath[];
+    }
+    const safeIndex = Math.min(Math.max(currentFrameIndex, 0), frames.length - 1);
+    const current = frames[safeIndex];
+    const currentPaths = current?.paths ?? [];
+    if (!uiState.isPlaying || frames.length === 1) {
+      return currentPaths;
+    }
+    const nextIndex = (safeIndex + 1) % frames.length;
+    const nextPaths = frames[nextIndex]?.paths ?? [];
+    return interpolateFramePaths(currentPaths, nextPaths, frameProgress);
+  }, [frames, currentFrameIndex, uiState.isPlaying, frameProgress]);
+
+  const renderActivePaths = useMemo(() => {
+    if (groupIsolation.groupIsolationPath.length === 0) {
+      return renderFramePaths;
+    }
+    let currentLevel: AnyPath[] = renderFramePaths;
+    for (const group of groupIsolation.groupIsolationPath) {
+      const match = currentLevel.find(path => path.id === group.id && path.tool === 'group');
+      if (!match || match.tool !== 'group') {
+        return renderFramePaths;
+      }
+      currentLevel = (match as GroupData).children ?? [];
+    }
+    return currentLevel;
+  }, [groupIsolation.groupIsolationPath, renderFramePaths]);
+
+  const renderBackgroundPaths = useMemo(() => {
+    if (groupIsolation.groupIsolationPath.length === 0) {
+      return [] as AnyPath[];
+    }
+    return renderFramePaths;
+  }, [groupIsolation.groupIsolationPath, renderFramePaths]);
 
   const handleCropManualPointerDown = useCallback((point: Point, event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
@@ -2078,22 +2169,6 @@ export const useAppStore = () => {
     };
   }, [refreshDirectoryEntries]);
 
-  useEffect(() => {
-    if (!uiState.isPlaying || frames.length === 0) return;
-    let frameInterval = 1000 / uiState.fps;
-    let lastFrameTime = 0;
-    let animationFrameId: number;
-    const animate = (timestamp: number) => {
-        if (timestamp - lastFrameTime > frameInterval) {
-            lastFrameTime = timestamp;
-            setCurrentFrameIndex(prev => (prev + 1) % frames.length);
-        }
-        animationFrameId = requestAnimationFrame(animate);
-    };
-    animationFrameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [uiState.isPlaying, uiState.fps, frames.length, setCurrentFrameIndex]);
-
   useEffect(() => { /* ... save libraries ... */ }, [appState.styleLibrary, appState.materialLibrary]);
 
   const store = useMemo(
@@ -2104,6 +2179,9 @@ export const useAppStore = () => {
       ...groupIsolation,
       ...viewTransform,
       ...toolbarState,
+      renderPaths: renderActivePaths,
+      renderBackgroundPaths,
+      renderFramePaths,
       paths, // This should be current frame paths
       ...appActions,
       drawingInteraction,
@@ -2211,6 +2289,9 @@ export const useAppStore = () => {
       groupIsolation,
       viewTransform,
       toolbarState,
+      renderActivePaths,
+      renderBackgroundPaths,
+      renderFramePaths,
       paths,
       appActions,
       drawingInteraction,
