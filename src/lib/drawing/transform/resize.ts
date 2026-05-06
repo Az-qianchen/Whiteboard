@@ -2,6 +2,7 @@ import type { Point, RectangleData, EllipseData, ImageData, PolygonData, FrameDa
 import { rotatePoint } from '../geom';
 import { scalePath } from './scale';
 import { movePath } from './move';
+import { layoutText, resolveLineHeight } from '@/lib/text';
 
 /**
  * 调整图形的大小。
@@ -122,6 +123,45 @@ export function resizePath(
 
   const scaleX = appliesToX ? rawScaleX : 1;
   const scaleY = appliesToY ? rawScaleY : 1;
+
+  if (originalPath.tool === 'text') {
+    const nextLeft = affectsX ? Math.min(anchor.x, localCurrentPos.x) : oldX;
+    const nextRight = affectsX ? Math.max(anchor.x, localCurrentPos.x) : oldX + oldWidth;
+    const nextTop = affectsY ? Math.min(anchor.y, localCurrentPos.y) : oldY;
+    const nextBottom = affectsY ? Math.max(anchor.y, localCurrentPos.y) : oldY + oldHeight;
+    const baseLineHeight = resolveLineHeight(originalPath.fontSize, originalPath.lineHeight);
+    const nextWidth = Math.max(nextRight - nextLeft, 1);
+    const layout = layoutText(
+      originalPath.text,
+      originalPath.fontSize,
+      originalPath.fontFamily,
+      baseLineHeight,
+      originalPath.fontWeight,
+      nextWidth,
+    );
+
+    let textResult: TextData = {
+      ...originalPath,
+      x: nextLeft,
+      y: nextTop,
+      width: layout.width,
+      height: affectsY ? Math.max(nextBottom - nextTop, 1) : layout.height,
+      lineHeight: layout.lineHeight,
+    };
+
+    if (rotation) {
+      const newCenter = { x: textResult.x + textResult.width / 2, y: textResult.y + textResult.height / 2 };
+      const rotationPivot = rotationCenter ?? newCenter;
+      const anchorGlobalNew = rotatePoint(anchor, rotationPivot, rotation);
+      const translation = {
+        x: anchorGlobal.x - anchorGlobalNew.x,
+        y: anchorGlobal.y - anchorGlobalNew.y,
+      };
+      textResult = movePath(textResult, translation.x, translation.y);
+    }
+
+    return textResult;
+  }
 
   let result = scalePath(originalPath, anchor, scaleX, scaleY);
 
