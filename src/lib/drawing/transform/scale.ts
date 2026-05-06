@@ -44,11 +44,13 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
 
       if (path.tool === 'text') {
         const textPath = path as TextData;
-        const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
+        const fontScale = Math.abs(scaleY);
+        const nextFontSize = Math.max(1, textPath.fontSize * fontScale);
+        const baseLineHeight = resolveLineHeight(nextFontSize, textPath.lineHeight);
         const targetWidth = Math.abs(scaledWidth);
         const layout = layoutText(
           textPath.text,
-          textPath.fontSize,
+          nextFontSize,
           textPath.fontFamily,
           baseLineHeight,
           textPath.fontWeight,
@@ -58,6 +60,7 @@ export function scalePath<T extends AnyPath>(path: T, pivot: Point, scaleX: numb
           ...textPath,
           x: newX,
           y: newY,
+          fontSize: nextFontSize,
           width: layout.width,
           height: layout.height,
           scaleX: newScaleX,

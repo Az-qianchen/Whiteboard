@@ -39,6 +39,21 @@ function sampleEllipse(cx: number, cy: number, rx: number, ry: number, steps: nu
     return points;
 }
 
+function getRotatedRectCorners(path: RectangleData | ImageData | TextData): Point[] {
+    const { x, y, width, height, rotation } = path;
+    const corners = [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+    ];
+    if (!rotation) {
+        return corners;
+    }
+    const center = { x: x + width / 2, y: y + height / 2 };
+    return corners.map(point => rotatePoint(point, center, rotation));
+}
+
 export function isPointInPolygon(point: Point, vs: Point[]): boolean {
     const x = point.x, y = point.y;
     let inside = false;
@@ -50,6 +65,11 @@ export function isPointInPolygon(point: Point, vs: Point[]): boolean {
         if (intersect) inside = !inside;
     }
     return inside;
+}
+
+function isPointInRect(point: Point, rect: BBox): boolean {
+    return point.x >= rect.x && point.x <= rect.x + rect.width &&
+        point.y >= rect.y && point.y <= rect.y + rect.height;
 }
 
 function hasVisibleFill(path: AnyPath): boolean {
@@ -86,6 +106,10 @@ export function isPointHittingPath(point: Point, path: AnyPath, scale: number): 
     // It's the larger of a 5px screen margin (converted to world space) or half the path's stroke width.
     const threshold = Math.max(5 / scale, path.strokeWidth / 2);
     const thresholdSq = threshold * threshold;
+    const pathBbox = getPathBoundingBox(path, true);
+    if (!pathBbox || !isPointInRect(point, pathBbox)) {
+        return false;
+    }
 
     switch (path.tool) {
         case 'brush': {
@@ -304,10 +328,6 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
     return true;
   }
   
-  const isPointInRect = (p: Point, rect: BBox) => 
-        p.x >= rect.x && p.x <= rect.x + rect.width &&
-        p.y >= rect.y && p.y <= rect.y + rect.height;
-
   // Check for partial intersection using sampled points
   let pathSamples: Point[] = [];
   switch (path.tool) {
@@ -325,20 +345,15 @@ export function isPathIntersectingMarquee(path: AnyPath, marqueeRect: BBox): boo
       break;
     case 'rectangle':
     case 'image':
+    case 'text':
     case 'polygon': {
         // For shapes, checking their vertices is a good approximation for intersection
         const vertices = (path.tool === 'polygon')
             ? getPolygonVertices(path.x, path.y, path.width, path.height, (path as PolygonData).sides)
-            : getPolygonVertices(path.x, path.y, path.width, path.height, 4); // Treat rects as 4-sided polygons
-
-        if (path.rotation) {
-            const center = { x: path.x + path.width / 2, y: path.y + path.height / 2 };
-            pathSamples = vertices.map(p => rotatePoint(p, center, path.rotation ?? 0));
-        } else {
-            pathSamples = vertices;
-        }
+            : getRotatedRectCorners(path as RectangleData | ImageData | TextData);
+        pathSamples = vertices;
         // Also check the center point when the shape has a visible fill
-        const shouldCheckCenter = path.tool === 'image' || hasVisibleFill(path);
+        const shouldCheckCenter = path.tool === 'image' || path.tool === 'text' || hasVisibleFill(path);
         if (shouldCheckCenter) {
             pathSamples.push({ x: path.x + path.width / 2, y: path.y + path.height / 2 });
         }
@@ -432,6 +447,7 @@ export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): bo
             break;
         case 'rectangle':
         case 'image':
+        case 'text':
         case 'ellipse':
         case 'polygon': {
             const { x, y, width, height, rotation } = path;
@@ -446,14 +462,15 @@ export function isPathIntersectingLasso(path: AnyPath, lassoPoints: Point[]): bo
                     const angle = (i / 8) * 2 * Math.PI;
                     pointsToCheck.push({ x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) });
                 }
-            } else {
+            } else if (path.tool === 'polygon') {
                  const vertices = (path.tool === 'polygon')
                     ? getPolygonVertices(x, y, width, height, (path as PolygonData).sides)
                     : getPolygonVertices(x, y, width, height, 4);
                 pointsToCheck = vertices;
+            } else {
+                pointsToCheck = getRotatedRectCorners(path as RectangleData | ImageData | TextData);
             }
-
-            if (rotation) {
+            if (rotation && path.tool !== 'text' && path.tool !== 'rectangle' && path.tool !== 'image') {
                 const center = { x: x + width / 2, y: y + height / 2 };
                 pointsToCheck = pointsToCheck.map(p => rotatePoint(p, center, rotation ?? 0));
             }
