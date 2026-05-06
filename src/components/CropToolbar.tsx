@@ -485,6 +485,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                       className={`${PANEL_CLASSES.input} hide-spinners text-right`}
                     />
                   </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={cropMagicWandOptions.featherRadius}
+                    onChange={handleFeatherRadiusChange}
+                    aria-label={t('featherRadius')}
+                    className="w-24 accent-[var(--accent-primary)]"
+                  />
                 </label>
 
                 {cropSelectionMode === 'brush' && (
@@ -530,6 +540,16 @@ export const CropToolbar: React.FC<CropToolbarProps> = ({
                           className={`${PANEL_CLASSES.input} hide-spinners text-right`}
                         />
                       </div>
+                      <input
+                        type="range"
+                        min={1}
+                        max={120}
+                        step={1}
+                        value={cropMagicWandOptions.threshold}
+                        onChange={handleThresholdChange}
+                        aria-label={t('threshold')}
+                        className="w-24 accent-[var(--accent-primary)]"
+                      />
                     </label>
 
                     <PanelButton
