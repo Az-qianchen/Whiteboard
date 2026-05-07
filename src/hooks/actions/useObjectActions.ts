@@ -377,12 +377,14 @@ export const useObjectActions = ({
   }, [paths, selectedPathIds]);
 
   const applyCommittedImageFile = useCallback((pathId: string, fileId: string) => {
+    pathState.beginCoalescing();
     pathState.setPaths(prev => prev.map(p => {
       if (p.id !== pathId || p.tool !== 'image') {
         return p;
       }
       return { ...p, fileId, src: undefined };
     }));
+    pathState.endCoalescing();
 
     setCroppingState(prev => {
       if (!prev || prev.pathId !== pathId) {
