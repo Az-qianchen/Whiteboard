@@ -48,7 +48,7 @@ export function useTextEditing({
   }, [path.id]);
 
   const width = Math.max(!isNew && path.width > 0 ? path.width : layout.width, layout.width, 1);
-  const height = Math.max(path.height, layout.height, 1);
+  const height = Math.max(layout.height, 1);
 
   const transform = useMemo(() => {
     const viewMatrix = { a: viewTransform.scale, b: 0, c: 0, d: viewTransform.scale, e: viewTransform.translateX, f: viewTransform.translateY };
