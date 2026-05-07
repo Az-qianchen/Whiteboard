@@ -228,6 +228,7 @@ interface TextEditingState {
   draft: string;
   isNew: boolean;
   original: TextEditingSnapshot | null;
+  latestLayout: Pick<TextEditingSnapshot, 'width' | 'height' | 'lineHeight'> | null;
 }
 
 interface AppState {
@@ -1460,7 +1461,15 @@ export const useAppStore = () => {
 
     setAppState(prev => ({
       ...prev,
-      textEditing: { pathId, draft, isNew: options?.isNew ?? false, original },
+      textEditing: {
+        pathId,
+        draft,
+        isNew: options?.isNew ?? false,
+        original,
+        latestLayout: original
+          ? { width: original.width, height: original.height, lineHeight: original.lineHeight }
+          : null,
+      },
     }));
   }, [paths, setAppState]);
 
@@ -1578,18 +1587,38 @@ export const useAppStore = () => {
   const textEditing = appState.textEditing;
 
   const updateTextEditing = useCallback((draft: string) => {
-    setAppState(prev => {
-      if (!prev.textEditing || prev.textEditing.draft === draft) {
-        return prev;
-      }
-      return { ...prev, textEditing: { ...prev.textEditing, draft } };
-    });
-
     if (!textEditing) {
       return;
     }
 
+    const textPath = paths.find((path): path is TextData => path.id === textEditing.pathId && path.tool === 'text');
     const normalized = draft.replace(/\r/g, '');
+    const layout = textPath
+      ? layoutText(
+        normalized,
+        textPath.fontSize,
+        textPath.fontFamily,
+        resolveLineHeight(textPath.fontSize, textPath.lineHeight),
+        textPath.fontWeight,
+        textEditing.isNew ? undefined : Math.max(textPath.width, 0),
+      )
+      : null;
+
+    setAppState(prev => {
+      if (!prev.textEditing || (prev.textEditing.draft === draft && layout === null)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        textEditing: {
+          ...prev.textEditing,
+          draft,
+          latestLayout: layout
+            ? { width: layout.width, height: layout.height, lineHeight: layout.lineHeight }
+            : prev.textEditing.latestLayout,
+        },
+      };
+    });
 
     setPaths(currentPaths => {
       const index = currentPaths.findIndex(path => path.id === textEditing.pathId);
@@ -1603,20 +1632,22 @@ export const useAppStore = () => {
       }
 
       const textPath = target as TextData;
-      const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
-      const widthConstraint = textEditing.isNew ? undefined : Math.max(textPath.width, 0);
-      const layout = layoutText(
-        normalized,
-        textPath.fontSize,
-        textPath.fontFamily,
-        baseLineHeight,
-        textPath.fontWeight,
-        widthConstraint,
-      );
+      const computedLayout = layout ?? (() => {
+        const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
+        const widthConstraint = textEditing.isNew ? undefined : Math.max(textPath.width, 0);
+        return layoutText(
+          normalized,
+          textPath.fontSize,
+          textPath.fontFamily,
+          baseLineHeight,
+          textPath.fontWeight,
+          widthConstraint,
+        );
+      })();
 
-      const nextWidth = textEditing.isNew ? layout.width : textPath.width;
-      const nextHeight = layout.height;
-      const nextLineHeight = layout.lineHeight;
+      const nextWidth = textEditing.isNew ? computedLayout.width : textPath.width;
+      const nextHeight = computedLayout.height;
+      const nextLineHeight = computedLayout.lineHeight;
 
       if (
         textPath.width === nextWidth &&
@@ -1637,7 +1668,7 @@ export const useAppStore = () => {
       nextPaths[index] = updated;
       return nextPaths;
     });
-  }, [setAppState, textEditing, setPaths]);
+  }, [setAppState, textEditing, setPaths, paths]);
 
   const commitTextEditing = useCallback(() => {
     if (!textEditing) {
@@ -1665,16 +1696,18 @@ export const useAppStore = () => {
         return currentPaths.filter(path => path.id !== pathId);
       }
 
-      const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
-      const widthConstraint = isNew ? undefined : Math.max(textPath.width, 0);
-      const layout = layoutText(
-        normalized,
-        textPath.fontSize,
-        textPath.fontFamily,
-        baseLineHeight,
-        textPath.fontWeight,
-        widthConstraint,
-      );
+      const layout = textEditing.latestLayout ?? (() => {
+        const baseLineHeight = resolveLineHeight(textPath.fontSize, textPath.lineHeight);
+        const widthConstraint = isNew ? undefined : Math.max(textPath.width, 0);
+        return layoutText(
+          normalized,
+          textPath.fontSize,
+          textPath.fontFamily,
+          baseLineHeight,
+          textPath.fontWeight,
+          widthConstraint,
+        );
+      })();
       const updated: TextData = {
         ...textPath,
         text: normalized,
