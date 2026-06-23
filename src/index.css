@@ -116,7 +116,9 @@ textarea {
   -moz-user-select: auto;
   -ms-user-select: auto;
   user-select: auto;
-  font-size: 85%;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
 }
 
 @layer components {
