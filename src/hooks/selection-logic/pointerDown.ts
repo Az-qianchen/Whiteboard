@@ -275,7 +275,8 @@ export const handlePointerDownLogic = (props: HandlePointerDownProps) => {
                 const isSimpleShape = selected.length === 1 && (path.tool === 'rectangle' || path.tool === 'ellipse' || path.tool === 'image' || path.tool === 'polygon' || path.tool === 'frame' || path.tool === 'text');
 
                 if (isSimpleShape) {
-                    if (e.ctrlKey || e.metaKey) {
+                    const hasPrimaryModifier = e.ctrlKey || e.metaKey;
+                    if (hasPrimaryModifier && e.shiftKey) {
                         setDragState({ type: 'skew', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
                     } else {
                         setDragState({ type: 'resize', pathId: path.id, handle, originalPath: path as any, initialPointerPos: point });
